@@ -80,8 +80,8 @@ to ParallelExecutor, mutex state lock.
   to the POSIX function `clock_gettime()`.
   [Issue #523](https://github.com/simbody/simbody/issues/523),
   [PR 524](#https://github.com/simbody/simbody/pull/524)
-* Replaced usages of pthreads with C++11 classes. Removed the AtomicInteger
-  class.
+* Replaced usages of pthreads with C++11 classes. Removed the AtomicInteger and
+  ThreadLocal classes.
 * (There are more that haven't been added yet)
 
 

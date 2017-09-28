@@ -29,6 +29,7 @@
 #include "SimTKcommon/Testing.h"
 
 #include <vector>
+#include <set>
 #include <sstream>
 #include <iterator>
 #include <iostream>

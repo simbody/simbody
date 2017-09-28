@@ -43,28 +43,57 @@ class ParallelExecutorImpl;
 #endif
 
 /**
- * This class is used for performing multithreaded computations.  To use it, define a subclass of
- * ParallelExecutor::Task that performs some computation.  Then create a ParallelExecutor object
- * and ask it to execute the task:
+ * This class is used for performing multithreaded computations.  To use it,
+ * define a subclass of ParallelExecutor::Task that performs some computation.
+ * Then create a ParallelExecutor object and ask it to execute the task:
  * 
  * <pre>
  * ParallelExecutor executor;
  * executor.execute(myTask, times);
  * </pre>
  * 
- * The Task's execute() method will be called the specified number of times, with each invocation
- * being given a different index value from 0 to times-1.  The invocations are done in parallel
- * on multiple threads, so you cannot make any assumptions about what order they will occur in
- * or which ones will happen at the same time.
+ * The Task's execute() method will be called the specified number of times,
+ * with each invocation being given a different index value from 0 to times-1.
+ * The invocations are done in parallel on multiple threads, so you cannot make
+ * any assumptions about what order they will occur in or which ones will
+ * happen at the same time.
  * 
- * The threads are created in the ParallelExecutor's constructor and remain active until it is deleted.
- * This means that creating a ParallelExecutor is a somewhat expensive operation, but it may then be
- * used repeatedly for executing various calculations.  By default, the number of threads is chosen
- * to be equal to the number of available processor cores.  You can optionally specify a different number
- * of threads to create.  For example, using more threads than processors can sometimes lead to better
- * processor utilitization.  Alternatively, if the Task will only be executed four times, you might
- * specify min(4, ParallelExecutor::getNumProcessors()) to avoid creating extra threads that will never
- * have any work to do.
+ * The threads are created in the ParallelExecutor's constructor and remain
+ * active until it is deleted. This means that creating a ParallelExecutor is a
+ * somewhat expensive operation, but it may then be used repeatedly for
+ * executing various calculations.  By default, the number of threads is chosen
+ * to be equal to the number of available processor cores.  You can optionally
+ * specify a different number of threads to create.  For example, using more
+ * threads than processors can sometimes lead to better processor
+ * utilitization.  Alternatively, if the Task will only be executed four times,
+ * you might specify min(4, ParallelExecutor::getNumProcessors()) to avoid
+ * creating extra threads that will never have any work to do.
+ *
+ * You may find it useful to use "thread local" variables with your parallel
+ * tasks. A thread local variable may have a different value on each thread
+ * Thread-local storage is useful in many situations when writing multithreaded
+ * code. For example, it can be used as temporary workspace for calculations.
+ * If a single workspace object were created, all access to it would need to be
+ * synchronized to prevent threads from overwriting each other's values. Making
+ * a variable `thread_local T` means that a separate workspace object of type
+ * `T` will automatically be created for each thread. That object will have
+ * "thread scope" meaning it will be destructed only on thread termination.
+ * 
+ * One way to use thread local variables is to declare a static thread local
+ * member variable in your ParallelExecutor::Task:
+ * @code{.cpp}
+ * class MyTask : public ParallelExecutor::Task {
+ *     ...
+ * public:
+ *     void execute(int index) override {
+ *         workspace += 1.0; // incremented separately on each thread.
+ *     }
+ * private:
+ *     static thread_local double workspace;
+ * };
+ * // Initialize the static variable out-of-line.
+ * thread_local double workspace = 0;
+ * @endcode
  */
 
 class SimTK_SimTKCOMMON_EXPORT ParallelExecutor : public PIMPLHandle<ParallelExecutor, ParallelExecutorImpl> {
