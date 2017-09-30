@@ -35,6 +35,14 @@
 #include <cassert>
 #include <algorithm>
 
+#if defined(__clang__)
+    #if __has_warning("-Winstantiation-after-specialization")
+        // Avoid the harmless warning "explicit instantiation of 'Zero' that
+        // occurs after an explicit specialization has no effect"
+        #pragma clang diagnostic ignored "-Winstantiation-after-specialization"
+    #endif
+#endif
+
 namespace SimTK {
 
 // These are here just to make sure they compile.
