@@ -160,6 +160,7 @@ if(BUILD_VISUALIZER)
     # in VisualizerProtocol.cpp
     # TODO even that is not sufficient.
     set(GUI_NAME "simbody-visualizer")
+    set(GUI_NAME ${GUI_NAME} PARENT_SCOPE)
     add_subdirectory(Visualizer/simbody-visualizer)
 endif()
 
