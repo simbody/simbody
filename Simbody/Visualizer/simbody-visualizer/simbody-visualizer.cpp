@@ -2439,7 +2439,6 @@ void listenForInput() {
   } catch (const std::exception& e) {
         std::cout << "simbody-visualizer listenerThread: unrecoverable error:\n";
         std::cout << e.what() << std::endl;
-        std::exit(1);
     }
 }
 
