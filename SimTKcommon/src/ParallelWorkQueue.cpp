@@ -29,20 +29,20 @@ using std::queue;
 
 namespace SimTK {
 
-static void threadBody(ParallelWorkQueueImpl* owner) {
-    queue<ParallelWorkQueue::Task*>& taskQueue = owner->updTaskQueue();
-    std::mutex& queueMutex = owner->getQueueMutex();
-    std::condition_variable& waitForTaskCondition = owner->getWaitCondition();
-    std::condition_variable& queueFullCondition = owner->getQueueFullCondition();
+static void threadBody(ParallelWorkQueueImpl& owner) {
+    queue<ParallelWorkQueue::Task*>& taskQueue = owner.updTaskQueue();
+    std::mutex& queueMutex = owner.getQueueMutex();
+    std::condition_variable& waitForTaskCondition = owner.getWaitCondition();
+    std::condition_variable& queueFullCondition = owner.getQueueFullCondition();
     bool decrementTaskCount = false;
-    while (!owner->isFinished() || !taskQueue.empty()) {
+    while (!owner.isFinished() || !taskQueue.empty()) {
         std::unique_lock<std::mutex> lock(queueMutex);
         if (decrementTaskCount) {
-            owner->markTaskCompleted();
+            owner.markTaskCompleted();
             decrementTaskCount = false;
         }
         waitForTaskCondition.wait(lock,
-                [&] { return !taskQueue.empty() || owner->isFinished(); });
+                [&] { return !taskQueue.empty() || owner.isFinished(); });
         ParallelWorkQueue::Task* task = NULL;
         if (!taskQueue.empty()) {
             task = taskQueue.front();
@@ -58,14 +58,14 @@ static void threadBody(ParallelWorkQueueImpl* owner) {
     }
     if (decrementTaskCount) {
         std::lock_guard<std::mutex> lock(queueMutex);
-        owner->markTaskCompleted();
+        owner.markTaskCompleted();
     }
 }
 
 ParallelWorkQueueImpl::ParallelWorkQueueImpl(int queueSize, int numThreads) : queueSize(queueSize), pendingTasks(0), finished(false) {
     threads.resize(numThreads);
     for (int i = 0; i < numThreads; ++i)
-        threads[i] = std::thread(threadBody, this);
+        threads[i] = std::thread(threadBody, std::ref(*this));
 }
 
 ParallelWorkQueueImpl::~ParallelWorkQueueImpl() {
