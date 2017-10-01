@@ -1997,13 +1997,26 @@ static void saveMovie() {
     }
 }
 
+class ReadingInterrupted : public std::exception {};
+
 // Read a particular number of bytes from srcPipe to the given buffer.
 // This will hang until the expected number of bytes has been received.
+// Throws ReadingInterrupted if the srcPipe is closed.
 static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
-    while (totalRead < bytes)
-        totalRead += READ(srcPipe, buffer+totalRead, bytes-totalRead);
+    while (totalRead < bytes) {
+        auto retval = READ(srcPipe, buffer + totalRead, bytes - totalRead);
+        SimTK_ERRCHK4_ALWAYS(retval!=-1, "simbody-visualizer",
+            "An attempt to read() %d bytes from pipe %d failed with errno=%d (%s).", 
+            bytes - totalRead, srcPipe, errno, strerror(errno));
+        // The pipe was closed, perhaps because the simulator was closed.
+        // Without this check, we end up in an infinite loop.
+        if (retval == 0) throw ReadingInterrupted();
+
+        totalRead += retval;
+    }
 }
+// Throws ReadingInterrupted if inPipe is closed.
 static void readData(unsigned char* buffer, int bytes) {
     readDataFromPipe(inPipe, buffer, bytes);
 }
@@ -2436,6 +2449,8 @@ void listenForInput() {
         if (!issuedActiveRedisplay)
             requestPassiveRedisplay();         //------- PASSIVE REDISPLAY --
     }
+  } catch (const ReadingInterrupted& e) {
+        // Stop listening, because the simulator was closed.
   } catch (const std::exception& e) {
         std::cout << "simbody-visualizer listenerThread: unrecoverable error:\n";
         std::cout << e.what() << std::endl;
