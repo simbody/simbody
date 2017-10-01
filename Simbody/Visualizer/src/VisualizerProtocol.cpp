@@ -425,7 +425,7 @@ VisualizerProtocol::~VisualizerProtocol() {
 }
 
 void VisualizerProtocol::beginScene(Real time) {
-    sceneMutex.lock();
+    sceneLockBeginEnd = std::unique_lock<std::mutex>(sceneMutex);
     char command = StartOfScene;
     WRITE(outPipe, &command, 1);
     float fTime = (float)time;
@@ -435,7 +435,7 @@ void VisualizerProtocol::beginScene(Real time) {
 void VisualizerProtocol::finishScene() {
     char command = EndOfScene;
     WRITE(outPipe, &command, 1);
-    sceneMutex.unlock();
+    sceneLockBeginEnd.unlock();
 }
 
 void VisualizerProtocol::drawBox(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
