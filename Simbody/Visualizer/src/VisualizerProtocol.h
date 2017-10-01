@@ -102,9 +102,10 @@ class VisualizerProtocol {
 public:
     VisualizerProtocol(Visualizer& visualizer,
                        const Array_<String>& searchPath);
+    ~VisualizerProtocol();
     void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
     void shutdownGUI();
-    ~VisualizerProtocol();
+    void killListenerThreadIfNecessary();
     void beginScene(Real simTime);
     void finishScene();
     void drawBox(const Transform& transform, const Vec3& scale, 

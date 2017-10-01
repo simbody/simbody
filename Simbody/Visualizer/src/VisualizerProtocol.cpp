@@ -42,12 +42,12 @@ using namespace std;
     #include <process.h>
     #define READ _read
     #define WRITEFUNC _write
-    #define CLOSEFUNC _close
+    #define CLOSE _close
 #else
     #include <unistd.h>
     #define READ read
     #define WRITEFUNC write
-    #define CLOSEFUNC close
+    #define CLOSE close
 #endif
 
 #ifdef _MSC_VER
@@ -168,31 +168,29 @@ static void spawnViz(const Array_<String>& searchPath, const String& appName,
 
 class ReadingInterrupted : public std::exception {};
 
-// Throws ReadingInterrupted if `continueReading` becomes false before reading
-// `bytes` bytes.
-static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes,
-        const std::atomic<bool>& continueReading = {true}) {
+// This will hang until the expected number of bytes has been received.
+// Throws ReadingInterrupted if the srcPipe is closed.
+static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
     while (totalRead < bytes) {
-        if (!continueReading) throw ReadingInterrupted();
-
         auto retval = READ(srcPipe, buffer + totalRead, bytes - totalRead);
         SimTK_ERRCHK4_ALWAYS(retval!=-1, "VisualizerProtocol",
             "An attempt to read() %d bytes from pipe %d failed with errno=%d (%s).", 
             bytes - totalRead, srcPipe, errno, strerror(errno));
-        // The pipe was closed (simbody-visualizer closed).
+        // The pipe was closed, perhaps because simbody-visualizer was closed,
+        // or shutdownGUI() or ~VisualizerProtocol() was called.
+        // Without this check, we end up in an infinite loop if the user closes
+        // simbody-visualizer.
         if (retval == 0) throw ReadingInterrupted();
 
         totalRead += retval;
     }
 }
 
-// Returns false if `continueReading` becomes false before reading `bytes`
-// bytes; returns true otherwise.
-static void readData(unsigned char* buffer, int bytes,
-        const std::atomic<bool>& continueReading = {true}) 
+// Throws ReadingInterrupted if inPipe is closed.
+static void readData(unsigned char* buffer, int bytes)
 {
-    readDataFromPipe(inPipe, buffer, bytes, continueReading);
+    readDataFromPipe(inPipe, buffer, bytes);
 }
 
 static void listenForVisualizerEvents(Visualizer& visualizer,
@@ -202,10 +200,10 @@ static void listenForVisualizerEvents(Visualizer& visualizer,
     try
   { while (continueListening) {
         // Receive a user input event.
-        readData(buffer, 1, continueListening);
+        readData(buffer, 1);
         switch (buffer[0]) {
         case KeyPressed: {
-            readData(buffer, 2, continueListening);
+            readData(buffer, 2);
             const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
             unsigned keyCode = buffer[0];
             if (buffer[1] & Visualizer::InputListener::IsSpecialKey)
@@ -217,8 +215,8 @@ static void listenForVisualizerEvents(Visualizer& visualizer,
         }
         case MenuSelected: {
             int menu, item;
-            readData((unsigned char*) &menu, sizeof(int), continueListening);
-            readData((unsigned char*) &item, sizeof(int), continueListening);
+            readData((unsigned char*) &menu, sizeof(int));
+            readData((unsigned char*) &item, sizeof(int));
             const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
             for (int i = 0; i < (int) listeners.size(); i++)
                 if (listeners[i]->menuSelected(menu, item))
@@ -227,9 +225,9 @@ static void listenForVisualizerEvents(Visualizer& visualizer,
         }
         case SliderMoved: {
             int slider;
-            readData((unsigned char*) &slider, sizeof(int), continueListening);
+            readData((unsigned char*) &slider, sizeof(int));
             float value;
-            readData((unsigned char*) &value, sizeof(float), continueListening);
+            readData((unsigned char*) &value, sizeof(float));
             const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
             for (int i = 0; i < (int) listeners.size(); i++)
                 if (listeners[i]->sliderMoved(slider, value))
@@ -410,27 +408,26 @@ void VisualizerProtocol::shutdownGUI() {
     // the pipe may throw an exception. Shutting down the listener thread was
     // added to solve an issue with OpenSim MATLAB bindings, wherein MATLAB
     // would use more and more CPU each time a Visualizer was created.
-    if (eventListenerThread.joinable()) { // this should always be true, here.
-        continueListening = false; // the listener thread checks this variable.
-        // Close the read pipe so that the thread stops waiting for data.
-        CLOSEFUNC(inPipe); // TODO make this work on Windows.
-        // Wait for the listener thread to stop.
-        eventListenerThread.join();
-    }
+    killListenerThreadIfNecessary();
     
     char command = Shutdown;
     WRITE(outPipe, &command, 1);
 }
 
 VisualizerProtocol::~VisualizerProtocol() {
+    // If shutdownGUI() was not called, then the listener thread is still
+    // running and we should kill it.
+    killListenerThreadIfNecessary();
+}
+
+void VisualizerProtocol::killListenerThreadIfNecessary() {
     if (eventListenerThread.joinable()) {
         // Shut down the listener thread cleanly.
         continueListening = false;
         // Close the read pipe so that the thread stops waiting for data.
-        CLOSEFUNC(inPipe);
+        CLOSE(inPipe); // TODO make this work on Windows.
         eventListenerThread.join();
     }
-    // else: shutdownGUI() was probably called.
 }
 
 void VisualizerProtocol::beginScene(Real time) {
