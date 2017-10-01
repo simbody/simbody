@@ -175,7 +175,15 @@ static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes,
     int totalRead = 0;
     while (totalRead < bytes) {
         if (!continueReading) throw ReadingInterrupted();
-        totalRead += READ(srcPipe, buffer + totalRead, bytes - totalRead);
+
+        auto retval = READ(srcPipe, buffer + totalRead, bytes - totalRead);
+        SimTK_ERRCHK4_ALWAYS(retval!=-1, "VisualizerProtocol",
+            "An attempt to read() %d bytes from pipe %d failed with errno=%d (%s).", 
+            bytes - totalRead, srcPipe, errno, strerror(errno));
+        // The pipe was closed (simbody-visualizer closed).
+        if (retval == 0) throw ReadingInterrupted();
+
+        totalRead += retval;
     }
 }
 
@@ -235,7 +243,8 @@ static void listenForVisualizerEvents(Visualizer& visualizer,
         }
     }
   } catch (const ReadingInterrupted& e) {
-        // We were told (by the main thread) to stop listening.
+        // We were told (by the main thread) to stop listening, or
+        // simbody-visualizer closed.
   } catch (const std::exception& e) {
         std::cout << "Visualizer listenerThread: unrecoverable error:\n";
         std::cout << e.what() << std::endl;
