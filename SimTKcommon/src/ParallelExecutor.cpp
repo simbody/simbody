@@ -101,9 +101,8 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
 
   // Wake up the worker threads and wait until they finish.
   runCondition.notify_all();
-  do {
-      waitCondition.wait(lock);
-  } while (waitingThreadCount < (int) threads.size());
+  waitCondition.wait(lock,
+          [&] { return waitingThreadCount == (int) threads.size(); });
   lock.unlock();
 }
 void ParallelExecutorImpl::incrementWaitingThreads() {
