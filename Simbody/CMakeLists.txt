@@ -1,5 +1,5 @@
 #---------------------------------------------------
-# Simbody 
+# Simbody
 #
 # Creates SimTK Core library, base name=SimTKsimbody.
 # Default libraries are shared & optimized. Variants
@@ -15,7 +15,7 @@
 #   lib[ns_]SimTKsimbody[_vn][_d].so
 #   lib[ns_]SimTKsimbody[_vn]_static[_d].a
 #
-# All libraries are installed in 
+# All libraries are installed in
 #   %ProgramFiles%\SimTK\lib[64]  (Windows)
 #   /usr/local/SimTK/lib[64]        (UNIX)
 #
@@ -63,8 +63,8 @@ set(SimTKSIMBODY_INCLUDE_DIRS) # start empty
 foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
     # append
     set(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
-     ${PROJECT_SOURCE_DIR}/${subdir}/include 
-     ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody
      ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody/internal)
 
     # Referencing headers must always be done relative to this level.
@@ -72,7 +72,7 @@ foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
      ${PROJECT_SOURCE_DIR}/${subdir}/include)
 endforeach(subdir)
 
-# Include the Simbody API include directories now so that Simbody code 
+# Include the Simbody API include directories now so that Simbody code
 # can use them.
 include_directories(${SimTKSIMBODY_INCLUDE_DIRS})
 
@@ -128,6 +128,14 @@ install(FILES ${SIMBODY_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 # SIMBODY_VISUALIZER_INSTALL_DIR defined in root CMakeLists.txt
 add_definitions(-DSIMBODY_VISUALIZER_INSTALL_DIR="${SIMBODY_VISUALIZER_INSTALL_DIR}/")
 add_definitions(-DSIMBODY_VISUALIZER_REL_INSTALL_DIR="${SIMBODY_VISUALIZER_REL_INSTALL_DIR}/")
+# Create a relative path from lib dir to dir containing simbody-visualizer;
+# this is used in VisualizerProtocol.cpp (though, only useful on non-Windows).
+file(RELATIVE_PATH lib_dir_to_install_dir
+    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" "${CMAKE_INSTALL_PREFIX}")
+set(lib_dir_to_viz_dir
+    "${lib_dir_to_install_dir}${SIMBODY_VISUALIZER_REL_INSTALL_DIR}")
+add_definitions(
+    -DSIMBODY_PATH_FROM_LIBDIR_TO_VIZ_DIR="${lib_dir_to_viz_dir}")
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.
@@ -135,7 +143,9 @@ add_definitions(-DSIMBODY_VISUALIZER_REL_INSTALL_DIR="${SIMBODY_VISUALIZER_REL_I
 if(BUILD_STATIC_LIBRARIES)
     add_subdirectory( staticTarget )
 endif()
-add_subdirectory( sharedTarget )
+if(BUILD_DYNAMIC_LIBRARIES)
+    add_subdirectory( sharedTarget )
+endif()
 
 if(MINGW)
     if(${PLATFORM_ABI} MATCHES "x86")
@@ -146,14 +156,14 @@ if(MINGW)
     endif()
 endif()
 if(BUILD_VISUALIZER)
-  # NOTE: If you change GUI_NAME, you must also change the value of GuiAppName
-  # in VisualizerProtocol.cpp
-  # TODO even that is not sufficient.
-  set(GUI_NAME "simbody-visualizer")
-  add_subdirectory(Visualizer/simbody-visualizer)
-endif(BUILD_VISUALIZER)
+    # NOTE: If you change GUI_NAME, you must also change the value of GuiAppName
+    # in VisualizerProtocol.cpp
+    # TODO even that is not sufficient.
+    set(GUI_NAME "simbody-visualizer")
+    add_subdirectory(Visualizer/simbody-visualizer)
+endif()
 
 if( BUILD_TESTING )
-  add_subdirectory( tests )
-endif( BUILD_TESTING )
+    add_subdirectory( tests )
+endif()
 

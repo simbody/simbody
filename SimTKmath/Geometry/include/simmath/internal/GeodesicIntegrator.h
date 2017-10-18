@@ -205,7 +205,7 @@ public:
     of steps taken since some will be rejected. **/
     int getNumStepsAttempted() const {return m_nStepsAttempted;}
     /** How many steps were rejected because they did not satisfy the 
-    accuracy requirement, since the most recent initalize() call. This is
+    accuracy requirement, since the most recent initialize() call. This is
     common but for non-stiff systems should be only a modest fraction of the
     number of steps taken. **/
     int getNumErrorTestFailures() const {return m_nErrtestFailures;}

@@ -41,6 +41,11 @@ endif()
 # Include GNUInstallDirs to get canonical paths
 include(GNUInstallDirs)
 
+# Declare the option for code coverage
+option(SIMBODY_COVERAGE
+       "Adding ability to assess test coverage (requires gcc or clang)."
+       OFF)
+
 # Check compiler version
 if(MSVC)
     if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
@@ -50,6 +55,9 @@ if(MSVC)
                             "README.md for more information.\nIf you have the"
                             " 'Visual C++ Compiler Nov 2013 CTP (CTP_Nov2013)'"
                             " comment this test and configure normally.")
+    endif()
+    if(SIMBODY_COVERAGE)
+        message(FATAL_ERROR "Code coverage is not possible with MSVC.")
     endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     set(SIMBODY_REQUIRED_GCC_VERSION 4.9.0)
@@ -108,10 +116,19 @@ set(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
 set(EXECUTABLE_OUTPUT_PATH ${BUILD_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${BUILD_BINARY_DIR})
 
+# Dynamic libraries, tests, and examples
+set(BUILD_DYNAMIC_LIBRARIES TRUE CACHE BOOL
+"Build dynamic versions of libraries")
+
 # Static libraries, tests, and examples won't be built unless this
 # is set.
 set(BUILD_STATIC_LIBRARIES FALSE CACHE BOOL
-"Build '_static' versions of libraries in addition to dynamic libraries?")
+"Build '_static' versions of libraries")
+
+if(NOT BUILD_DYNAMIC_LIBRARIES AND NOT BUILD_STATIC_LIBRARIES)
+    message(SEND_ERROR "BUILD_DYNAMIC_LIBRARIES and BUILD_STATIC_LIBRARIES "
+        "are both set to FALSE. No compilation is possible!")
+endif()
 
 # Use this to generate a private set of libraries whose names
 # won't conflict with installed versions.
@@ -188,7 +205,7 @@ set(BUILD_EXAMPLES ON CACHE BOOL
 
 # Set whether to build the Visualizer code.
 set(BUILD_VISUALIZER ON CACHE BOOL
-    "Control building of the visualizer component")
+    "Control building of the visualizer component.")
 
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
@@ -200,8 +217,12 @@ set(BUILD_TESTS_AND_EXAMPLES_STATIC ON CACHE BOOL
     Statically-linked examples are never installed.")
 mark_as_advanced(BUILD_TESTS_AND_EXAMPLES_STATIC)
 
-set(BUILD_TESTS_AND_EXAMPLES_SHARED ON CACHE BOOL
-    "If BUILD_TESTING or BUILD_EXAMPLES, build dynamically-linked ones?")
+if(BUILD_DYNAMIC_LIBRARIES)
+    set(BUILD_TESTS_AND_EXAMPLES_SHARED ON CACHE BOOL
+        "If BUILD_TESTING or BUILD_EXAMPLES, build dynamically-linked ones?")
+else()
+    set(BUILD_TESTS_AND_EXAMPLES_SHARED OFF)
+endif()
 mark_as_advanced(BUILD_TESTS_AND_EXAMPLES_SHARED)
 
 if(BUILD_TESTING AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
@@ -406,6 +427,11 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
         CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
     set(CMAKE_C_FLAGS_MINSIZEREL ${BUILD_C_FLAGS_MINSIZEREL}
         CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
+
+    set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+    if(SIMBODY_COVERAGE)
+        find_package(codecov)
+    endif()
 
 endif()
 

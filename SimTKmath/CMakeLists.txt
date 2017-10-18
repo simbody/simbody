@@ -1,5 +1,5 @@
 #---------------------------------------------------
-# Simmath 
+# Simmath
 #
 # Creates SimTK Core library, base name=SimTKmath.
 # Default libraries are shared & optimized. Variants
@@ -15,7 +15,7 @@
 #   lib[ns_]SimTKmath[_vn][_d].so
 #   lib[ns_]SimTKmath[_vn]_static[_d].a
 #
-# All libraries are installed in 
+# All libraries are installed in
 #   %ProgramFiles%\SimTK\lib  (Windows)
 #   /usr/local/SimTK/lib        (UNIX)
 #
@@ -30,8 +30,8 @@ include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
 # code is in "./src" and in each of these subdirectories/src
 set(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers Geometry)
 
-# Collect up information about the version of the SimTKmath library 
-# we're building and make it available to the code so it can be built 
+# Collect up information about the version of the SimTKmath library
+# we're building and make it available to the code so it can be built
 # into the binaries. This also determines the versioned library names
 # in which case all dependencies must use the same version.
 
@@ -40,14 +40,14 @@ set(SIMMATH_MINOR_VERSION ${SIMBODY_MINOR_VERSION})
 set(SIMMATH_PATCH_VERSION ${SIMBODY_PATCH_VERSION})
 
 
-# Report the version number to the CMake UI. Don't include the 
+# Report the version number to the CMake UI. Don't include the
 # patch version if it is zero.
 set(PATCH_VERSION_STRING)
 if(SIMMATH_PATCH_VERSION)
     set(PATCH_VERSION_STRING ".${SIMMATH_PATCH_VERSION}")
 endif()
 
-set(SIMMATH_VERSION 
+set(SIMMATH_VERSION
     "${SIMMATH_MAJOR_VERSION}.${SIMMATH_MINOR_VERSION}${PATCH_VERSION_STRING}")
 
 # This is the suffix if we're building and depending on versioned libraries.
@@ -58,7 +58,7 @@ set(SIMMATH_COPYRIGHT_YEARS "2005-10")
 # underbar separated list of dotted authors, no spaces or commas
 set(SIMMATH_AUTHORS         "Jack.Middleton_Michael.Sherman")
 
-set(SIMMATH_SVN_REVISION ${SIMBODY_SVN_REVISION}) 
+set(SIMMATH_SVN_REVISION ${SIMBODY_SVN_REVISION})
 
 add_definitions(-DSimTK_SIMMATH_LIBRARY_NAME=${SimTKMATH_LIBRARY_NAME}
                 -DSimTK_SIMMATH_MAJOR_VERSION=${SIMMATH_MAJOR_VERSION}
@@ -100,8 +100,8 @@ set(SimTKMATH_INCLUDE_DIRS) # start empty
 foreach(subdir . ${SIMMATH_SOURCE_SUBDIRS})
     # append
     set(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
-     ${PROJECT_SOURCE_DIR}/${subdir}/include 
-     ${PROJECT_SOURCE_DIR}/${subdir}/include/simmath 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/simmath
      ${PROJECT_SOURCE_DIR}/${subdir}/include/simmath/internal)
 
     # Referencing headers must always be done relative to this level.
@@ -109,7 +109,7 @@ foreach(subdir . ${SIMMATH_SOURCE_SUBDIRS})
      ${PROJECT_SOURCE_DIR}/${subdir}/include)
 endforeach(subdir)
 
-# Include the Simmath API include directories now so that Simmath code 
+# Include the Simmath API include directories now so that Simmath code
 # can use them.
 include_directories(${SimTKMATH_INCLUDE_DIRS})
 
@@ -190,8 +190,10 @@ install(FILES ${SIMMATH_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 if(BUILD_STATIC_LIBRARIES)
     add_subdirectory( staticTarget )
 endif()
-add_subdirectory( sharedTarget )
+if(BUILD_DYNAMIC_LIBRARIES)
+    add_subdirectory( sharedTarget )
+endif()
 
 if( BUILD_TESTING )
-  add_subdirectory( tests )
+    add_subdirectory( tests )
 endif( BUILD_TESTING )

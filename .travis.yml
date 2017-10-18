@@ -12,16 +12,20 @@ matrix:
   include:
     - os: linux
       compiler: clang
-      env: BTYPE=RelWithDebInfo
+      env: BTYPE=RelWithDebInfo COV=OFF DEPLOY=yes
     - os: linux
       compiler: gcc
-      env: BTYPE=Release
+      env: BTYPE=Release        COV=OFF DEPLOY=no
     - os: linux
-      compiler: clang
-      env: BTYPE=Debug
+      compiler: gcc
+      env: BTYPE=Debug          COV=ON  DEPLOY=yes
     - os: osx
       compiler: clang
-      env: BTYPE=RelWithDebInfo
+      env: BTYPE=RelWithDebInfo COV=OFF DEPLOY=yes
+
+addons:
+  # To avoid an interactive prompt when uploading binaries to sourceforge.
+  ssh_known_hosts: frs.sourceforge.net
 
 before_install:
   ## Ensure that there are no tabs in source code.
@@ -55,9 +59,9 @@ before_install:
   #- if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get --yes install cmake; fi
 
 install:
-  - mkdir ~/simbody-build && cd ~/simbody-build
+  - mkdir -p $TRAVIS_BUILD_DIR/simbody-build && cd $TRAVIS_BUILD_DIR/simbody-build
   # Configure.
-  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DCMAKE_INSTALL_PREFIX=~/simbody
+  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DSIMBODY_COVERAGE:BOOL=$COV -DCMAKE_INSTALL_PREFIX=~/simbody
   # Build.
   - make -j8
 
@@ -65,34 +69,70 @@ script:
   ## Test Simbody.
   - ctest -j8 --output-on-failure
 
+  ## Run coverage and send result to codecov.io
+  - if [[ "$COV" == "ON" ]]; then echo "Running coverage target"; fi
+  - if [[ "$COV" == "ON" ]]; then make coverage; fi
+  - if [[ "$COV" == "ON" ]]; then echo "Sending coverage result to codecov.io"; fi
+  - if [[ "$COV" == "ON" ]]; then bash <(curl -s https://codecov.io/bash) -X gcov; fi
+
   ## Make sure we can install with no issues.
   - make -j8 install
 
 before_deploy:
-
-  # Zip up the installation using a file name that identifies where
-  # the binaries were built.
-  - mkdir ~/binstar-packages
-  - ZIPNAME=simbody-latest_${TRAVIS_OS_NAME}_${BTYPE}.zip
-  - # Zip up simbody relative to the home directory; must change to home dir.
+  ## Zip up the installation using a file name that identifies where the
+  # binaries were built.
+  - mkdir ~/to_deploy
+  - export ZIPNAME=simbody-latest_${TRAVIS_OS_NAME}_${BTYPE}.zip
+  # Zip up simbody relative to the home directory; must change to home dir.
   - cd ~
-  - zip --recurse-paths --quiet ~/binstar-packages/$ZIPNAME simbody
+  # Leave symlinks intact.
+  - zip --symlinks --recurse-paths --quiet ~/to_deploy/$ZIPNAME simbody
 
-  # Paths in the .bintray.json file are relative to the current directory.
-  - cd ~
+  ## Set up ssh for sourceforge.
+  # Decrypt the private key stored in the repository to the tmp dir.
+  - openssl aes-256-cbc -K $encrypted_cc3f5ebf7a63_key -iv $encrypted_cc3f5ebf7a63_iv -in $TRAVIS_BUILD_DIR/doc/.deploy_myosin_sourceforge_rsa.enc -out /tmp/deploy_myosin_sourceforge_rsa -d
+  # Start the ssh agent.
+  - eval "$(ssh-agent -s)"
+  # Register this private key with this client (the travis machine).
+  - chmod 600 /tmp/deploy_myosin_sourceforge_rsa
+  - ssh-add /tmp/deploy_myosin_sourceforge_rsa
 
 deploy:
-  # Uploads to https://bintray.com/chrisdembia/opensim-testing/simbody/view
-  #            https://dl.bintray.com/chrisdembia/opensim-testing/
-  # See http://docs.travis-ci.com/user/deployment/bintray/ for help.
-  provider: bintray
-  file: $TRAVIS_BUILD_DIR/doc/.bintray.json
-  user: chrisdembia
+  # Uploads to sourceforge.net/projects/myosin
+  # See https://docs.travis-ci.com/user/deployment/custom/
+  # '--archive' preserves symlinks.
+  provider: script
   skip_cleanup: true
-  # API key is encrypted with travis.
-  key:
-    secure: MOCuM6THnBR82ClEmWFmqVM/GEiNtimz7dMmWUnmgU4gWAU9DBq0OelifQ6XAAhEqZGz0IbVyRo+zDGWRUEC/EIAb9PhTSg6W/XX+zykAQCsIr3BMvOE6v5MXNz/JMFKxZoFmmrL1WR4a4KUOQANr7derYkIZUy/9CnUkJgQGKE=
+  script: rsync --archive --compress --verbose ~/to_deploy/$ZIPNAME opensim-bot@frs.sourceforge.net:/home/frs/project/myosin/simbody/
   on:
     # Upload for both linux and OSX. 
-    branch: master
-    condition: "$CC = clang"
+    branch: master 
+    condition: "$DEPLOY = yes"
+ 
+# Process for securely uploading files to Sourceforge, taken from
+# https://oncletom.io/2016/travis-ssh-deploy/:
+#
+# Contact chrisdembia if you need the login information for opensim-bot at
+# sourceforge, to manage myosin.sourceforge.net.
+#
+# You must install the travis command-line tool: `gem install travis`
+# Locally, from the root of the simbody repository:
+# Create a 4096-bit RSA key with comment, private key 
+# $ ssh-keygen -t rsa -b 4096 -C 'opensim-bot@sourceforge.net' -f doc/.deploy_myosin_sourceforge_rsa
+# When prompted for a passphrase, just hit enter (twice).
+# Encrypt the private key, add decryption code to .travis.yml. First make a
+# backup copy of .travis.yml.
+# $ travis encrypt-file doc/.deploy_myosin_sourceforge_rsa --add
+# Manually edit the .travis.yml file to clean up the added lines and restore
+# comments to the file; put the decryption in the before_deploy step.
+# Remove the unencrypted private key. DO NOT commmit the unencrypted private
+# key.
+# $ rm -f doc/.deploy_myosin_sourceforge_rsa
+# Move the encrypted key to the doc folder.
+# $ mv .deploy_myosin_sourceforge_rsa.enc doc/
+# Manually, log into the sourceforge website (user opensim-bot) and add the
+# public key (contents of doc/.deploy_myosin_sourceforge_rsa.pub) in
+# Profile > SSH Settings.
+# Now you can delete the public key file from your local machine.
+# Commit the encrypted private key and the changes to .travis.yml.
+# $ git commit .travis.yml doc/.deploy_myosin_sourceforge_rsa.enc

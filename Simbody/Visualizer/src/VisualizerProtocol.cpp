@@ -166,8 +166,15 @@ static void spawnViz(const Array_<String>& searchPath, const String& appName,
 
 static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
-    while (totalRead < bytes)
-        totalRead += READ(srcPipe, buffer+totalRead, bytes-totalRead);
+    int oldCancelType;
+    while (totalRead < bytes) {
+        // Changing the cancel type is a workaround for Windows, which does not
+        // mark system calls as "cancellation points"; see:
+        // https://www.sourceware.org/pthreads-win32/manual/pthread_cancel.html
+        pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldCancelType);
+        totalRead += READ(srcPipe, buffer + totalRead, bytes - totalRead);
+        pthread_setcanceltype(oldCancelType, NULL);
+    }
 }
 
 static void readData(unsigned char* buffer, int bytes) 
@@ -272,6 +279,23 @@ VisualizerProtocol::VisualizerProtocol
                     SIMBODY_VISUALIZER_REL_INSTALL_DIR));
     }
 
+    // Try using the location of SimTKsimbody combined with the path from the
+    // SimTKsimbody library to the simbody-visualizer install location (only
+    // available on non-Windows platforms). We must provide a function that
+    // resides in SimTKsimbody.
+    std::string SimTKsimbodyDir;
+    if (Pathname::getFunctionLibraryDirectory((void*)createPipeSim2Viz,
+                                              SimTKsimbodyDir)) {
+        // We have the path to SimTKsimbody; now we combine this with the path
+        // from SimTKsimbody to simbody-visualizer (this assumes the
+        // installation has not been reorganized from what CMake originally
+        // specified).
+        std::string absPathToVizDir =
+          Pathname::getAbsoluteDirectoryPathnameUsingSpecifiedWorkingDirectory(
+                  SimTKsimbodyDir, SIMBODY_PATH_FROM_LIBDIR_TO_VIZ_DIR);
+        actualSearchPath.push_back(absPathToVizDir);
+    }
+
     // Try the build-time install location:
     actualSearchPath.push_back(SIMBODY_VISUALIZER_INSTALL_DIR);
 
@@ -311,8 +335,8 @@ VisualizerProtocol::VisualizerProtocol
     // Spawn the thread to listen for events.
 
     pthread_mutex_init(&sceneLock, NULL);
-    pthread_t thread;
-    pthread_create(&thread, NULL, listenForVisualizerEvents, &visualizer);
+    pthread_create(&eventListenerThread, NULL, listenForVisualizerEvents,
+                   &visualizer);
 }
 
 // This is executed on the main thread at GUI startup and thus does not
@@ -368,6 +392,14 @@ void VisualizerProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
 
 void VisualizerProtocol::shutdownGUI() {
     // Don't wait for scene completion; kill GUI now.
+    
+    // We no longer need to listen for events from the GUI. Call this before
+    // writing to the pipe, because attempting to write to the pipe may throw
+    // an exception. This detach line was added to solve an issue with OpenSim
+    // MATLAB bindings, wherein MATLAB would use more and more CPU each time
+    // a Visualizer was created.
+    pthread_cancel(eventListenerThread);
+    
     char command = Shutdown;
     WRITE(outPipe, &command, 1);
 }

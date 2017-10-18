@@ -363,39 +363,40 @@ List of Contributors
 --------------------
 This is an attempt at a complete contributor list; please submit a PR or file an Issue if you or someone else is missing, or to improve your contributions entry.
 
-Real name           | GitHub Id    | Contributions/expertise
---------------------|--------------|-------------------------
-Michael Sherman     |@sherm1       |Lead developer; multibody dynamics
-Peter Eastman       |@peastman     |Much early Simbody development; visualizer
-Chris Dembia        |@chrisdembia  |Build, task space control, CMA optimizer, bug fixes & documentation
-Thomas Uchida       |@tkuchida     |Rigid impact theory & code; documentation
-Carmichael Ong      |@carmichaelong|Pathname deconstruction with specified working directory
-Thomas Lau          |@thomasklau   |Force Parallelization
-Ian Stavness        |@stavness     |Computational geometry
-Andreas Scholz      |@AndreasScholz|Computational geometry
-José Rivero         |@j-rivero     |Build, especially for Debian
-Steven Peters       |@scpeters     |Build and VectorIterator improvements
-John Hsu            |@hsu          |Bug fixes; iterative solver & contact theory
-Nate Koenig         |@nkoenig      |Bug fix
-Ayman Habib         |@aymanhab     |Bug fixes; visualization, SWIG improvements
-Ajay Seth           |@aseth1       |Mobilizer theory and code
-Jack Wang           |@jmwang       |Bug fixes; visualization improvements
-Tim Dorn            |@twdorn       |Bug fixes
-Apoorva Rajagopal   |@apoorvar     |Xcode build fixes
-Kevin Xu            |@kevunix      |Build fix
-Guillaume Jacquenot |@Gjacquenot   |Build instructions for MinGW
-Thomas Beutlich     |@tbeu         |Fix many typos and spelling errors
-Julien Nabet        |@serval2412   |Code style & safety improvements
-Elena Ceseracciu    |@elen4        |Improved dependency resolution
-Kevin He            |@kingchurch   |Bug fixes
-Paul Mitiguy        |              |Rotation class; dynamics
-Matthew Millard     |@mjhmilla     |Bicubic spline
-Jack Middleton      |              |Numerical methods
-Christopher Bruns   |@cmbruns-hhmi |Molmodel
-Randy Radmer        |              |Molmodel
-Charles Schwieters  |              |Provided initial multibody code
-Abhinandan Jain     |              |Underlying spatial algebra formulation
-Isaac Newton        |              |F=ma, calculus, etc.
+Real name           | GitHub Id     | Contributions/expertise
+--------------------|---------------|-------------------------
+Michael Sherman     |@sherm1        |Lead developer; multibody dynamics
+Peter Eastman       |@peastman      |Much early Simbody development; visualizer
+Chris Dembia        |@chrisdembia   |Build, task space control, CMA optimizer, bug fixes & documentation
+Thomas Uchida       |@tkuchida      |Rigid impact theory & code; documentation
+Carmichael Ong      |@carmichaelong |Pathname deconstruction with specified working directory
+Thomas Lau          |@thomasklau    |Force Parallelization
+Ian Stavness        |@stavness      |Computational geometry
+Andreas Scholz      |@AndreasScholz |Computational geometry
+José Rivero         |@j-rivero      |Build, especially for Debian
+Steven Peters       |@scpeters      |Build and VectorIterator improvements
+John Hsu            |@hsu           |Bug fixes; iterative solver & contact theory
+Nate Koenig         |@nkoenig       |Bug fix
+Ayman Habib         |@aymanhab      |Bug fixes; visualization, SWIG improvements
+Ajay Seth           |@aseth1        |Mobilizer theory and code
+Jack Wang           |@jmwang        |Bug fixes; visualization improvements
+Tim Dorn            |@twdorn        |Bug fixes
+Apoorva Rajagopal   |@apoorvar      |Xcode build fixes
+Kevin Xu            |@kevunix       |Build fix
+Antoine Falisse     |@antoinefalisse|Matrix classes use std::copy instead of std::memcpy
+Guillaume Jacquenot |@Gjacquenot    |Build instructions for MinGW
+Thomas Beutlich     |@tbeu          |Fix many typos and spelling errors
+Julien Nabet        |@serval2412    |Code style & safety improvements
+Elena Ceseracciu    |@elen4         |Improved dependency resolution
+Kevin He            |@kingchurch    |Bug fixes
+Paul Mitiguy        |               |Rotation class; dynamics
+Matthew Millard     |@mjhmilla      |Bicubic spline
+Jack Middleton      |               |Numerical methods
+Christopher Bruns   |@cmbruns-hhmi  |Molmodel
+Randy Radmer        |               |Molmodel
+Charles Schwieters  |               |Provided initial multibody code
+Abhinandan Jain     |               |Underlying spatial algebra formulation
+Isaac Newton        |               |F=ma, calculus, etc.
 
 Contributor License Agreement
 -----------------------------
