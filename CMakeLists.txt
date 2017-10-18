@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Simbody
+# Simbodyy
 #
 # This is the master CMake file that coordinates
 # the build of Simbody. There are four steps:
