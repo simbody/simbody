@@ -130,6 +130,10 @@ if(NOT BUILD_DYNAMIC_LIBRARIES AND NOT BUILD_STATIC_LIBRARIES)
         "are both set to FALSE. No compilation is possible!")
 endif()
 
+# ADOL-C libraries and tests won't be built unless this is set.
+set(BUILD_ADOLC_LIBRARIES FALSE CACHE BOOL
+"Build '_adolc' versions of libraries to allow automatic differentiation.")
+
 # Use this to generate a private set of libraries whose names
 # won't conflict with installed versions.
 set(BUILD_USING_NAMESPACE "" CACHE STRING
@@ -168,24 +172,30 @@ FORCE)
 
 set(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME})
 set(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static)
+set(SimTKCOMMON_ADOLC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_adolc)
 
 set(SimTKCOMMON_LIBRARY_NAME_VN ${NS}SimTKcommon${VN})
 set(SimTKCOMMON_SHARED_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN})
 set(SimTKCOMMON_STATIC_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN}_static)
+set(SimTKCOMMON_ADOLC_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN}_adolc)
 
 set(SimTKMATH_SHARED_LIBRARY ${SimTKMATH_LIBRARY_NAME})
 set(SimTKMATH_STATIC_LIBRARY ${SimTKMATH_LIBRARY_NAME}_static)
+set(SimTKMATH_ADOLC_LIBRARY ${SimTKMATH_LIBRARY_NAME}_adolc)
 
 set(SimTKMATH_LIBRARY_NAME_VN ${NS}SimTKmath${VN})
 set(SimTKMATH_SHARED_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN})
 set(SimTKMATH_STATIC_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN}_static)
+set(SimTKMATH_ADOLC_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN}_adolc)
 
 set(SimTKSIMBODY_SHARED_LIBRARY ${SimTKSIMBODY_LIBRARY_NAME})
 set(SimTKSIMBODY_STATIC_LIBRARY ${SimTKSIMBODY_LIBRARY_NAME}_static)
+set(SimTKSIMBODY_ADOLC_LIBRARY ${SimTKSIMBODY_LIBRARY_NAME}_adolc)
 
 set(SimTKSIMBODY_LIBRARY_NAME_VN ${NS}SimTKsimbody${VN})
 set(SimTKSIMBODY_SHARED_LIBRARY_VN ${SimTKSIMBODY_LIBRARY_NAME_VN})
 set(SimTKSIMBODY_STATIC_LIBRARY_VN ${SimTKSIMBODY_LIBRARY_NAME_VN}_static)
+set(SimTKSIMBODY_ADOLC_LIBRARY_VN ${SimTKSIMBODY_LIBRARY_NAME_VN}_adolc)
 
 
 # Caution: this variable is automatically created by the CMake
@@ -558,6 +568,13 @@ endif()
 set(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread
                         ${REALTIME_LIB} ${DL_LIBRARY} ${MATH_LIBRARY})
 set(MATH_LIBS_TO_USE_VN ${MATH_LIBS_TO_USE})
+
+# ADOL-C
+if(BUILD_ADOLC_LIBRARIES)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+    find_package(ADOLC REQUIRED)
+    include_directories("${ADOLC_INCLUDES}")
+endif()
 
 #
 # Allow automated build and dashboard.
