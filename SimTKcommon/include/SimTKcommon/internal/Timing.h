@@ -83,11 +83,19 @@ librt realtime library (-lrt). **/
 // The number 101200 identifies macOS version 10.12. The explicit version
 // number must be used instead of a macro like __MAC_10_12 because pre-10.12
 // systems won't have __MAC_10_12 defined.
-#define SimTK_IS_APPLE_AND_MUST_DECLARE_CLOCK_GETTIME (defined(__APPLE__) && \
-    __MAC_OS_X_VERSION_MAX_ALLOWED < 101200) // SDK is older than 10.12.
+#if defined(__APPLE__) && __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
+    // SDK is older than 10.12.
+    #define SimTK_IS_APPLE_AND_MUST_DECLARE_CLOCK_GETTIME 1
+#else
+    #define SimTK_IS_APPLE_AND_MUST_DECLARE_CLOCK_GETTIME 0
+#endif
 
-#define SimTK_IS_APPLE_AND_MUST_DEFINE_CLOCK_GETTIME (defined(__APPLE__) && \
-    __MAC_OS_X_VERSION_MIN_REQUIRED < 101200) // user's OS may be pre-10.12.
+#if defined(__APPLE__) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101200
+    // user's OS may be pre-10.12.
+    #define SimTK_IS_APPLE_AND_MUST_DEFINE_CLOCK_GETTIME 1
+#else
+    #define SimTK_IS_APPLE_AND_MUST_DEFINE_CLOCK_GETTIME 0
+#endif
 
 
 

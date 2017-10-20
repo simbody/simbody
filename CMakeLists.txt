@@ -637,6 +637,7 @@ add_subdirectory( SimTKmath )
 # SimTKMATH_INCLUDE_DIRECTORIES now set
 add_subdirectory( Simbody )
 # SimTKSIMBODY_INCLUDE_DIRECTORIES now set(but not used)
+# GUI_NAME now set
 
 if( BUILD_EXAMPLES )
     add_subdirectory( examples )
