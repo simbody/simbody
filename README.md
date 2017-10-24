@@ -104,6 +104,7 @@ Simbody depends on the following:
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) 3.6.0 or later and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.8.6 or later; we recommend at least 1.8.8.
+* The package [ADOL-C] (https://projects.coin-or.org/ADOL-C) (Automatic Differentiation by OverLoading in C++). This package is used to allow automatic differentiation (optional feature).
 
 
 Using Simbody
@@ -147,6 +148,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
 1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2015. The Community edition is free and sufficient. By default, Visual Studio 2015 does not provide C++ support; when installing, be sure to select *Custom*, and check *Programming Languages > Visual C++ > Common Tools for Visual C++ 2015*. If you have already installed Visual Studio without C++ support, simply re-run the installer and select *Modify*.
 2. Download and install [CMake](http://www.cmake.org/download), version 3.1.3 or higher.
 3. (optional) If you want to build API documentation, download and install Doxygen, version 1.8.8 or higher.
+4. (optional) If you want to use automatic differentiation, download [ADOL-C] (http://www2.math.uni-paderborn.de/index.php?id=12067&L=1) version with exploitation of sparsity. We 'll assume you unzipped the file into `C:/ADOLC-folder`.
 
 #### Download the Simbody source code
 
@@ -191,6 +193,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
     * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default. You must activate either `BUILD_DYNAMIC_LIBRARIES`, `BUILD_STATIC_LIBRARIES`, or both.
     * `BUILD_TESTS_AND_EXAMPLES_STATIC` if static libraries, and tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
     * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
+    * `BUILD_ADOLC_LIBRARIES` to allow automatic differentation. You will have to provide the path to `C:/ADOLC-folder` in `ADOLC-DIR`.
 7. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
 
 #### Build and install

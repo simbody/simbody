@@ -118,6 +118,6 @@ if(@BUILD_ADOLC_LIBRARIES@)
 else()
     set(Simbody_ADOLC_LIBRARIES Simbody_ADOLC_LIBRARIES-NOTFOUND)
 endif()
-mark_as_advanced(Simbody_LIBRARIES Simbody_STATIC_LIBRARIES)
+mark_as_advanced(Simbody_LIBRARIES Simbody_STATIC_LIBRARIES Simbody_ADOLC_LIBRARIES)
 
 check_required_components(Simbody)

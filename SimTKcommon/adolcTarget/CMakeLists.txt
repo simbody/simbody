@@ -10,9 +10,6 @@ if(BUILD_UNVERSIONED_LIBRARIES)
 
     add_dependencies(${ADOLC_TARGET} PlatformFiles)
 
-    # TODO
-    target_include_directories(${ADOLC_TARGET} PRIVATE "${ADOLC_INCLUDES}")
-
     target_link_libraries(${ADOLC_TARGET} ${MATH_LIBS_TO_USE}
             ${ADOLC_LIBRARIES})
 
@@ -47,8 +44,6 @@ if(BUILD_VERSIONED_LIBRARIES)
             ${API_ABS_INCLUDE_FILES})
 
     add_dependencies(${ADOLC_TARGET_VN} PlatformFiles)
-
-    target_include_directories(${ADOLC_TARGET_VN} "${ADOLC_INCLUDES}")
 
     target_link_libraries(${ADOLC_TARGET_VN} ${MATH_LIBS_TO_USE_VN}
             ${ADOLC_LIBRARIES})
