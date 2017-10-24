@@ -150,7 +150,6 @@ All needed library dependencies are provided with the Simbody installation on Wi
 3. (optional) If you want to build API documentation, download and install Doxygen, version 1.8.8 or higher.
 4. (optional) If you want to use automatic differentiation, download [ADOL-C](http://www2.math.uni-paderborn.de/index.php?id=12067&L=1), version with exploitation of sparsity. We 'll assume you unzipped the files into `C:/ADOLC-folder`.
 
-
 #### Download the Simbody source code
 
 * Method 1: Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `C:/Simbody-source`.
