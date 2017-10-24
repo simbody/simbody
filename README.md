@@ -104,7 +104,7 @@ Simbody depends on the following:
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) 3.6.0 or later and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.8.6 or later; we recommend at least 1.8.8.
-* automatic differentiation: [ADOL-C](https://projects.coin-or.org/ADOL-C), package is used to allow automatic differentiation (optional feature)
+* automatic differentiation: [ADOL-C](https://projects.coin-or.org/ADOL-C) (optional feature)
 
 
 Using Simbody
