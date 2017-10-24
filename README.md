@@ -193,7 +193,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
     * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default. You must activate either `BUILD_DYNAMIC_LIBRARIES`, `BUILD_STATIC_LIBRARIES`, or both.
     * `BUILD_TESTS_AND_EXAMPLES_STATIC` if static libraries, and tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
     * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
-    * `BUILD_ADOLC_LIBRARIES` to allow automatic differentation. You will have to provide the path to `C:/ADOLC-folder` in `ADOLC-DIR`.
+    * `BUILD_ADOLC_LIBRARIES` to allow automatic differentation. You will have to provide the path to `C:/ADOLC-folder` in `ADOLC_DIR`.
 7. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
 
 #### Build and install
