@@ -223,6 +223,9 @@ public:
     negator(const float&       t) {v = -N((typename NTraits<N>::Precision)t);}
     negator(const double&      t) {v = -N((typename NTraits<N>::Precision)t);}
     negator(const long double& t) {v = -N((typename NTraits<N>::Precision)t);}
+    #ifdef SimTK_REAL_IS_ADOUBLE
+        negator(const adouble&      t) {v = -N((typename NTraits<N>::Precision)t.value());}
+    #endif
 
     // Some of these may not compile if instantiated -- you can't cast a complex
     // to a float, for example.
@@ -273,6 +276,9 @@ template <class N2> friend class negator;
 inline bool isNaN(const negator<float>&  x) {return isNaN(-x);}
 inline bool isNaN(const negator<double>& x) {return isNaN(-x);}
 inline bool isNaN(const negator<long double>& x) {return isNaN(-x);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline bool isNaN(const negator<adouble>& x) {return isNaN(-x);}
+#endif
 template <class P> inline bool
 isNaN(const negator< std::complex<P> >& x) {return isNaN(-x);}
 template <class P> inline bool
@@ -287,6 +293,9 @@ isNaN(const negator< conjugate<P> >&    x) {return isNaN(-x);}
 inline bool isFinite(const negator<float>&  x) {return isFinite(-x);}
 inline bool isFinite(const negator<double>& x) {return isFinite(-x);}
 inline bool isFinite(const negator<long double>& x) {return isFinite(-x);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline bool isFinite(const negator<adouble>& x) {return isFinite(-x);}
+#endif
 template <class P> inline bool
 isFinite(const negator< std::complex<P> >& x) {return isFinite(-x);}
 template <class P> inline bool
@@ -301,6 +310,9 @@ isFinite(const negator< conjugate<P> >&    x) {return isFinite(-x);}
 inline bool isInf(const negator<float>&  x) {return isInf(-x);}
 inline bool isInf(const negator<double>& x) {return isInf(-x);}
 inline bool isInf(const negator<long double>& x) {return isInf(-x);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline bool isInf(const negator<adouble>& x) {return isInf(-x);}
+#endif
 template <class P> inline bool
 isInf(const negator< std::complex<P> >& x) {return isInf(-x);}
 template <class P> inline bool
