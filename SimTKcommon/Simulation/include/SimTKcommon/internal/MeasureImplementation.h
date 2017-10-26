@@ -1867,7 +1867,6 @@ public:
     // to estimate the delayed value.
     T calcValueAtTime(Real tDelay, Real tNow, const T& valueNow) const;
 
-
     // Given the current time but *not* the current value of the source measure,
     // provide an estimate for the value at tDelay=tNow-delay using only the 
     // buffer contents and linear interpolation or extrapolation.
