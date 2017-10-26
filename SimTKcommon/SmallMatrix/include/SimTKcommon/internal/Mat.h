@@ -1313,12 +1313,12 @@ operator*(const double& l, const Mat<M,N,E,CS,RS>& r) {return r*l;}
 
 #ifdef SimTK_REAL_IS_ADOUBLE
     template <int M, int N, class E, int CS, int RS> inline
-    typename Mat<M, N, E, CS, RS>::template Result<adouble>::Mul
-    operator*(const Mat<M, N, E, CS, RS>& l, const adouble& r)
-      {	return Mat<M, N, E, CS, RS>::template Result<adouble>::MulOp::perform(l,r); }
+    typename Mat<M,N,E,CS,RS>::template Result<adouble>::Mul
+    operator*(const Mat<M,N,E,CS,RS>& l, const adouble& r)
+      { return Mat<M,N,E,CS,RS>::template Result<adouble>::MulOp::perform(l,r); }
     template <int M, int N, class E, int CS, int RS> inline
-    typename Mat<M, N, E, CS, RS>::template Result<adouble>::Mul
-    operator*(const adouble& l, const Mat<M, N, E, CS, RS>& r) {return r*l;}
+    typename Mat<M,N,E,CS,RS>::template Result<adouble>::Mul
+    operator*(const adouble& l, const Mat<M,N,E,CS,RS>& r) {return r*l;}
 #endif
 
 template <int M, int N, class E, int CS, int RS> inline
@@ -1555,7 +1555,7 @@ operator-(const double& l, const Mat<M,N,E,CS,RS>& r)
     template <int M, int N, class E, int CS, int RS> inline
     typename Mat<M,N,E,CS,RS>::template Result<adouble>::Sub
     operator-(const Mat<M,N,E,CS,RS>& l, const adouble& r)
-      {	return Mat<M,N,E,CS,RS>::template Result<adouble>::SubOp::perform(l,r); }
+      { return Mat<M,N,E,CS,RS>::template Result<adouble>::SubOp::perform(l,r); }
     template <int M, int N, class E, int CS, int RS> inline
     typename CNT<adouble>::template Result<Mat<M,N,E,CS,RS> >::Sub
     operator-(const adouble& l, const Mat<M,N,E,CS,RS>& r)
