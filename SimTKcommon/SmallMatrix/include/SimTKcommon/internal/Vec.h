@@ -1117,7 +1117,7 @@ operator*(const Vec<M,E,S>& l, const double& r)
   { return Vec<M,E,S>::template Result<double>::MulOp::perform(l,r); }
 template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<double>::Mul
-operator*(const double& l, const Vec<M,E,S>& r) { return r*l; }
+operator*(const double& l, const Vec<M,E,S>& r) {return r*l;}
 
 #ifdef SimTK_REAL_IS_ADOUBLE
     template <int M, class E, int S> inline
@@ -1190,11 +1190,11 @@ operator/(const float& l, const Vec<M,E,S>& r)
 template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<double>::Dvd
 operator/(const Vec<M,E,S>& l, const double& r)
-  { return Vec<M, E, S>::template Result<double>::DvdOp::perform(l,r); }
+  { return Vec<M,E,S>::template Result<double>::DvdOp::perform(l,r); }
 template <int M, class E, int S> inline
-typename CNT<double>::template Result<Vec<M, E, S> >::Dvd
+typename CNT<double>::template Result<Vec<M,E,S> >::Dvd
 operator/(const double& l, const Vec<M,E,S>& r)
-  { return CNT<double>::template Result<Vec<M, E, S> >::DvdOp::perform(l,r); }
+  { return CNT<double>::template Result<Vec<M,E,S> >::DvdOp::perform(l,r); }
 
 #ifdef SimTK_REAL_IS_ADOUBLE
     template <int M, class E, int S> inline
@@ -1270,12 +1270,12 @@ typename Vec<M,E,S>::template Result<float>::Add
 operator+(const float& l, const Vec<M,E,S>& r) {return r+l;}
 
 template <int M, class E, int S> inline
-typename Vec<M, E, S>::template Result<double>::Add
-operator+(const Vec<M, E, S>& l, const double& r)
-  { return Vec<M, E, S>::template Result<double>::AddOp::perform(l,r); }
+typename Vec<M,E,S>::template Result<double>::Add
+operator+(const Vec<M,E,S>& l, const double& r)
+  { return Vec<M,E,S>::template Result<double>::AddOp::perform(l,r); }
 template <int M, class E, int S> inline
-typename Vec<M, E, S>::template Result<double>::Add
-operator+(const double& l, const Vec<M, E, S>& r) { return r + l; }
+typename Vec<M,E,S>::template Result<double>::Add
+operator+(const double& l, const Vec<M,E,S>& r) { return r + l; }
 
 #ifdef SimTK_REAL_IS_ADOUBLE
     template <int M, class E, int S> inline
@@ -1343,13 +1343,13 @@ operator-(const float& l, const Vec<M,E,S>& r)
   { return CNT<float>::template Result<Vec<M,E,S> >::SubOp::perform(l,r); }
 
 template <int M, class E, int S> inline
-typename Vec<M, E, S>::template Result<double>::Sub
-operator-(const Vec<M, E, S>& l, const double& r)
-  { return Vec<M, E, S>::template Result<double>::SubOp::perform(l,r); }
+typename Vec<M,E,S>::template Result<double>::Sub
+operator-(const Vec<M,E,S>& l, const double& r)
+  { return Vec<M,E,S>::template Result<double>::SubOp::perform(l,r); }
 template <int M, class E, int S> inline
-typename CNT<double>::template Result<Vec<M, E, S> >::Sub
-operator-(const double& l, const Vec<M, E, S>& r)
- { return CNT<double>::template Result<Vec<M, E, S> >::SubOp::perform(l,r); }
+typename CNT<double>::template Result<Vec<M,E,S> >::Sub
+operator-(const double& l, const Vec<M,E,S>& r)
+ { return CNT<double>::template Result<Vec<M,E,S> >::SubOp::perform(l,r); }
 
 #ifdef SimTK_REAL_IS_ADOUBLE
     template <int M, class E, int S> inline
