@@ -82,6 +82,9 @@ template <class R> class NTraits< conjugate<R> >;
 template <> class NTraits<float>;
 template <> class NTraits<double>;
 template <> class NTraits<long double>;
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> class NTraits<adouble>;
+#endif
 
 // This is an adaptor for numeric types which negates the apparent values. A
 // negator<N> has exactly the same internal representation as a numeric value N, 
@@ -110,6 +113,15 @@ template <> struct Widest<double,long double>       {typedef long double Type;  
 template <> struct Widest<long double,float>        {typedef long double Type;  typedef long double Precision;};
 template <> struct Widest<long double,double>       {typedef long double Type;  typedef long double Precision;};
 template <> struct Widest<long double,long double>  {typedef long double Type;  typedef long double Precision;};
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> struct Widest<float,adouble>        {typedef adouble     Type;  typedef adouble     Precision;};
+    template <> struct Widest<double,adouble>       {typedef adouble     Type;  typedef adouble     Precision;};
+    template <> struct Widest<adouble,float>        {typedef adouble     Type;  typedef adouble     Precision;};
+    template <> struct Widest<adouble,double>       {typedef adouble     Type;  typedef adouble     Precision;};
+    template <> struct Widest<adouble,adouble>      {typedef adouble     Type;  typedef adouble     Precision;};
+    template <> struct Widest<adouble,long double>  {typedef long double Type;  typedef long double Precision;};
+    template <> struct Widest<long double,adouble>  {typedef long double Type;  typedef long double Precision;};
+#endif
 template <class R1, class R2> struct Widest< complex<R1>,complex<R2> > { 
     typedef complex< typename Widest<R1,R2>::Type > Type; 
     typedef typename Widest<R1,R2>::Precision       Precision; 
@@ -142,6 +154,15 @@ template <> struct Narrowest<double,long double>       {typedef double Type; typ
 template <> struct Narrowest<long double,float>        {typedef float  Type; typedef float Precision;};
 template <> struct Narrowest<long double,double>       {typedef double Type; typedef double Precision;};
 template <> struct Narrowest<long double,long double>  {typedef long double Type; typedef long double Precision;};
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> struct Narrowest<float,adouble>        {typedef float   Type; typedef float   Precision;};
+    template <> struct Narrowest<double,adouble>       {typedef double  Type; typedef double  Precision;};
+    template <> struct Narrowest<adouble,float>        {typedef float   Type; typedef float   Precision;};
+    template <> struct Narrowest<adouble,double>       {typedef adouble Type; typedef adouble Precision;};
+    template <> struct Narrowest<adouble,adouble>      {typedef adouble Type; typedef adouble Precision;};
+    template <> struct Narrowest<adouble,long double>  {typedef adouble Type; typedef adouble Precision;};
+    template <> struct Narrowest<long double,adouble>  {typedef adouble Type; typedef adouble Precision;};
+#endif
 template <class R1, class R2> struct Narrowest< complex<R1>,complex<R2> > { 
     typedef complex< typename Narrowest<R1,R2>::Type >  Type; 
     typedef typename Narrowest<R1,R2>::Precision        Precision;
@@ -178,7 +199,15 @@ public:
     static const long double& getSignificant() {static const long double c=std::pow(getEps(), 0.875L); return c;}
     static double getDefaultTolerance()        {return (double)getSignificant();}
 };
-
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> class RTraits<adouble> {
+    public:
+        static const adouble& getEps()         {static const adouble c=std::numeric_limits<double>::epsilon(); return c;}
+        static const adouble& getSignificant() {static const adouble c = pow(getEps(), 0.875L); return c;}
+        static double getDefaultTolerance()    {return getSignificant().value();}
+    };
+#endif
+    
 /**
  * @defgroup isNaN isNaN()
  * @ingroup ScalarFunctions
@@ -200,6 +229,9 @@ public:
 inline bool isNaN(const float& x)  {return std::isnan(x);}
 inline bool isNaN(const double& x) {return std::isnan(x);}
 inline bool isNaN(const long double& x) {return std::isnan(x);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline bool isNaN(const adouble& x) {return std::isnan(x.getValue());}
+#endif
 
 template <class P> inline bool
 isNaN(const std::complex<P>& x)
@@ -227,6 +259,9 @@ isNaN(const conjugate<P>& x)
 inline bool isFinite(const float&  x) {return std::isfinite(x);}
 inline bool isFinite(const double& x) {return std::isfinite(x);}
 inline bool isFinite(const long double& x) {return std::isfinite(x);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline bool isFinite(const adouble& x) {return std::isfinite(x.getValue());}
+#endif
 
 template <class P> inline bool
 isFinite(const std::complex<P>& x)
@@ -256,6 +291,9 @@ isFinite(const conjugate<P>& x)
 inline bool isInf(const float&  x) {return std::isinf(x);}
 inline bool isInf(const double& x) {return std::isinf(x);}
 inline bool isInf(const long double& x) {return std::isinf(x);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline bool isInf(const adouble& x) {return std::isinf(x.getValue());}
+#endif
 
 template <class P> inline bool
 isInf(const std::complex<P>& x) {
@@ -321,6 +359,26 @@ inline bool isNumericallyEqual(const double& a, const double& b,
 {   if (isNaN(a)) return isNaN(b); else if (isNaN(b)) return false;
     const double scale = std::max(std::max(std::abs(a),std::abs(b)), 1.);
     return std::abs(a-b) <= scale*tol; }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    /// Compare a double with an adouble for approximate equality.
+    inline bool isNumericallyEqual(const adouble& a, const double& b,
+	                               double tol = RTraits<adouble>::getDefaultTolerance())
+    {   if (isNaN(a)) return isNaN(b); else if (isNaN(b)) return false;
+	    const adouble scale = fmax(fmax(fabs(a), fabs(b)), 1.);
+	    return fabs(a - b) <= scale.getValue()*tol; }
+    /// Compare a double with an adouble for approximate equality.
+    inline bool isNumericallyEqual(const double& a, const adouble& b,
+                                   double tol = RTraits<adouble>::getDefaultTolerance())
+    {   if (isNaN(a)) return isNaN(b); else if (isNaN(b)) return false;
+        const adouble scale = fmax(fmax(fabs(a), fabs(b)), 1.);
+        return fabs(a - b) <= scale.getValue()*tol; }
+    /// Compare two adoubles for approximate equality.
+    inline bool isNumericallyEqual(const adouble& a, const adouble& b,
+	                               double tol = RTraits<adouble>::getDefaultTolerance())
+    {   if (isNaN(a)) return isNaN(b); else if (isNaN(b)) return false;
+	    const adouble scale = fmax(fmax(fabs(a), fabs(b)), 1.);
+	    return fabs(a - b) <= scale.getValue()*tol; }
+#endif
 /// Compare two long doubles for approximate equality.
 inline bool isNumericallyEqual(const long double& a, const long double& b, 
                                double tol = RTraits<long double>::getDefaultTolerance())
@@ -336,6 +394,16 @@ inline bool isNumericallyEqual(const float& a, const double& b,
 inline bool isNumericallyEqual(const double& a, const float& b, 
                                double tol = RTraits<float>::getDefaultTolerance())
 {   return isNumericallyEqual(a, (double)b, tol); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    /// Compare a float and an adouble for approximate equality at float precision.
+    inline bool isNumericallyEqual(const float& a, const adouble& b, 
+	                               double tol = RTraits<float>::getDefaultTolerance())
+    {   return isNumericallyEqual((adouble)a, b, tol); }
+    /// Compare a float and an adouble for approximate equality at float precision.
+    inline bool isNumericallyEqual(const adouble& a, const float& b, 
+	                               double tol = RTraits<float>::getDefaultTolerance())
+    {   return isNumericallyEqual(a, (adouble)b, tol); }
+#endif
 /// Compare a float and a long double for approximate equality at float precision.
 inline bool isNumericallyEqual(const float& a, const long double& b, 
                                double tol = RTraits<float>::getDefaultTolerance())
@@ -352,6 +420,16 @@ inline bool isNumericallyEqual(const double& a, const long double& b,
 inline bool isNumericallyEqual(const long double& a, const double& b, 
                                double tol = RTraits<double>::getDefaultTolerance())
 {   return isNumericallyEqual(a, (long double)b, tol); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    /// Compare an adouble and a long double for approximate equality at double precision.
+    inline bool isNumericallyEqual(const adouble& a, const long double& b, 
+                                   double tol = RTraits<adouble>::getDefaultTolerance())
+    {   return isNumericallyEqual((long double)a.getValue(), b, tol); }
+    /// Compare an adouble and a long double for approximate equality at double precision.
+    inline bool isNumericallyEqual(const long double& a, const adouble& b, 
+    	                           double tol = RTraits<adouble>::getDefaultTolerance())
+    {   return isNumericallyEqual(a, (long double)b.getValue(), tol); }
+#endif
 
 /// %Test a float for approximate equality to an integer.
 inline bool isNumericallyEqual(const float& a, int b,
@@ -369,6 +447,16 @@ inline bool isNumericallyEqual(const double& a, int b,
 inline bool isNumericallyEqual(int a, const double& b,
                                double tol = RTraits<double>::getDefaultTolerance())
 {   return isNumericallyEqual((double)a, b, tol); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    /// %Test an adouble for approximate equality to an integer.
+    inline bool isNumericallyEqual(const adouble& a, int b,
+	                               double tol = RTraits<adouble>::getDefaultTolerance())
+    {   return isNumericallyEqual(a, (adouble)b, tol); }
+    /// %Test an adouble for approximate equality to an integer.
+    inline bool isNumericallyEqual(int a, const adouble& b,
+	                               double tol = RTraits<adouble>::getDefaultTolerance())
+    {   return isNumericallyEqual((adouble)a, b, tol); }
+#endif
 /// %Test a long double for approximate equality to an integer.
 inline bool isNumericallyEqual(const long double& a, int b,
                                double tol = RTraits<long double>::getDefaultTolerance())
@@ -458,6 +546,18 @@ template <class P> inline bool
 isNumericallyEqual(int a, const std::complex<P>& b, 
                    double tol = RTraits<P>::getDefaultTolerance())
 {   return isNumericallyEqual(b,a,tol); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    /// %Test whether a complex number is approximately equal to a particular adouble.
+    template <class P> inline bool
+    isNumericallyEqual(const std::complex<P>& a, const adouble& b,
+	                   double tol = RTraits<typename Narrowest<P,adouble>::Precision>::getDefaultTolerance())
+    {   return isNumericallyEqual(a.real(),b,tol) && isNumericallyEqual(a.imag(),0.,tol); }
+    /// %Test whether a complex number is approximately equal to a particular adouble.
+    template <class P> inline bool
+    isNumericallyEqual(const adouble& a, const std::complex<P>& b,
+	                   double tol = RTraits<typename Narrowest<P,adouble>::Precision>::getDefaultTolerance())
+    {   return isNumericallyEqual(b,a,tol);   }
+#endif
 
 /// %Test whether a conjugate number is approximately equal to a particular real float.
 template <class P> inline bool 
@@ -499,6 +599,18 @@ template <class P> inline bool
 isNumericallyEqual(int a, const conjugate<P>& b, 
                    double tol = RTraits<P>::getDefaultTolerance())
 {   return isNumericallyEqual(b,a,tol); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    /// %Test whether a conjugate number is approximately equal to a particular adouble.
+    template <class P> inline bool
+    isNumericallyEqual(const conjugate<P>& a, const adouble& b,
+	                   double tol = RTraits<typename Narrowest<P, adouble>::Precision>::getDefaultTolerance())
+    {   return isNumericallyEqual(a.real(),b,tol) && isNumericallyEqual(a.imag(),0.,tol); }
+    /// %Test whether a conjugate number is approximately equal to a particular adouble.
+    template <class P> inline bool
+    isNumericallyEqual(const adouble& a, const conjugate<P>& b,
+	                   double tol = RTraits<typename Narrowest<P,adouble>::Precision>::getDefaultTolerance())
+    {   return isNumericallyEqual(b,a,tol); }
+#endif
 
 //@}
 
@@ -647,6 +759,11 @@ public:
     static bool isNumericallyEqual(const T& a, int b) {return SimTK::isNumericallyEqual(a,b);}
     static bool isNumericallyEqual(const T& a, int b, double tol) {return SimTK::isNumericallyEqual(a,b,tol);}
 
+    #ifdef SimTK_REAL_IS_ADOUBLE
+        static bool isNumericallyEqual(const T& a, const adouble& b) {return SimTK::isNumericallyEqual(a,b);}
+        static bool isNumericallyEqual(const T& a, const adouble& b, double tol) {return SimTK::isNumericallyEqual(a,b,tol);}
+    #endif
+
     // The rest are the same as the real equivalents, with zero imaginary part.              
     static const T& getZero()         {static const T c(NTraits<R>::getZero());         return c;}
     static const T& getOne()          {static const T c(NTraits<R>::getOne());          return c;}
@@ -697,6 +814,20 @@ SimTK_BNTCMPLX_SPEC(double,float);SimTK_BNTCMPLX_SPEC(double,double);SimTK_BNTCM
 SimTK_BNTCMPLX_SPEC(long double,float);SimTK_BNTCMPLX_SPEC(long double,double);SimTK_BNTCMPLX_SPEC(long double,long double);
 #undef SimTK_BNTCMPLX_SPEC
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template<> template<> struct NTraits< complex<float> >::Result<adouble> {
+        typedef Widest< complex<float>,adouble >::Type W;                      
+		typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
+    };
+    template<> template<> struct NTraits< complex<double> >::Result<adouble> {
+        typedef Widest< complex<double>,adouble >::Type W;
+	    typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
+    };
+    template<> template<> struct NTraits< complex<long double> >::Result<adouble> {
+        typedef Widest< complex<long double>,adouble >::Type W;
+	    typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub;
+    };
+#endif
 
 // conjugate -- should be instantiated only for float, double, long double.
 template <class R> class NTraits< conjugate<R> > {
@@ -839,8 +970,12 @@ public:
 
     static bool isNumericallyEqual(const T& a, const float& b) {return SimTK::isNumericallyEqual(a,b);}
     static bool isNumericallyEqual(const T& a, const float& b, double tol) {return SimTK::isNumericallyEqual(a,b,tol);}
-    static bool isNumericallyEqual(const T& a, const double& b) {return SimTK::isNumericallyEqual(a,b);}
-    static bool isNumericallyEqual(const T& a, const double& b, double tol) {return SimTK::isNumericallyEqual(a,b,tol);}
+	static bool isNumericallyEqual(const T& a, const double& b) { return SimTK::isNumericallyEqual(a,b); }
+	static bool isNumericallyEqual(const T& a, const double& b, double tol) { return SimTK::isNumericallyEqual(a,b,tol); }
+    #ifdef SimTK_REAL_IS_ADOUBLE
+        static bool isNumericallyEqual(const T& a, const adouble& b) {return SimTK::isNumericallyEqual(a,b);}
+        static bool isNumericallyEqual(const T& a, const adouble& b, double tol) {return SimTK::isNumericallyEqual(a,b,tol);}
+    #endif
     static bool isNumericallyEqual(const T& a, const long double& b) {return SimTK::isNumericallyEqual(a,b);}
     static bool isNumericallyEqual(const T& a, const long double& b, double tol) {return SimTK::isNumericallyEqual(a,b,tol);}
     static bool isNumericallyEqual(const T& a, int b) {return SimTK::isNumericallyEqual(a,b);}
@@ -912,6 +1047,20 @@ SimTK_NTRAITS_CONJ_SPEC(long double,float);SimTK_NTRAITS_CONJ_SPEC(long double,d
 SimTK_NTRAITS_CONJ_SPEC(long double,long double);
 #undef SimTK_NTRAITS_CONJ_SPEC 
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template<> template<> struct NTraits< conjugate<float> >::Result<adouble> { 
+        typedef conjugate<Widest<float,adouble>::Type> W;                                 
+		typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
+    };
+    template<> template<> struct NTraits< conjugate<double> >::Result<adouble> {
+        typedef conjugate<Widest<double,adouble>::Type> W;
+	    typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
+    };
+    template<> template<> struct NTraits< conjugate<long double> >::Result<adouble> {
+        typedef conjugate<Widest<long double,adouble>::Type> W;
+	    typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub;
+    };        
+#endif
 
 // Specializations for real numbers.
 // For real scalar R, op result types are:
@@ -920,6 +1069,15 @@ SimTK_NTRAITS_CONJ_SPEC(long double,long double);
 //   Typeof(R+P) = Typeof(P+R)
 //   typeof(R-P) = Typeof(P::TNeg + R)
 // These must be specialized for P=Real and P=Complex.
+
+#ifdef SimTK_REAL_IS_ADOUBLE 
+    #define SimTK_DEFINE_REAL_NTRAITS_ADOLC(R) \
+    template<> struct NTraits<R>::Result<adouble> \
+    {typedef Widest<R, adouble>::Type Mul; typedef Mul Dvd; typedef Mul Add; typedef Mul Sub; };
+#else
+    #define SimTK_DEFINE_REAL_NTRAITS_ADOLC(R)
+#endif
+
 #define SimTK_DEFINE_REAL_NTRAITS(R)            \
 template <> class NTraits<R> {                  \
 public:                                         \
@@ -940,6 +1098,23 @@ public:                                         \
     typedef T                TAbs;              \
     typedef T                TStandard;         \
     typedef T                TInvert;           \
+    typedef T                Tsin;              \
+    typedef T                Tcos;              \
+    typedef T                Tpow;              \
+    typedef T                Tfloor;            \
+    typedef T                Texp;              \
+    typedef T                Tlog;              \
+    typedef T                Ttan;              \
+    typedef T                Tasin;             \
+    typedef T                Tacos;             \
+    typedef T                Tatan;             \
+    typedef T                Tatan2;            \
+    typedef T                Tsinh;             \
+    typedef T                Tcosh;             \
+    typedef T                Ttanh;             \
+    typedef T                Tmax;              \
+    typedef T                Tmin;              \
+    typedef T                Tlog10;            \
     typedef T                TNormalize;        \
     typedef T                Scalar;            \
     typedef T                ULessScalar;       \
@@ -998,6 +1173,26 @@ public:                                         \
     static const TStandard& standardize(const T& t) {return t;}             \
     static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));} \
     static TInvert invert(const T& t) {return T(1)/t;}                      \
+    /* TODO these should be used carefully when working with adouble.*/     \
+    static const T& value(const T& t) {return t;}                           \
+    static T&      value(T& t)        {return t;}                           \
+    static Tsin    sin(const T& t)    {return std::sin(t);}                 \
+    static Tcos    cos(const T& t)    {return std::cos(t);}                 \
+    static Tfloor  floor(const T& t)  {return std::floor(t);}               \
+    static Tpow    pow(const T& t, const T& order) {return std::pow(t,order);} \
+    static Texp    exp(const T& t)    {return std::exp(t);}                 \
+    static Tlog    log(const T& t)    {return std::log(t);}                 \
+    static Ttan    tan(const T& t)    {return std::tan(t);}                 \
+    static Tasin   asin(const T& t)   {return std::asin(t);}                \
+    static Tacos   acos(const T& t)   {return std::acos(t);}                \
+    static Tatan   atan(const T& t)   {return std::atan(t);}                \
+    static Tatan2  atan2(const T& t,const T& t2) {return std::atan2(t,t2);} \
+    static Tsinh   sinh(const T& t)   {return std::sinh(t); }               \
+    static Tcosh   cosh(const T& t)   {return std::cosh(t); }               \
+    static Ttanh   tanh(const T& t)   {return std::tanh(t); }               \
+    static Tmax    max(const T& t,const T& t2) {return std::max(t,t2);}     \
+    static Tmin    min(const T& t,const T& t2) {return std::min(t,t2);}     \
+    static Tlog10  log10(const T& t)  {return std::log10(t);}               \
     /* properties of this floating point representation, with memory addresses */     \
     static const T& getEps()          {return RTraits<T>::getEps();}                                    \
     static const T& getSignificant()  {return RTraits<T>::getSignificant();}                            \
@@ -1056,36 +1251,28 @@ public:                                         \
     static int getLosslessNumDigits() {static const int c=(int)(std::log10(1/getTiny())+0.5); return c;} \
 }; \
 template<> struct NTraits<R>::Result<float> \
-  {typedef Widest<R,float>::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;};    \
+    {typedef Widest<R,float>::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;};    \
 template<> struct NTraits<R>::Result<double> \
-  {typedef Widest<R,double>::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;};    \
+    {typedef Widest<R,double>::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;};    \
 template<> struct NTraits<R>::Result<long double> \
-  {typedef Widest<R,long double>::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;};    \
+    {typedef Widest<R,long double>::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;};    \
 template<> struct NTraits<R>::Result<complex<float> > \
-  {typedef Widest<R,complex<float> >::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
+    {typedef Widest<R,complex<float> >::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
 template<> struct NTraits<R>::Result<complex<double> > \
-  {typedef Widest<R,complex<double> >::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
+    {typedef Widest<R,complex<double> >::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
 template<> struct NTraits<R>::Result<complex<long double> > \
-  {typedef Widest<R,complex<long double> >::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
+    {typedef Widest<R,complex<long double> >::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
 template<> struct NTraits<R>::Result<conjugate<float> > \
-  {typedef conjugate<Widest<R,float>::Type> Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
+    {typedef conjugate<Widest<R,float>::Type> Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
 template<> struct NTraits<R>::Result<conjugate<double> > \
-  {typedef conjugate<Widest<R,double>::Type> Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
+    {typedef conjugate<Widest<R,double>::Type> Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
 template<> struct NTraits<R>::Result<conjugate<long double> > \
-  {typedef conjugate<Widest<R,long double>::Type> Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}
+    {typedef conjugate<Widest<R,long double>::Type> Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
+SimTK_DEFINE_REAL_NTRAITS_ADOLC(R);
 
-#if defined(__clang__)
-#pragma clang diagnostic push
-// The function `T& imag(T&)` generates a null-dereference warning.
-#pragma clang diagnostic ignored "-Wnull-dereference"
-#endif
 SimTK_DEFINE_REAL_NTRAITS(float);
 SimTK_DEFINE_REAL_NTRAITS(double);
 SimTK_DEFINE_REAL_NTRAITS(long double);
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-
 #undef SimTK_DEFINE_REAL_NTRAITS
 
 /// Specializations of CNT for numeric types.
@@ -1097,5 +1284,232 @@ template <> class CNT<long double> : public NTraits<long double> { };
 
 
 } // namespace SimTK
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    // Must declare certain friend functions of adouble in the global namespace
+    // so that they are visible within NTraits<adouble>.
+    // https://stackoverflow.com/questions/18449855/c-friend-function-hidden-by-class-function/18451369
+    adub sqrt(const badouble&);
+    adub sin(const badouble&);
+    adub cos(const badouble&);
+    adub floor(const badouble&);
+    adouble pow(const badouble&, const badouble&);
+    adub exp(const badouble&);
+    adub log(const badouble&);
+    adub tan(const badouble&);
+    adub asin(const badouble&);
+    adub acos(const badouble&);
+    adub atan(const badouble&);
+    adouble atan2(const badouble&, const badouble&);
+    adub sinh(const badouble&);
+    adub cosh(const badouble&);
+    adub tanh(const badouble&);
+    adub log10(const badouble&);
+
+    namespace SimTK {
+
+    // Definition for adouble only
+    template <> class NTraits<adouble> {                  
+    public:                                         
+        typedef adouble          T;                 
+        typedef negator<T>       TNeg;              
+        typedef T                TWithoutNegator;   
+        typedef T                TReal;             
+        typedef T                TImag;             
+        typedef complex<T>       TComplex;          
+        typedef T                THerm;             
+        typedef T                TPosTrans;         
+        typedef T                TSqHermT;          
+        typedef T                TSqTHerm;          
+        typedef T                TElement;          
+        typedef T                TRow;              
+        typedef T                TCol;              
+        typedef T                TSqrt;
+        typedef T                TAbs;              
+        typedef T                TStandard;         
+        typedef T                TInvert;  
+        typedef T                Tsin;
+        typedef T                Tcos;
+        typedef T                Tfloor;
+        typedef T                Tpow;
+        typedef T                Texp;
+        typedef T                Tlog;
+        typedef T                Ttan;
+        typedef T                Tasin;
+        typedef T                Tacos;
+        typedef T                Tatan;
+        typedef T                Tatan2;
+        typedef T                Tsinh;
+        typedef T                Tcosh;
+        typedef T                Ttanh;
+        typedef T                Tmax;
+        typedef T                Tmin;
+        typedef T                Tlog10;
+        typedef T                TNormalize;        
+        typedef T                Scalar;            
+        typedef T                ULessScalar;       
+        typedef T                Number;            
+        typedef T                StdNumber;         
+        typedef T                Precision;         
+        typedef T                ScalarNormSq;      
+        template <class P> struct Result {          
+            typedef typename CNT<P>::template Result<adouble>::Mul Mul;   
+            typedef typename CNT< typename CNT<P>::THerm >::template Result<adouble>::Mul Dvd;   
+            typedef typename CNT<P>::template Result<adouble>::Add Add;
+            typedef typename CNT< typename CNT<P>::TNeg >::template Result<adouble>::Add Sub;
+	    };
+        template <class P> struct Substitute {      
+            typedef P Type;                         
+        };                                          
+        enum {                                      
+            NRows               = 1,                
+            NCols               = 1,                
+            RowSpacing          = 1,                
+            ColSpacing          = 1,                
+            NPackedElements     = 1,                
+            NActualElements     = 1,                
+            NActualScalars      = 1,                
+            ImagOffset          = 0,                
+            RealStrideFactor    = 1,                
+            ArgDepth            = SCALAR_DEPTH,     
+            IsScalar            = 1,                
+            IsULessScalar       = 1,                
+            IsNumber            = 1,                
+            IsStdNumber         = 1,                
+            IsPrecision         = 1,                
+            SignInterpretation  = 1                 
+        };                                          
+        static const T* getData(const T& t) { return &t; }  
+        static T*       updData(T& t)       { return &t; }  
+        static const T& real(const T& t) { return t; }      
+        static T&       real(T& t)       { return t; }      
+        static const T& imag(const T&)   { return getZero(); }   
+        static T&       imag(T&)         { assert(false); return *reinterpret_cast<T*>(0); } 
+        static const TNeg& negate(const T& t) {return reinterpret_cast<const TNeg&>(t);}        
+        static       TNeg& negate(T& t) {return reinterpret_cast<TNeg&>(t);}                    
+        static const THerm& transpose(const T& t) {return reinterpret_cast<const THerm&>(t);}   
+        static       THerm& transpose(T& t) {return reinterpret_cast<THerm&>(t);}               
+        static const TPosTrans& positionalTranspose(const T& t)                 
+            {return reinterpret_cast<const TPosTrans&>(t);}                     
+        static       TPosTrans& positionalTranspose(T& t)                       
+            {return reinterpret_cast<TPosTrans&>(t);}                           
+        static const TWithoutNegator& castAwayNegatorIfAny(const T& t)          
+            {return reinterpret_cast<const TWithoutNegator&>(t);}               
+        static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)             
+            {return reinterpret_cast<TWithoutNegator&>(t);}                     
+        static double value(const T& t) {
+            // TODO do we need this error check here?
+            SimTK_CANNOT_TAPE_THROUGH_UNDIFFERENTIATED_CODE;
+            return t.value();
+        }
+        static ScalarNormSq scalarNormSqr(const T& t) {return t*t;}             
+        static TSqrt        sqrt(const T& t)    {return ::sqrt(t);}
+        static TAbs         abs(const T& t)     {return fabs(t);}               
+        static const TStandard& standardize(const T& t) {return t;}             
+        static TNormalize normalize(const T& t) {return (t>0?(T)1:(t<0?(T)-1:getNaN()));}
+        static TInvert      invert(const T& t)  {return T(1)/t;}       
+        static Tsin         sin(const T& t)     {return ::sin(t);} 
+        static Tcos         cos(const T& t)     {return ::cos(t);}
+        static Tfloor       floor(const T& t)   {return ::floor(t);}
+        static Tpow         pow(const T& t, const T& order) {return ::pow(t, order);}
+        static Texp         exp(const T& t)     {return ::exp(t);}
+        static Tlog         log(const T& t)     {return ::log(t);}
+        static Ttan         tan(const T& t)     {return ::tan(t);}
+        static Tasin        asin(const T& t)    {return ::asin(t);}
+        static Tacos        acos(const T& t)    {return ::acos(t);}
+        static Tatan        atan(const T& t)    {return ::atan(t);}
+        static Tatan2       atan2(const T& t, const T& t2) {return ::atan2(t,t2);}
+        static Tsinh        sinh(const T& t)    {return ::sinh(t);}
+        static Tcosh        cosh(const T& t)    {return ::cosh(t);}
+        static Ttanh        tanh(const T& t)    {return ::tanh(t);}
+        static Tmax         max(const T& t, const T& t2) {return fmax(t,t2);}
+        static Tmin         min(const T& t, const T& t2) {return fmin(t,t2);}
+        static Tlog10       log10(const T& t)   {return ::log10(t);}
+        /* properties of this floating point representation, with memory addresses */     
+        static const T& getEps()          {static const T c=RTraits<T>::getEps();                     return c;}
+        static const T& getSignificant()  {static const T c=RTraits<T>::getSignificant();             return c;}
+        static const T& getNaN()          {static const T c=std::numeric_limits<double>::quiet_NaN(); return c;}
+        static const T& getInfinity()     {static const T c=std::numeric_limits<double>::infinity();  return c;} 
+        static const T& getLeastPositive(){static const T c=std::numeric_limits<double>::min();       return c;} 
+        static const T& getMostPositive() {static const T c=std::numeric_limits<double>::max();       return c;} 
+        static const T& getLeastNegative(){static const T c=-std::numeric_limits<double>::min();      return c;} 
+        static const T& getMostNegative() {static const T c=-std::numeric_limits<double>::max();      return c;} 
+        static const T& getSqrtEps()      {static const T c=sqrt(getEps());                           return c;} 
+	    static const T& getTiny()         {static const T c=pow(getEps(), (double)1.25L);             return c;} 
+        static bool isFinite(const T& t) {return SimTK::isFinite(t);}
+        static bool isNaN   (const T& t) {return SimTK::isNaN(t);}
+        static bool isInf   (const T& t) {return SimTK::isInf(t);}
+        /* Methods to use for approximate comparisons. Perform comparison in the wider of the two */                
+        /* precisions, using the default tolerance from the narrower of the two precisions.       */                
+        static double getDefaultTolerance() {return RTraits<T>::getDefaultTolerance();}                             
+        static bool isNumericallyEqual(const T& t, const float& f) {return SimTK::isNumericallyEqual(t,f);}
+        static bool isNumericallyEqual(const T& t, const double& d) {return SimTK::isNumericallyEqual(t,d);}
+        static bool isNumericallyEqual(const T& t, const adouble& d) {return SimTK::isNumericallyEqual(t,d);}
+        static bool isNumericallyEqual(const T& t, const long double& l) {return SimTK::isNumericallyEqual(t,l);}
+        static bool isNumericallyEqual(const T& t, int i) {return SimTK::isNumericallyEqual(t,i);}                  
+        /* Here the tolerance is given so we don't have to figure it out. */                                                        
+        static bool isNumericallyEqual(const T& t, const float& f, double tol){return SimTK::isNumericallyEqual(t,f,tol);}          
+        static bool isNumericallyEqual(const T& t, const double& d, double tol){return SimTK::isNumericallyEqual(t,d,tol);}         
+        static bool isNumericallyEqual(const T& t, const adouble& d, double tol){return SimTK::isNumericallyEqual(t,d,tol);}        
+        static bool isNumericallyEqual(const T& t, const long double& l, double tol) {return SimTK::isNumericallyEqual(t,l,tol);}
+        static bool isNumericallyEqual(const T& t, int i, double tol){return SimTK::isNumericallyEqual(t,i,tol);}                   
+        /* Carefully calculated constants with convenient memory addresses. */               
+        static const T& getZero()         {static const T c=(T)(0);               return c;} 
+        static const T& getOne()          {static const T c=(T)(1);               return c;} 
+        static const T& getMinusOne()     {static const T c=(T)(-1);              return c;} 
+        static const T& getTwo()          {static const T c=(T)(2);               return c;} 
+        static const T& getThree()        {static const T c=(T)(3);               return c;} 
+        static const T& getOneHalf()      {static const T c=(T)(0.5L);            return c;} 
+        static const T& getOneThird()     {static const T c=(T)(1.L/3.L);         return c;} 
+        static const T& getOneFourth()    {static const T c=(T)(0.25L);           return c;} 
+        static const T& getOneFifth()     {static const T c=(T)(0.2L);            return c;} 
+        static const T& getOneSixth()     {static const T c=(T)(1.L/6.L);         return c;} 
+        static const T& getOneSeventh()   {static const T c=(T)(1.L/7.L);         return c;} 
+        static const T& getOneEighth()    {static const T c=(T)(0.125L);          return c;} 
+        static const T& getOneNinth()     {static const T c=(T)(1.L/9.L);         return c;} 
+        static const T& getPi()           {static const T c=(T)(SimTK_PI);        return c;} 
+        static const T& getOneOverPi()    {static const T c=(T)(1.L/SimTK_PI);    return c;} 
+        static const T& getE()            {static const T c=(T)(SimTK_E);         return c;} 
+        static const T& getLog2E()        {static const T c=(T)(SimTK_LOG2E);     return c;} 
+        static const T& getLog10E()       {static const T c=(T)(SimTK_LOG10E);    return c;} 
+        static const T& getSqrt2()        {static const T c=(T)(SimTK_SQRT2);     return c;} 
+        static const T& getOneOverSqrt2() {static const T c=(T)(1.L/SimTK_SQRT2); return c;} 
+        static const T& getSqrt3()        {static const T c=(T)(SimTK_SQRT3);     return c;} 
+        static const T& getOneOverSqrt3() {static const T c=(T)(1.L/SimTK_SQRT3); return c;} 
+        static const T& getCubeRoot2()    {static const T c=(T)(SimTK_CBRT2);     return c;} 
+        static const T& getCubeRoot3()    {static const T c=(T)(SimTK_CBRT3);     return c;} 
+        static const T& getLn2()          {static const T c=(T)(SimTK_LN2);       return c;} 
+        static const T& getLn10()         {static const T c=(T)(SimTK_LN10);      return c;} 
+        /* integer digit counts useful for formatted input and output */                     
+        static int getNumDigits()         {static const int c=(int)(log10(1/getEps()).value() -0.5); return c;} 
+        static int getLosslessNumDigits() {static const int c=(int)(log10(1/getTiny()).value()+0.5); return c;} 
+    }; 
+    template<> struct NTraits<adouble>::Result<float> 
+        {typedef Widest<adouble, float>::Type Mul; typedef Mul Dvd; typedef Mul Add; typedef Mul Sub;};    
+    template<> struct NTraits<adouble>::Result<double> 
+        {typedef Widest<adouble, double>::Type Mul; typedef Mul Dvd; typedef Mul Add; typedef Mul Sub;};    
+    template<> struct NTraits<adouble>::Result<long double> 
+        {typedef Widest<adouble, long double>::Type Mul; typedef Mul Dvd; typedef Mul Add; typedef Mul Sub;};    
+    template<> struct NTraits<adouble>::Result<adouble> 
+        {typedef Widest<adouble,adouble>::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; 
+    template<> struct NTraits<adouble>::Result<complex<float> > 
+        {typedef Widest<adouble, complex<float> >::Type Mul; typedef Mul Dvd; typedef Mul Add; typedef Mul Sub;}; 
+    template<> struct NTraits<adouble>::Result<complex<double> > 
+        {typedef Widest<adouble, complex<double> >::Type Mul; typedef Mul Dvd; typedef Mul Add; typedef Mul Sub;}; 
+    template<> struct NTraits<adouble>::Result<complex<long double> > 
+        {typedef Widest<adouble, complex<long double> >::Type Mul; typedef Mul Dvd; typedef Mul Add; typedef Mul Sub;}; 
+    template<> struct NTraits<adouble>::Result<conjugate<float> > 
+        {typedef conjugate<Widest<adouble, float>::Type> Mul; typedef Mul Dvd; typedef Mul Add; typedef Mul Sub;}; 
+    template<> struct NTraits<adouble>::Result<conjugate<double> > 
+        {typedef conjugate<Widest<adouble, double>::Type> Mul; typedef Mul Dvd; typedef Mul Add; typedef Mul Sub;}; 
+    template<> struct NTraits<adouble>::Result<conjugate<long double> > 
+        {typedef conjugate<Widest<adouble, long double>::Type> Mul; typedef Mul Dvd; typedef Mul Add; typedef Mul Sub;};
+
+    /// Specializations of CNT for numeric types.
+    template <> class CNT<adouble> : public NTraits<adouble> { };
+
+    } // namespace SimTK
+
+#endif // SimTK_REAL_IS_ADOUBLE
 
 #endif //SimTK_SIMMATRIX_NTRAITS_H_
