@@ -303,7 +303,6 @@ inline bool signBit(const negator<double>& nd) {return std::signbit(-nd);} // !!
 #endif
 
 
-
 /*@}*/
 
 /**
@@ -345,7 +344,6 @@ inline int sign(const negator<long double>& x) {return -sign(-x);}
     inline int sign(const adouble&          x) {return x>0 ? 1 : (x<0 ? -1 : 0);}
     inline int sign(const negator<adouble>& x) {return -sign(-x);}
 #endif
-
 //@}
 
 /**
@@ -384,6 +382,7 @@ inline long double square(const long double& x) {return x*x;}
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble square(const adouble& x) {return x*x;}
 #endif
+
 // Negation is free for negators, so we can square them and clean
 // them up at the same time at no extra cost.
 inline float       square(const negator<float>&       x) {return square(-x);}
@@ -392,6 +391,7 @@ inline long double square(const negator<long double>& x) {return square(-x);}
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble square(const negator<adouble>& x) {return square(-x);}
 #endif
+
 // It is safer to templatize using complex classes, and doesn't make
 // debugging any worse since complex is already templatized. 
 // 5 flops vs. 6 for general complex multiply.
@@ -566,12 +566,11 @@ overload.
 
 Cost: These are very fast inline methods; the floating point ones use
 just two flops. **/
-inline double& clampInPlace(double low, double& v, double high)
+inline double& clampInPlace(double low, double& v, double high) 
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble& clampInPlace(double low, adouble& v, double high)
     {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
-
     inline adouble& clampInPlace(adouble low, adouble& v, adouble high)
     {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 #endif
@@ -907,6 +906,7 @@ inline double stepUp(double x)
         return x*x*x*(10 + x*(6 * x - 15)); }  //10x^3-15x^4+6x^5
 #endif
 
+
 /** Interpolate smoothly from 1 down to 0 as the input argument goes from 
 0 to 1, with first and second derivatives zero at either end of the interval.
 
@@ -1021,6 +1021,7 @@ inline double stepAny(double y0, double yRange,
         return y0 + yRange*stepUp(xadj);
     }
 #endif
+
 /** First derivative of stepUp(): d/dx stepUp(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return First derivative of stepUp() at x. **/
@@ -1036,6 +1037,7 @@ inline double dstepUp(double x) {
         return 30*xxm1*xxm1;        //30x^2-60x^3+30x^4
     }
 #endif
+
 /** First derivative of stepDown(): d/dx stepDown(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return First derivative of stepDown() at x. **/
@@ -1043,6 +1045,7 @@ inline double dstepDown(double x) {return -dstepUp(x);}
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble dstepDown(adouble x) {return -dstepUp(x);}
 #endif
+
 /** First derivative of stepAny(): d/dx stepAny(x). 
 See stepAny() for parameter documentation. 
 @return First derivative of stepAny() at x. **/
@@ -1079,6 +1082,7 @@ inline double d2stepUp(double x) {
         return 60*x*(1+x*(2*x-3));  //60x-180x^2+120x^3
     }
 #endif
+
 /** Second derivative of stepDown(): d^2/dx^2 stepDown(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return Second derivative of stepDown() at x. **/
@@ -1086,6 +1090,7 @@ inline double d2stepDown(double x) {return -d2stepUp(x);}
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble d2stepDown(adouble x) {return -d2stepUp(x);}
 #endif
+
 /** Second derivative of stepAny(): d^2/dx^2 stepAny(x). 
 See stepAny() for parameter documentation. 
 @return Second derivative of stepAny() at x. **/
@@ -1122,6 +1127,7 @@ inline double d3stepUp(double x) {
         return 60+360*x*(x-1);      //60-360*x+360*x^2
     }
 #endif
+
 /** Third derivative of stepDown(): d^3/dx^3 stepDown(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return Third derivative of stepDown() at x. **/
@@ -1129,6 +1135,7 @@ inline double d3stepDown(double x) {return -d3stepUp(x);}
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble d3stepDown(adouble x) {return -d3stepUp(x);}
 #endif
+
 /** Third derivative of stepAny(): d^3/dx^3 stepAny(x).
 See stepAny() for parameter documentation. 
 @return Third derivative of stepAny() at x. **/
