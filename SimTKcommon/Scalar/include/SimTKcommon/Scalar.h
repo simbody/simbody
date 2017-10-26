@@ -298,8 +298,8 @@ inline bool signBit(const negator<double>& nd) {return std::signbit(-nd);} // !!
         if (d < 0) {return true;}
         else {return false;}}
     inline bool signBit(const negator<adouble>& nd) {
-	    if (-nd < 0) {return true;}
-	    else {return false;}}
+        if (-nd < 0) {return true;}
+        else {return false;}}
 #endif
 
 /*@}*/
@@ -475,7 +475,7 @@ inline negator<long double> cube(const negator<long double>& x) {
 }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline negator<adouble> cube(const negator<adouble>& x) {
-	    return negator<adouble>::recast(cube(-x));
+        return negator<adouble>::recast(cube(-x));
     }
 #endif
 
@@ -589,7 +589,7 @@ inline double& clampInPlace(int low, double& v, int high)
 {   return clampInPlace((double)low,v,(double)high); }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble& clampInPlace(int low, adouble& v, int high)
-    {	return clampInPlace((double)low, v, (double)high); }
+    {   return clampInPlace((double)low, v, (double)high); }
 #endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) 
 Takes integer bounds to avoid need for explicit casts. **/
@@ -606,7 +606,7 @@ inline double& clampInPlace(int low, double& v, double high)
 {   return clampInPlace((double)low,v,high); }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble& clampInPlace(int low, adouble& v, double high)
-    {	return clampInPlace((double)low, v, high); }
+    {   return clampInPlace((double)low, v, high); }
 #endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) 
 Takes an integer bound to avoid need for explicit casts. **/
@@ -678,7 +678,7 @@ inline negator<double>& clampInPlace(double low, negator<double>& v, double high
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline negator<adouble>& clampInPlace(double low, negator<adouble>& v, double high)
-    {	assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+    {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
     inline negator<adouble>& clampInPlace(adouble low, negator<adouble>& v, adouble high)
     {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 #endif
@@ -712,9 +712,9 @@ inline double clamp(double low, double v, double high)
 {   return clampInPlace(low,v,high); }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble clamp(double low, adouble v, double high)
-    {	return clampInPlace(low, v, high); }
+    {   return clampInPlace(low, v, high); }
     inline adouble clamp(adouble low, adouble v, adouble high)
-    {    return clampInPlace(low, v, high); }
+    {   return clampInPlace(low, v, high); }
 #endif
 /** @copydoc SimTK::clamp(double,double,double) **/
 inline float clamp(float low, float v, float high) 
@@ -729,7 +729,7 @@ inline double clamp(int low, double v, int high)
 {   return clampInPlace(low,v,high); }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble clamp(int low, adouble v, int high)
-    {	return clampInPlace(low, v, high); }
+    {   return clampInPlace(low, v, high); }
 #endif
 /** @copydoc SimTK::clamp(double,double,double) 
 Takes integer bounds to avoid need for explicit casts. **/
@@ -746,7 +746,7 @@ inline double clamp(int low, double v, double high)
 {   return clampInPlace(low,v,high); }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble clamp(int low, adouble v, double high)
-    {	return clampInPlace(low, v, high); }
+    {   return clampInPlace(low, v, high); }
 #endif
 /** @copydoc SimTK::clamp(double,double,double) 
 Takes an integer bound to avoid need for explicit casts. **/
@@ -763,7 +763,7 @@ inline double clamp(double low, double v, int high)
 {   return clampInPlace(low,v,high); }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble clamp(double low, adouble v, int high)
-    {	return clampInPlace(low, v, high); }
+    {   return clampInPlace(low, v, high); }
 #endif
 /** @copydoc SimTK::clamp(double,double,double) 
 Takes an integer bound to avoid need for explicit casts. **/
@@ -831,7 +831,7 @@ inline double clamp(double low, negator<double> v, double high)
 {   return clamp(low,(double)v,high); }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble clamp(double low, negator<adouble> v, double high)
-    {	return clamp(low, (adouble)v, high); }
+    {   return clamp(low, (adouble)v, high); }
     inline adouble clamp(adouble low, negator<adouble> v, adouble high)
     {   return clamp(low, (adouble)v, high); }
 #endif
@@ -901,7 +901,7 @@ inline double stepUp(double x)
     return x*x*x*(10+x*(6*x-15)); }  //10x^3-15x^4+6x^5
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble stepUp(adouble x)
-    {	assert(0 <= x && x <= 1);
+    {   assert(0 <= x && x <= 1);
         return x*x*x*(10 + x*(6 * x - 15)); }  //10x^3-15x^4+6x^5
 #endif
 
@@ -1155,7 +1155,7 @@ inline double d3stepAny(double yRange,
         assert(-NTraits<adouble>::getSignificant() <= xadj
                && xadj <= 1 + NTraits<adouble>::getSignificant());
         clampInPlace(0.0,xadj,1.0);
-	    return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
+        return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
 #endif
 
             // float

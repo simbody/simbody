@@ -817,15 +817,15 @@ SimTK_BNTCMPLX_SPEC(long double,float);SimTK_BNTCMPLX_SPEC(long double,double);S
 #ifdef SimTK_REAL_IS_ADOUBLE
     template<> template<> struct NTraits< complex<float> >::Result<adouble> {
         typedef Widest< complex<float>,adouble >::Type W;                      
-		typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
+        typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
     };
     template<> template<> struct NTraits< complex<double> >::Result<adouble> {
         typedef Widest< complex<double>,adouble >::Type W;
-	    typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
+        typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
     };
     template<> template<> struct NTraits< complex<long double> >::Result<adouble> {
         typedef Widest< complex<long double>,adouble >::Type W;
-	    typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub;
+        typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub;
     };
 #endif
 
@@ -1050,15 +1050,15 @@ SimTK_NTRAITS_CONJ_SPEC(long double,long double);
 #ifdef SimTK_REAL_IS_ADOUBLE
     template<> template<> struct NTraits< conjugate<float> >::Result<adouble> { 
         typedef conjugate<Widest<float,adouble>::Type> W;                                 
-		typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
+        typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
     };
     template<> template<> struct NTraits< conjugate<double> >::Result<adouble> {
         typedef conjugate<Widest<double,adouble>::Type> W;
-	    typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
+        typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; 
     };
     template<> template<> struct NTraits< conjugate<long double> >::Result<adouble> {
         typedef conjugate<Widest<long double,adouble>::Type> W;
-	    typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub;
+        typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub;
     };        
 #endif
 
@@ -1366,7 +1366,7 @@ template <> class CNT<long double> : public NTraits<long double> { };
             typedef typename CNT< typename CNT<P>::THerm >::template Result<adouble>::Mul Dvd;   
             typedef typename CNT<P>::template Result<adouble>::Add Add;
             typedef typename CNT< typename CNT<P>::TNeg >::template Result<adouble>::Add Sub;
-	    };
+        };
         template <class P> struct Substitute {      
             typedef P Type;                         
         };                                          
@@ -1444,7 +1444,7 @@ template <> class CNT<long double> : public NTraits<long double> { };
         static const T& getLeastNegative(){static const T c=-std::numeric_limits<double>::min();      return c;} 
         static const T& getMostNegative() {static const T c=-std::numeric_limits<double>::max();      return c;} 
         static const T& getSqrtEps()      {static const T c=sqrt(getEps());                           return c;} 
-	    static const T& getTiny()         {static const T c=pow(getEps(), (double)1.25L);             return c;} 
+        static const T& getTiny()         {static const T c=pow(getEps(), (double)1.25L);             return c;} 
         static bool isFinite(const T& t) {return SimTK::isFinite(t);}
         static bool isNaN   (const T& t) {return SimTK::isNaN(t);}
         static bool isInf   (const T& t) {return SimTK::isInf(t);}
