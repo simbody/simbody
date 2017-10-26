@@ -875,9 +875,9 @@ createBrickMesh(const Vec3& halfDims, int resolution) {
     int nv[3]; // number of vertices along each edge
     for (int i=0; i<3; ++i)
         #ifndef SimTK_REAL_IS_ADOUBLE
-            nv[i] = 1 + std::max((int)(dims[i]/edgeLengthTarget + 0.49), 1);
+            nv[i]=1+std::max((int)(dims[i]/edgeLengthTarget+0.49),1);
         #else
-            nv[i] = 1 + std::max((int)(dims[i].value()/edgeLengthTarget.value() + 0.49), 1);
+            nv[i]=1+std::max((int)(dims[i].value()/edgeLengthTarget.value()+0.49),1);
         #endif        
     const Vec3 edgeLengths(dims[0]/(nv[0]-1), dims[1]/(nv[1]-1), 
                            dims[2]/(nv[2]-1)); 
@@ -992,9 +992,9 @@ createCylinderMesh(const UnitVec3& axis, Real radius, Real halfLength,
     Real edgeLenRad = radius/rezRadial;
 
     #ifndef SimTK_REAL_IS_ADOUBLE
-        int rezAlong = 1 + std::max((int)(halfLength/edgeLenRad + 0.5), 1);
+        int rezAlong =1+std::max((int)(halfLength/edgeLenRad+0.5),1);
     #else
-        int rezAlong = 1 + std::max((int)(halfLength.value()/edgeLenRad.value() + 0.5), 1);
+        int rezAlong =1+std::max((int)(halfLength.value()/edgeLenRad.value()+0.5),1);
     #endif    
     Real edgeLenAlong = 2*halfLength/(rezAlong-1);
 
