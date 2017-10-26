@@ -81,7 +81,7 @@ PeriodicEventHandler::~PeriodicEventHandler() {
 }
 
 Real PeriodicEventHandler::getNextEventTime(const State& state, bool includeCurrentTime) const {
-    Real currentTime = state.getTime();	
+    Real currentTime = state.getTime();
     #ifndef SimTK_REAL_IS_ADOUBLE
         long long count = (long long)std::floor((currentTime/impl->eventInterval));
     #else

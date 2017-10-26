@@ -1275,7 +1275,7 @@ operator+(const Vec<M,E,S>& l, const double& r)
   { return Vec<M,E,S>::template Result<double>::AddOp::perform(l,r); }
 template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<double>::Add
-operator+(const double& l, const Vec<M,E,S>& r) {return r + l;}
+operator+(const double& l, const Vec<M,E,S>& r) {return r+l;}
 
 #ifdef SimTK_REAL_IS_ADOUBLE
     template <int M, class E, int S> inline
