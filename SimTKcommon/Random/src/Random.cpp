@@ -79,9 +79,9 @@ public:
 
     int getInt(int max) {
     #ifndef SimTK_REAL_IS_ADOUBLE
-            return (int)floor(getValue()*max);
+        return (int)floor(getValue()*max);
     #else
-            return (int)floor(getValue()*max).value();
+        return (int)floor(getValue()*max).value();
     #endif
     }
 
