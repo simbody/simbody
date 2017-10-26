@@ -302,7 +302,6 @@ inline bool signBit(const negator<double>& nd) {return std::signbit(-nd);} // !!
 	    else {return false;}}
 #endif
 
-
 /*@}*/
 
 /**
@@ -1158,6 +1157,7 @@ inline double d3stepAny(double yRange,
         clampInPlace(0.0,xadj,1.0);
 	    return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
 #endif
+
             // float
 
 /** @copydoc SimTK::stepUp(double) **/
