@@ -291,8 +291,18 @@ inline bool signBit(long        i) {return ((unsigned long)i
 
 inline bool signBit(const float&  f) {return std::signbit(f);}
 inline bool signBit(const double& d) {return std::signbit(d);}
-inline bool signBit(const negator<float>&  nf) {return std::signbit(-nf);} // !!
-inline bool signBit(const negator<double>& nd) {return std::signbit(-nd);} // !!
+inline bool signBit(const negator<float>&  nf) { return std::signbit(-nf); } // !!
+inline bool signBit(const negator<double>& nd) { return std::signbit(-nd); } // !!
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline bool signBit(const adouble& d) {
+        if (d < 0) {return true;}
+        else {return false;}}
+    inline bool signBit(const negator<adouble>& nd) {
+	    if (-nd < 0) {return true;}
+	    else {return false;}}
+#endif
+
+
 
 /*@}*/
 
@@ -330,6 +340,12 @@ inline int sign(const long double& x) {return x>0 ? 1 : (x<0 ? -1 : 0);}
 inline int sign(const negator<float>&       x) {return -sign(-x);} // -x is free
 inline int sign(const negator<double>&      x) {return -sign(-x);}
 inline int sign(const negator<long double>& x) {return -sign(-x);}
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline int sign(const adouble&          x) {return x>0 ? 1 : (x<0 ? -1 : 0);}
+    inline int sign(const negator<adouble>& x) {return -sign(-x);}
+#endif
+
 //@}
 
 /**
@@ -366,12 +382,19 @@ inline float       square(const float&       x) {return x*x;}
 inline double      square(const double&      x) {return x*x;}
 inline long double square(const long double& x) {return x*x;}
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble square(const adouble& x) {return x*x;}
+#endif
+
 // Negation is free for negators, so we can square them and clean
 // them up at the same time at no extra cost.
 inline float       square(const negator<float>&       x) {return square(-x);}
 inline double      square(const negator<double>&      x) {return square(-x);}
 inline long double square(const negator<long double>& x) {return square(-x);}
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble square(const negator<adouble>& x) {return square(-x);}
+#endif
 // It is safer to templatize using complex classes, and doesn't make
 // debugging any worse since complex is already templatized. 
 // 5 flops vs. 6 for general complex multiply.
@@ -439,6 +462,11 @@ inline float       cube(const float&       x) {return x*x*x;}
 inline double      cube(const double&      x) {return x*x*x;}
 inline long double cube(const long double& x) {return x*x*x;}
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble cube(const adouble& x) {return x*x*x;}
+#endif
+
+
 // To keep this cheap we'll defer getting rid of the negator<> until
 // some other operation. We cube -x and then recast that to negator<>
 // on return, for a total cost of 2 flops.
@@ -451,6 +479,11 @@ inline negator<double> cube(const negator<double>& x) {
 inline negator<long double> cube(const negator<long double>& x) {
     return negator<long double>::recast(cube(-x));
 }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline negator<adouble> cube(const negator<adouble>& x) {
+	    return negator<adouble>::recast(cube(-x));
+    }
+#endif
 
 // Cubing a complex this way is cheaper than doing it by
 // multiplication. Cost here is 8 flops vs. 11 for a square
@@ -538,8 +571,15 @@ overload.
 
 Cost: These are very fast inline methods; the floating point ones use
 just two flops. **/
-inline double& clampInPlace(double low, double& v, double high) 
-{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+inline double& clampInPlace(double low, double& v, double high)
+{	assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble& clampInPlace(double low, adouble& v, double high)
+    {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+
+    inline adouble& clampInPlace(adouble low, adouble& v, adouble high)
+    {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+#endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) **/
 inline float& clampInPlace(float low, float& v, float high) 
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
@@ -552,8 +592,12 @@ inline long double& clampInPlace(long double low, long double& v, long double hi
 
 /** @copydoc SimTK::clampInPlace(double,double&,double) 
 Takes integer bounds to avoid need for explicit casts. **/
-inline double& clampInPlace(int low, double& v, int high) 
+inline double& clampInPlace(int low, double& v, int high)
 {   return clampInPlace((double)low,v,(double)high); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble& clampInPlace(int low, adouble& v, int high)
+    {	return clampInPlace((double)low, v, (double)high); }
+#endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) 
 Takes integer bounds to avoid need for explicit casts. **/
 inline float& clampInPlace(int low, float& v, int high) 
@@ -565,8 +609,12 @@ inline long double& clampInPlace(int low, long double& v, int high)
 
 /** @copydoc SimTK::clampInPlace(double,double&,double) 
 Takes an integer bound to avoid need for explicit casts. **/
-inline double& clampInPlace(int low, double& v, double high) 
+inline double& clampInPlace(int low, double& v, double high)
 {   return clampInPlace((double)low,v,high); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble& clampInPlace(int low, adouble& v, double high)
+    {	return clampInPlace((double)low, v, high); }
+#endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) 
 Takes an integer bound to avoid need for explicit casts. **/
 inline float& clampInPlace(int low, float& v, float high) 
@@ -580,6 +628,10 @@ inline long double& clampInPlace(int low, long double& v, long double high)
 Takes an integer bound to avoid need for explicit casts. **/
 inline double& clampInPlace(double low, double& v, int high) 
 {   return clampInPlace(low,v,(double)high); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble& clampInPlace(double low, adouble& v, int high)
+    { return clampInPlace(low, v, (double)high); }
+#endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) 
 Takes an integer bound to avoid need for explicit casts. **/
 inline float& clampInPlace(float low, float& v, int high) 
@@ -629,8 +681,14 @@ inline long long& clampInPlace(long long low, long long& v, long long high)
 inline negator<float>& clampInPlace(float low, negator<float>& v, float high) 
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 /** @copydoc SimTK::clampInPlace(double,double&,double) **/
-inline negator<double>& clampInPlace(double low, negator<double>& v, double high) 
+inline negator<double>& clampInPlace(double low, negator<double>& v, double high)
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline negator<adouble>& clampInPlace(double low, negator<adouble>& v, double high)
+    {	assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+    inline negator<adouble>& clampInPlace(adouble low, negator<adouble>& v, adouble high)
+    {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+#endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) **/
 inline negator<long double>& clampInPlace(long double low, negator<long double>& v, long double high) 
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
@@ -659,6 +717,12 @@ just two flops.
 @see clampInPlace() **/
 inline double clamp(double low, double v, double high) 
 {   return clampInPlace(low,v,high); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble clamp(double low, adouble v, double high)
+    {	return clampInPlace(low, v, high); }
+    inline adouble clamp(adouble low, adouble v, adouble high)
+    {    return clampInPlace(low, v, high); }
+#endif
 /** @copydoc SimTK::clamp(double,double,double) **/
 inline float clamp(float low, float v, float high) 
 {   return clampInPlace(low,v,high); }
@@ -668,8 +732,12 @@ inline long double clamp(long double low, long double v, long double high)
 
 /** @copydoc SimTK::clamp(double,double,double) 
 Takes integer bounds to avoid need for explicit casts. **/
-inline double clamp(int low, double v, int high) 
+inline double clamp(int low, double v, int high)
 {   return clampInPlace(low,v,high); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble clamp(int low, adouble v, int high)
+    {	return clampInPlace(low, v, high); }
+#endif
 /** @copydoc SimTK::clamp(double,double,double) 
 Takes integer bounds to avoid need for explicit casts. **/
 inline float clamp(int low, float v, int high) 
@@ -681,8 +749,12 @@ inline long double clamp(int low, long double v, int high)
 
 /** @copydoc SimTK::clamp(double,double,double) 
 Takes an integer bound to avoid need for explicit casts. **/
-inline double clamp(int low, double v, double high) 
+inline double clamp(int low, double v, double high)
 {   return clampInPlace(low,v,high); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble clamp(int low, adouble v, double high)
+    {	return clampInPlace(low, v, high); }
+#endif
 /** @copydoc SimTK::clamp(double,double,double) 
 Takes an integer bound to avoid need for explicit casts. **/
 inline float clamp(int low, float v, float high) 
@@ -696,6 +768,10 @@ inline long double clamp(int low, long double v, long double high)
 Takes an integer bound to avoid need for explicit casts. **/
 inline double clamp(double low, double v, int high) 
 {   return clampInPlace(low,v,high); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble clamp(double low, adouble v, int high)
+    {	return clampInPlace(low, v, high); }
+#endif
 /** @copydoc SimTK::clamp(double,double,double) 
 Takes an integer bound to avoid need for explicit casts. **/
 inline float clamp(float low, float v, int high) 
@@ -760,6 +836,12 @@ right overload, but the negation is performed (1 extra flop) and the result
 type is an ordinary double. **/
 inline double clamp(double low, negator<double> v, double high) 
 {   return clamp(low,(double)v,high); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble clamp(double low, negator<adouble> v, double high)
+    {	return clamp(low, (adouble)v, high); }
+    inline adouble clamp(adouble low, negator<adouble> v, adouble high)
+    {   return clamp(low, (adouble)v, high); }
+#endif
 /** @copydoc SimTK::clamp(double,double,double)
 Explicitly takes a negator<long double> argument to help the compiler find the
 right overload, but the negation is performed (1 extra flop) and the result 
@@ -824,7 +906,11 @@ Cost is 7 flops.
 inline double stepUp(double x)
 {   assert(0 <= x && x <= 1);
     return x*x*x*(10+x*(6*x-15)); }  //10x^3-15x^4+6x^5
-
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble stepUp(adouble x)
+    {	assert(0 <= x && x <= 1);
+        return x*x*x*(10 + x*(6 * x - 15)); }  //10x^3-15x^4+6x^5
+#endif
 
 /** Interpolate smoothly from 1 down to 0 as the input argument goes from 
 0 to 1, with first and second derivatives zero at either end of the interval.
@@ -841,6 +927,9 @@ This function is overloaded for all the floating point precisions.
 Cost is 8 flops.
 @see stepUp(), stepAny() **/
 inline double stepDown(double x) {return 1.0 -stepUp(x);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble stepDown(adouble x) {return 1.0 - stepUp(x);}
+#endif
 
 
 /** Interpolate smoothly from y0 to y1 as the input argument goes from x0 to x1,
@@ -918,14 +1007,25 @@ It would be extremely rare for these few flops to matter at all; you should
 almost always choose based on what looks better and/or is less error prone
 instead. **/
 inline double stepAny(double y0, double yRange,
-                      double x0, double oneOverXRange,
+	                  double x0, double oneOverXRange,
                       double x) 
-{   double xadj = (x-x0)*oneOverXRange;    
+{	double xadj = (x-x0)*oneOverXRange;    
     assert(-NTraits<double>::getSignificant() <= xadj
            && xadj <= 1 + NTraits<double>::getSignificant());
     clampInPlace(0.0,xadj,1.0);
     return y0 + yRange*stepUp(xadj); }
-
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble stepAny(adouble y0, adouble yRange,
+        adouble x0, adouble oneOverXRange,
+        adouble x)
+    {
+        adouble xadj = (x-x0)*oneOverXRange;
+        assert(-NTraits<adouble>::getSignificant() <= xadj
+               && xadj <= 1 + NTraits<adouble>::getSignificant());
+        clampInPlace(0.0,xadj,1.0);
+        return y0 + yRange*stepUp(xadj);
+    }
+#endif
 /** First derivative of stepUp(): d/dx stepUp(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return First derivative of stepUp() at x. **/
@@ -934,23 +1034,42 @@ inline double dstepUp(double x) {
     const double xxm1=x*(x-1);
     return 30*xxm1*xxm1;        //30x^2-60x^3+30x^4
 }
-
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble dstepUp(adouble x) {
+        assert(0 <= x && x <= 1);
+        const adouble xxm1=x*(x-1);
+        return 30*xxm1*xxm1;        //30x^2-60x^3+30x^4
+    }
+#endif
 /** First derivative of stepDown(): d/dx stepDown(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return First derivative of stepDown() at x. **/
 inline double dstepDown(double x) {return -dstepUp(x);}
-
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble dstepDown(adouble x) {return -dstepUp(x);}
+#endif
 /** First derivative of stepAny(): d/dx stepAny(x). 
 See stepAny() for parameter documentation. 
 @return First derivative of stepAny() at x. **/
 inline double dstepAny(double yRange,
                        double x0, double oneOverXRange,
                        double x) 
-{   double xadj = (x-x0)*oneOverXRange;    
+{	double xadj = (x-x0)*oneOverXRange;    
     assert(-NTraits<double>::getSignificant() <= xadj
            && xadj <= 1 + NTraits<double>::getSignificant());
     clampInPlace(0.0,xadj,1.0);
     return yRange*oneOverXRange*dstepUp(xadj); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble dstepAny(adouble yRange,
+        adouble x0, adouble oneOverXRange,
+        adouble x)
+    {
+        adouble xadj = (x - x0)*oneOverXRange;
+        assert(-NTraits<adouble>::getSignificant() <= xadj
+               && xadj <= 1 + NTraits<adouble>::getSignificant());
+        clampInPlace(0.0,xadj,1.0);
+        return yRange*oneOverXRange*dstepUp(xadj); }
+#endif
 
 /** Second derivative of stepUp(): d^2/dx^2 stepUp(x). 
 @param[in] x    Control parameter in range [0,1]. 
@@ -959,23 +1078,41 @@ inline double d2stepUp(double x) {
     assert(0 <= x && x <= 1);
     return 60*x*(1+x*(2*x-3));  //60x-180x^2+120x^3
 }
-
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble d2stepUp(adouble x) {
+        assert(0 <= x && x <= 1);
+        return 60*x*(1+x*(2*x-3));  //60x-180x^2+120x^3
+    }
+#endif
 /** Second derivative of stepDown(): d^2/dx^2 stepDown(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return Second derivative of stepDown() at x. **/
 inline double d2stepDown(double x) {return -d2stepUp(x);}
-
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble d2stepDown(adouble x) {return -d2stepUp(x);}
+#endif
 /** Second derivative of stepAny(): d^2/dx^2 stepAny(x). 
 See stepAny() for parameter documentation. 
 @return Second derivative of stepAny() at x. **/
 inline double d2stepAny(double yRange,
                         double x0, double oneOverXRange,
                         double x) 
-{   double xadj = (x-x0)*oneOverXRange;    
+{	double xadj = (x-x0)*oneOverXRange;    
     assert(-NTraits<double>::getSignificant() <= xadj
            && xadj <= 1 + NTraits<double>::getSignificant());
     clampInPlace(0.0,xadj,1.0);
     return yRange*square(oneOverXRange)*d2stepUp(xadj); }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble d2stepAny(adouble yRange,
+        adouble x0, adouble oneOverXRange,
+        adouble x)
+    {
+        adouble xadj = (x-x0)*oneOverXRange;
+        assert(-NTraits<adouble>::getSignificant() <= xadj
+               && xadj <= 1 + NTraits<adouble>::getSignificant());
+        clampInPlace(0.0,xadj,1.0);
+        return yRange*square(oneOverXRange)*d2stepUp(xadj); }
+#endif
 
 /** Third derivative of stepUp(): d^3/dx^3 stepUp(x). 
 @param[in] x    Control parameter in range [0,1]. 
@@ -984,12 +1121,19 @@ inline double d3stepUp(double x) {
     assert(0 <= x && x <= 1);
     return 60+360*x*(x-1);      //60-360*x+360*x^2
 }
-
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble d3stepUp(adouble x) {
+        assert(0 <= x && x <= 1);
+        return 60+360*x*(x-1);      //60-360*x+360*x^2
+    }
+#endif
 /** Third derivative of stepDown(): d^3/dx^3 stepDown(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return Third derivative of stepDown() at x. **/
 inline double d3stepDown(double x) {return -d3stepUp(x);}
-
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble d3stepDown(adouble x) {return -d3stepUp(x);}
+#endif
 /** Third derivative of stepAny(): d^3/dx^3 stepAny(x).
 See stepAny() for parameter documentation. 
 @return Third derivative of stepAny() at x. **/
@@ -1001,7 +1145,17 @@ inline double d3stepAny(double yRange,
            && xadj <= 1 + NTraits<double>::getSignificant());
     clampInPlace(0.0,xadj,1.0);
     return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
-
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline adouble d3stepAny(adouble yRange,
+        adouble x0, adouble oneOverXRange,
+        adouble x)
+    {
+        adouble xadj = (x-x0)*oneOverXRange;
+        assert(-NTraits<adouble>::getSignificant() <= xadj
+               && xadj <= 1 + NTraits<adouble>::getSignificant());
+        clampInPlace(0.0,xadj,1.0);
+	    return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
+#endif
             // float
 
 /** @copydoc SimTK::stepUp(double) **/
