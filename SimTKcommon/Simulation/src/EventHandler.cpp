@@ -85,7 +85,7 @@ Real PeriodicEventHandler::getNextEventTime(const State& state, bool includeCurr
     #ifndef SimTK_REAL_IS_ADOUBLE
         long long count = (long long)std::floor((currentTime/impl->eventInterval));
     #else
-        double count = (NTraits<Real>::floor(currentTime / impl->eventInterval)).value();
+        double count = (NTraits<Real>::floor(currentTime/impl->eventInterval)).value();
     #endif
     Real eventTime = count*impl->eventInterval;
     while (eventTime < currentTime || (eventTime == currentTime && !includeCurrentTime)) {

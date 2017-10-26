@@ -155,7 +155,7 @@ public:
             y = 2*getNextRandom()-1;
             r2 = x*x + y*y;
         } while (r2 >= 1.0 || r2 == 0.0);
-        Real multiplier = NTraits<Real>::sqrt((-2*log(r2))/r2);
+        Real multiplier = NTraits<Real>::sqrt((-2* NTraits<Real>::log(r2))/r2);
         nextGaussian = y*multiplier;
         nextGaussianIsValid = true;
         return mean+stddev*x*multiplier;

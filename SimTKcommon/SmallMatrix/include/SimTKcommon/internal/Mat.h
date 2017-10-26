@@ -1316,7 +1316,6 @@ operator*(const double& l, const Mat<M,N,E,CS,RS>& r) {return r*l;}
     typename Mat<M, N, E, CS, RS>::template Result<adouble>::Mul
     operator*(const Mat<M, N, E, CS, RS>& l, const adouble& r)
       {	return Mat<M, N, E, CS, RS>::template Result<adouble>::MulOp::perform(l,r); }
-
     template <int M, int N, class E, int CS, int RS> inline
     typename Mat<M, N, E, CS, RS>::template Result<adouble>::Mul
     operator*(const adouble& l, const Mat<M, N, E, CS, RS>& r) {return r*l;}
@@ -1398,7 +1397,6 @@ operator/(const double& l, const Mat<M,N,E,CS,RS>& r)
     typename Mat<M,N,E,CS,RS>::template Result<adouble>::Dvd
     operator/(const Mat<M,N,E,CS,RS>& l, const adouble& r)
     {   return Mat<M,N,E,CS,RS>::template Result<adouble>::DvdOp::perform(l,r); }
-
     template <int M, int N, class E, int CS, int RS> inline
     typename CNT<adouble>::template Result<Mat<M,N,E,CS,RS> >::Dvd
     operator/(const adouble& l, const Mat<M,N,E,CS,RS>& r)
@@ -1484,7 +1482,6 @@ operator+(const double& l, const Mat<M,N,E,CS,RS>& r) {return r+l;}
     typename Mat<M,N,E,CS,RS>::template Result<adouble>::Add
     operator+(const Mat<M,N,E,CS,RS>& l, const adouble& r)
       { return Mat<M,N,E,CS,RS>::template Result<adouble>::AddOp::perform(l,r); }
-
     template <int M, int N, class E, int CS, int RS> inline
     typename Mat<M,N,E,CS,RS>::template Result<adouble>::Add
     operator+(const adouble& l, const Mat<M,N,E,CS,RS>& r) {return r+l;}
@@ -1559,7 +1556,6 @@ operator-(const double& l, const Mat<M,N,E,CS,RS>& r)
     typename Mat<M,N,E,CS,RS>::template Result<adouble>::Sub
     operator-(const Mat<M,N,E,CS,RS>& l, const adouble& r)
       {	return Mat<M,N,E,CS,RS>::template Result<adouble>::SubOp::perform(l,r); }
-
     template <int M, int N, class E, int CS, int RS> inline
     typename CNT<adouble>::template Result<Mat<M,N,E,CS,RS> >::Sub
     operator-(const adouble& l, const Mat<M,N,E,CS,RS>& r)
