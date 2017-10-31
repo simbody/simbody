@@ -131,6 +131,7 @@ if(NOT BUILD_DYNAMIC_LIBRARIES AND NOT BUILD_STATIC_LIBRARIES)
 endif()
 
 # ADOL-C libraries and tests won't be built unless this is set.
+# ADOL-C libraries are always built shared rather than static.
 set(BUILD_ADOLC_LIBRARIES FALSE CACHE BOOL
 "Build '_adolc' versions of libraries to allow automatic differentiation.")
 
