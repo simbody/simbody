@@ -32,6 +32,9 @@ foreach(TEST_PROG ${REGR_TESTS})
     get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)
 
     if(BUILD_TESTS_AND_EXAMPLES_SHARED)
+        # TestAutodiffADOLCCommon was designed to test the ADOL-C libraries only
+        # and is therefore excluded from the tests of the shared libraries.
+        # TODO need a better way to link tests to ADOL-C libraries.
         if (NOT ${TEST_ROOT} MATCHES "TestAutodiffADOLCCommon")
             # Link with shared library
             add_executable(${TEST_ROOT} ${TEST_PROG})
@@ -44,6 +47,9 @@ foreach(TEST_PROG ${REGR_TESTS})
         endif()
 
         if(BUILD_ADOLC_LIBRARIES)
+            # The use of xml is not yet supported with the ADOL-C libraries and
+            # TestXml is therefore excluded from the tests of the ADOL-C libraries.
+            # TODO need a better way to link tests to ADOL-C libraries.            
             if (NOT ${TEST_ROOT} MATCHES "TestXml")
                 # Link with adolc library
                 set(TEST_ADOLC ${TEST_ROOT}ADOLC)
@@ -59,6 +65,9 @@ foreach(TEST_PROG ${REGR_TESTS})
     endif(BUILD_TESTS_AND_EXAMPLES_SHARED)
 
     if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
+        # TestAutodiffADOLCCommon was designed to test the ADOL-C libraries only
+        # and is therefore excluded from the tests of the static libraries.
+        # TODO need a better way to link tests to ADOL-C libraries.
         if (NOT ${TEST_ROOT} MATCHES "TestAutodiffADOLCCommon")
             # Link with static library
             set(TEST_STATIC ${TEST_ROOT}Static)
