@@ -78,11 +78,7 @@ public:
     }
 
     int getInt(int max) {
-    #ifndef SimTK_REAL_IS_ADOUBLE
-        return (int)floor(getValue()*max);
-    #else
-        return (int)floor(getValue()*max).value();
-    #endif
+        return (int)NTraits<Real>::value(floor(getValue()*max));
     }
 
     void fillArray(Real array[], int length) const {
@@ -232,11 +228,8 @@ const Random::Uniform::UniformImpl& Random::Uniform::getConstImpl() const {
 }
 
 int Random::Uniform::getIntValue() {
-    #ifndef SimTK_REAL_IS_ADOUBLE
-        return (int)std::floor(getImpl().getValue());
-    #else
-        return (int)NTraits<Real>::floor(getImpl().getValue()).value();
-    #endif
+    return (int)NTraits<Real>::value(
+            NTraits<Real>::floor(getImpl().getValue()));
 }
 
 Real Random::Uniform::getMin() const {
