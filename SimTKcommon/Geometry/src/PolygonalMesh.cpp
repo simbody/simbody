@@ -874,11 +874,8 @@ createBrickMesh(const Vec3& halfDims, int resolution) {
     const Real edgeLengthTarget = longest/(resolution+1);
     int nv[3]; // number of vertices along each edge
     for (int i=0; i<3; ++i)
-        #ifndef SimTK_REAL_IS_ADOUBLE
-            nv[i]=1+std::max((int)(dims[i]/edgeLengthTarget+0.49),1);
-        #else
-            nv[i]=1+std::max((int)(dims[i].value()/edgeLengthTarget.value()+0.49),1);
-        #endif        
+        nv[i] = 1 + std::max((int)NTraits<Real>::value(
+                dims[i]/edgeLengthTarget + 0.49), 1);       
     const Vec3 edgeLengths(dims[0]/(nv[0]-1), dims[1]/(nv[1]-1), 
                            dims[2]/(nv[2]-1)); 
 
@@ -984,18 +981,11 @@ createCylinderMesh(const UnitVec3& axis, Real radius, Real halfLength,
 
     Real angle = 2*Pi/rezAround;
     Real chordLen = 2*radius*NTraits<Real>::sin(angle/2);
-    #ifndef SimTK_REAL_IS_ADOUBLE
-        int rezRadial = (int)(radius/chordLen+0.5);
-    #else
-        int rezRadial = (int)(radius.value()/chordLen.value()+0.5);
-    #endif
+    int rezRadial = (int)NTraits<Real>::value(radius/chordLen+0.5);
     Real edgeLenRad = radius/rezRadial;
 
-    #ifndef SimTK_REAL_IS_ADOUBLE
-        int rezAlong =1+std::max((int)(halfLength/edgeLenRad+0.5),1);
-    #else
-        int rezAlong =1+std::max((int)(halfLength.value()/edgeLenRad.value()+0.5),1);
-    #endif    
+    int rezAlong = 1 + std::max((int)NTraits<Real>::value(
+                   halfLength/edgeLenRad + 0.5), 1);  
     Real edgeLenAlong = 2*halfLength/(rezAlong-1);
 
     PolygonalMesh cyl;
