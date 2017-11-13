@@ -8,7 +8,7 @@
 
 #include "IpTimingStatistics.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   void
   TimingStatistics::ResetTimes()

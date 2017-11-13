@@ -11,7 +11,7 @@
 
 #include "IpMuOracle.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Implementation of the LOQO formula for computing the

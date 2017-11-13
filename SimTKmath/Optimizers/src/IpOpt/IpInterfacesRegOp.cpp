@@ -11,7 +11,7 @@
 #include "IpIpoptApplication.hpp"
 #include "IpTNLPAdapter.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   void RegisterOptions_Interfaces(const SmartPtr<RegisteredOptions>& roptions)

@@ -10,7 +10,7 @@
 
 #include "IpExactHessianUpdater.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
 #ifdef IP_DEBUG

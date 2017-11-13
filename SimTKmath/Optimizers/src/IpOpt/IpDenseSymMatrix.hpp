@@ -14,7 +14,7 @@
 #include "IpMultiVectorMatrix.hpp"
 #include "IpDenseVector.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** forward declarations */

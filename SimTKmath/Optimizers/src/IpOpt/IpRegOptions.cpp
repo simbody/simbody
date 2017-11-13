@@ -38,7 +38,7 @@
 # endif
 #endif
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   Index RegisteredOption::next_counter_ = 1;
