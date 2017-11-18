@@ -304,6 +304,15 @@ public:
     virtual ~Cant() throw() { }
 };
 
+class ADOLCTapingNotAllowed : public Base {
+public:
+    ADOLCTapingNotAllowed(const char* fn, int ln) : Base(fn, ln)
+    {
+        setMessage("Cannot use ADOL-C tape on undifferentiated code");
+    }
+    virtual ~ADOLCTapingNotAllowed() throw() { }
+};
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

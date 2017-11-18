@@ -952,20 +952,6 @@ SimTK_NICETYPENAME_LITERAL(SimTK::TrueType);
     SimTK_NICETYPENAME_LITERAL(adouble);
 #endif
 
-/** This macro throws a runtime error when trying to use ADOL-C
-on a code which is not differentiable **/
-#ifdef SimTK_REAL_IS_ADOUBLE
-    #define SimTK_CANNOT_TAPE_THROUGH_UNDIFFERENTIATED_CODE \
-    if(isTaping()) \
-    {throw std::runtime_error("Cannot use ADOL-C tape on undifferentiated code");}
-#endif
-
-/** This macro throws a runtime error when trying to use ADOL-C
-on a code which is not supported with ADOL-C **/
-#ifdef SimTK_REAL_IS_ADOUBLE
-    #define SimTK_NOT_SUPPORTED_WITH_ADOLC(ADOLCRelatedIssue)  \
-    throw std::runtime_error(ADOLCRelatedIssue "currently not supported with ADOL-C");
-#endif
 
 #endif /* C++ stuff */
 

@@ -224,7 +224,8 @@ public:
     negator(const double&      t) {v = -N((typename NTraits<N>::Precision)t);}
     negator(const long double& t) {v = -N((typename NTraits<N>::Precision)t);}
     #ifdef SimTK_REAL_IS_ADOUBLE
-        negator(const adouble& t) {v = -N((typename NTraits<N>::Precision)t.value());}
+        negator(const adouble& t) {
+            v = -N((typename NTraits<N>::Precision)NTraits<adouble>::value(t));}
     #endif
 
     // Some of these may not compile if instantiated -- you can't cast a complex

@@ -49,6 +49,7 @@
 
 #include "SimTKcommon/Constants.h"
 #include "SimTKcommon/internal/CompositeNumericalTypes.h"
+#include "SimTKcommon/internal/ExceptionMacros.h
 
 #include <cstddef>
 #include <cassert>
@@ -155,9 +156,10 @@ template <> struct Narrowest<long double,float>        {typedef float  Type; typ
 template <> struct Narrowest<long double,double>       {typedef double Type; typedef double Precision;};
 template <> struct Narrowest<long double,long double>  {typedef long double Type; typedef long double Precision;};
 #ifdef SimTK_REAL_IS_ADOUBLE
+    /// Be careful about using Narrowest for converting from adouble to float.
     template <> struct Narrowest<float,adouble>        {typedef float   Type; typedef float   Precision;};
-    template <> struct Narrowest<double,adouble>       {typedef double  Type; typedef double  Precision;};
     template <> struct Narrowest<adouble,float>        {typedef float   Type; typedef float   Precision;};
+    template <> struct Narrowest<double,adouble>       {typedef adouble Type; typedef double  Precision;};    
     template <> struct Narrowest<adouble,double>       {typedef adouble Type; typedef adouble Precision;};
     template <> struct Narrowest<adouble,adouble>      {typedef adouble Type; typedef adouble Precision;};
     template <> struct Narrowest<adouble,long double>  {typedef adouble Type; typedef adouble Precision;};
@@ -204,6 +206,9 @@ public:
     public:
         static const adouble& getEps()         {static const adouble c=std::numeric_limits<double>::epsilon(); return c;}
         static const adouble& getSignificant() {static const adouble c = pow(getEps(), 0.875L); return c;}
+        /// The default numerical error tolerance is always a double even when using Real as adouble. The rationale was to enable 
+        /// using the isNumericallyEqual() functions as they are specified. The user should be carefull when using
+        /// getDefaultTolerance() while taping.
         static double getDefaultTolerance()    {return getSignificant().value();}
     };
 #endif
@@ -365,19 +370,19 @@ inline bool isNumericallyEqual(const double& a, const double& b,
                                    double tol = RTraits<adouble>::getDefaultTolerance())
     {   if (isNaN(a)) return isNaN(b); else if (isNaN(b)) return false;
         const adouble scale = fmax(fmax(fabs(a), fabs(b)), 1.);
-        return fabs(a - b) <= scale.value()*tol; }
+        return fabs(a - b) <= scale*tol; }
     /// Compare a double with an adouble for approximate equality.
     inline bool isNumericallyEqual(const double& a, const adouble& b,
                                    double tol = RTraits<adouble>::getDefaultTolerance())
     {   if (isNaN(a)) return isNaN(b); else if (isNaN(b)) return false;
         const adouble scale = fmax(fmax(fabs(a), fabs(b)), 1.);
-        return fabs(a - b) <= scale.value()*tol; }
+        return fabs(a - b) <= scale*tol; }
     /// Compare two adoubles for approximate equality.
     inline bool isNumericallyEqual(const adouble& a, const adouble& b,
                                    double tol = RTraits<adouble>::getDefaultTolerance())
     {   if (isNaN(a)) return isNaN(b); else if (isNaN(b)) return false;
         const adouble scale = fmax(fmax(fabs(a), fabs(b)), 1.);
-        return fabs(a - b) <= scale.value()*tol; }
+        return fabs(a - b) <= scale*tol; }
 #endif
 /// Compare two long doubles for approximate equality.
 inline bool isNumericallyEqual(const long double& a, const long double& b, 
@@ -1070,6 +1075,7 @@ SimTK_NTRAITS_CONJ_SPEC(long double,long double);
 //   typeof(R-P) = Typeof(P::TNeg + R)
 // These must be specialized for P=Real and P=Complex.
 
+// Specialization for adouble. The macro is empty when Real is not adouble.
 #ifdef SimTK_REAL_IS_ADOUBLE 
     #define SimTK_DEFINE_REAL_NTRAITS_ADOLC(R) \
     template<> struct NTraits<R>::Result<adouble> \
@@ -1098,22 +1104,6 @@ public:                                         \
     typedef T                TAbs;              \
     typedef T                TStandard;         \
     typedef T                TInvert;           \
-    typedef T                Tsin;              \
-    typedef T                Tcos;              \
-    typedef T                Tpow;              \
-    typedef T                Tfloor;            \
-    typedef T                Texp;              \
-    typedef T                Tlog;              \
-    typedef T                Ttan;              \
-    typedef T                Tasin;             \
-    typedef T                Tacos;             \
-    typedef T                Tatan;             \
-    typedef T                Tatan2;            \
-    typedef T                Tsinh;             \
-    typedef T                Tcosh;             \
-    typedef T                Ttanh;             \
-    typedef T                Tmax;              \
-    typedef T                Tmin;              \
     typedef T                Tlog10;            \
     typedef T                TNormalize;        \
     typedef T                Scalar;            \
@@ -1173,26 +1163,27 @@ public:                                         \
     static const TStandard& standardize(const T& t) {return t;}             \
     static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));} \
     static TInvert invert(const T& t) {return T(1)/t;}                      \
-    /* TODO these should be used carefully when working with adouble.*/     \
+    /* Method to use when we want to use a variable as a double */     \
+    /* but this variable may be of type double or adouble       */     \
     static const T& value(const T& t) {return t;}                           \
-    static T&      value(T& t)        {return t;}                           \
-    static Tsin    sin(const T& t)    {return std::sin(t);}                 \
-    static Tcos    cos(const T& t)    {return std::cos(t);}                 \
-    static Tfloor  floor(const T& t)  {return std::floor(t);}               \
-    static Tpow    pow(const T& t, const T& order) {return std::pow(t,order);} \
-    static Texp    exp(const T& t)    {return std::exp(t);}                 \
-    static Tlog    log(const T& t)    {return std::log(t);}                 \
-    static Ttan    tan(const T& t)    {return std::tan(t);}                 \
-    static Tasin   asin(const T& t)   {return std::asin(t);}                \
-    static Tacos   acos(const T& t)   {return std::acos(t);}                \
-    static Tatan   atan(const T& t)   {return std::atan(t);}                \
-    static Tatan2  atan2(const T& t,const T& t2) {return std::atan2(t,t2);} \
-    static Tsinh   sinh(const T& t)   {return std::sinh(t); }               \
-    static Tcosh   cosh(const T& t)   {return std::cosh(t); }               \
-    static Ttanh   tanh(const T& t)   {return std::tanh(t); }               \
-    static Tmax    max(const T& t,const T& t2) {return std::max(t,t2);}     \
-    static Tmin    min(const T& t,const T& t2) {return std::min(t,t2);}     \
-    static Tlog10  log10(const T& t)  {return std::log10(t);}               \
+    static T&   value(T& t)        {return t;}                           \
+    static T    sin(const T& t)    {return std::sin(t);}                 \
+    static T    cos(const T& t)    {return std::cos(t);}                 \
+    static T    floor(const T& t)  {return std::floor(t);}               \
+    static T    pow(const T& t, const T& order) {return std::pow(t,order);} \
+    static T    exp(const T& t)    {return std::exp(t);}                 \
+    static T    log(const T& t)    {return std::log(t);}                 \
+    static T    tan(const T& t)    {return std::tan(t);}                 \
+    static T    asin(const T& t)   {return std::asin(t);}                \
+    static T    acos(const T& t)   {return std::acos(t);}                \
+    static T    atan(const T& t)   {return std::atan(t);}                \
+    static T    atan2(const T& t,const T& t2) {return std::atan2(t,t2);} \
+    static T    sinh(const T& t)   {return std::sinh(t); }               \
+    static T    cosh(const T& t)   {return std::cosh(t); }               \
+    static T    tanh(const T& t)   {return std::tanh(t); }               \
+    static T    max(const T& t,const T& t2) {return std::max(t,t2);}     \
+    static T    min(const T& t,const T& t2) {return std::min(t,t2);}     \
+    static T    log10(const T& t)  {return std::log10(t);}               \
     /* properties of this floating point representation, with memory addresses */     \
     static const T& getEps()          {return RTraits<T>::getEps();}                                    \
     static const T& getSignificant()  {return RTraits<T>::getSignificant();}                            \
@@ -1337,23 +1328,6 @@ template <> class CNT<long double> : public NTraits<long double> { };
         typedef T                TAbs;              
         typedef T                TStandard;         
         typedef T                TInvert;  
-        typedef T                Tsin;
-        typedef T                Tcos;
-        typedef T                Tfloor;
-        typedef T                Tpow;
-        typedef T                Texp;
-        typedef T                Tlog;
-        typedef T                Ttan;
-        typedef T                Tasin;
-        typedef T                Tacos;
-        typedef T                Tatan;
-        typedef T                Tatan2;
-        typedef T                Tsinh;
-        typedef T                Tcosh;
-        typedef T                Ttanh;
-        typedef T                Tmax;
-        typedef T                Tmin;
-        typedef T                Tlog10;
         typedef T                TNormalize;        
         typedef T                Scalar;            
         typedef T                ULessScalar;       
@@ -1406,34 +1380,37 @@ template <> class CNT<long double> : public NTraits<long double> { };
             {return reinterpret_cast<const TWithoutNegator&>(t);}               
         static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)             
             {return reinterpret_cast<TWithoutNegator&>(t);}                     
+        /* Method to use when we want to use a variable as a double     
+        but this variable may be of type double or adouble. The user
+        cannot use that method when taping */     
         static double value(const T& t) {
-            // TODO do we need this error check here?
-            SimTK_CANNOT_TAPE_THROUGH_UNDIFFERENTIATED_CODE;
+            SimTK_ADOLC_NO_TAPING_ALLOWED_ALWAYS;
             return t.value();
         }
-        static ScalarNormSq scalarNormSqr(const T& t) {return t*t;}             
+        static ScalarNormSq scalarNormSqr(const T& t) {return t*t;}    
+        /* The global functions used below are defined by ADOL-C */
         static TSqrt        sqrt(const T& t)    {return ::sqrt(t);}
         static TAbs         abs(const T& t)     {return fabs(t);}               
         static const TStandard& standardize(const T& t) {return t;}             
         static TNormalize normalize(const T& t) {return (t>0?(T)1:(t<0?(T)-1:getNaN()));}
         static TInvert      invert(const T& t)  {return T(1)/t;}       
-        static Tsin         sin(const T& t)     {return ::sin(t);} 
-        static Tcos         cos(const T& t)     {return ::cos(t);}
-        static Tfloor       floor(const T& t)   {return ::floor(t);}
-        static Tpow         pow(const T& t, const T& order) {return ::pow(t, order);}
-        static Texp         exp(const T& t)     {return ::exp(t);}
-        static Tlog         log(const T& t)     {return ::log(t);}
-        static Ttan         tan(const T& t)     {return ::tan(t);}
-        static Tasin        asin(const T& t)    {return ::asin(t);}
-        static Tacos        acos(const T& t)    {return ::acos(t);}
-        static Tatan        atan(const T& t)    {return ::atan(t);}
-        static Tatan2       atan2(const T& t, const T& t2) {return ::atan2(t,t2);}
-        static Tsinh        sinh(const T& t)    {return ::sinh(t);}
-        static Tcosh        cosh(const T& t)    {return ::cosh(t);}
-        static Ttanh        tanh(const T& t)    {return ::tanh(t);}
-        static Tmax         max(const T& t, const T& t2) {return fmax(t,t2);}
-        static Tmin         min(const T& t, const T& t2) {return fmin(t,t2);}
-        static Tlog10       log10(const T& t)   {return ::log10(t);}
+        static T    sin(const T& t)     {return ::sin(t);} 
+        static T    cos(const T& t)     {return ::cos(t);}
+        static T    floor(const T& t)   {return ::floor(t);}
+        static T    pow(const T& t, const T& order) {return ::pow(t, order);}
+        static T    exp(const T& t)     {return ::exp(t);}
+        static T    log(const T& t)     {return ::log(t);}
+        static T    tan(const T& t)     {return ::tan(t);}
+        static T    asin(const T& t)    {return ::asin(t);}
+        static T    acos(const T& t)    {return ::acos(t);}
+        static T    atan(const T& t)    {return ::atan(t);}
+        static T    atan2(const T& t, const T& t2) {return ::atan2(t,t2);}
+        static T    sinh(const T& t)    {return ::sinh(t);}
+        static T    cosh(const T& t)    {return ::cosh(t);}
+        static T    tanh(const T& t)    {return ::tanh(t);}
+        static T    max(const T& t, const T& t2) {return ::fmax(t,t2);}
+        static T    min(const T& t, const T& t2) {return ::fmin(t,t2);}
+        static T    log10(const T& t)   {return ::log10(t);}
         /* properties of this floating point representation, with memory addresses */     
         static const T& getEps()          {static const T c=RTraits<T>::getEps();                     return c;}
         static const T& getSignificant()  {static const T c=RTraits<T>::getSignificant();             return c;}
