@@ -49,7 +49,7 @@
 
 #include "SimTKcommon/Constants.h"
 #include "SimTKcommon/internal/CompositeNumericalTypes.h"
-#include "SimTKcommon/internal/ExceptionMacros.h
+#include "SimTKcommon/internal/ExceptionMacros.h"
 
 #include <cstddef>
 #include <cassert>
