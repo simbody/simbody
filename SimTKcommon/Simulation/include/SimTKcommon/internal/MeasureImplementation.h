@@ -1761,7 +1761,7 @@ public:
     bool empty() const {return size()==0;}
     bool full()  const {return size()==capacity();}
 
-    double getEntryTime(int i) const
+    Real getEntryTime(int i) const
     {   assert(i < size()); return m_times[getArrayIndex(i)];}
     const T& getEntryValue(int i) const
     {   assert(i < size()); return m_values[getArrayIndex(i)];}
@@ -1790,7 +1790,7 @@ public:
     }
 
     // Prepend an older entry to the beginning of the list. No cleanup is done.
-    void prepend(double tNewOldest, const T& value) {
+    void prepend(Real tNewOldest, const T& value) {
         assert(empty() || tNewOldest < m_times[m_oldest]);
         if (full()) makeMoreRoom();
         m_oldest = empty() ? 0 : getArrayIndex(-1);
@@ -1875,7 +1875,7 @@ public:
         if (firstLater > 0) {
             // Normal case: tDelay is between two buffer entries.
             int firstEarlier = firstLater-1;
-            double t0=getEntryTime(firstEarlier), t1=getEntryTime(firstLater);
+            Real t0=getEntryTime(firstEarlier), t1=getEntryTime(firstLater);
             const T& v0=getEntryValue(firstEarlier);
             const T& v1=getEntryValue(firstLater);
             Real fraction = Real((tDelay-t0)/(t1-t0));
@@ -1900,7 +1900,7 @@ public:
         }
 
         // Extrapolate using the last two entries.
-        double t0=getEntryTime(size()-2), t1=getEntryTime(size()-1);
+        Real t0=getEntryTime(size()-2), t1=getEntryTime(size()-1);
         const T& v0=getEntryValue(size()-2);
         const T& v1=getEntryValue(size()-1);
         Real fraction = Real((tDelay-t0)/(t1-t0));  // > 1
@@ -2002,7 +2002,7 @@ private:
         Array_<T,int> newValues(newSizeRequest); 
         if (newValues.capacity() > newValues.size())
             newValues.resize(newValues.capacity()); // don't waste any     
-        Array_<double,int> newTimes(newValues.size(), dNaN); 
+        Array_<Real,int> newTimes(newValues.size(), dNaN); 
 
         // Pack existing values into start of new arrays.
         for (int i=0; i < size(); ++i) {
@@ -2023,7 +2023,7 @@ private:
     }
 
     // These are circular buffers of the same size.
-    Array_<Real,int>  m_times;
+    Array_<Real,int>    m_times;
     Array_<T,int>       m_values;
     int                 m_oldest; // Array index of oldest (time,value)
     int                 m_size;   // number of entries in use
