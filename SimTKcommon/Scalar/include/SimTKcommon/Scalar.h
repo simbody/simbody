@@ -295,9 +295,11 @@ inline bool signBit(const negator<float>&  nf) {return std::signbit(-nf);} // !!
 inline bool signBit(const negator<double>& nd) {return std::signbit(-nd);} // !!
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline bool signBit(const adouble& d) {
+        SimTK_ADOLC_NO_TAPING_ALLOWED_ALWAYS
         if (d < 0) {return true;}
         else {return false;}}
     inline bool signBit(const negator<adouble>& nd) {
+        SimTK_ADOLC_NO_TAPING_ALLOWED_ALWAYS
         if (-nd < 0) {return true;}
         else {return false;}}
 #endif
@@ -340,8 +342,12 @@ inline int sign(const negator<double>&      x) {return -sign(-x);}
 inline int sign(const negator<long double>& x) {return -sign(-x);}
 
 #ifdef SimTK_REAL_IS_ADOUBLE
-    inline int sign(const adouble&          x) {return x>0 ? 1 : (x<0 ? -1 : 0);}
-    inline int sign(const negator<adouble>& x) {return -sign(-x);}
+    inline int sign(const adouble&          x) {
+        SimTK_ADOLC_NO_TAPING_ALLOWED_ALWAYS
+        return x>0 ? 1 : (x<0 ? -1 : 0);}
+    inline int sign(const negator<adouble>& x) {
+        SimTK_ADOLC_NO_TAPING_ALLOWED_ALWAYS
+        return -sign(-x);}
 #endif
 //@}
 
@@ -569,9 +575,9 @@ inline double& clampInPlace(double low, double& v, double high)
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline adouble& clampInPlace(double low, adouble& v, double high)
-    {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+    {   assert(low<=high); return NTraits<adouble>::min(NTraits<adouble>::max(v,low),high); }
     inline adouble& clampInPlace(adouble low, adouble& v, adouble high)
-    {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+    {   assert(low<=high); return NTraits<adouble>::min(NTraits<adouble>::max(v,low),high); }
 #endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) **/
 inline float& clampInPlace(float low, float& v, float high) 
@@ -678,9 +684,9 @@ inline negator<double>& clampInPlace(double low, negator<double>& v, double high
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline negator<adouble>& clampInPlace(double low, negator<adouble>& v, double high)
-    {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+    {   assert(low<=high); return NTraits<adouble>::min(NTraits<adouble>::max(v,low),high); }
     inline negator<adouble>& clampInPlace(adouble low, negator<adouble>& v, adouble high)
-    {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+    {   assert(low<=high); return NTraits<adouble>::min(NTraits<adouble>::max(v,low),high); }
 #endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) **/
 inline negator<long double>& clampInPlace(long double low, negator<long double>& v, long double high) 

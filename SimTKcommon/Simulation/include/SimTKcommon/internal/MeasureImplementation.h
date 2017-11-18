@@ -1784,11 +1784,7 @@ public:
                                        (int)TooBigFactor * (size()+1)))
             makeLessRoom(); // less than 1/TooBigFactor full
         const int nextFree = getArrayIndex(m_size++);
-        #ifndef SimTK_REAL_IS_ADOUBLE
-            m_times[nextFree] = tNow;
-        #else
-            m_times[nextFree] = tNow.value();
-        #endif
+        m_times[nextFree] = tNow;
         m_values[nextFree] = valueNow;
         m_maxSize = std::max(m_maxSize, size());
     }
@@ -1851,11 +1847,7 @@ public:
             m_values[nxt] = oldBuf.getEntryValue(i);
         }
         // Now add the newest entry and set the size.
-        #ifndef SimTK_REAL_IS_ADOUBLE
-            m_times[nxt] = tNow;
-        #else
-            m_times[nxt] = tNow.value();
-        #endif
+        m_times[nxt] = tNow;
         m_values[nxt] = valueNow;
         assert(nxt+1==newSize);
         m_size = nxt+1;
@@ -2031,7 +2023,7 @@ private:
     }
 
     // These are circular buffers of the same size.
-    Array_<double,int>  m_times;
+    Array_<Real,int>  m_times;
     Array_<T,int>       m_values;
     int                 m_oldest; // Array index of oldest (time,value)
     int                 m_size;   // number of entries in use
