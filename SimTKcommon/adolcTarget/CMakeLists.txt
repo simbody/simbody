@@ -1,5 +1,8 @@
-## This whole directory exists just so I could define this extra
-## preprocessor value.
+# This directory defines a target for building SimTKcommon (as a shared library)
+# with SimTK::Real defined as ADOL-C's adouble.
+# We could have put this target definition in the parent directory but we want to
+# define the following SHARED_LIBRARY definition, and using add_definitions() to
+# do this requires that we create this adolcTarget directory.
 
 add_definitions(-DSimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
 
