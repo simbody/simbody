@@ -25,8 +25,8 @@ file(GLOB ALL_REGR_TESTS "*.cpp")
 set(REGR_TESTS ${ALL_REGR_TESTS})
 # TestAutodiffADOLCCommon was designed to test the ADOL-C libraries only
 # and is therefore excluded from the tests of the shared and static libraries.
-file(GLOB ADOLC_SPECIFIC_TESTS "*TestAutodiffADOLCCommon*")
-list(REMOVE_ITEM REGR_TESTS ${ADOLC_SPECIFIC_TESTS})
+# file(GLOB ADOLC_SPECIFIC_TESTS "*TestAutodiffADOLCCommon*")
+# list(REMOVE_ITEM REGR_TESTS ${ADOLC_SPECIFIC_TESTS})
 
 foreach(TEST_PROG ${REGR_TESTS})
     get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)
