@@ -159,7 +159,7 @@ template <> struct Narrowest<long double,long double>  {typedef long double Type
     /// Be careful about using Narrowest for converting from adouble to float.
     template <> struct Narrowest<float,adouble>        {typedef float   Type; typedef float   Precision;};
     template <> struct Narrowest<adouble,float>        {typedef float   Type; typedef float   Precision;};
-    template <> struct Narrowest<double,adouble>       {typedef adouble Type; typedef double  Precision;};    
+    template <> struct Narrowest<double,adouble>       {typedef adouble Type; typedef adouble  Precision;};    
     template <> struct Narrowest<adouble,double>       {typedef adouble Type; typedef adouble Precision;};
     template <> struct Narrowest<adouble,adouble>      {typedef adouble Type; typedef adouble Precision;};
     template <> struct Narrowest<adouble,long double>  {typedef adouble Type; typedef adouble Precision;};
@@ -206,9 +206,10 @@ public:
     public:
         static const adouble& getEps()         {static const adouble c=std::numeric_limits<double>::epsilon(); return c;}
         static const adouble& getSignificant() {static const adouble c = pow(getEps(), 0.875L); return c;}
-        /// The default numerical error tolerance is always a double even when using Real as adouble. The rationale was to enable 
-        /// using the isNumericallyEqual() functions as they are specified. The user should be carefull when using
-        /// getDefaultTolerance() while taping.
+        /// The default numerical error tolerance is always a double even when
+        /// using Real as adouble. The rationale was to enable using the 
+        /// isNumericallyEqual() functions as they are specified. The user
+        /// should be careful when using getDefaultTolerance() while taping.
         static double getDefaultTolerance()    {return getSignificant().value();}
     };
 #endif
@@ -1052,6 +1053,8 @@ SimTK_NTRAITS_CONJ_SPEC(long double,float);SimTK_NTRAITS_CONJ_SPEC(long double,d
 SimTK_NTRAITS_CONJ_SPEC(long double,long double);
 #undef SimTK_NTRAITS_CONJ_SPEC 
 
+// We do not support using conjugate with adouble, but these structs are 
+// necessary for compilation.
 #ifdef SimTK_REAL_IS_ADOUBLE
     template<> template<> struct NTraits< conjugate<float> >::Result<adouble> { 
         typedef conjugate<Widest<float,adouble>::Type> W;                                 

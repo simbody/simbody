@@ -308,7 +308,7 @@ class ADOLCTapingNotAllowed : public Base {
 public:
     ADOLCTapingNotAllowed(const char* fn, int ln) : Base(fn, ln)
     {
-        setMessage("Cannot use ADOL-C tape on undifferentiated code");
+        setMessage("Cannot use ADOL-C tape on undifferentiable code");
     }
     virtual ~ADOLCTapingNotAllowed() throw() { }
 };
