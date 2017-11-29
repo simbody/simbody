@@ -613,9 +613,9 @@ findHeaviestUnassignedReverseJoint(int inboardBody) const {
 // TODO: keep a list of unprocessed joints so we don't have to go through
 // all of them again at each level.
 void MultibodyGraphMaker::growTree() {
-    // Record the joints we added during this subtree sweep, and the level
-    // at which they were added. That way if we jumped levels ahead due to
-    // massless bodies we can take credit and keep going rather than quit.
+    // Record the joints for which we added mobilizers during this subtree
+    // sweep. That way if we jumped levels ahead due to massless bodies we
+    // can take credit and keep going rather than quit.
     std::set<int> jointsAdded;
     for (int level=1; ;++level) { // level of outboard (mobilized) body
         bool anyMobilizerAdded = false;
