@@ -415,7 +415,7 @@ void UserInputHandler::handleEvent(State& state, Real accuracy,
     }  
 }
 
-
+/*
 //==============================================================================
 //                           FIND OTHER VERTEX
 //==============================================================================
@@ -438,7 +438,7 @@ void UserInputHandler::handleEvent(State& state, Real accuracy,
 //
 // Our strategy will be to find the angle a and rotate the unit vector 
 // v=(v2-v1)/|v2-v1| ccw by a, giving unit vector w along v1v3. Then v3=v1+s1*w.
-
+*/
 // Ignore z component of vectors -- we're working in x-y plane.
 Vec3 findOtherVertex(const Vec3& v1, const Vec3& v2, 
                      Real s1, Real s2)

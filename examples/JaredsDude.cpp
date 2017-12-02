@@ -163,8 +163,9 @@ public:
 
  private:
   const MobilizedBody& mBody1;
+  Vec3 mStation1;
   const MobilizedBody& mBody2;
-  Vec3 mStation1, mStation2;
+  Vec3 mStation2;
   Real mK, mDamping, mX0;
 };
 
@@ -208,8 +209,8 @@ public:
     Force::Gravity              m_gravity;
 
     Vector          m_mass, m_length;     // index by BodyType
-    Vector          m_segment;            // index by Segment
     Vector_<Vec3>   m_springW, m_springR; // index by spring #
+    Vector          m_segment;            // index by Segment
 
     std::map<BodyType,   Body>                          m_body;
     std::map<UniqueBody, MobilizedBody>                 m_mobod;

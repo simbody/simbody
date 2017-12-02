@@ -166,8 +166,8 @@ public:
         virtual void updateCache(T& cache) const = 0;
 
         CacheEntryIndex m_cacheIndex;
-        bool m_cacheIsValid;
         const State* m_state;
+        bool m_cacheIsValid;
         T m_cache;
 
         //  Methods that TaskSpace uses.

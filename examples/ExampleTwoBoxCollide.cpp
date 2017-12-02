@@ -72,10 +72,10 @@ private:
 };
 
 
-static void makeCube(Real h, PolygonalMesh& cube);
-static void makeTetrahedron(Real r, PolygonalMesh& tet);
-static void makePyramid(Real baseSideLength, PolygonalMesh& pyramid);
-static void makeOctahedron(Real radius, PolygonalMesh& pyramid);
+//static void makeCube(Real h, PolygonalMesh& cube);
+//static void makeTetrahedron(Real r, PolygonalMesh& tet);
+//static void makePyramid(Real baseSideLength, PolygonalMesh& pyramid);
+//static void makeOctahedron(Real radius, PolygonalMesh& pyramid);
 
 
 int main() {
@@ -256,7 +256,7 @@ int main() {
     return 0;
 }
 
-
+/*
 // Create a triangle mesh in the shape of a pyramid, with the
 // square base in the x-z plane centered at 0,0,0 of given side length s. 
 // The base is split into two triangles. The apex will be at (0,s,0).
@@ -282,8 +282,9 @@ static void makePyramid(Real s, PolygonalMesh& pyramidMesh) {
         pyramidMesh.addFace(verts);
     }
 }
+*/
 
-
+/*
 // Create a triangle mesh in the shape of a tetrahedron with the
 // points in the corners of a cube inscribed in a sphere of radius r.
 static void makeTetrahedron(Real r, PolygonalMesh& tet) {
@@ -306,7 +307,8 @@ static void makeTetrahedron(Real r, PolygonalMesh& tet) {
         tet.addFace(verts);
     }
 }
-
+*/
+/*
 static void makeOctahedralMesh(const Vec3& r, Array_<Vec3>& vertices,
                                Array_<int>&  faceIndices) {
     vertices.push_back(Vec3( r[0],  0,  0));   //0
@@ -321,7 +323,8 @@ static void makeOctahedralMesh(const Vec3& r, Array_<Vec3>& vertices,
         for (int j = 0; j < 3; j++)
             faceIndices.push_back(faces[i][j]);
 }
-
+*/
+/*
 // Create a triangle mesh in the shape of an octahedron (like two 
 // pyramids stacked base-to-base, with the square base in the x-z plane 
 // centered at 0,0,0 of given "radius" r. 
@@ -338,7 +341,8 @@ static void makeOctahedron(Real r, PolygonalMesh& mesh) {
         mesh.addFace(verts);
     }
 }
-
+*/
+/*
 static void makeCube(Real h, PolygonalMesh& cube) {
     Array_<Vec3> vertices;
     vertices.push_back(Vec3( h, h,  h)); 
@@ -364,5 +368,5 @@ static void makeCube(Real h, PolygonalMesh& cube) {
         cube.addFace(verts);
     }
 }
-
+*/
 

@@ -69,8 +69,8 @@ public:
     PathError(int nf, int ny, ContactGeometry& geom, Geodesic& geod,
             const Vec3& O, const Vec3& I) :
             Differentiator::JacobianFunction(nf, ny),
-                    geom(geom), geod(geod),
-                    O(O), I(I) { }
+                    geom(geom), 
+                    O(O), I(I), geod(geod) { }
 
     // x = ~[P, Q]
     int f(const Vector& x, Vector& fx) const override  {
@@ -122,8 +122,8 @@ public:
     PathErrorSplit(int nf, int ny, ContactGeometry& geom, Geodesic& geod,
             const Vec3& O, const Vec3& I) :
             Differentiator::JacobianFunction(nf, ny),
-                    geom(geom), geod(geod),
-                    O(O), I(I) { }
+                    geom(geom), 
+                    O(O), I(I), geod(geod) { }
 
     // x = ~[P, Q]
     int f(const Vector& x, Vector& fx) const override  {
@@ -171,6 +171,7 @@ private:
 
 }; // class PathErrorSplit
 
+/*
 static Real maxabs(Vector x) {
     Real maxVal = 0;
     for (int i = 0; i < x.size(); ++i) {
@@ -179,6 +180,7 @@ static Real maxabs(Vector x) {
     }
     return maxVal;
 }
+*/
 
 static Real maxabsdiff(Vector x, Vector xold) {
 //    ASSERT(x.size()==xold.size());
@@ -205,10 +207,10 @@ int main() {
     Vec3 P(r*cos(uP)*sin(vP), r*sin(uP)*sin(vP), r*cos(vP));
     Vec3 Q(r*cos(uQ)*sin(vQ), r*sin(uQ)*sin(vQ), r*cos(vQ));
 
-    Vec3 r_OP = P-O;
-    Vec3 r_IQ = Q-I;
-    Vec3 tP = r_OP.normalize();
-    Vec3 tQ = r_IQ.normalize();
+//    Vec3 r_OP = P-O;
+//    Vec3 r_IQ = Q-I;
+//    Vec3 tP = r_OP.normalize();
+//    Vec3 tQ = r_IQ.normalize();
 
     int n = 6; // problem size
     Vector x(n), dx(n), Fx(n), xold(n);
