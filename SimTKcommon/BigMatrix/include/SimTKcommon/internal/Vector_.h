@@ -26,6 +26,7 @@
 
 /** @file
 Define the SimTK::Vector_ class that is part of Simbody's BigMatrix toolset. **/
+#include <initializer_list>
 
 namespace SimTK {
 
@@ -65,6 +66,9 @@ public:
 
     /** Default constructor creates a 0x1, reallocatable vector. **/
     Vector_() : Base() {}
+    
+    /** Naive implementation of initializer list **/
+    Vector_(std::initializer_list<ELT> l) : Base(l) {}
 
     /** Copy constructor is deep, that is the source %Vector_ is copied, not
     referenced. **/

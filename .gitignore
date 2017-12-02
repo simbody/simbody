@@ -16,3 +16,6 @@ obj-*
 .*.swo
 # gedit
 *~
+# Kdevelop
+.kdev4/*
+*.kdev4

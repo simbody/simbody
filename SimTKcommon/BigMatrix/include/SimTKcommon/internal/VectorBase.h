@@ -27,6 +27,7 @@
 /** @file
 Define the SimTK::VectorBase class that is part of Simbody's BigMatrix 
 toolset. **/
+#include <initializer_list>
 
 namespace SimTK {
 
@@ -50,6 +51,7 @@ template <class ELT> class VectorBase : public MatrixBase<ELT> {
     typedef VectorBase<typename CNT<ELT>::TAbs>         TAbs;
     typedef VectorBase<typename CNT<ELT>::TNeg>         TNeg;
     typedef RowVectorView_<typename CNT<ELT>::THerm>    THerm;
+    typedef typename std::initializer_list<ELT>::iterator ListIterator;
 public:  
     //  ------------------------------------------------------------------------
     /// @name       VectorBase "owner" construction
@@ -70,6 +72,15 @@ public:
     /// means it creates a new, densely packed vector whose elements are
     /// initialized from the source object.
     VectorBase(const VectorBase& source) : Base(source) {}
+    
+    /// Initilizer list proxy.
+    VectorBase(std::initializer_list<ELT> l) : Base(MatrixCommitment::Vector(),l.size(), 1){
+        int i = 0; // No pop() implementation on vector ???
+        for(ListIterator it = l.begin(); it != l.end(); ++it){
+            this->operator[](i) = *it;
+            i++;
+        }
+    }
 
     /// Implicit conversion from compatible vector with negated elements.
     VectorBase(const TNeg& source) : Base(source) {}

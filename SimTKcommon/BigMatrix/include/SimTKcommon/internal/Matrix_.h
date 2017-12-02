@@ -26,6 +26,7 @@
 
 /** @file
 Define the SimTK::Matrix_ class that is part of Simbody's BigMatrix toolset. **/
+#include <initializer_list>
 
 namespace SimTK {
 
@@ -66,6 +67,12 @@ template <class ELT> class Matrix_ : public MatrixBase<ELT> {
 public:
     Matrix_() : Base() { }
     explicit Matrix_(const MatrixCommitment& mc) : Base(mc) {}
+    
+    // List initialized matrix. Example : Matrix_ = {{1,2},{2,3}}
+    // Number of columns is determined from first row.
+    // Shorter rows left uninitialized values right side, row is aligned to left.
+    // Longer row throw exception.
+    Matrix_(std::initializer_list<std::initializer_list<ELT> > l) : Base(l.size(), (l.begin()+1)->size(), l){}
 
     // Copy constructor is deep.
     Matrix_(const Matrix_& src) : Base(src) { }
