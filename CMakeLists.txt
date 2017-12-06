@@ -587,7 +587,10 @@ if(BUILD_TESTING)
     add_custom_target(RUN_TESTS_PARALLEL COMMAND ${cmd})
 endif()
 
-include(ApiDoxygen.cmake)
+# These are used in Doxyfile.in and SimbodyConfig.cmake.in.
+set(SIMBODY_INSTALL_DOXYGENDIR   "${CMAKE_INSTALL_DOCDIR}/api")
+set(SIMBODY_DOXYGEN_TAGFILE_NAME "SimbodyDoxygenTagfile")
+add_subdirectory(doc)
 
 # Specify where visualizer should be installed. This needs to be in the
 # root CMakeLists.txt so the cmake config file can see this value.
@@ -626,7 +629,7 @@ if( BUILD_EXAMPLES )
     add_subdirectory( examples )
 endif()
 
-file(GLOB TOPLEVEL_DOCS LICENSE.txt *.md doc/*.pdf doc/*.txt doc/*.md)
+file(GLOB TOPLEVEL_DOCS LICENSE.txt *.md doc/*.pdf doc/*.md)
 install(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # Add uninstall target
