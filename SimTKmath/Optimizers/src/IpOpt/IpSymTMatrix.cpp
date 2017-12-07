@@ -17,7 +17,7 @@
 
 
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   SymTMatrix::SymTMatrix(const SymTMatrixSpace* owner_space)

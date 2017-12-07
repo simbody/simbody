@@ -8,7 +8,7 @@
 
 #include "IpDiagMatrix.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   DiagMatrix::DiagMatrix(const SymMatrixSpace* owner_space)

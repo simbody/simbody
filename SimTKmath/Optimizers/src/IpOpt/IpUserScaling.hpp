@@ -12,7 +12,7 @@
 #include "IpNLPScaling.hpp"
 #include "IpNLP.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   /** This class does problem scaling by getting scaling parameters
    *  from the user (through the NLP interface).

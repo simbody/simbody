@@ -8,7 +8,7 @@
 
 #include "IpSymMatrix.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   SymMatrix::SymMatrix(const SymMatrixSpace* owner_space)

@@ -25,7 +25,7 @@
 #pragma warning(disable:4996)
 #endif
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   SumMatrix::SumMatrix(const SumMatrixSpace* owner_space)

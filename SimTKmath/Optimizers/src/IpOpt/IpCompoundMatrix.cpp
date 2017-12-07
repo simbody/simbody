@@ -27,7 +27,7 @@
 
 
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   CompoundMatrix::CompoundMatrix(const CompoundMatrixSpace* owner_space)

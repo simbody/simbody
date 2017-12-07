@@ -15,7 +15,7 @@
 #include "IpFilter.hpp"
 #include "IpQualityFunctionMuOracle.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Non-monotone mu update.

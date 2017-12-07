@@ -12,7 +12,7 @@
 #include "IpIpoptAlg.hpp"
 #include "IpReferenced.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Builder to create a complete IpoptAlg object.  This object
