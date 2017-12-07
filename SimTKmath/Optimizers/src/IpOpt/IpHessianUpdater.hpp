@@ -11,7 +11,7 @@
 
 #include "IpAlgStrategy.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Abstract base class for objects responsible for updating the

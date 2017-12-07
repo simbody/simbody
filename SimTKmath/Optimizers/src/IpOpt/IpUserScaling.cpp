@@ -8,7 +8,7 @@
 
 #include "IpUserScaling.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   void UserScaling::DetermineScalingParametersImpl(

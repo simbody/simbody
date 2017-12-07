@@ -44,7 +44,7 @@
 
 # include "IpLapackSolverInterface.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 #ifdef IP_DEBUG
   static const Index dbg_verbosity = 0;

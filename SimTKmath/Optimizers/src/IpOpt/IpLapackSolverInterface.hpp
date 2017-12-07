@@ -4,7 +4,7 @@
 
 #include "IpSparseSymLinearSolverInterface.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Interface to the linear solver Lapack, derived from

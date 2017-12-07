@@ -11,7 +11,7 @@
 
 #include "IpSmartPtr.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   class RegisteredOptions;
 

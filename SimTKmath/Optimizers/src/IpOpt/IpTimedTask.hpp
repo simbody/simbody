@@ -34,7 +34,7 @@
 # endif
 #endif
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   /** This class is used to collect timing information for a
    *  particular task. */

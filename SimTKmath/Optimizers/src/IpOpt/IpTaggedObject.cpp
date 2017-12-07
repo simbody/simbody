@@ -8,7 +8,7 @@
 
 #include "IpTaggedObject.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   TaggedObject::Tag TaggedObject::unique_tag_ = 1;
