@@ -21,7 +21,13 @@ add_subdirectory(adhoc)
 # whether to build dynamically linked, statically linked, or both
 # versions of the executable.
 
-file(GLOB REGR_TESTS "*.cpp")
+file(GLOB ALL_REGR_TESTS "*.cpp")
+set(REGR_TESTS ${ALL_REGR_TESTS})
+# TestAutodiffADOLCCommon was designed to test the ADOL-C libraries only
+# and is therefore excluded from the tests of the shared and static libraries.
+# file(GLOB ADOLC_SPECIFIC_TESTS "*TestAutodiffADOLCCommon*")
+# list(REMOVE_ITEM REGR_TESTS ${ADOLC_SPECIFIC_TESTS})
+
 foreach(TEST_PROG ${REGR_TESTS})
     get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)
 
@@ -78,6 +84,27 @@ foreach(TEST_PROG ${REGR_TESTS})
 
 endforeach(TEST_PROG ${REGR_TESTS})
 
+if(BUILD_ADOLC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_SHARED)
+    set(ADOLC_REGR_TESTS ${ALL_REGR_TESTS})
+    # The use of xml is not yet supported with the ADOL-C libraries and
+    # TestXml is therefore excluded from the tests of the ADOL-C libraries.            
+    file(GLOB ADOLC_TESTS_TO_EXCLUDE "*TestXml*")
+    list(REMOVE_ITEM ADOLC_REGR_TESTS ${ADOLC_TESTS_TO_EXCLUDE})
+    
+    foreach(TEST_PROG ${ADOLC_REGR_TESTS})
+        get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)        
+        # Link with adolc library
+        set(TEST_ADOLC ${TEST_ROOT}ADOLC)
+        add_executable(${TEST_ADOLC} ${TEST_PROG})
+        set_target_properties(${TEST_ADOLC}
+        PROPERTIES
+        PROJECT_LABEL "Test_Regr - ${TEST_ADOLC}")
+        target_link_libraries(${TEST_ADOLC}
+                ${TEST_ADOLC_TARGET})
+        add_test(${TEST_ADOLC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ADOLC})        
+    endforeach()
+    
+endif()
 
 
 
