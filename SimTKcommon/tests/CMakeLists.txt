@@ -32,27 +32,54 @@ foreach(TEST_PROG ${REGR_TESTS})
     get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)
 
     if(BUILD_TESTS_AND_EXAMPLES_SHARED)
-        # Link with shared library
-        add_executable(${TEST_ROOT} ${TEST_PROG})
-        set_target_properties(${TEST_ROOT}
-        PROPERTIES
-          PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
-        target_link_libraries(${TEST_ROOT} 
-                    ${TEST_SHARED_TARGET})
-        add_test(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
+        # TestAutodiffADOLCCommon was designed to test the ADOL-C libraries only
+        # and is therefore excluded from the tests of the shared libraries.
+        # TODO need a better way to link tests to ADOL-C libraries.
+        if (NOT ${TEST_ROOT} MATCHES "TestAutodiffADOLCCommon")
+            # Link with shared library
+            add_executable(${TEST_ROOT} ${TEST_PROG})
+            set_target_properties(${TEST_ROOT}
+            PROPERTIES
+              PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
+            target_link_libraries(${TEST_ROOT} 
+                        ${TEST_SHARED_TARGET})
+            add_test(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
+        endif()
+
+        if(BUILD_ADOLC_LIBRARIES)
+            # The use of xml is not yet supported with the ADOL-C libraries and
+            # TestXml is therefore excluded from the tests of the ADOL-C libraries.
+            # TODO need a better way to link tests to ADOL-C libraries.            
+            if (NOT ${TEST_ROOT} MATCHES "TestXml")
+                # Link with adolc library
+                set(TEST_ADOLC ${TEST_ROOT}ADOLC)
+                add_executable(${TEST_ADOLC} ${TEST_PROG})
+                set_target_properties(${TEST_ADOLC}
+                        PROPERTIES
+                        PROJECT_LABEL "Test_Regr - ${TEST_ADOLC}")
+                target_link_libraries(${TEST_ADOLC}
+                        ${TEST_ADOLC_TARGET})
+                add_test(${TEST_ADOLC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ADOLC})
+            endif()
+        endif()
     endif(BUILD_TESTS_AND_EXAMPLES_SHARED)
 
     if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
-        # Link with static library
-        set(TEST_STATIC ${TEST_ROOT}Static)
-        add_executable(${TEST_STATIC} ${TEST_PROG})
-        set_target_properties(${TEST_STATIC}
-        PROPERTIES
-        COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
-        PROJECT_LABEL "Test_Regr - ${TEST_STATIC}")
-        target_link_libraries(${TEST_STATIC}
-                    ${TEST_STATIC_TARGET})
-        add_test(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
+        # TestAutodiffADOLCCommon was designed to test the ADOL-C libraries only
+        # and is therefore excluded from the tests of the static libraries.
+        # TODO need a better way to link tests to ADOL-C libraries.
+        if (NOT ${TEST_ROOT} MATCHES "TestAutodiffADOLCCommon")
+            # Link with static library
+            set(TEST_STATIC ${TEST_ROOT}Static)
+            add_executable(${TEST_STATIC} ${TEST_PROG})
+            set_target_properties(${TEST_STATIC}
+            PROPERTIES
+            COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
+            PROJECT_LABEL "Test_Regr - ${TEST_STATIC}")
+            target_link_libraries(${TEST_STATIC}
+                        ${TEST_STATIC_TARGET})
+            add_test(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
+        endif()
     endif()
 
 endforeach(TEST_PROG ${REGR_TESTS})
