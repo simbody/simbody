@@ -13,7 +13,7 @@
 #include "IpIpoptAlg.hpp"
 #include "IpEqMultCalculator.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Restoration Phase that minimizes the 1-norm of the constraint

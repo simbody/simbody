@@ -16,7 +16,7 @@
  *  and a set of macros to help with exceptions 
  */
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** This is the base class for all exceptions.  The easiest way to
