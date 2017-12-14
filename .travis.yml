@@ -45,7 +45,9 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes update; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes install liblapack-dev; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes install freeglut3-dev libxi-dev libxmu-dev; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$ADOLC" = "on" ]]; then sudo apt-get --yes install libadolc-dev; fi
+  - if [ "$ADOLC" = "on" ]; then wget https://gitlab.com/adol-c/adol-c/repository/v2.6.3/archive.zip -O adol-c-2.6.3.zip; fi
+  - if [ "$ADOLC" = "on" ]; then unzip adol-c-2.6.3.zip && cd adol-c-v2.6.3-a7ddc7e1bcd36ecf870e2e5a547a65b6f5aeb840; fi
+  - if [ "$ADOLC" = "on" ]; then ./configure && make -j4 && make install ;fi
 
   # C++11 on Ubuntu. Update to gcc 4.9, which provides full C++11 support.  We
   # use this script because if building Simbody with C++11, we need gcc-4.9,
@@ -65,7 +67,7 @@ before_install:
 install:
   - mkdir -p $TRAVIS_BUILD_DIR/simbody-build && cd $TRAVIS_BUILD_DIR/simbody-build
   # Configure.
-  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DSIMBODY_COVERAGE:BOOL=$COV -DBUILD_ADOLC_LIBRARIES=$ADOLC -DCMAKE_INSTALL_PREFIX=~/simbody
+  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DSIMBODY_COVERAGE:BOOL=$COV -DBUILD_ADOLC_LIBRARIES=$ADOLC -DADOLC_DIR=$HOME/adolc_base -DCMAKE_INSTALL_PREFIX=~/simbody
   # Build.
   - make -j8
 
