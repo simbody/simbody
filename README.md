@@ -1,4 +1,4 @@
-Simbody [![Travis][buildstatus_image_travis]][travisci] [![Appveyor][buildstatus_image_appveyor]][appveyorci]
+Simbody [![Travis][buildstatus_image_travis]][travisci] [![Appveyor][buildstatus_image_appveyor]][appveyorci] [![Codecov][buildstatus_image_codecov]][codecovci]
 =======
 
 Simbody is a high-performance, open-source toolkit for science- and
@@ -99,11 +99,12 @@ Dependencies
 
 Simbody depends on the following:
 
-* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.8 or later
-* compiler: [Visual Studio](http://www.visualstudio.com) 2013 or later (Windows only), [gcc](http://gcc.gnu.org/) 4.8.1 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
-* linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
+* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.10 or later (3.1.3 or later for Visual Studio).
+* compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.9.0 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
+* linear algebra: [LAPACK](http://www.netlib.org/lapack/) 3.6.0 or later and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.8.6 or later; we recommend at least 1.8.8.
+* automatic differentiation: [ADOL-C](https://projects.coin-or.org/ADOL-C) (optional feature)
 
 
 Using Simbody
@@ -117,12 +118,14 @@ Using Simbody
 Installing
 ----------
 
-Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. In this file, we provide instructions for 4 different ways of installing Simbody:
+Simbody works on Windows, Mac, and Linux. For each operating system, you can use a package manager or build from source. In this file, we provide instructions for 6 different ways of installing Simbody:
 
 1. [**Windows**](#windows-using-visual-studio): build from source using Microsoft Visual Studio.
-3. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
-2. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
+2. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
+3. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
 4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
+5. [**Windows using MinGW**](#windows-using-mingw): build from source using MinGW.
+6. [**Windows/Mac/Linux**](#windows-mac-and-linux-using-conda): install pre-built binaries with the Conda package manager.
 
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
 
@@ -140,23 +143,38 @@ Windows using Visual Studio
 
 #### Get the dependencies
 
-All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies. 
+All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies.
 
-1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2013 or higher. The "Community Edition" is free for "non-enterprise" use. The "Express" edition is another free option, in that case use *Visual Studio Express for Windows Desktop*.
-2. Download and install [CMake](http://www.cmake.org/download), version 2.8.8 or higher.
+1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2015. The Community edition is free and sufficient. By default, Visual Studio 2015 does not provide C++ support; when installing, be sure to select *Custom*, and check *Programming Languages > Visual C++ > Common Tools for Visual C++ 2015*. If you have already installed Visual Studio without C++ support, simply re-run the installer and select *Modify*.
+2. Download and install [CMake](http://www.cmake.org/download), version 3.1.3 or higher.
 3. (optional) If you want to build API documentation, download and install Doxygen, version 1.8.8 or higher.
+4. (optional) If you want to use automatic differentiation, download [ADOL-C](http://www2.math.uni-paderborn.de/index.php?id=12067&L=1), version with exploitation of sparsity. We 'll assume you unzipped the files into `C:/ADOLC-folder`.
 
 #### Download the Simbody source code
 
 * Method 1: Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `C:/Simbody-source`.
 * Method 2: Clone the git repository.
-    1. Get git. There are many options: [Git for Windows](http://msysgit.github.io/) (most advanced), [TortoiseGit](https://code.google.com/p/tortoisegit/wiki/Download) (intermediate; good for TortoiseSVN users), [GitHub for Windows](https://windows.github.com/) (easiest).
+    1. Get git. There are many options:
+
+       * [Git for Windows](http://msysgit.github.io/)(most advanced),
+       * [TortoiseGit](https://code.google.com/p/tortoisegit/wiki/Download) (intermediate; good for TortoiseSVN users),
+       * [GitHub for Windows](https://windows.github.com/) (easiest).
+
     2. Clone the github repository into `C:/Simbody-source`. Run the following in a Git Bash / Git Shell, or find a way to run the equivalent commands in a GUI client:
 
             $ git clone https://github.com/simbody/simbody.git C:/Simbody-source
-            $ git checkout Simbody-3.5.1
+            $ git checkout Simbody-3.5.3
 
-    3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
+    3. In the last line above, we assumed you want to build a released version.
+       Feel free to change the version you want to build.
+       If you want to build the latest development version ("bleeding edge") of
+       Simbody off the `master` branch, you can omit the `checkout` line.
+
+       To see the set of releases and checkout a specific version, you can use
+       the following commands:
+
+            $ git tag
+            $ git checkout Simbody-X.Y.Z
 
 #### Configure and generate project files
 
@@ -164,16 +182,18 @@ All needed library dependencies are provided with the Simbody installation on Wi
 2. In the field **Where is the source code**, specify `C:/Simbody-source`.
 3. In the field **Where to build the binaries**, specify something like `C:/Simbody-build`, just not inside your source directory. This is *not* where we will install Simbody; see below.
 4. Click the **Configure** button.
-    1. Choose a "generator" that corresponds to the Visual Studio you're using. For *Visual Studio 2013*, select **Visual Studio 12**. To build as 64-bit (recommended), select an option that ends with **Win64**.
+    1. When prompted to select a *generator*, choose either **Visual Studio 14 2015** (to build 32-bit binaries) or **Visual Studio 14 2015 Win64** (to build 64-bit binaries).
     2. Click **Finish**.
 5. Where do you want to install Simbody on your computer? Set this by changing the `CMAKE_INSTALL_PREFIX` variable. We'll assume you set it to `C:/Simbody`. If you choose a different installation location, make sure to use *yours* where we use `C:/Simbody` below.
 6. Play around with the other build options:
     * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
     * `BUILD_TESTING` to ensure your Simbody works correctly. On by default.
     * `BUILD_VISUALIZER` to be able to watch your system move about! If building remotely, you could turn this off. On by default.
-    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default.
+    * `BUILD_DYNAMIC_LIBRARIES` builds the three libraries as dynamic libraries. On by default. Unless you know what you're doing, leave this one on.
+    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default. You must activate either `BUILD_DYNAMIC_LIBRARIES`, `BUILD_STATIC_LIBRARIES`, or both.
     * `BUILD_TESTS_AND_EXAMPLES_STATIC` if static libraries, and tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
     * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
+    * `BUILD_ADOLC_LIBRARIES` to allow automatic differentation. You will have to provide the path to `C:/ADOLC-folder` in `ADOLC_DIR`.
 7. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
 
 #### Build and install
@@ -240,6 +260,33 @@ Linux or Mac using make
 These instructions are for building Simbody from source on either a Mac or on
 Ubuntu.
 
+#### Check the compiler version
+
+Simbody uses recent C++ features, that require a modern compiler.
+Before installing Simbody, check your compiler version with commands like that:
+
+- `g++ --version`
+- `clang++ --version`
+
+In case your compiler is not supported, you can upgrade your compiler.
+
+Here are some instructions to upgrade GCC on a Ubuntu 14.04 distribution.
+
+    $ sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+    $ sudo apt-get update
+    $ sudo apt-get install gcc-4.9 g++-4.9
+
+If one wants to set `gcc-4.9` and `g++-4.9` as the default compilers, run the following command
+
+    $ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9
+
+Remember that when having several compilers, CMake flags
+`CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER` can be used
+to select the ones desired. For example, Simbody can be
+configured with the following flags:
+
+    $ cmake -DCMAKE_C_COMPILER=gcc-4.9 -DCMAKE_CXX_COMPILER=g++-4.9
+
 #### Get dependencies
 
 On a Mac, the Xcode developer package gives LAPACK and BLAS to you via the Accelerate
@@ -247,26 +294,50 @@ framework. Mac's come with the visualization dependencies.
 
 On Ubuntu, we need to get the dependencies ourselves. Open a terminal and run the following commands.
 
-1. Get the necessary dependencies: `$ sudo apt-get install cmake liblapack-dev`. The cmake on Ubuntu 12.04 is not new enough; you could instead download it from [cmake.org](http://www.cmake.org/download/) or use [this third party PPA](https://launchpad.net/~robotology/+archive/ubuntu/ppa).
+1. Get the necessary dependencies: `$ sudo apt-get install cmake liblapack-dev`.
 2. If you want to use the CMake GUI, install `cmake-qt-gui`.
-3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`
-4. For API documentation (optional): `$ sudo apt-get install doxygen`
+3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`.
+4. For API documentation (optional): `$ sudo apt-get install doxygen`.
+
+LAPACK version 3.6.0 and higher may be required for some applications (OpenSim).
+LAPACK can be downloaded from [http://www.netlib.org/lapack/](http://www.netlib.org/lapack/),
+and compiled using the following method. It is sufficient to set `LD_LIBRARY_PATH` to your LAPACK install prefix
+and build Simbody using the `-DBUILD_USING_OTHER_LAPACK:PATH=/path/to/liblapack.so` option in cmake.
+```{bash}
+cmake ../lapack-3.6.0 -DCMAKE_INSTALL_PREFIX=/path/to/new/lapack/ -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON
+make
+make install
+```
 
 #### Get the Simbody source code
 
 There are two ways to get the source code.
 
-* Method 1: Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `~/simbody-source`.
+* Method 1: Download the source code from https://github.com/simbody/simbody/releases.
+  Look for the highest-numbered release, click on the .zip button, and unzip it on your computer.
+  We'll assume you unzipped the source code into `~/simbody-source`.
 * Method 2: Clone the git repository.
     1. Get git.
-        * Mac: You might have it already, especially if you have Xcode, which is free in the App Store. If not, one method is to install [Homebrew](http://brew.sh/) and run `brew install git` in a terminal.
+        * Mac: You might have it already, especially if you have Xcode, which
+          is free in the App Store. If not, one method is to install
+          [Homebrew](http://brew.sh/) and run `brew install git` in a
+          terminal.
         * Ubuntu: run `sudo apt-get install git` in a terminal.
     2. Clone the github repository into `~/simbody-source`.
 
             $ git clone https://github.com/simbody/simbody.git ~/simbody-source
-            $ git checkout Simbody-3.5.1
+            $ git checkout Simbody-3.5.3
 
-    3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
+    3. In the last line above, we assumed you want to build a released version.
+       Feel free to change the version you want to build.
+       If you want to build the latest development version ("bleeding edge") of
+       Simbody off the `master` branch, you can omit the `checkout` line.
+
+       To see the set of releases and checkout a specific version, you can use
+       the following commands:
+
+            $ git tag
+            $ git checkout Simbody-X.Y.Z
 
 #### Configure and generate Makefiles
 
@@ -304,6 +375,7 @@ There are two ways to get the source code.
         * `BUILD_VISUALIZER` to be able to watch your system
           move about! If building on a cluster, you could turn this off. On by
           default.
+        * `BUILD_DYNAMIC_LIBRARIES` builds the three libraries as dynamic libraries. On by default.
         * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`.
         * `BUILD_TESTS_AND_EXAMPLES_STATIC` if tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
         * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
@@ -341,13 +413,15 @@ Just so you know, you can also uninstall (delete all files that CMake placed int
 From your build directory, you can run Simbody's example programs. For instance, try:
 
         $ ./ExamplePendulum
-        
+
 
 #### Set environment variables and test the installation
 
 If you are only building Simbody to use it with OpenSim, you can skip this section.
 
-1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path.
+1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the
+   Simbody lib directory to your linker path. On Mac, most users can skip
+   this step.
     * If your `CMAKE_INSTALL_PREFIX` is `/usr/local/`, run:
 
             $ sudo ldconfig
@@ -359,13 +433,15 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
         * Ubuntu:
 
                 $ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' >> ~/.bashrc
-        These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer.
+        These commands add a line to a configuration file that is loaded every
+        time you open a new terminal. If using Ubuntu, you may need to replace
+        `x86_64-linux-gnu` with the appropriate directory on your computer.
 2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody. Make sure to replace `~/simbody` with your `CMAKE_INSTALL_PREFIX`.
     * Mac:
 
             $ echo 'export SIMBODY_HOME=~/simbody' >> ~/.bash_profile
     * Ubuntu:
-            
+
             $ echo 'export SIMBODY_HOME=~/simbody' >> ~/.bashrc
 3. Open a new terminal.
 4. Test your installation:
@@ -410,7 +486,9 @@ If using a Mac and Homebrew, the dependencies are taken care of for you.
 
 #### Where is Simbody installed?
 
-Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`, where `<version>` is either the version number (e.g., `3.5.1`), or `HEAD` if you specified `--HEAD` above.
+Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`,
+where `<version>` is either the version number (e.g., `3.5.3`),
+or `HEAD` if you specified `--HEAD` above.
 
 Some directories are symlinked (symbolically linked) to `/usr/local/`, which is where your system typically expects to find executables, shared libraries (.dylib's), headers (.h's), etc. The following directories from the Simbody installation are symlinked:
 
@@ -435,27 +513,18 @@ What's in the `/usr/local/Cellar/simbody/<version>/` directory?
 Ubuntu and apt-get
 ------------------
 
-You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
-
-**Caution**: this installation method is still a work in progress. If you try it, please let us know on the [Simbody Forum](https://simtk.org/forums/viewforum.php?f=47) if it worked or if not, what problems you encountered.
+Starting with Ubuntu 15.04, Simbody is available in the Ubuntu (and Debian) repositories. You can see a list of all simbody packages for all Ubuntu versions at the [Ubuntu Packages website](http://packages.ubuntu.com/search?keywords=simbody&searchon=names&suite=all&section=all). The latest version of Simbody is usually not available in the Ubuntu repositories; the process for getting a new version of Simbody into the Ubuntu repositories could take up to a year.
 
 #### Install
 
-1. Setup your computer to accept software from packages.osrfoundation.org. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
-        
-        $ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-latest.list'
-        $ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
-        $ sudo apt-get update
+1. Open a terminal and run the following command:
 
-2. Install Simbody.
-
-        $ sudo apt-get update
-        $ sudo apt-get install libsimbody-dev libsimbody-doc
+        $ sudo apt-get install libsimbody-dev simbody-doc
 
 #### Layout of installation
 
 Simbody is installed into the `usr/` directory.  The directory
-`[x86_64-linux-gnu]` varies by platform. 
+`[x86_64-linux-gnu]` varies by platform.
 
 * `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
 * `usr/lib/[x86_64-linux-gnu]` shared libraries (.so's).
@@ -466,6 +535,171 @@ Simbody is installed into the `usr/` directory.  The directory
     * `examples/src` source code for the examples.
     * `examples/bin` symbolic link to executable examples.
 
+Windows using MinGW
+-------------------
+
+Warning: The [MinGW](http://sourceforge.net/projects/mingw-w64/)
+generation and build is experimental!
+
+This build is still experimental, because of :
+
+* the various MinGW versions available (Thread model, exception mechanism)
+* the compiled libraries Simbody depends on (Blas, Lapack and optionnaly glut).
+
+Below are three sections that gives a list of supported versions, command line
+instructions, and reasons why is it not so obvious to use MinGW.
+
+#### Supported MinGW versions
+
+If you do not want to go into details, you need a MinGW version with :
+
+* a Posix thread model and Dwarf exception mechanism on a 32 bit computer
+* a Posix thread model and SJLJ exception mechanism on a 64 bit computer
+
+Other versions are supported with additional configurations.
+
+The table below lists the various versions of MinGW versions tested:
+
+|   | OS      | Thread | Exception | Comment                                                             | URL                                           |
+| - | ------- | ------ | --------- | ------------------------------------------------------------------- | --------------------------------------------- |
+| 1 | 64 Bits | Posix  | SJLJ      | All features supported, all binary included (Recommended version)   | [MinGW64 GCC 5.2.0][mingw_520_64_posix_sjlj]  |
+| 2 | 64 Bits | Posix  | SEH       | Needs to be linked against user's Blas and Lapack                   | [MinGW64 GCC 5.2.0][mingw_520_64_posix_seh]   |
+| 3 | 32 Bits | Posix  | Dwarf     | No visualization, all binary included                               | [MinGW64 GCC 5.2.0][mingw_520_32_posix_dwarf] |
+| 4 | 32 Bits | Posix  | SJLJ      | No visualization, needs to be linked against user's Blas and Lapack | [MinGW64 GCC 5.2.0][mingw_520_32_posix_sjlj]  |
+
+We recommend to use the first configuration where all features are supported and
+does not need additional libraries to compile and run.
+The URL allows to download directly this version.
+The second version needs to be linked against user's Blas and Lapack
+(A CLI example is given below).
+Blas and Lapack sources can be downloaded from
+[netlib](http://www.netlib.org/lapack/lapack-3.5.0.tgz).
+For the 3rd and 4th versions that run that target a 32 bit behaviour,
+visualization is not possible for the time being.
+(It is due to a compile and link problem with `glut`).
+Moreover for the 4th one, one needs to provide Blas and Lapack libraries.
+
+Please note that only Posix version of MinGW are supported.
+
+If your version is not supported, CMake will detect it while configuring and stops.
+
+#### Instructions
+
+Below are some examples of command line instructions for various cases.
+It is assumed you are running commands from a build directory, that can access Simbody source with a command `cd ..\simbody`.
+
+It is recommended to specify with the installation directory with flag `CMAKE_INSTALL_PREFIX`
+(e.g. `-DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody"`).
+If not used, the installation directory will be `C:\Program Files (x86)\Simbody`
+on a 64 bit computer. This might be confusing since it is the 32 bit installation location.
+
+Example of instructions where one uses Blas and Lapack libraries provided (to be used in a Windows terminal, where MinGW is in the PATH):
+
+    rem CMake configuration
+    cmake ..\simbody -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody"
+    rem Compilation
+    mingw32-make
+    rem Test
+    mingw32-make test
+    rem Installation
+    mingw32-make install
+
+Example of instructions where one uses Blas and Lapack libraries provided (to be used in a Windows terminal, where MinGW is NOT in the PATH):
+
+    rem Variable and path definition
+    set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
+    set MinGWDir=C:\Program Files\mingw-w64\i686-5.2.0-posix-sjlj-rt_v4-rev0\mingw32
+    set PATH=%MinGWDir%\bin;%MinGWDir%\i686-w64-mingw32\lib
+    rem CMake configuration
+    %CMAKE% ..\simbody -G"MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release ^
+     -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody" ^
+     -DCMAKE_C_COMPILER:PATH="%MinGWDir%\bin\gcc.exe" ^
+     -DCMAKE_CXX_COMPILER:PATH="%MinGWDir%\bin\g++.exe" ^
+     -DCMAKE_MAKE_PROGRAM:PATH="%MinGWDir%\bin\mingw32-make.exe"
+    rem Compilation
+    mingw32-make
+    rem Test
+    mingw32-make test
+    rem Installation
+    mingw32-make install
+
+Example of instructions where one uses Blas and Lapack libraries provided (to be used in a MSYS terminal with MinGW in the PATH):
+
+    # CMake configuration
+    cmake ../simbody -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody"
+    # Compilation
+    make
+    # Test
+    make test
+    # Installation
+    make install
+
+Example of instructions where one provides our own Blas and Lapack libraries (to be used in a MSYS terminal with MinGW in the PATH):
+
+    # CMake configuration
+    cmake ../simbody -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody" \
+    -DCMAKE_C_COMPILER:PATH="C:\Program Files\mingw-w64\i686-5.2.0-posix-sjlj-rt_v4-rev0\mingw32\bin\gcc.exe" \
+    -DCMAKE_CXX_COMPILER:PATH="C:\Program Files\mingw-w64\i686-5.2.0-posix-sjlj-rt_v4-rev0\mingw32\bin\g++.exe" \
+    -DBUILD_USING_OTHER_LAPACK:PATH="C:\Program Files\lapack-3.5.0\bin\liblapack.dll;C:\Program Files\lapack-3.5.0\bin\libblas.dll"
+    make
+    # Test
+    make test
+    # Installation
+    make install
+
+
+#### MinGW details
+
+This paragraph explains the reason why one can not use any MinGW version.
+
+MinGW is available with two thread models :
+
+* Win32 thread model
+* Posix thread model
+
+One has to use the Posix thread model, since all thread functionalities (e.g. `std:mutex`) are not implemented.
+
+To ease building on Windows, Simbody provides compiled libraries for Blas and Lapack :
+
+* On Windows 32 Bits, these were compiled with a Dwarf exception mechanism,
+* On Windows 64 Bits, these were compiled with a SJLJ exception mechanism.
+
+If one chooses a MinGW compilation, we need to respect this exception mechanism.
+A program can not rely on both mechanisms.
+This means that if we want to use the compiled libraries, our MinGW installation should
+have the same exception mechanism.
+Otherwise, we need to provide our own Blas and Lapack libraries.
+
+To see which exception mechanism is used, user can look at dlls located in the `bin` directory of MinGW.
+The name of mechanism is present in the file `libgcc_XXXX.dll`, where `XXXX` can be `dw`, `seh` or `sjlj`.
+For some MinGW versions, this information is also available by looking at the result of `gcc --version`.
+
+CMake will check the version of your MinGW, and if the exception mechanism is different,
+then the configuration stops because of this difference.
+If one provides Blas and Lapack libraries with the CMake variable `BUILD_USING_OTHER_LAPACK`,
+compilation with MinGW is always possible.
+
+Windows, Mac, and Linux Using Conda
+-----------------------------------
+
+[Conda](http://conda.pydata.org) is a cross platform package manager that can
+be used to install Simbody on Windows, Mac, or Linux. To install Simbody using
+Conda you must first install
+[Miniconda](http://conda.pydata.org/miniconda.html) or
+[Anaconda](https://www.continuum.io/downloads). Either of these will provide
+the `conda` command which can be invoked at the command line to install Simbody
+from the [Conda Forge](https://conda-forge.github.io/) channel as follows:
+
+```
+$ conda install -c conda-forge simbody
+```
+
+This command will install Simbody (both the libraries and headers) into
+the Miniconda or Anaconda installation directory as per the standard layout for
+each of the operating systems described above. The Conda Forge Simbody recipe
+can be found in Conda Forge's [feedstock
+repository](https://github.com/conda-forge/simbody-feedstock).
 
 Acknowledgments
 ---------------
@@ -480,10 +714,12 @@ Prof. Scott Delp is the Principal Investigator on these grants and Simbody is us
 
 
 
-[buildstatus_image_travis]: https://travis-ci.org/simbody/simbody.png?branch=master
+[buildstatus_image_travis]: https://travis-ci.org/simbody/simbody.svg?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
 [buildstatus_image_appveyor]: https://ci.appveyor.com/api/projects/status/2dua0qna2m85fts2/branch/master?svg=true
 [appveyorci]: https://ci.appveyor.com/project/opensim-org/simbody/branch/master
+[buildstatus_image_codecov]: https://codecov.io/gh/simbody/simbody/branch/master/graph/badge.svg
+[codecovci]: https://codecov.io/gh/simbody/simbody
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
 [rna]: doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/
@@ -492,3 +728,7 @@ Prof. Scott Delp is the Principal Investigator on these grants and Simbody is us
 [flores]: http://xray.bmc.uu.se/flores/Home.html
 [buildwin]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_Windows.pdf
 [buildunix]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_MacLinux.pdf
+[mingw_520_64_posix_sjlj]: http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/x86_64-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download
+[mingw_520_64_posix_seh]: http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/5.2.0/threads-posix/seh/x86_64-5.2.0-release-posix-seh-rt_v4-rev0.7z/download
+[mingw_520_32_posix_dwarf]: http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/dwarf/i686-5.2.0-release-posix-dwarf-rt_v4-rev0.7z/download
+[mingw_520_32_posix_sjlj]: http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/i686-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download

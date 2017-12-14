@@ -19,7 +19,7 @@
 # endif
 #endif
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   void GradientScaling::RegisterOptions(const SmartPtr<RegisteredOptions>& roptions)

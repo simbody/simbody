@@ -12,7 +12,7 @@
 #include "IpNLPScaling.hpp"
 #include "IpNLP.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   /** This class does problem scaling by setting the
    *  scaling parameters based on the maximum of the
@@ -43,7 +43,7 @@ namespace Ipopt
   protected:
     /** Initialize the object from the options */
     bool InitializeImpl(const OptionsList& options,
-                        const std::string& prefix);
+                        const std::string& prefix) override;
 
     virtual void DetermineScalingParametersImpl(
       const SmartPtr<const VectorSpace> x_space,
@@ -55,7 +55,7 @@ namespace Ipopt
       Number& df,
       SmartPtr<Vector>& dx,
       SmartPtr<Vector>& dc,
-      SmartPtr<Vector>& dd);
+      SmartPtr<Vector>& dd) override;
 
   private:
 

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Portions copyright (c) 2015 Stanford University and the Authors.           *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -68,40 +68,28 @@ work correctly too. **/
 /** The default implementation of writeUnformatted\<T> converts the object to
 a String using the templatized String constructor, and then writes that
 string to the stream using String::operator<<(). This is suitable for use
-with any of the built-in types. Note that bool will be output "true" or
-"false" and non-finite floating point values are written as NaN, Inf,
-or -Inf as appropriate. **/
+with any of the built-in types. Bool will be output "true" or "false", floating
+point values will be written with enough digits to be read back unchanged,
+and non-finite floating point values are written as NaN, Inf, or -Inf as 
+appropriate (Matlab compatible). **/
 template <class T> inline void
 writeUnformatted(std::ostream& o, const T& v) {
     o << String(v);
 }
 
-/** Specialize for float to help some compilers with template matching. **/
-template <class T> inline void
-writeUnformatted(std::ostream& o, const float& v)  
-{   writeUnformatted<float>(o,v); }
-/** Specialize for double to help some compilers with template matching. **/
-template <class T> inline void
-writeUnformatted(std::ostream& o, const double& v) 
-{   writeUnformatted<double>(o,v); }
-/** Specialize for long double to help some compilers with template 
-matching. **/
-template <class T> inline void
-writeUnformatted(std::ostream& o, const long double& v) 
-{   writeUnformatted<long double>(o,v); }
-
-/** Specialize for SimTK::negator\<T>: convert to T and write. **/
+/** Partial specialization for SimTK::negator\<T>: convert to T and write. **/
 template <class T> inline void
 writeUnformatted(std::ostream& o, const negator<T>& v) 
 {   writeUnformatted(o, T(v)); }
 
-/** Specialize for std::complex\<T>: just write two T's separated by a space;
-no parentheses or comma. **/
+/** Partial specialization for std::complex\<T>: just write two T's separated by
+a space; no parentheses or comma. **/
 template <class T> inline void
 writeUnformatted(std::ostream& o, const std::complex<T>& v) 
 {   writeUnformatted(o, v.real()); o << " "; writeUnformatted(o, v.imag()); }
 
-/** Specialize for SimTK::conjugate\<T>: same as std::complex\<T>. **/
+/** Partial specialization for SimTK::conjugate\<T>: same as 
+std::complex\<T>. **/
 template <class T> inline void
 writeUnformatted(std::ostream& o, const conjugate<T>& v) 
 {   writeUnformatted(o, std::complex<T>(v)); }
@@ -192,20 +180,6 @@ readUnformatted(std::istream& in, T& v) {
     {   in.setstate(std::ios::failbit); return false; }
     return true;
 }
-
-/** Specialize for float to help some compilers with template matching. **/
-template <class T> inline bool
-readUnformatted(std::istream& in, float& v) 
-{   return readUnformatted<float>(in,v); }
-/** Specialize for double to help some compilers with template matching. **/
-template <class T> inline bool
-readUnformatted(std::istream& in, double& v) 
-{   return readUnformatted<double>(in,v); }
-/** Specialize for long double to help some compilers with template 
-matching. **/
-template <class T> inline bool
-readUnformatted(std::istream& in, long double& v) 
-{   return readUnformatted<long double>(in,v); }
 
 /** Specialization for negator<T>: read as type T and convert. **/
 template <class T> inline bool

@@ -21,7 +21,7 @@
 # endif
 #endif
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
 #ifdef IP_DEBUG
@@ -295,25 +295,25 @@ namespace Ipopt
       DBG_ASSERT(Dim() == dense_x->Dim());
       if (homogeneous_) {
         if (dense_x->homogeneous_) {
-          scalar_ = Ipopt::Max(scalar_, dense_x->scalar_);
+          scalar_ = SimTKIpopt::Max(scalar_, dense_x->scalar_);
         }
         else {
           homogeneous_ = false;
           Number* vals = values_allocated();
           for (Index i=0; i<Dim(); i++) {
-            vals[i] = Ipopt::Max(scalar_, values_x[i]);
+            vals[i] = SimTKIpopt::Max(scalar_, values_x[i]);
           }
         }
       }
       else {
         if (dense_x->homogeneous_) {
           for (Index i=0; i<Dim(); i++) {
-            values_[i] = Ipopt::Max(values_[i], dense_x->scalar_);
+            values_[i] = SimTKIpopt::Max(values_[i], dense_x->scalar_);
           }
         }
         else {
           for (Index i=0; i<Dim(); i++) {
-            values_[i] = Ipopt::Max(values_[i], values_x[i]);
+            values_[i] = SimTKIpopt::Max(values_[i], values_x[i]);
           }
         }
       }
@@ -331,25 +331,25 @@ namespace Ipopt
       DBG_ASSERT(Dim() == dense_x->Dim());
       if (homogeneous_) {
         if (dense_x->homogeneous_) {
-          scalar_ = Ipopt::Min(scalar_, dense_x->scalar_);
+          scalar_ = SimTKIpopt::Min(scalar_, dense_x->scalar_);
         }
         else {
           homogeneous_ = false;
           Number* vals = values_allocated();
           for (Index i=0; i<Dim(); i++) {
-            vals[i] = Ipopt::Min(scalar_, values_x[i]);
+            vals[i] = SimTKIpopt::Min(scalar_, values_x[i]);
           }
         }
       }
       else {
         if (dense_x->homogeneous_) {
           for (Index i=0; i<Dim(); i++) {
-            values_[i] = Ipopt::Min(values_[i], dense_x->scalar_);
+            values_[i] = SimTKIpopt::Min(values_[i], dense_x->scalar_);
           }
         }
         else {
           for (Index i=0; i<Dim(); i++) {
-            values_[i] = Ipopt::Min(values_[i], values_x[i]);
+            values_[i] = SimTKIpopt::Min(values_[i], values_x[i]);
           }
         }
       }
@@ -417,7 +417,7 @@ namespace Ipopt
     else {
       max = values_[0];
       for (Index i=1; i<Dim(); i++) {
-        max = Ipopt::Max(values_[i], max);
+        max = SimTKIpopt::Max(values_[i], max);
       }
     }
     return max;
@@ -436,7 +436,7 @@ namespace Ipopt
     else {
       min = values_[0];
       for (Index i=1; i<Dim(); i++) {
-        min = Ipopt::Min(values_[i], min);
+        min = SimTKIpopt::Min(values_[i], min);
       }
     }
     return min;
@@ -934,13 +934,13 @@ namespace Ipopt
     if (homogeneous_) {
       if (dense_delta->homogeneous_) {
         if (dense_delta->scalar_<0.) {
-          alpha = Ipopt::Min(alpha, -tau/dense_delta->scalar_ * scalar_);
+          alpha = SimTKIpopt::Min(alpha, -tau/dense_delta->scalar_ * scalar_);
         }
       }
       else {
         for (Index i=0; i<Dim(); i++) {
           if (values_delta[i]<0.) {
-            alpha = Ipopt::Min(alpha, -tau/values_delta[i] * scalar_);
+            alpha = SimTKIpopt::Min(alpha, -tau/values_delta[i] * scalar_);
           }
         }
       }
@@ -949,14 +949,14 @@ namespace Ipopt
       if (dense_delta->homogeneous_) {
         if (dense_delta->scalar_<0.) {
           for (Index i=0; i<Dim(); i++) {
-            alpha = Ipopt::Min(alpha, -tau/dense_delta->scalar_ * values_x[i]);
+            alpha = SimTKIpopt::Min(alpha, -tau/dense_delta->scalar_ * values_x[i]);
           }
         }
       }
       else {
         for (Index i=0; i<Dim(); i++) {
           if (values_delta[i]<0.) {
-            alpha = Ipopt::Min(alpha, -tau/values_delta[i] * values_x[i]);
+            alpha = SimTKIpopt::Min(alpha, -tau/values_delta[i] * values_x[i]);
           }
         }
       }

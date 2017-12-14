@@ -85,7 +85,7 @@ void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM,
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
-                          Vector& q) const 
+                          Vector& q) const override
 {
     if (this->getUseEulerAngles(sbs.getModelVars()))
         this->toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
@@ -97,7 +97,10 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
 // in F, which is what we use as translational generalized coordinates. Also, 
 // with a free joint we never have to change orientation coordinates in order 
 // to achieve a translation.
-void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
+void setQToFitTranslationImpl(const SBStateDigest& sbs,
+                              const Vec3& p_FM,
+                              Vector& q) const override
+{
     if (this->getUseEulerAngles(sbs.getModelVars()))
         this->toQVec3(q,3) = p_FM; // skip the 3 Euler angles
     else
@@ -108,15 +111,16 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector
 // M in F, expressed in F, which is exactly what the user provides here.
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, 
                                   const Vector& q, const Vec3& w_FM,
-                                  Vector& u) const
+                                  Vector& u) const override
 {
     this->toUVec3(u,0) = w_FM; // relative ang. vel. always used as generalized speeds
 }
 
 // Our 3 translational generalized speeds are the linear velocity of M's origin 
 // in F, expressed in F, which is just what the user gives us.
-void setUToFitLinearVelocityImpl
-   (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
+void setUToFitLinearVelocityImpl(const SBStateDigest& sbs,
+                                 const Vector& q, const Vec3& v_FM,
+                                 Vector& u) const override
 {
     this->toUVec3(u,3) = v_FM;
 }
@@ -129,7 +133,7 @@ enum {AnglePoolSize=7, QuatPoolSize=1};
 // cos x,y,z sin x,y,z 1/cos(y)
 enum {AngleCosQ=0, AngleSinQ=3, AngleOOCosQy=6};
 enum {QuatOONorm=0};
-int calcQPoolSize(const SBModelVars& mv) const
+int calcQPoolSize(const SBModelVars& mv) const override
 {   return this->getUseEulerAngles(mv) ? AnglePoolSize : QuatPoolSize; }
 
 // This is expensive in Euler angle mode due to the three sin/cos computations
@@ -138,7 +142,7 @@ int calcQPoolSize(const SBModelVars& mv) const
 void performQPrecalculations(const SBStateDigest& sbs,
                              const Real* q,      int nq,
                              Real*       qCache, int nQCache,
-                             Real*       qErr,   int nQErr) const
+                             Real*       qErr,   int nQErr) const override
 {
     if (this->getUseEulerAngles(sbs.getModelVars())) {
         assert(q && nq==6 && qCache && nQCache==AnglePoolSize && nQErr==0);
@@ -164,7 +168,7 @@ void performQPrecalculations(const SBStateDigest& sbs,
 void calcX_FM(const SBStateDigest& sbs,
               const Real* q,      int nq,
               const Real* qCache, int nQCache,
-              Transform&  X_F0M0) const
+              Transform&  X_F0M0) const override
 {
     if (this->getUseEulerAngles(sbs.getModelVars())) {
         assert(q && nq==6 && qCache && nQCache==AnglePoolSize);
@@ -189,7 +193,7 @@ void calcX_FM(const SBStateDigest& sbs,
 //   (2) the (linear) velocity of M's origin in F, expressed in F.
 void calcAcrossJointVelocityJacobian(
     const SBStateDigest& sbs,
-    HType&               H_FM) const
+    HType&               H_FM) const override
 {
     H_FM(0) = SpatialVec( Vec3(1,0,0),   Vec3(0)   );  // rotations
     H_FM(1) = SpatialVec( Vec3(0,1,0),   Vec3(0)   );
@@ -203,7 +207,7 @@ void calcAcrossJointVelocityJacobian(
 // Since the Jacobian above is constant in F, its derivative in F is 0.
 void calcAcrossJointVelocityJacobianDot(
     const SBStateDigest& sbs,
-    HType&               HDot_FM) const
+    HType&               HDot_FM) const override
 {
     HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
     HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );
@@ -220,8 +224,8 @@ void calcAcrossJointVelocityJacobianDot(
 // TODO: we're expecting that there are 7 qdots even in Euler angle mode
 // so we have to zero out the last one in that case.
 void calcQDot(const SBStateDigest& sbs, const Real* u, 
-                             Real* qdot) const {
-    assert(sbs.getStage() >= Stage::Position);
+                             Real* qdot) const override {
+    // We have to trust that the tree position cache is valid here.
     assert(u && qdot);
 
     const SBModelVars& mv = sbs.getModelVars();
@@ -261,7 +265,7 @@ void calcQDot(const SBStateDigest& sbs, const Real* u,
 // of a quaternion or Euler sequence representing R_FM, i.e. orientation 
 // of child in parent.
 void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight, 
-                 const Real* in, Real* out) const
+                 const Real* in, Real* out) const override
 {
     assert(sbs.getStage() >= Stage::Position);
     assert(in && out);
@@ -309,7 +313,7 @@ void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
 //   or    out_q = in_u * inv(N)
 // Cost: Euler angle mode ~ 10 flops, Quaternion mode ~ 27 flops.
 void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
-                    const Real* in, Real* out) const
+                    const Real* in, Real* out) const override
 {
     assert(sbs.getStage() >= Stage::Position);
     assert(in && out);
@@ -358,7 +362,7 @@ void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
 // qdotdot directly than to do it using N and NDot; see below.
 // Cost: Euler angle mode - 36 flops, Quaternion mode - 27 flops.
 void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight, 
-                    const Real* in, Real* out) const
+                    const Real* in, Real* out) const override
 {
     assert(sbs.getStage() > Stage::Velocity);
     assert(in && out);
@@ -412,7 +416,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 // a lot of time by using more specialized methods.
 // Cost: Euler angle mode - 22 flops, Quaternion mode - 41 flops.
 void calcQDotDot(const SBStateDigest& sbs, const Real* udot, 
-                                   Real* qdotdot) const {
+                                   Real* qdotdot) const override {
     assert(sbs.getStage() > Stage::Velocity);
     assert(udot && qdotdot);
 
@@ -450,15 +454,15 @@ void calcQDotDot(const SBStateDigest& sbs, const Real* udot,
     }
 }
 
-int  getMaxNQ()                   const {return 7;}
-int  getNQInUse(const SBModelVars& mv) const {return this->getUseEulerAngles(mv) ? 6 : 7;} 
-bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
+int  getMaxNQ()                   const override {return 7;}
+int  getNQInUse(const SBModelVars& mv) const override {return this->getUseEulerAngles(mv) ? 6 : 7;} 
+bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const override {
     if (this->getUseEulerAngles(sbs.getModelVars())) {startOfQuaternion.invalidate(); return false;}
     startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
     return true;
 }
 
-void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
+void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const override
 {
     if (this->getUseEulerAngles(mv)) {
         this->toQVec3(q,4) = Vec3(0); // TODO: kludge, clear unused element
@@ -472,7 +476,7 @@ void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const
 bool enforceQuaternionConstraints(
     const SBStateDigest& sbs, 
     Vector&             q,
-    Vector&             qErrest) const
+    Vector&             qErrest) const override
 {
     if (this->getUseEulerAngles(sbs.getModelVars())) 
         return false; // no change
@@ -488,13 +492,15 @@ bool enforceQuaternionConstraints(
     return true;
 }
 
-void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const override
+{
     this->toQVec3(outputQ, 4) = Vec3(0); // clear unused element
     this->toQVec3(outputQ, 3) = this->fromQVec3(inputQ, 4);
     this->toQVec3(outputQ, 0) = Rotation(Quaternion(this->fromQuat(inputQ))).convertRotationToBodyFixedXYZ();
 }
 
-void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const override
+{
     this->toQVec3(outputQ, 4) = this->fromQVec3(inputQ, 3);
     Rotation rot;
     rot.setRotationToBodyFixedXYZ(this->fromQVec3(inputQ, 0));

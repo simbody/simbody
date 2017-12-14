@@ -295,7 +295,7 @@ gmx_atomic_fetch_add(gmx_atomic_t *     a,
  *           it returns the updated value in memory so you can repeat your
  *           operations on it. 
  *
- *   \note   The exchange occured if the return value is identical to \a old.
+ *   \note   The exchange occurred if the return value is identical to \a old.
  */
 static inline int
 gmx_atomic_cmpxchg(gmx_atomic_t *    a, 
@@ -470,7 +470,7 @@ gmx_atomic_add_return(gmx_atomic_t *    a,
     __asm__ __volatile__("1:     lwarx   %0,0,%2\n"
                          "\tadd     %0,%1,%0\n"
                          "\tstwcx.  %0,0,%2 \n"
-                         "\tbne-    1b"
+                         "\tbne-    1b\n"
                          "\tisync\n"
                          : "=&r" (t)
                          : "r" (i), "r" (&a->value)
@@ -1274,7 +1274,7 @@ gmx_atomic_cmpxchg(gmx_atomic_t *    a,
     }
     else
     {
-        /* replacement suceeded */
+        /* replacement succeeded */
         t = oldval;
     }
     return t;        

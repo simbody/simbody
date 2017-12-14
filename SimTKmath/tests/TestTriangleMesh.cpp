@@ -178,7 +178,7 @@ void validateOBBTree(const ContactGeometry::TriangleMesh& mesh, ContactGeometry:
 }
 
 void testOBBTree() {
-    // Create a mesh consisting of a bunch of octohedra.
+    // Create a mesh consisting of a bunch of octahedra.
     
     vector<Vec3> vertices;
     vector<int> faceIndices;
@@ -280,7 +280,7 @@ void testFindNearestPoint() {
 void testBoundingSphere() {
     Random::Uniform random(0, 10);
     for (int i = 0; i < 100; i++) {
-        // Create a mesh consisting of a random number of octohedra at random places.
+        // Create a mesh consisting of a random number of octahedra at random places.
         
         vector<Vec3> vertices;
         vector<int> faceIndices;

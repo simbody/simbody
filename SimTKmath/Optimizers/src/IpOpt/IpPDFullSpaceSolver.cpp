@@ -9,7 +9,7 @@
 #include "IpPDFullSpaceSolver.hpp"
 #include "IpDebug.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
 #ifdef IP_DEBUG

@@ -119,7 +119,7 @@ public:
         const Transform& transform1,
         ContactSurfaceIndex index2, const ContactGeometry& object2, 
         const Transform& transform2, 
-        Array_<Contact>& contacts) const;
+        Array_<Contact>& contacts) const override;
 };
 
 /**
@@ -135,7 +135,7 @@ public:
         const Transform& transform1,
         ContactSurfaceIndex index2, const ContactGeometry& object2,
         const Transform& transform2,
-        Array_<Contact>& contacts) const;
+        Array_<Contact>& contacts) const override;
 };
 
 /**
@@ -150,7 +150,7 @@ public:
         const Transform& transform1,
         ContactSurfaceIndex index2, const ContactGeometry& object2, 
         const Transform& transform2, 
-        Array_<Contact>& contacts) const;
+        Array_<Contact>& contacts) const override;
 };
 
 /**
@@ -166,7 +166,7 @@ public:
         const Transform& transform1,
         ContactSurfaceIndex index2, const ContactGeometry& object2, 
         const Transform& transform2, 
-        Array_<Contact>& contacts) const;
+        Array_<Contact>& contacts) const override;
 private:
     void processBox(const ContactGeometry::TriangleMesh& mesh, 
                     const ContactGeometry::TriangleMesh::OBBTreeNode& node,
@@ -189,7 +189,7 @@ public:
         const Transform& transform1,
         ContactSurfaceIndex index2, const ContactGeometry& object2, 
         const Transform& transform2, 
-        Array_<Contact>& contacts) const;
+        Array_<Contact>& contacts) const override;
 private:
     void processBox(const Vec3& center, Real radius2, 
                     const ContactGeometry::TriangleMesh& mesh, 
@@ -210,7 +210,7 @@ public:
         const Transform& transform1,
         ContactSurfaceIndex index2, const ContactGeometry& object2, 
         const Transform& transform2, 
-        Array_<Contact>& contacts) const;
+        Array_<Contact>& contacts) const override;
 private:
     void processNodes(const ContactGeometry::TriangleMesh& mesh1, 
                       const ContactGeometry::TriangleMesh& mesh2,
@@ -244,7 +244,7 @@ public:
         const Transform& transform1,
         ContactSurfaceIndex index2, const ContactGeometry& object2,
         const Transform& transform2,
-        Array_<Contact>& contacts) const;
+        Array_<Contact>& contacts) const override;
 private:
     static Vec3 computeSupport(const ContactGeometry& object1, 
                                const ContactGeometry& object2,

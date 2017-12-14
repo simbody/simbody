@@ -14,7 +14,7 @@
 #include <vector>
 #include <algorithm>
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   /** Forward declarations */
   class Subject;
@@ -24,10 +24,10 @@ namespace Ipopt
    *  Observer Design Pattern. An Observer "Attach"es
    *  to a Subject, indicating that it would like to
    *  be notified of changes in the Subject.
-   *  Any derived class wishing to recieve notifications
+   *  Any derived class wishing to receive notifications
    *  from a Subject should inherit off of 
    *  Observer and overload the protected method,
-   *  RecieveNotification_(...).
+   *  ReceiveNotification_(...).
    */
   class Observer
   {
@@ -70,10 +70,10 @@ namespace Ipopt
     void RequestDetach(NotifyType notify_type, const Subject* subject);
 
     /** Derived classes should overload this method to
-     * recieve the requested notification from 
+     * receive the requested notification from 
      * attached Subjects
      */
-    virtual void RecieveNotification(NotifyType notify_type, const Subject* subject)=0;
+    virtual void ReceiveNotification(NotifyType notify_type, const Subject* subject)=0;
 
   private:
     /**@name Default Compiler Generated Methods
@@ -98,7 +98,7 @@ namespace Ipopt
     /** Private Method for Recieving Notification
      *  should only be called by the friend class
      *  Subject. This method will, in turn, call
-     *  the overloaded RecieveNotification method
+     *  the overloaded ReceiveNotification method
      *  for the derived class to process.
      */
     void ProcessNotification(NotifyType notify_type, const Subject* subject);
@@ -136,7 +136,7 @@ namespace Ipopt
     /**@name Methods to Add and Remove Observers.
      *  Currently, the notify_type flags are not used,
      *  and Observers are attached in general and will
-     *  recieve all notifications (of the type requested
+     *  receive all notifications (of the type requested
      *  and possibly of types not requested). It is 
      *  up to the observer to ignore the types they
      *  are not interested in. The NotifyType in the
@@ -150,7 +150,7 @@ namespace Ipopt
     void AttachObserver(Observer::NotifyType notify_type, Observer* observer) const;
 
     /** Detach the specified observer
-     *  (i.e., no longer recieve notifications). */
+     *  (i.e., no longer receive notifications). */
     void DetachObserver(Observer::NotifyType notify_type, Observer* observer) const;
     //@}
 
@@ -271,7 +271,7 @@ namespace Ipopt
       DBG_ASSERT(attached_subject != subjects_.end());
 #endif
 
-      this->RecieveNotification(notify_type, subject);
+      this->ReceiveNotification(notify_type, subject);
 
       if (notify_type == NT_BeingDestroyed) {
         // the subject is going away, remove it from our list

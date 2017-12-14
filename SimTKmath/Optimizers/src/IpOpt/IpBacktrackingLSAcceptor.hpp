@@ -13,7 +13,7 @@
 
 #include "IpAlgStrategy.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Base class for backtracking line search acceptors.
@@ -98,7 +98,7 @@ namespace Ipopt
     /** Method for ending the current line search.  When it is called,
      *  the internal data should be updates, e.g., the filter might be
      *  augmented.  alpha_primal_test is the value of alpha that has
-     *  been used for in the acceptence test ealier.  Return value is
+     *  been used for in the acceptance test earlier.  Return value is
      *  a character for the info_alpha_primal_char field in IpData. */
     virtual char UpdateForNextIteration(Number alpha_primal_test)=0;
 

@@ -1,6 +1,6 @@
 # Adhoc tests are those test or demo programs which are not intended,
 # or not ready, to be part of the regression suite.
-ADD_SUBDIRECTORY(adhoc)
+add_subdirectory(adhoc)
 
 # Generate regression tests.
 #
@@ -21,36 +21,63 @@ ADD_SUBDIRECTORY(adhoc)
 # whether to build dynamically linked, statically linked, or both
 # versions of the executable.
 
-FILE(GLOB REGR_TESTS "*.cpp")
-FOREACH(TEST_PROG ${REGR_TESTS})
-    GET_FILENAME_COMPONENT(TEST_ROOT ${TEST_PROG} NAME_WE)
+file(GLOB ALL_REGR_TESTS "*.cpp")
+set(REGR_TESTS ${ALL_REGR_TESTS})
+# TestAutodiffADOLCCommon was designed to test the ADOL-C libraries only
+# and is therefore excluded from the tests of the shared and static libraries.
+# file(GLOB ADOLC_SPECIFIC_TESTS "*TestAutodiffADOLCCommon*")
+# list(REMOVE_ITEM REGR_TESTS ${ADOLC_SPECIFIC_TESTS})
 
-    IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
+foreach(TEST_PROG ${REGR_TESTS})
+    get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)
+
+    if(BUILD_TESTS_AND_EXAMPLES_SHARED)
         # Link with shared library
-        ADD_EXECUTABLE(${TEST_ROOT} ${TEST_PROG})
-        SET_TARGET_PROPERTIES(${TEST_ROOT}
+        add_executable(${TEST_ROOT} ${TEST_PROG})
+        set_target_properties(${TEST_ROOT}
         PROPERTIES
           PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
-        TARGET_LINK_LIBRARIES(${TEST_ROOT} 
+        target_link_libraries(${TEST_ROOT} 
                     ${TEST_SHARED_TARGET})
-        ADD_TEST(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
-    ENDIF (BUILD_TESTS_AND_EXAMPLES_SHARED)
+        add_test(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
+    endif(BUILD_TESTS_AND_EXAMPLES_SHARED)
 
-    IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
+    if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
         # Link with static library
-        SET(TEST_STATIC ${TEST_ROOT}Static)
-        ADD_EXECUTABLE(${TEST_STATIC} ${TEST_PROG})
-        SET_TARGET_PROPERTIES(${TEST_STATIC}
+        set(TEST_STATIC ${TEST_ROOT}Static)
+        add_executable(${TEST_STATIC} ${TEST_PROG})
+        set_target_properties(${TEST_STATIC}
         PROPERTIES
         COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
         PROJECT_LABEL "Test_Regr - ${TEST_STATIC}")
-        TARGET_LINK_LIBRARIES(${TEST_STATIC}
+        target_link_libraries(${TEST_STATIC}
                     ${TEST_STATIC_TARGET})
-        ADD_TEST(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
-    ENDIF()
+        add_test(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
+    endif()
 
-ENDFOREACH(TEST_PROG ${REGR_TESTS})
+endforeach(TEST_PROG ${REGR_TESTS})
 
+if(BUILD_ADOLC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_SHARED)
+    set(ADOLC_REGR_TESTS ${ALL_REGR_TESTS})
+    # The use of xml is not yet supported with the ADOL-C libraries and
+    # TestXml is therefore excluded from the tests of the ADOL-C libraries.            
+    file(GLOB ADOLC_TESTS_TO_EXCLUDE "*TestXml*")
+    list(REMOVE_ITEM ADOLC_REGR_TESTS ${ADOLC_TESTS_TO_EXCLUDE})
+    
+    foreach(TEST_PROG ${ADOLC_REGR_TESTS})
+        get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)        
+        # Link with adolc library
+        set(TEST_ADOLC ${TEST_ROOT}ADOLC)
+        add_executable(${TEST_ADOLC} ${TEST_PROG})
+        set_target_properties(${TEST_ADOLC}
+        PROPERTIES
+        PROJECT_LABEL "Test_Regr - ${TEST_ADOLC}")
+        target_link_libraries(${TEST_ADOLC}
+                ${TEST_ADOLC_TARGET})
+        add_test(${TEST_ADOLC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ADOLC})        
+    endforeach()
+    
+endif()
 
 
 

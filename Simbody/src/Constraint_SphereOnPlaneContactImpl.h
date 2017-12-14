@@ -53,9 +53,12 @@ public:
 struct Parameters {
     Parameters(const Transform& X_FP, const Vec3& p_BO, Real radius)
     :   m_X_FP(X_FP), m_p_BO(p_BO), m_radius(radius) {}
-    Transform   m_X_FP;     // plane frame
-    Vec3        m_p_BO;     // sphere center
-    Real        m_radius;   // sphere radius
+
+    Parameters() = default; // For use during deserialization
+
+    Transform   m_X_FP;         // plane frame
+    Vec3        m_p_BO{NaN};    // sphere center
+    Real        m_radius{NaN};  // sphere radius
 };
 
 explicit SphereOnPlaneContactImpl(bool enforceRolling)

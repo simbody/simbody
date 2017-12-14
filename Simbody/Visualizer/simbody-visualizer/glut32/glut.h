@@ -9,6 +9,7 @@
 
 #if defined(_WIN32)
 #if defined(_MSC_VER)
+    #pragma warning(push)
     #pragma warning(disable:4996)/*"unsafe" strcpy(), etc.*/
 #endif
 
@@ -79,7 +80,7 @@ typedef unsigned short wchar_t;
 #  endif
 # endif
 
-/* To disable supression of annoying warnings about floats being promoted
+/* To disable suppression of annoying warnings about floats being promoted
    to doubles, define GLUT_NO_WARNING_DISABLE in your compile preprocessor
    options. */
 # ifndef GLUT_NO_WARNING_DISABLE
@@ -725,6 +726,12 @@ GLUTAPI int APIENTRY glutGameModeGet(GLenum mode);
 #ifdef GLUT_DEFINED__CRTIMP
 # undef GLUT_DEFINED__CRTIMP
 # undef _CRTIMP
+#endif
+
+#if defined(_WIN32)
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
 #endif
 
 #endif                  /* __glut_h__ */

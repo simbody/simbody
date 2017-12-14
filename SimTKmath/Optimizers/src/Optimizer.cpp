@@ -96,7 +96,7 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
     OptimizerRep* newRep = 0;
 
     // if constructor specifies which algorithm, use it else select based on
-    // problem paramters 
+    // problem parameters 
     if ( algorithm == InteriorPoint ) {
         newRep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
     } else if( algorithm == LBFGSB ) {
@@ -188,6 +188,10 @@ bool Optimizer::setAdvancedIntOption( const char *option, const int value ) {
 
 bool Optimizer::setAdvancedBoolOption( const char *option, const bool value ) {
     return updRep().setAdvancedBoolOption( option, value);
+}
+
+bool Optimizer::setAdvancedVectorOption( const char *option, const Vector value ) {
+    return updRep().setAdvancedVectorOption( option, value);
 }
 
 Real Optimizer::optimize(SimTK::Vector   &results) {

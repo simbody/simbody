@@ -25,23 +25,34 @@
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include <pthread.h>
 
+#include <iostream>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
 namespace SimTK {
 
 static void* threadBody(void* args);
 
+ParallelExecutorImpl::ParallelExecutorImpl() : finished(false) {
+
+    //By default, we use the total number of processors available of the
+    //computer (including hyperthreads)
+    numMaxThreads = ParallelExecutor::getNumProcessors();
+    if(numMaxThreads <= 0)
+      numMaxThreads = 1;
+
+    ParallelExecutorImpl::init();
+}
 ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
 
-    // Construct all the threading related objects we will need.
-    
-    SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl", "ParallelExecutorImpl", "Number of threads must be positive.");
-    threads.resize(numThreads);
-    pthread_mutex_init(&runLock, NULL);
-    pthread_cond_init(&runCondition, NULL);
-    pthread_cond_init(&waitCondition, NULL);
-    for (int i = 0; i < numThreads; ++i) {
-        threadInfo.push_back(new ThreadInfo(i, this));
-        pthread_create(&threads[i], NULL, threadBody, threadInfo[i]);
-    }
+    // Set the maximum number of threads that we can use
+    SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl",
+                 "ParallelExecutorImpl", "Number of threads must be positive.");
+    numMaxThreads = numThreads;
+
+    ParallelExecutorImpl::init();
 }
 ParallelExecutorImpl::~ParallelExecutorImpl() {
     
@@ -66,36 +77,51 @@ ParallelExecutorImpl::~ParallelExecutorImpl() {
     pthread_cond_destroy(&waitCondition);
 }
 ParallelExecutorImpl* ParallelExecutorImpl::clone() const {
-    return new ParallelExecutorImpl(threads.size());
+    return new ParallelExecutorImpl(numMaxThreads);
+}
+void ParallelExecutorImpl::init()
+{
+  pthread_mutex_init(&runLock, NULL);
+  pthread_cond_init(&runCondition, NULL);
+  pthread_cond_init(&waitCondition, NULL);
 }
 void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
-    if (times == 1 || threads.size() == 1) {
-        // Nothing is actually going to get done in parallel, so we might as well
-        // just execute the task directly and save the threading overhead.
-        
-        task.initialize();
-        for (int i = 0; i < times; ++i)
-            task.execute(i);
-        task.finish();
-        return;
+  if (min(times, numMaxThreads) == 1) {
+      //(1) NON-PARALLEL CASE:
+      // Nothing is actually going to get done in parallel, so we might as well
+      // just execute the task directly and save the threading overhead.
+      task.initialize();
+      for (int i = 0; i < times; ++i)
+          task.execute(i);
+      task.finish();
+      return;
     }
     
-    // Initialize fields to execute the new task.
-    
-    pthread_mutex_lock(&runLock);
-    currentTask = &task;
-    currentTaskCount = times;
-    waitingThreadCount = 0;
-    for (int i = 0; i < (int) threadInfo.size(); ++i)
-        threadInfo[i]->running = true;
+    //(2) PARALLEL CASE:
+    // We launch the maximum number of threads and save them for later use
+    if(threads.size() < (size_t)numMaxThreads)
+    {
+      threads.resize(numMaxThreads);
+      for (int i = 0; i < numMaxThreads; ++i) {
+          threadInfo.push_back(new ThreadInfo(i, this));
+          pthread_create(&threads[i], NULL, threadBody, threadInfo[i]);
+      }
+    }
 
-    // Wake up the worker threads and wait until they finish.
-    
-    pthread_cond_broadcast(&runCondition);
-    do {
-        pthread_cond_wait(&waitCondition, &runLock);
-    } while (waitingThreadCount < (int) threads.size());
-    pthread_mutex_unlock(&runLock);
+  // Initialize fields to execute the new task.
+  pthread_mutex_lock(&runLock);
+  currentTask = &task;
+  currentTaskCount = times;
+  waitingThreadCount = 0;
+  for (int i = 0; i < (int) threadInfo.size(); ++i)
+      threadInfo[i]->running = true;
+
+  // Wake up the worker threads and wait until they finish.
+  pthread_cond_broadcast(&runCondition);
+  do {
+      pthread_cond_wait(&waitCondition, &runLock);
+  } while (waitingThreadCount < (int) threads.size());
+  pthread_mutex_unlock(&runLock);
 }
 void ParallelExecutorImpl::incrementWaitingThreads() {
     pthread_mutex_lock(&runLock);
@@ -135,6 +161,7 @@ void* threadBody(void* args) {
             ParallelExecutor::Task& task = executor.getCurrentTask();
             task.initialize();
             int index = info.index;
+                        
             try {
                 while (index < count) {
                     task.execute(index);
@@ -156,7 +183,14 @@ void* threadBody(void* args) {
     return 0;
 }
 
+ParallelExecutor::ParallelExecutor() : HandleBase(new ParallelExecutorImpl()) {
+}
+
 ParallelExecutor::ParallelExecutor(int numThreads) : HandleBase(new ParallelExecutorImpl(numThreads)) {
+}
+
+ParallelExecutor* ParallelExecutor::clone() const{
+    return new ParallelExecutor(getMaxThreads());
 }
 
 void ParallelExecutor::execute(Task& task, int times) {
@@ -215,6 +249,9 @@ int ParallelExecutor::getNumProcessors() {
 
 bool ParallelExecutor::isWorkerThread() {
     return ParallelExecutorImpl::isWorker.get();
+}
+int ParallelExecutor::getMaxThreads() const{
+    return getImpl().getMaxThreads();
 }
 
 } // namespace SimTK

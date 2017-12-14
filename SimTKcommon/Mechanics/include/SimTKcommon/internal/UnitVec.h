@@ -54,7 +54,6 @@ typedef UnitVec<double,1>   dUnitVec3;
 //-----------------------------------------------------------------------------
 template <class P, int S>
 class UnitVec : public Vec<3,P,S> {
-    typedef P   RealP;
 public:
     typedef Vec<3,P,S>      BaseVec;
     typedef UnitRow<P,S>    TransposeType;
@@ -83,7 +82,7 @@ public:
     /// Create a unit vector in the direction of the vector (x,y,z) whose measure
     /// numbers are supplied -- this requires an expensive normalization since
     /// we don't know that the supplied vector is normalized.
-    UnitVec(const RealP& x, const RealP& y, const RealP& z) : BaseVec(x,y,z)  
+    UnitVec(const P& x, const P& y, const P& z) : BaseVec(x,y,z)  
     {   static_cast<BaseVec&>(*this) /= BaseVec::norm(); }
 
     /// Implicit conversion from a coordinate axis XAxis, YAxis, or ZAxis to
@@ -95,7 +94,7 @@ public:
     /// UnitVec3.\ The axis direction is given by one of XAxis, YAxis, ZAxis 
     /// or NegXAxis, NegYAxis, NegZAxis.\ Does not require any computation.
     UnitVec(const CoordinateDirection& dir) : BaseVec(0) 
-    {   BaseVec::operator[](dir.getAxis()) = RealP(dir.getDirection()); }
+    {   BaseVec::operator[](dir.getAxis()) = P(dir.getDirection()); }
 
     /// Construct a unit axis vector 100 010 001 given 0,1, or 2; this is not
     /// an implicit conversion.
@@ -140,11 +139,11 @@ public:
     /// Return one element of this unit vector as a const reference; there is no 
     /// corresponding writable index function since changing a single element of
     /// a unit vector would violate the contract that it has unit length at all times.
-    const RealP&  operator[](int i) const  { return BaseVec::operator[](i); }
+    const P&  operator[](int i) const  { return BaseVec::operator[](i); }
     /// Return one element of this unit vector as a const reference; there is no 
     /// corresponding writable index function since changing a single element of
     /// a unit vector would violate the contract that it has unit length at all times.
-    const RealP&  operator()(int i) const  { return BaseVec::operator()(i); }
+    const P&  operator()(int i) const  { return BaseVec::operator()(i); }
 
     /// Return a new unit vector whose measure numbers are the absolute values
     /// of the ones here. This will still have unit length but will be
@@ -166,14 +165,14 @@ public:
     /// give us an already-normalized vector which we simply accept as
     /// normalized without checking (this version accepts an input
     /// vector of any stride).
-    template <int S2> UnitVec(const Vec<3,RealP,S2>& v, bool) : BaseVec(v) { }
+    template <int S2> UnitVec(const Vec<3,P,S2>& v, bool) : BaseVec(v) { }
 
     /// (Advanced) Reinterpret a given memory location as a %UnitVec like
     /// this one, without checking -- don't use this if you aren't absolutely 
     /// certain that the memory location actually \e does contain a unit vector, 
     /// with the correct stride! This overrides the base Vec class method of the
     /// same name.
-    static const UnitVec& getAs(const RealP* p)  
+    static const UnitVec& getAs(const P* p)  
     {   return *reinterpret_cast<const UnitVec*>(p); }
 };
 
@@ -210,7 +209,6 @@ operator!=(const UnitVec<P,S1>& u1, const UnitVec<P,S2>& u2)
 //-----------------------------------------------------------------------------
 template <class P, int S>
 class UnitRow : public Row<3,P,S> {
-    typedef P   RealP;
 public:
     typedef Row<3,P,S>      BaseRow;
     typedef UnitVec<P,S>    TransposeType;
@@ -245,7 +243,7 @@ public:
 
     /// Create a unit row from explicitly specified measure numbers (x,y,z); 
     /// requires expensive normalization.
-    UnitRow(const RealP& x, const RealP& y, const RealP& z)
+    UnitRow(const P& x, const P& y, const P& z)
     :   BaseRow(x,y,z)
     {   static_cast<BaseRow&>(*this) /= BaseRow::norm(); }
 
@@ -280,11 +278,11 @@ public:
     /// Return one element of this unit row as a const reference; there is no 
     /// corresponding writable index function since changing a single element of
     /// a unit vector would violate the contract that it has unit length at all times.
-    const RealP&  operator[](int i) const  { return BaseRow::operator[](i); }
+    const P&  operator[](int i) const  { return BaseRow::operator[](i); }
     /// Return one element of this unit row as a const reference; there is no 
     /// corresponding writable index function since changing a single element of
     /// a unit vector would violate the contract that it has unit length at all times.
-    const RealP&  operator()(int i) const  { return BaseRow::operator()(i); }
+    const P&  operator()(int i) const  { return BaseRow::operator()(i); }
 
     /// Return a new UnitRow whose measure numbers are the absolute values
     /// of the ones here. This will still have unit length but will be
@@ -313,7 +311,7 @@ public:
     /// certain that the memory location actually \e does contain a unit vector,
     /// with the correct stride! This overrides the base Row class method of the
     /// same name.
-    static const UnitRow& getAs(const RealP* p)  
+    static const UnitRow& getAs(const P* p)  
     {   return *reinterpret_cast<const UnitRow*>(p); }
 };
 

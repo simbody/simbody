@@ -319,9 +319,9 @@ void clear();
 // Each of these will return true to the Visualizer's listener thread, meaning 
 // that the input will be absorbed and subsequent listeners (if any) will not 
 // be called.
-virtual bool keyPressed(unsigned key, unsigned modifiers);
-virtual bool menuSelected(int menu, int item);
-virtual bool sliderMoved(int slider, Real value);
+virtual bool keyPressed(unsigned key, unsigned modifiers) override;
+virtual bool menuSelected(int menu, int item) override;
+virtual bool sliderMoved(int slider, Real value) override;
 
 class Impl;
 const Impl& getImpl() const {assert(m_impl); return *m_impl;}

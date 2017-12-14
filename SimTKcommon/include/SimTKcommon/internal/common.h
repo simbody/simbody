@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Chris Dembia                                                 *
  *                                                                            *
@@ -168,17 +168,39 @@ or any other Index type to an argument expecting a certain Index type. **/
     #pragma warning(disable:4251) /*no DLL interface for type of member of exported class*/
     #pragma warning(disable:4275) /*no DLL interface for base class of exported class*/
     #pragma warning(disable:4345) /*warning about PODs being default-initialized*/
+
+
+    /* Until VS2015 struct timespec was missing from <ctime> so is faked here 
+    if needed. However, note that it is also defined in the pthread.h header on 
+    Windows, so the guard symbol must match here to avoid a duplicate declaration. 
+    TODO: there is a potential problem here since VS2015's struct timespec 
+    doesn't appear to match pthread's definition. */
+    #ifndef HAVE_STRUCT_TIMESPEC
+    #define HAVE_STRUCT_TIMESPEC 1
+        #if _MSC_VER < 1900
+        struct timespec {
+            long tv_sec; /*TODO: should be time_t but must fix in pthreads too*/
+            long tv_nsec;
+        };
+        #endif
+    #endif /* HAVE_STRUCT_TIMESPEC */
     #endif
     #if defined(SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
+        #ifdef _MSC_VER
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllexport)
         /* Keep MS VC++ quiet when it tries to instantiate incomplete template classes in a DLL. */
-        #ifdef _MSC_VER
         #pragma warning(disable:4661)
+        #else
+        #define SimTK_SimTKCOMMON_EXPORT
         #endif
     #elif defined(SimTK_SimTKCOMMON_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
         #define SimTK_SimTKCOMMON_EXPORT
     #else
+        #ifdef _MSC_VER
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllimport) /*i.e., a client of a shared library*/
+        #else
+        #define SimTK_SimTKCOMMON_EXPORT
+        #endif
     #endif
     /* VC++ tries to be secure by leaving bounds checking on for STL containers
      * even in Release mode. This macro exists to disable that feature and can
@@ -244,11 +266,34 @@ cache misses which ultimately reduce performance. */
 #ifdef _MSC_VER
     #define SimTK_FORCE_INLINE __forceinline
 #else
-    #define SimTK_FORCE_INLINE __attribute__((always_inline))
+    #define SimTK_FORCE_INLINE __attribute__((always_inline)) inline
+#endif
+
+/* Microsoft added noexcept in VS2015 */
+#if defined(_MSC_VER) && _MSC_VER < 1900
+    #define NOEXCEPT_11 throw()
+#else
+    #define NOEXCEPT_11 noexcept
+#endif
+
+/* C++14 introduces a standard way to mark deprecated declarations. Before
+that we can use non-standard compiler hacks. */
+#ifndef SWIG
+    #if __cplusplus >= 201402L
+        /* C++14 */
+        #define DEPRECATED_14(MSG) [[deprecated(MSG)]]
+    #elif _MSC_VER
+        /* VC++ just says warning C4996 so add "DEPRECATED" to the message. */
+        #define DEPRECATED_14(MSG) __declspec(deprecated("DEPRECATED: " MSG))
+    #else /* gcc or clang */
+        #define DEPRECATED_14(MSG) __attribute__((deprecated(MSG)))
+    #endif
+#else /* Swigging */
+    #define DEPRECATED_14(MSG)
 #endif
 
 /* These macros are deprecated, leftover from before C++11 was available. 
-Don't use them. */
+Don't use them. Sorry, can't use the DEPRECATED_14 macro here! */
 #define OVERRIDE_11 override
 #define FINAL_11 final
 
@@ -354,7 +399,7 @@ static const int InvalidIndex = -1111111111;
  * the value -1 if that is produced by a subtraction operation acting on a 
  * previously-valid Index, since that can occur during loops which are 
  * processed from the end towards the beginning. -1 is then allowed in 
- * comparision operators but not in any other operations, including further 
+ * comparison operators but not in any other operations, including further 
  * decrementing.
  *
  * No namespace is assumed for the newly-defined type; if you want the 
@@ -408,7 +453,8 @@ public:                                     \
     operator int() const {return ix;}               \
     bool isValid() const {return ix>=0;}            \
     bool isValidExtended() const {return ix>=-1;}   \
-    void invalidate(){ix=SimTK::InvalidIndex;}      \
+    void invalidate(){clear();}                     \
+    void clear(){ix=SimTK::InvalidIndex;}           \
     \
     bool operator==(int  i) const {assert(isValidExtended() && isValidExtended(i)); return ix==i;}    \
     bool operator==(short s) const{assert(isValidExtended() && isValidExtended(s)); return ix==(int)s;}  \
@@ -586,6 +632,35 @@ struct Segment {
     int offset;
 };  
 
+// These next four methods supply the missing relational operators for any
+// types L and R where L==R and L<R have been defined. This is like the
+// operators in the std::rel_ops namespace, except that those require both
+// types to be the same.
+
+template<class L, class R> inline
+bool operator!=(const L& left, const R& right)
+{   // test for inequality, in terms of equality
+    return !(left == right);
+}
+
+template<class L, class R> inline
+bool operator>(const L& left, const R& right)
+{   // test if left > right, in terms of operator<
+    return right < left;
+}
+
+template<class L, class R> inline
+bool operator<=(const L& left, const R& right)
+{   // test if left <= right, in terms of operator<
+    return !(right < left);
+}
+
+template<class L, class R> inline
+bool operator>=(const L& left, const R& right)
+{   // test if left >= right, in terms of operator<
+    return !(left < right);
+}
+
 
 /** This is a special type used for causing invocation of a particular
 constructor or method overload that will avoid making a copy of the source
@@ -713,27 +788,94 @@ template<> struct Is64BitHelper<false>
 platform, meaning that the size of a pointer is the same as the size of a 
 long long; otherwise it will be FalseType and we have a 32-bit platform meaning
 that the size of a pointer is the same as an int. **/
-static const bool Is64BitPlatform = sizeof(size_t) > sizeof(int);
+// We use a constexpr function to avoid a bug in SWIG.
+constexpr bool detect64BitPlatform() { return (sizeof(size_t) > sizeof(int)); }
+static const bool Is64BitPlatform = detect64BitPlatform();
 typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 
 
 /** Attempt to demangle a type name as returned by typeid.name(), with the
 result hopefully suitable for meaningful display to a human. Behavior is 
-compiler-dependent. **/
-SimTK_SimTKCOMMON_EXPORT std::string demangle(const char* name);
+compiler-dependent. 
+@relates SimTK::NiceTypeName **/
+SimTK_SimTKCOMMON_EXPORT 
+std::string demangle(const char* name);
 
-/** In case you don't like the name you get from typeid(), you can specialize
-this class to provide a nicer name. This class is typically used for error 
-messages and testing. **/
+/** Given a compiler-dependent demangled type name string as returned by 
+SimTK::demangle(), attempt to form a canonicalized representation that will be
+the same for any compiler. Unnecessary spaces and superfluous keywords like
+"class" and "struct" are removed. The `namestr()` method of NiceTypeName\<T>
+uses this function to produce a human-friendly type name that is the same on any
+platform. The input argument is left empty. 
+@relates SimTK::NiceTypeName **/
+SimTK_SimTKCOMMON_EXPORT 
+std::string canonicalizeTypeName(std::string&& demangledTypeName);
+
+/** Same, but takes an lvalue reference so has to copy the input. 
+@relates SimTK::NiceTypeName **/
+inline std::string canonicalizeTypeName(const std::string& demangledTypeName)
+{   return canonicalizeTypeName(std::string(demangledTypeName)); }
+
+/** Given a canonicalized type name, produce a modified version that is 
+better-suited to use as an XML attribute. This means replacing the angle
+brackets with curly braces to avoid trouble. The input argument is left
+empty. 
+@relates SimTK::NiceTypeName **/
+SimTK_SimTKCOMMON_EXPORT
+std::string encodeTypeNameForXML(std::string&& canonicalizedTypeName);
+
+/** Same, but takes an lvalue reference so has to copy the input. 
+@relates SimTK::NiceTypeName **/
+inline std::string encodeTypeNameForXML(const std::string& niceTypeName)
+{   return encodeTypeNameForXML(std::string(niceTypeName)); }
+
+/** Given a type name that was encoded for XML by SimTK::encodeTypeNameForXML(),
+restore it to its canonicalized form. This means replacing curly braces by
+angle brackets. The input argument is left empty. 
+@relates SimTK::NiceTypeName **/
+SimTK_SimTKCOMMON_EXPORT
+std::string decodeXMLTypeName(std::string&& xmlTypeName);
+
+/** Same, but takes an lvalue reference so has to copy the input. 
+@relates SimTK::NiceTypeName **/
+inline std::string decodeXMLTypeName(const std::string& xmlTypeName)
+{   return decodeXMLTypeName(std::string(xmlTypeName)); }
+
+/** Obtain human-readable and XML-usable names for arbitrarily-complicated
+C++ types. Three methods `name()`, `namestr()`, and `xmlstr()` are provided
+giving respectively the compiler-dependent output from `typeid(T).%name()`, 
+a canonicalized human-readable string, and the canonicalized string with
+XML-forbidden angle brackets replaced by curly braces. The default 
+implementation is usable for most types, but if you don't like the result you 
+can specialize to provide nicer names. For example, you may prefer SimTK::Vec3 
+to SimTK::Vec\<3,double,1>.
+
+@warning Don't expect usable names for types that are defined in an anonymous 
+namespace or for function-local types. Names will still be produced but they 
+won't be unique and won't necessarily be compiler-independent.
+
+The output of `namestr()` is typically used for error messages and testing;
+`xmlstr()` is used for type tags in XML for use in deserializing. **/
 template <class T> struct NiceTypeName {
     /** The default implementation of name() here returns the raw result from
-    typeid(T).name() which will be fast but may be a mangled name in some 
+    `typeid(T).%name()` which will be fast but may be a mangled name in some 
     compilers (gcc and clang included). **/
     static const char* name() {return typeid(T).name();}
     /** The default implementation of namestr() attempts to return a nicely
-    demangled type name on all platforms, using the SimTK::demangle() method
-    defined above. Don't expect this to be fast. **/
-    static std::string namestr() {return demangle(name());}
+    demangled and canonicalized type name on all platforms, using the 
+    SimTK::demangle() and SimTK::canonicalizeTypeName() methods. This is an
+    expensive operation but is only done once. **/
+    static const std::string& namestr() {
+        static const std::string canonical = 
+            canonicalizeTypeName(demangle(name()));
+        return canonical;
+    }
+    /** The default implementation of xmlstr() takes the output of namestr()
+    and invokes SimTK::encodeTypeNameForXML() on it. **/
+    static const std::string& xmlstr() {
+        static const std::string xml = encodeTypeNameForXML(namestr());
+        return xml;
+    }
 };
 
 } // namespace SimTK
@@ -744,12 +886,19 @@ from resolution of typedefs, default template arguments, etc. Note that this
 macro generates a template specialization that must be done in the SimTK
 namespace; consequently it opens and closes namespace SimTK and must not
 be invoked if you already have that namespace open. **/
-#define SimTK_NICETYPENAME_LITERAL(T)               \
-namespace SimTK {                                   \
-    template <> struct NiceTypeName< T > {          \
-        static std::string namestr() { return #T; } \
-        static const char* name() { return #T; }    \
-    };                                              \
+#define SimTK_NICETYPENAME_LITERAL(T)                                   \
+namespace SimTK {                                                       \
+template <> struct NiceTypeName< T > {                                  \
+    static const char* name() { return #T; }                            \
+    static const std::string& namestr() {                               \
+        static const std::string str(#T);                               \
+        return str;                                                     \
+    }                                                                   \
+    static const std::string& xmlstr() {                                \
+        static const std::string xml = encodeTypeNameForXML(namestr()); \
+        return xml;                                                     \
+    }                                                                   \
+};                                                                      \
 }
 
 // Some types for which we'd like to see nice type names.

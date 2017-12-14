@@ -242,7 +242,7 @@ public:
     /// geometry and material properties that will be used in computations
     /// involving this Bushing when performed with the given State. If these
     /// are not set explicitly, the default values are set to those provided in
-    /// the constructor or via the correponding setDefault...() methods.
+    /// the constructor or via the corresponding setDefault...() methods.
     ///
     /// \par Notes
     /// - Changing one of these parameters invalidates the given State's 

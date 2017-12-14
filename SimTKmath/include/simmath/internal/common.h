@@ -50,7 +50,7 @@
  * be clients of this one. However, we are assuming all-static or all-shared.
 */
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_MSC_VER)
     #if defined(SimTK_SIMMATH_BUILDING_SHARED_LIBRARY)
         #define SimTK_SIMMATH_EXPORT __declspec(dllexport)
     #elif defined(SimTK_SIMMATH_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
@@ -60,7 +60,7 @@
         #define SimTK_SIMMATH_EXPORT __declspec(dllimport)
     #endif
 #else
-    /* Linux, Mac */
+    /* Linux, Mac, MinGW */
     #define SimTK_SIMMATH_EXPORT
 #endif
 
@@ -79,8 +79,12 @@ const static double NEGATIVE_INF = -2e19;
 
 namespace SimTK {
 
-
 namespace Exception {
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4996) // don't warn about sprintf, etc.
+#endif
 
 class OptimizerFailed : public Base {
 public:
@@ -173,6 +177,11 @@ public:
         }
 private:
 };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 } // namespace Exception
 
 } //  namespace SimTK

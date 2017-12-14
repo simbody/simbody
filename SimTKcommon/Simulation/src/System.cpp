@@ -1066,7 +1066,7 @@ public:
 class DefaultSystemSubsystem::Guts : public Subsystem::Guts {
 public:
 
-    Guts() : Subsystem::Guts("DefaultSystemSubsystem::Guts", "0.0.1") { }
+    Guts() : Subsystem::Guts("DefaultSystemSubsystem", "0.0.1") { }
     
     ~Guts() {
         for (int i = 0; i < (int)scheduledEventHandlers.size(); ++i)
@@ -1125,7 +1125,7 @@ public:
     }
     
     CachedEventInfo& updCachedEventInfo(const State& s) const {
-        return Value<CachedEventInfo>::downcast
+        return Value<CachedEventInfo>::updDowncast
            (updCacheEntry(s, cachedEventInfoIndex)).upd();
     }
 

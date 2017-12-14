@@ -50,8 +50,11 @@ friend class Force::Gravity;
                      const Array_<bool,MobilizedBodyIndex>& defMobodIsImmune)
         :   d(defDirection), g(defMagnitude), z(defZeroHeight),
             mobodIsImmune(defMobodIsImmune) {}
+
+        Parameters() = default;
+
         UnitVec3    d;
-        Real        g, z;
+        Real        g{NaN}, z{NaN};
         Array_<bool,MobilizedBodyIndex> mobodIsImmune; // [nb]
     };
 
@@ -321,7 +324,7 @@ setBodyIsExcluded(State& state, MobilizedBodyIndex mobod,
     const GravityImpl& impl = getImpl();
     SimTK_ERRCHK2_ALWAYS(mobod < impl.matter.getNumBodies(),
         "Force::Gravity::setBodyIsExcluded()",
-        "Attemped to exclude mobilized body with index %d but only mobilized"
+        "Attempted to exclude mobilized body with index %d but only mobilized"
         " bodies with indices between 0 and %d exist in this System.", 
         (int)mobod, impl.matter.getNumBodies()-1);
 

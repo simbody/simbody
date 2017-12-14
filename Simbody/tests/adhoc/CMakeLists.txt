@@ -17,43 +17,43 @@
 # versions of the executable.
 
 
-FILE(GLOB ADHOC_TESTS "*.cpp")
-FOREACH(TEST_PROG ${ADHOC_TESTS})
-    GET_FILENAME_COMPONENT(TEST_ROOT ${TEST_PROG} NAME_WE)
+file(GLOB ADHOC_TESTS "*.cpp")
+foreach(TEST_PROG ${ADHOC_TESTS})
+    get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)
 
-    IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
+    if(BUILD_TESTS_AND_EXAMPLES_SHARED)
         # Link with shared library
-        ADD_EXECUTABLE(${TEST_ROOT} ${TEST_PROG})
-    IF(GUI_NAME)
-        ADD_DEPENDENCIES(${TEST_ROOT} ${GUI_NAME})
-    ENDIF()
-        SET_TARGET_PROPERTIES(${TEST_ROOT}
+        add_executable(${TEST_ROOT} ${TEST_PROG})
+    if(GUI_NAME)
+        add_dependencies(${TEST_ROOT} ${GUI_NAME})
+    endif()
+        set_target_properties(${TEST_ROOT}
         PROPERTIES
           PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
-        TARGET_LINK_LIBRARIES(${TEST_ROOT} 
+        target_link_libraries(${TEST_ROOT} 
                       ${TEST_SHARED_TARGET})
-    ENDIF (BUILD_TESTS_AND_EXAMPLES_SHARED)
+    endif(BUILD_TESTS_AND_EXAMPLES_SHARED)
 
-    IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
+    if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
         # Link with static library
-        SET(TEST_STATIC ${TEST_ROOT}Static)
-        ADD_EXECUTABLE(${TEST_STATIC} ${TEST_PROG})
-    IF(GUI_NAME)
-        ADD_DEPENDENCIES(${TEST_STATIC} ${GUI_NAME})
-    ENDIF()
-        SET_TARGET_PROPERTIES(${TEST_STATIC}
+        set(TEST_STATIC ${TEST_ROOT}Static)
+        add_executable(${TEST_STATIC} ${TEST_PROG})
+    if(GUI_NAME)
+        add_dependencies(${TEST_STATIC} ${GUI_NAME})
+    endif()
+        set_target_properties(${TEST_STATIC}
         PROPERTIES
         COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
         PROJECT_LABEL "Test_Adhoc - ${TEST_STATIC}")
-        TARGET_LINK_LIBRARIES(${TEST_STATIC}
+        target_link_libraries(${TEST_STATIC}
                       ${TEST_STATIC_TARGET})
-    ENDIF()
+    endif()
 
-ENDFOREACH(TEST_PROG ${ADHOC_TESTS})
+endforeach(TEST_PROG ${ADHOC_TESTS})
 
-FILE(GLOB ADHOC_OBJS "*.obj" "*.vtp")
-FOREACH(TEST_OBJ ${ADHOC_OBJS})
-    GET_FILENAME_COMPONENT(OBJ_ROOT ${TEST_OBJ} NAME)
-    CONFIGURE_FILE(${TEST_OBJ} 
+file(GLOB ADHOC_OBJS "*.obj" "*.vtp")
+foreach(TEST_OBJ ${ADHOC_OBJS})
+    get_filename_component(OBJ_ROOT ${TEST_OBJ} NAME)
+    configure_file(${TEST_OBJ} 
             ${CMAKE_CURRENT_BINARY_DIR}/${OBJ_ROOT} COPYONLY)
-ENDFOREACH(TEST_OBJ ${ADHOC_OBJS})
+endforeach(TEST_OBJ ${ADHOC_OBJS})

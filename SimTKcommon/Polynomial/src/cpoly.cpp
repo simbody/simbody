@@ -547,7 +547,7 @@ void CPoly<T>::cauchy( const int nn, T pt[], T q[], T *fn_val )
    dx = x;
    
    // Do Newton iteration until x converges to two decimal places
-   while( fabs( dx / x ) > 0.005 )
+   while( std::abs( dx / x ) > 0.005 )
       {
       q[ 0 ] = pt[ 0 ];
       for( i = 1; i <= nn; i++ )
@@ -622,7 +622,7 @@ void CPoly<T>::cdivid( const T ar, const T ai, const T br, const T bi, T *cr, T 
       return;
       }
 
-   if( fabs( br ) < fabs( bi ) )
+   if( std::abs( br ) < std::abs( bi ) )
       {
       r = br/ bi;
       d = bi + r * br;
@@ -644,8 +644,8 @@ T CPoly<T>::cmod( const T r, const T i )
    {
    T ar, ai;
 
-   ar = fabs( r );
-   ai = fabs( i );
+   ar = std::abs( r );
+   ai = std::abs( i );
    if( ar < ai )
       return ai * sqrt( (T) 1.0 + pow( ( ar / ai ), (T) 2.0 ) );
 

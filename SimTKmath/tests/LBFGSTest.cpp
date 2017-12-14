@@ -37,7 +37,7 @@ class ProblemSystem : public OptimizerSystem {
 
    ProblemSystem( int numParameters) : OptimizerSystem( numParameters){}
 
-   int objectiveFunc(  const Vector &coefficients, bool new_coefficients, Real& f ) const {
+   int objectiveFunc(  const Vector &coefficients, bool new_coefficients, Real& f ) const override {
 
       const Real x = coefficients[0];
       const Real y = coefficients[1];
@@ -48,7 +48,7 @@ class ProblemSystem : public OptimizerSystem {
 
    }
 
-   int gradientFunc(  const Vector &coefficients, bool new_coefficients, Vector &gradient )const {
+   int gradientFunc(  const Vector &coefficients, bool new_coefficients, Vector &gradient )const override {
 
       const Real x = coefficients[0]; 
       const Real y = coefficients[1];  

@@ -46,7 +46,7 @@ public:
     :   PeriodicEventReporter(dt), system(sys), thermo(thermo),
         bushing1(bushing1), bushing2(bushing2) {}
 
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         printf("THERMO t=%g, stage %s, KE+PE=%g Ebath=%g CONSERVED=%g\n", 
                 state.getTime(),
                 state.getSystemStage().getName().c_str(),

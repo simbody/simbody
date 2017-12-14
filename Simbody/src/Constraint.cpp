@@ -3143,9 +3143,8 @@ const SpatialVec& ConstraintImpl::getBodyVelocityFromState
 // =============================================================================
 // 63 flops per constrained body
 void ConstraintImpl::calcConstrainedBodyTransformInAncestor      // X_AB
-   (const SBStateDigest& sbs, SBTreePositionCache& tpc) const 
+   (const SBInstanceVars& instanceVars, SBTreePositionCache& tpc) const 
 {
-    const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
     if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     if (!myAncestorBodyIsNotGround) return;
     const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
@@ -3172,14 +3171,12 @@ void ConstraintImpl::calcConstrainedBodyTransformInAncestor      // X_AB
 // =============================================================================
 // 51 flops per constrained body
 void ConstraintImpl::calcConstrainedBodyVelocityInAncestor       // V_AB
-   (const SBStateDigest& sbs, SBTreeVelocityCache& tvc) const 
+   (const SBInstanceVars& instanceVars, const SBTreePositionCache& tpc,
+    SBTreeVelocityCache& tvc) const 
 {
-    const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
     if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     if (!myAncestorBodyIsNotGround) return;
     const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
-
-    const SBTreePositionCache& tpc = sbs.getTreePositionCache();
 
     // All position kinematics has been calculated, and we also expect 
     // Ground-relative velocity kinematics already to have been calculated in tvc, 

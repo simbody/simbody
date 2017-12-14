@@ -244,7 +244,7 @@ class EigenRepBase {
 class EigenDefault : public EigenRepBase {
    public:
    EigenDefault();
-   EigenRepBase* clone() const;
+   EigenRepBase* clone() const override;
 };
 
 
@@ -260,31 +260,31 @@ class EigenRep : public EigenRepBase {
     };
 
     ~EigenRep();
-    EigenRepBase* clone() const;
+    EigenRepBase* clone() const override;
 
     typedef typename CNT<T>::TReal RType;
 //    template <class VAL, class VEC> void getAllEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors);
-    void getAllEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors);
-    void getAllEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors);
-    void getAllEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors);
-    void getAllEigenValues( Vector_<RType>& values);
-    void getAllEigenValues( Vector_<std::complex<RType> >& values);
+    void getAllEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors) override;
+    void getAllEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors) override;
+    void getAllEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors) override;
+    void getAllEigenValues( Vector_<RType>& values) override;
+    void getAllEigenValues( Vector_<std::complex<RType> >& values) override;
 
-    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors, int ilow, int ihi);
-    void getFewEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors, int ilow, int ihi);
-    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors, int ilow, int ihi);
-    void getFewEigenVectors( Matrix_<RType>& vectors, int ilow, int ihi );
-    void getFewEigenVectors( Matrix_<std::complex<RType> >& vectors, int ilow, int ihi );
-    void getFewEigenValues( Vector_<RType>& values, int ilow, int ihi );
-    void getFewEigenValues( Vector_<std::complex<RType> >& values, int ilow, int ihi );
+    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors, int ilow, int ihi) override;
+    void getFewEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors, int ilow, int ihi) override;
+    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors, int ilow, int ihi) override;
+    void getFewEigenVectors( Matrix_<RType>& vectors, int ilow, int ihi ) override;
+    void getFewEigenVectors( Matrix_<std::complex<RType> >& vectors, int ilow, int ihi ) override;
+    void getFewEigenValues( Vector_<RType>& values, int ilow, int ihi ) override;
+    void getFewEigenValues( Vector_<std::complex<RType> >& values, int ilow, int ihi ) override;
 
-    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors, RType rlow, RType ihi);
-    void getFewEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors, RType rlow, RType ihi);
-    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors, RType rlow, RType ihi);
-    void getFewEigenVectors( Matrix_<RType>& vectors, RType rlow, RType ihi );
-    void getFewEigenVectors( Matrix_<std::complex<RType> >& vectors, RType rlow, RType ihi );
-    void getFewEigenValues( Vector_<RType>& values, RType rlow, RType ihi );
-    void getFewEigenValues( Vector_<std::complex<RType> >& values, RType rlow, RType ihi );
+    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors, RType rlow, RType ihi) override;
+    void getFewEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors, RType rlow, RType ihi) override;
+    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors, RType rlow, RType ihi) override;
+    void getFewEigenVectors( Matrix_<RType>& vectors, RType rlow, RType ihi ) override;
+    void getFewEigenVectors( Matrix_<std::complex<RType> >& vectors, RType rlow, RType ihi ) override;
+    void getFewEigenValues( Vector_<RType>& values, RType rlow, RType ihi ) override;
+    void getFewEigenValues( Vector_<std::complex<RType> >& values, RType rlow, RType ihi ) override;
 
     private:
   

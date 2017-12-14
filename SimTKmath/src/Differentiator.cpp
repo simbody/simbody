@@ -238,10 +238,10 @@ public:
     :   FunctionRep(1,1,acc), sf(func) {}
 
     // Virtuals (from FunctionRep)
-    String functionKind() const {return "ScalarFunction";}
+    String functionKind() const override {return "ScalarFunction";}
 
     void calcDerivative(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
-                        Real y0, const Real* fy0p, Real& dfdy) const
+                        Real y0, const Real* fy0p, Real& dfdy) const override
     { 
         Real fy0;
         if (fy0p) fy0 = *fy0p;
@@ -250,7 +250,7 @@ public:
     }
 
     void calcGradient(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m, 
-                      const Vector& y0, const Real* fy0p, Vector& gf) const 
+                      const Vector& y0, const Real* fy0p, Vector& gf) const override 
     { 
         assert(y0.size()==1);
         gf.resize(1);
@@ -262,7 +262,7 @@ public:
     }
 
     void calcJacobian(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m, 
-                      const Vector& y0, const Vector* fy0p, Matrix& dfdy) const
+                      const Vector& y0, const Vector* fy0p, Matrix& dfdy) const override
     {
         assert(y0.size()==1 && (!fy0p || (*fy0p).size()==1));
         dfdy.resize(1,1);
@@ -301,10 +301,10 @@ public:
     :   FunctionRep(1,np,acc), gf(func) {}
 
     // Virtuals (from FunctionRep)
-    String functionKind() const {return "GradientFunction";}
+    String functionKind() const override {return "GradientFunction";}
 
     void calcDerivative(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
-                        Real y0, const Real* fy0p, Real& dfdy) const
+                        Real y0, const Real* fy0p, Real& dfdy) const override
     {
         if (getNumParameters() != 1)
             SimTK_THROW5(Differentiator::OpNotAllowedForFunctionOfThisShape,
@@ -319,7 +319,7 @@ public:
     }
 
     void calcGradient(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
-                      const Vector& y0, const Real* fy0p, Vector& gf) const 
+                      const Vector& y0, const Real* fy0p, Vector& gf) const override 
     { 
         Real fy0;
         if (fy0p) fy0 = *fy0p; 
@@ -328,7 +328,7 @@ public:
     }
 
     void calcJacobian(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
-                      const Vector& y0, const Vector* fy0p, Matrix& dfdy) const
+                      const Vector& y0, const Vector* fy0p, Matrix& dfdy) const override
     {
         assert(!fy0p || (*fy0p).size()==1);
         dfdy.resize(1,getNumParameters());
@@ -367,10 +367,10 @@ public:
     :   FunctionRep(nf,np,acc), jf(func) {}
 
     // Virtuals (from FunctionRep)
-    String functionKind() const {return "JacobianFunction";}
+    String functionKind() const override {return "JacobianFunction";}
 
     void calcDerivative(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
-                        Real y0, const Real* fy0p, Real& dfdy) const
+                        Real y0, const Real* fy0p, Real& dfdy) const override
     {
         if (getNumFunctions() != 1 || getNumParameters() != 1)
             SimTK_THROW5(Differentiator::OpNotAllowedForFunctionOfThisShape,
@@ -385,7 +385,7 @@ public:
     }
 
     void calcGradient(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
-                      const Vector& y0, const Real* fy0p, Vector& gf) const 
+                      const Vector& y0, const Real* fy0p, Vector& gf) const override 
     { 
         if (getNumFunctions() != 1)
             SimTK_THROW5(Differentiator::OpNotAllowedForFunctionOfThisShape,
@@ -398,7 +398,7 @@ public:
     }
 
     void calcJacobian(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
-                      const Vector& y0, const Vector* fy0p, Matrix& dfdy) const
+                      const Vector& y0, const Vector* fy0p, Matrix& dfdy) const override
     {
         if (fy0p)
             diff.calcJacobian(*this,m,y0,*fy0p,dfdy);

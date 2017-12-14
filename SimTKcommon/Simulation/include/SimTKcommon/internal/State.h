@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -37,6 +37,8 @@ done in a separate internal class. **/
 #include <ostream>
 #include <cassert>
 #include <algorithm>
+#include <mutex>
+#include <array>
 
 namespace SimTK {
 
@@ -153,12 +155,14 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemMultiplierIndex);
 /// @see SystemMultiplierIndex
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MultiplierIndex);
 
-/// This is the type to use for Stage version numbers. Whenever any state 
-/// variable is modified, we increment the stage version for the stage(s) that
-/// depend on it. -1 means "unintialized". 0 is never used as a stage version, 
-/// but is allowed as a cache value which is guaranteed never to look valid. 
-typedef int StageVersion;
+class StateImpl;
+class PerSubsystemInfo;
+class DiscreteVarInfo;
+class CacheEntryInfo;
+class ListOfDependents;
 
+using CacheEntryKey = std::pair<SubsystemIndex,CacheEntryIndex>;
+using DiscreteVarKey = std::pair<SubsystemIndex,DiscreteVariableIndex>;
 
 /** This object is intended to contain all state information for a 
 SimTK::System, except topological information which is stored in the %System 
@@ -195,7 +199,7 @@ methods:
      (3)  e  = e(d;t,y)         event triggers (watch for zero crossings)
 </pre>
 with initial conditions t0,y0,d0 such that c=0. The discrete variables d are 
-updated upon occurence of specific events. When those events are functions of 
+updated upon occurrence of specific events. When those events are functions of 
 time or state, they are detected using the set of scalar-valued event trigger 
 functions e (3).
 
@@ -286,6 +290,9 @@ State();
 /// state variables either, except those associated with the Topology stage.
 State(const State&);
 
+/// The move constructor is very fast. The source object is left empty.
+State(State&& source);
+
 /// Copy assignment has deep copy semantics; that is, \c this %State will 
 /// contain a \e copy of the source, \e not a reference into it. This makes the 
 /// current %State contain a copy of the state information in the source %State,
@@ -294,11 +301,40 @@ State(const State&);
 /// variables either, except those associated with the Topology stage.
 State& operator=(const State&);
 
+/// Move assignment is very fast. The source object is left in a valid but
+/// undefined condition.
+State& operator=(State&& source);
+
 /// Destruct this %State object and free up the heap space it is using.
 ~State();
 
 /// Restore State to default-constructed condition.
 void clear();
+
+/// Checks if a given state has the same number of state variables,
+/// constraints, etc as this state. Returns true if the following quantities
+/// are the same for both this state and `otherState`.
+/// 
+/// - number of subsystems
+/// - number of generalized coordinates (Q's)
+/// - number of generalized speeds (U's)
+/// - number of auxiliary state variables (Z's)
+/// - number of position constraints (QErr's)
+/// - number of velocity constraints (UErr's)
+/// - number of acceleration constraints (UDotErr's)
+/// - number of constraint Lagrange multipliers
+/// - number of event triggers
+/// 
+/// Returns false otherwise.
+///
+/// You can call this after Instance stage has been realized on both this state
+/// and `otherState`.
+/// 
+/// This method does NOT guarantee that both states are for the same system or
+/// that both states will work with the same system. Also, this method does
+/// NOT check for any relationship between the times in the
+/// two states.
+bool isConsistent(const SimTK::State& otherState) const;
 
 /// Set the number of subsystems in this state. This is done during
 /// initialization of the State by a System; it completely wipes out
@@ -659,15 +695,16 @@ State -- don't delete the object after this call!
 @see allocateLazyCacheEntry(), isCacheValueRealized(), markCacheValueRealized() **/
 inline CacheEntryIndex 
 allocateCacheEntry(SubsystemIndex, Stage earliest, Stage latest,
-                   AbstractValue*) const;
+                   AbstractValue* value) const;
 
 /** This is an abbreviation for allocation of a cache entry whose earliest
 and latest Stages are the same. That is, this cache entry is guaranteed to
 be valid if its Subsystem has advanced to the supplied Stage or later, and
 is guaranteed to be invalid below that Stage. **/
 inline CacheEntryIndex 
-allocateCacheEntry(SubsystemIndex sx, Stage g, AbstractValue* v) const
-{   return allocateCacheEntry(sx, g, g, v); }
+allocateCacheEntry(SubsystemIndex sx, Stage stage, 
+                   AbstractValue* value) const
+{   return allocateCacheEntry(sx, stage, stage, value); }
 
 /** This is an abbreviation for allocation of a lazy cache entry. The 
 \a earliest stage at which this \e can be evaluated is provided; but there is no
@@ -678,9 +715,22 @@ is automatically invalidated when the indicated stage \a earliest is
 invalidated in the State.
 @see allocateCacheEntry(), isCacheValueRealized(), markCacheValueRealized() **/
 inline CacheEntryIndex 
-allocateLazyCacheEntry
-   (SubsystemIndex sx, Stage earliest, AbstractValue* v) const
-{   return allocateCacheEntry(sx, earliest, Stage::Infinity, v); }
+allocateLazyCacheEntry(SubsystemIndex sx, Stage earliest, 
+                       AbstractValue* value) const {
+    return allocateCacheEntry(sx, earliest, Stage::Infinity, value);
+}
+
+/** (Advanced) Allocate a cache entry with prerequisites other than just
+reaching a particular computation stage. Possible prerequisites are continuous
+variables q, u, and z; any discrete variable; and any "upstream" cache entry
+whose `earliest` stage is no later than this one's `earliest` stage. **/
+inline CacheEntryIndex
+allocateCacheEntryWithPrerequisites
+   (SubsystemIndex, Stage earliest, Stage latest,
+    bool q, bool u, bool z,
+    const Array_<DiscreteVarKey>& discreteVars,
+    const Array_<CacheEntryKey>& cacheEntries,
+    AbstractValue* value);
 
 /** At what stage was this State when this cache entry was allocated?
 The answer must be Stage::Empty, Stage::Topology, or Stage::Model. **/
@@ -729,10 +779,10 @@ a state variable on which it depends.
 @see allocateCacheEntry(), isCacheValueRealized(), getCacheEntry() **/
 inline void markCacheValueRealized(SubsystemIndex, CacheEntryIndex) const;
 
-/** Normally cache entries are invalidated automatically, however this
-method allows manual invalidation of the value of a particular cache 
-entry. After a cache entry has been marked invalid here, 
-isCacheValueRealized() will return false.
+/** (Advanced) Normally cache entries are invalidated automatically, however 
+this method allows manual invalidation of the value of a particular cache entry.
+After a cache entry has been marked invalid here, isCacheValueRealized() will 
+return false.
 @see isCacheValueRealized(), markCacheValueRealized() **/
 inline void markCacheValueNotRealized(SubsystemIndex, CacheEntryIndex) const;
 /**@}**/
@@ -812,6 +862,12 @@ inline int getNEventTriggersByStage(Stage) const;
 /// first of the event triggers associated with a particular Stage are stored;
 /// the rest follow contiguously. Callable at Instance stage.
 inline SystemEventTriggerIndex getEventTriggerStartByStage(Stage) const;
+/// Returns a mutex that should be used to lock the state whenever multiple 
+/// threads are asynchronously writing/updating a common state cache. A lock
+/// should always be used when thread-safe state is not guarenteed. If multiple
+/// threads are simply reading from the cache, locking the state may not be
+/// necessary.
+inline std::mutex& getStateLock() const;
 
 /// @}
 
@@ -1053,6 +1109,10 @@ inline Vector& updUErr() const; // Stage::Velocity-1        "
 inline Vector& updUDotErr()     const; // Stage::Acceleration-1 (not a view)
 inline Vector& updMultipliers() const; // Stage::Acceleration-1 (not a view)
 
+/** @name                 Advanced/Obscure/Debugging
+Don't call these methods unless you know what you're doing. **/
+/**@{**/
+
 /** (Advanced) Record the current version numbers of each valid System-level 
 stage. This can be used to unambiguously determine what stages have been 
 changed by some opaque operation, even if that operation realized the stages 
@@ -1082,19 +1142,79 @@ was created. This has no effect on the realization level.
 **/
 inline void setSystemTopologyStageVersion(StageVersion topoVersion);
 
+/** (Advanced) Return a ValueVersion for q, meaning an integer that is
+incremented whenever any q is changed (or more precisely whenever q or y is
+returned with writable access). Will be 1 or greater if q has been
+allocated. **/
+inline ValueVersion getQValueVersion() const;
+/** (Advanced) Return a ValueVersion for u, meaning an integer that is
+incremented whenever any u is changed (or more precisely whenever u or y is
+returned with writable access). Will be 1 or greater if u has been
+allocated. **/
+inline ValueVersion getUValueVersion() const;
+/** (Advanced) Return a ValueVersion for z, meaning an integer that is
+incremented whenever any z is changed (or more precisely whenever z or y is
+returned with writable access). Will be 1 or greater if z has been
+allocated. **/
+inline ValueVersion getZValueVersion() const;
+
+/** (Advanced) Return the list of cache entries for which q was specified
+as an explicit prerequisite. 
+@see allocateCacheEntryWithPrerequisites() **/
+inline const ListOfDependents& getQDependents() const;
+/** (Advanced) Return the list of cache entries for which u was specified
+as an explicit prerequisite. 
+@see allocateCacheEntryWithPrerequisites() **/
+inline const ListOfDependents& getUDependents() const;
+/** (Advanced) Return the list of cache entries for which z was specified
+as an explicit prerequisite. 
+@see allocateCacheEntryWithPrerequisites() **/
+inline const ListOfDependents& getZDependents() const;
+
+/** (Advanced) Check whether this %State has a particular cache entry. **/
+inline bool hasCacheEntry(const CacheEntryKey& cacheEntry) const;
+
+/** (Advanced) Return a const reference to the cache entry information for a 
+particular cache entry. No validity checking is performed. **/
+SimTK_FORCE_INLINE const CacheEntryInfo& 
+getCacheEntryInfo(const CacheEntryKey& cacheEntry) const;
+
+/** (Advanced) Return a writable reference to the cache entry information for a 
+particular cache entry. No validity checking is performed. **/
+SimTK_FORCE_INLINE CacheEntryInfo& 
+updCacheEntryInfo(const CacheEntryKey& cacheEntry);
+
+/** (Advanced) Check whether this %State has a particular discrete state
+variable. **/
+inline bool hasDiscreteVar(const DiscreteVarKey& discreteVar) const;
+
+/** (Advanced) Return a reference to the discrete variable information for a 
+particular discrete variable. **/
+SimTK_FORCE_INLINE const DiscreteVarInfo& 
+getDiscreteVarInfo(const DiscreteVarKey& discreteVar) const;
+
+/** (Advanced) Return a reference to the per-subsystem information in the
+state. **/
+SimTK_FORCE_INLINE const PerSubsystemInfo& 
+getPerSubsystemInfo(SubsystemIndex) const;
+
 /** (Advanced) This is called at the beginning of every integration step to set
 the values of auto-update discrete variables from the values stored in their 
 associated cache entries. **/
 inline void autoUpdateDiscreteVariables();
 
+/** (Debugging) Not suitable for serialization. **/
 inline String toString() const;
+/** (Debugging) Not suitable for serialization. **/
 inline String cacheToString() const;
+/**@}**/
 
 //------------------------------------------------------------------------------
 // The implementation class and associated inline methods are defined in a
 // separate header file included below.
                                 private:
-class StateImpl* impl;
+StateImpl* impl;
+
 const StateImpl& getImpl() const {assert(impl); return *impl;}
 StateImpl&       updImpl()       {assert(impl); return *impl;}
 };

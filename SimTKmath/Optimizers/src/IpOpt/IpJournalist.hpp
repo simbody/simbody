@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   // forward declarations
@@ -364,13 +364,13 @@ namespace Ipopt
      */
     //@{
     /** Print to the designated output location */
-    virtual void PrintImpl(const char* str);
+    virtual void PrintImpl(const char* str) override;
 
     /** Printf to the designated output location */
-    virtual void PrintfImpl(const char* pformat, va_list ap);
+    virtual void PrintfImpl(const char* pformat, va_list ap) override;
 
     /** Flush output buffer.*/
-    virtual void FlushBufferImpl();
+    virtual void FlushBufferImpl() override;
     //@}
 
   private:

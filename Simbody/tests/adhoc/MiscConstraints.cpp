@@ -56,7 +56,7 @@ public:
         whichMobility = MobilizerUIndex(0);
         prescribedSpeed = speed;
     }
-    MyConstraintImplementation* clone() const {return new MyConstraintImplementation(*this);}
+    MyConstraintImplementation* clone() const override {return new MyConstraintImplementation(*this);}
 
     // Implementation of virtuals required for nonholonomic constraints.
 
@@ -68,7 +68,7 @@ public:
        (const State&                                    s,
         const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
         const Array_<Real,      ConstrainedUIndex>&     constrainedU,
-        Array_<Real>&                                   verr) const
+        Array_<Real>&                                   verr) const override
     {
         assert(verr.size() == 1);
         verr[0] = getOneU(s, constrainedU, theMobilizer, whichMobility) 
@@ -79,7 +79,7 @@ public:
        (const State&                                    s,
         const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
         const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
-        Array_<Real>&                                   vaerr) const
+        Array_<Real>&                                   vaerr) const override
     {
         assert(vaerr.size() == 1);
         vaerr[0] = getOneUDot(s, constrainedUDot,

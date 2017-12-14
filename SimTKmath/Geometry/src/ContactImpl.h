@@ -108,7 +108,7 @@ public:
     UntrackedContactImpl(ContactSurfaceIndex surf1, ContactSurfaceIndex surf2) 
     :   ContactImpl(surf1, surf2, Contact::Untracked) {}
 
-    ContactTypeId getTypeId() const {return classTypeId();}
+    ContactTypeId getTypeId() const override {return classTypeId();}
     static ContactTypeId classTypeId() {
         static const ContactTypeId tid = createNewContactTypeId();
         return tid;
@@ -130,7 +130,7 @@ public:
     {
     }
 
-    ContactTypeId getTypeId() const {return classTypeId();}
+    ContactTypeId getTypeId() const override {return classTypeId();}
     static ContactTypeId classTypeId() {
         static const ContactTypeId tid = createNewContactTypeId();
         return tid;
@@ -158,7 +158,7 @@ public:
         radius1(radius1), radius2(radius2), radiusEff(radiusEff), 
         depth(depth), origin_S1(origin_S1), normal_S1(normal_S1) {}
 
-    ContactTypeId getTypeId() const {return classTypeId();}
+    ContactTypeId getTypeId() const override {return classTypeId();}
     static ContactTypeId classTypeId() {
         static const ContactTypeId tid = createNewContactTypeId();
         return tid;
@@ -186,7 +186,7 @@ public:
     :   ContactImpl(surf1, surf2, X_S1S2), 
         X_S1C(X_S1C), k(k), depth(depth) {}
 
-    ContactTypeId getTypeId() const {return classTypeId();}
+    ContactTypeId getTypeId() const override {return classTypeId();}
     static ContactTypeId classTypeId() {
         static const ContactTypeId tid = createNewContactTypeId();
         return tid;
@@ -213,7 +213,7 @@ public:
     :   ContactImpl(halfSpace, brick, X_HB), 
         lowestVertex(lowestVertex), depth(depth) {}
 
-    ContactTypeId getTypeId() const {return classTypeId();}
+    ContactTypeId getTypeId() const override {return classTypeId();}
     static ContactTypeId classTypeId() {
         static const ContactTypeId tid = createNewContactTypeId();
         return tid;
@@ -239,7 +239,7 @@ public:
                             const std::set<int>&    faces1, 
                             const std::set<int>&    faces2);
 
-    ContactTypeId getTypeId() const {return classTypeId();}
+    ContactTypeId getTypeId() const override {return classTypeId();}
     static ContactTypeId classTypeId() {
         static const ContactTypeId tid = createNewContactTypeId();
         return tid;
@@ -265,7 +265,7 @@ public:
     PointContactImpl(ContactSurfaceIndex surf1, ContactSurfaceIndex surf2,
                      Vec3& location, Vec3& normal, Real radius, Real depth);
 
-    ContactTypeId getTypeId() const {return classTypeId();}
+    ContactTypeId getTypeId() const override {return classTypeId();}
     static ContactTypeId classTypeId() {
         static const ContactTypeId tid = createNewContactTypeId();
         return tid;

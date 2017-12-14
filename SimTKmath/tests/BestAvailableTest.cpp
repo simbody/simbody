@@ -46,7 +46,7 @@ public:
 
 
     int objectiveFunc( const Vector &coefficients, bool new_coefficients,
-            Real& f ) const {
+            Real& f ) const override {
         const Real *x;
 
         x = &coefficients[0];
@@ -56,7 +56,7 @@ public:
     }
 
     int gradientFunc( const Vector &coefficients, bool new_coefficients,
-            Vector &gradient ) const{
+            Vector &gradient ) const override{
         const Real *x;
 
         x = &coefficients[0]; 
@@ -71,7 +71,7 @@ public:
     }
 
     int constraintFunc( const Vector &coefficients, bool new_coefficients,
-            Vector &constraints ) const{
+            Vector &constraints ) const override{
         const Real *x;
 
         x = &coefficients[0]; 
@@ -82,7 +82,7 @@ public:
     }
 
     int constraintJacobian( const Vector& coefficients, bool new_coefficients,
-            Matrix& jac ) const{
+            Matrix& jac ) const override{
         const Real *x;
 
         x = &coefficients[0]; 
@@ -118,7 +118,7 @@ class LBFGSBSystem : public OptimizerSystem {
 
    LBFGSBSystem() : OptimizerSystem( 25 ) {}
 
-   int objectiveFunc(   const Vector &coefficients, bool new_coefficients,  Real& f  ) const  {
+   int objectiveFunc(   const Vector &coefficients, bool new_coefficients,  Real& f  ) const override  {
       int i;
 
       const Real *x = &coefficients[0];
@@ -132,7 +132,7 @@ class LBFGSBSystem : public OptimizerSystem {
       return( 0 ); 
    }
 
-   int gradientFunc( const Vector &coefficients, bool new_coefficients,  Vector &gradient ) const {
+   int gradientFunc( const Vector &coefficients, bool new_coefficients,  Vector &gradient ) const override {
       const Real *x;
       Real t1,t2;
       int i;
@@ -164,7 +164,7 @@ class LBFGSSystem : public OptimizerSystem {
    LBFGSSystem() : OptimizerSystem( 2 ) {}
 
    int objectiveFunc( const Vector &coefficients, bool new_coefficients,
-           Real& f ) const {
+           Real& f ) const override {
 
       const Real x = coefficients[0];
       const Real y = coefficients[1];
@@ -176,7 +176,7 @@ class LBFGSSystem : public OptimizerSystem {
    }
 
    int gradientFunc( const Vector &coefficients, bool new_coefficients,
-           Vector &gradient ) const {
+           Vector &gradient ) const override {
 
       const Real x = coefficients[0]; 
       const Real y = coefficients[1];  

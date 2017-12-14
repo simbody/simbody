@@ -94,16 +94,16 @@ DiscreteVariableIndex allocateAutoUpdateDiscreteVariable
    (State& s, Stage invalidates, AbstractValue* v, Stage updateDependsOn) const
 {   return s.allocateAutoUpdateDiscreteVariable
                (getMySubsystemIndex(),invalidates,v,updateDependsOn); }
+
 CacheEntryIndex allocateCacheEntry
    (const State& s, Stage dependsOn, Stage computedBy, AbstractValue* v) const 
 {   return s.allocateCacheEntry
                (getMySubsystemIndex(), dependsOn, computedBy, v); }
-
 CacheEntryIndex allocateCacheEntry
-    (const State& state, Stage g, AbstractValue* v) const 
+   (const State& state, Stage g, AbstractValue* v) const 
 {   return allocateCacheEntry(state, g, g, v); }
 CacheEntryIndex allocateLazyCacheEntry   
-    (const State& state, Stage earliest, AbstractValue* v) const 
+   (const State& state, Stage earliest, AbstractValue* v) const 
 {   return allocateCacheEntry(state, earliest, Stage::Infinity, v); }
 
 QErrIndex allocateQErr(const State& s, int nqerr) const 
@@ -265,8 +265,10 @@ void markDiscreteVarUpdateValueRealized
 
 bool isCacheValueRealized(const State& s, CacheEntryIndex cx) const 
 {   return s.isCacheValueRealized(getMySubsystemIndex(), cx); }
+
 void markCacheValueRealized(const State& s, CacheEntryIndex cx) const 
 {   s.markCacheValueRealized(getMySubsystemIndex(), cx); }
+
 void markCacheValueNotRealized(const State& s, CacheEntryIndex cx) const 
 {   s.markCacheValueNotRealized(getMySubsystemIndex(), cx); }
 /**@}**/

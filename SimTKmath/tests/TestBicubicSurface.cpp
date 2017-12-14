@@ -79,7 +79,7 @@ Vector getCentralDifference(Vector x, Vector y, bool extrap_endpoints) {
 /**
  Return the value, and set of first partial deriviatives of a 2D function f
  that defines a surface f(x,y). There are 4 functions of choice, which
- can be specified by the paramter fcnType
+ can be specified by the parameter fcnType
 
  @param x : x argument of the function f(x,y)
  @param y : y argument of the function f(x,y)
@@ -165,7 +165,7 @@ Vector getAnalyticFunction(Real x, Real y, int fcnType){
  @params size: the number of steps to take to go from xmin to xmax, and
                ymin to ymax
  @params fcnType: An integer value [0-4] that picks an analytical function
-                  to use for comparision purposes.
+                  to use for comparison purposes.
  @params flag_verbosePrint: false: print only the maximum error at the 
                                    knot points, mid points and the 
                                    tolerance used at the assertions
@@ -466,7 +466,7 @@ where as the one in the test code is a hand derived version of A.
  @params ymin: the minimum value of the y grid in the y dimension
  @params ymax: the maximum value of the y grid in the y dimension
  @params fcnType: An integer value [0-4] that picks an analytical function
-                  to use for comparision purposes.
+                  to use for comparison purposes.
  @params smoothness: A value of 0 will make sure the patch goes through the 
                      desired points exactly. A value between 0 and 1 will
                      relax the surface.
@@ -570,7 +570,7 @@ void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax,
  @params ymin: the minimum value of the y grid in the y dimension
  @params ymax: the maximum value of the y grid in the y dimension
  @params fcnType: An integer value [0-4] that picks an analytical function
-                  to use for comparision purposes.
+                  to use for comparison purposes.
  @params smoothness: A value of 0 will make sure the patch goes through the 
                      desired points exactly. A value between 0 and 1 will
                      relax the surface.
@@ -1082,7 +1082,7 @@ int main() {
 
     cout << "\n\n---------------------------------------------"<< endl;
     cout << "\n\nCOPY CONSTRUCTOR AND = OPERATOR TESTING:" <<endl;
-    cout <<" Tested by using the copy contructor and equal operator" << endl;
+    cout <<" Tested by using the copy constructor and equal operator" << endl;
     cout <<" and comparing the values of the internally stored matrices" << endl;
     cout <<" of x,y,f,fx,fy,fxy between the different surfaces, and then" <<endl;
     cout <<" comparing values of f,fx,fy,fxy,fxx,fyy,fxyy,fxxy,fxxx,fyyy" <<endl;

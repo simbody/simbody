@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -42,9 +42,13 @@
 #include "SimTKcommon/internal/Exception.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
 #include "SimTKcommon/internal/ClonePtr.h"
+#include "SimTKcommon/internal/CloneOnWritePtr.h"
 #include "SimTKcommon/internal/ReferencePtr.h"
+#include "SimTKcommon/internal/ResetOnCopy.h"
+#include "SimTKcommon/internal/ReinitOnCopy.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/Serialize.h"
+#include "SimTKcommon/internal/IteratorRange.h"
 #include "SimTKcommon/internal/Fortran.h"
 #include "SimTKcommon/internal/Array.h"
 #include "SimTKcommon/internal/StableArray.h"

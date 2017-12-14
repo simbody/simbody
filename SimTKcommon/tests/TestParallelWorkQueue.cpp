@@ -36,7 +36,7 @@ class SetFlagTask : public ParallelWorkQueue::Task {
 public:
     SetFlagTask(Array_<int>& flags, int index) : flags(flags), index(index) {
     }
-    void execute() {
+    void execute() override {
         ASSERT(!flags[index]);
         flags[index] = true;
     }

@@ -322,7 +322,7 @@ typedef struct CPodeMemRec {
 
 
   /*-------------------------------------------
-    Error handler function and error ouput file 
+    Error handler function and error output file 
     -------------------------------------------*/
 
   CPErrHandlerFn cp_ehfun;     /* Error messages are handled by ehfun         */

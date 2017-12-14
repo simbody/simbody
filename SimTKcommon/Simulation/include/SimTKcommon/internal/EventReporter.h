@@ -106,7 +106,7 @@ public:
      * @param requiredStage    the stage at which the trigger function will be evaluated
      */
     
-    TriggeredEventReporter(Stage requiredStage);
+    explicit TriggeredEventReporter(Stage requiredStage);
     
     /**
      * Get the value of the event trigger function for a State.
@@ -139,15 +139,14 @@ class SimTK_SimTKCOMMON_EXPORT PeriodicEventReporter : public ScheduledEventRepo
 public:
     class PeriodicEventReporterImpl;
     ~PeriodicEventReporter();
-    Real getNextEventTime(const State& state, bool includeCurrentTime) const;
+    Real getNextEventTime(const State& state, bool includeCurrentTime) const override;
     
     /**
      * Create a PeriodicEventReporter.
      * 
      * @param eventInterval       the time interval at which events should occur.
      */
-
-    PeriodicEventReporter(Real eventInterval);
+    explicit PeriodicEventReporter(Real eventInterval);
     
     /**
      * Get the time interval at which events occur.

@@ -277,7 +277,7 @@ public:
             m_geod(geod), m_color(color) { }
 
     virtual void generateDecorations(const State& state,
-            Array_<DecorativeGeometry>& geometry) {
+            Array_<DecorativeGeometry>& geometry) override {
 //        m_system.realize(state, Stage::Position);
 
         // draw connected line segments from pts

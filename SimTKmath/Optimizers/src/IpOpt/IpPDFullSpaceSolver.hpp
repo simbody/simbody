@@ -13,7 +13,7 @@
 #include "IpAugSystemSolver.hpp"
 #include "IpPDPerturbationHandler.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** This is the implemetation of the Primal-Dual System, using the
@@ -46,7 +46,7 @@ namespace Ipopt
 
     /* overloaded from AlgorithmStrategyObject */
     bool InitializeImpl(const OptionsList& options,
-                        const std::string& prefix);
+                        const std::string& prefix) override;
 
     /** Solve the primal dual system, given one right hand side.
      */
@@ -55,7 +55,7 @@ namespace Ipopt
                        const IteratesVector& rhs,
                        IteratesVector& res,
                        bool allow_inexact=false,
-                       bool improve_solution=false);
+                       bool improve_solution=false) override;
 
     /** Methods for IpoptType */
     //@{

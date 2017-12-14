@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2011-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2011-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -26,26 +26,23 @@
 #include "MobilizedBodyImpl.h"
 #include "RigidBodyNodeSpec_Translation.h"
 
-/**
- * This is a specialized class used for MobilizedBody::Translation objects that satisfy
- * all of the following requirements:
- * 
- * <ul>
- * <li>The body has no children.</li>
- * <li>The body's parent is ground.</li>
- * <li>The inboard and outboard transforms are both identities.</li>
- * <li>The body is not reversed.</li>
- * </ul>
- * 
- * These assumptions allow lots of routines to be implemented in simpler, faster ways.
+/* This is a specialized class used for MobilizedBody::Translation objects that 
+satisfy all of the following requirements:
+ -  The body has no children.
+ -  The body's parent is ground.
+ -  The inboard and outboard transforms are both identities.
+ -  The body is not reversed.
+
+ These assumptions allow lots of routines to be implemented simpler and faster.
  */
 class RBNodeLoneParticle : public RigidBodyNode {
 public:
 RBNodeLoneParticle(const MassProperties& mProps_B,
-                UIndex&               nextUSlot,
-                USquaredIndex&        nextUSqSlot,
-                QIndex&               nextQSlot)
-  : RigidBodyNode(mProps_B, Vec3(0), Vec3(0), QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, false) {
+                   UIndex&               nextUSlot,
+                   USquaredIndex&        nextUSqSlot,
+                   QIndex&               nextQSlot)
+:   RigidBodyNode(mProps_B, Vec3(0), Vec3(0), 
+                  QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, false) {
     uIndex = nextUSlot;
     uSqIndex = nextUSqSlot;
     qIndex = nextQSlot;
@@ -54,92 +51,95 @@ RBNodeLoneParticle(const MassProperties& mProps_B,
     nextQSlot += 3;
 }
 
-const char* type() const {return "loneparticle";}
-int  getDOF() const {return 3;}
-int  getMaxNQ() const {return 3;}
+const char* type() const override {return "loneparticle";}
+int  getDOF() const override {return 3;}
+int  getMaxNQ() const override {return 3;}
 
-int getNQInUse(const SBModelVars&) const {return 3;}
-int getNUInUse(const SBModelVars&) const {return 3;}
+int getNQInUse(const SBModelVars&) const override {return 3;}
+int getNUInUse(const SBModelVars&) const override {return 3;}
 
-bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQuaternion) const {
+bool isUsingQuaternion(const SBStateDigest&, 
+                       MobilizerQIndex& startOfQuaternion) const override {
     return false;
 }
 
-bool isUsingAngles(const SBStateDigest&, MobilizerQIndex& startOfAngles, int& nAngles) const {
-    return false;
-}
-
-int calcQPoolSize(const SBModelVars&) const {
+int calcQPoolSize(const SBModelVars&) const override {
     return 0;
 }
 
 void performQPrecalculations(const SBStateDigest& sbs,
                              const Real* q, int nq,
                              Real* qCache,  int nQCache,
-                             Real* qErr,    int nQErr) const {
+                             Real* qErr,    int nQErr) const override {
     assert(q && nq==3 && nQCache==0 && nQErr==0);
 }
 
 void calcX_FM(const SBStateDigest& sbs,
               const Real* q,      int nq,
               const Real* qCache, int nQCache,
-              Transform&  X_FM) const {
+              Transform&  X_FM) const override {
     assert(q && nq==3 && nQCache==0);
     X_FM = Transform(Rotation(), Vec3::getAs(&q[0]));
 }
 
-void calcQDot(const SBStateDigest&, const Real* u, Real* qdot) const {
+void calcQDot(const SBStateDigest&, const Real* u, Real* qdot) const override {
     Vec3::updAs(qdot) = Vec3::getAs(u);
 }
-void calcQDotDot(const SBStateDigest&, const Real* udot, Real* qdotdot) const {
+void calcQDotDot(const SBStateDigest&, const Real* udot, 
+                 Real* qdotdot) const override {
     Vec3::updAs(qdotdot) = Vec3::getAs(udot);
 }
 
-void multiplyByN(const SBStateDigest&, bool matrixOnRight, const Real* in, Real* out) const {
+void multiplyByN(const SBStateDigest&, bool matrixOnRight, const Real* in, 
+                 Real* out) const override {
     Vec3::updAs(out) = Vec3::getAs(in);
 }
-void multiplyByNInv(const SBStateDigest&, bool matrixOnRight, const Real* in, Real* out) const {
+void multiplyByNInv(const SBStateDigest&, bool matrixOnRight, const Real* in, 
+                    Real* out) const override {
     Vec3::updAs(out) = Vec3::getAs(in);
 }
-void multiplyByNDot(const SBStateDigest&, bool matrixOnRight, const Real* in, Real* out) const {
+void multiplyByNDot(const SBStateDigest&, bool matrixOnRight, const Real* in, 
+                    Real* out) const override {
     Vec3::updAs(out) = 0;
 }
 
 bool enforceQuaternionConstraints(
     const SBStateDigest& sbs,
     Vector&            q,
-    Vector&            qErrest) const {
+    Vector&            qErrest) const override {
     return false;
 }
 
-void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+void convertToEulerAngles(const Vector& inputQ, 
+                          Vector& outputQ) const override {
     Vec3::updAs(&outputQ[qIndex]) = Vec3::getAs(&inputQ[qIndex]);
 }
 
-void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+void convertToQuaternions(const Vector& inputQ, 
+                          Vector& outputQ) const override {
     Vec3::updAs(&outputQ[qIndex]) = Vec3::getAs(&inputQ[qIndex]);
 }
 
 void setMobilizerDefaultModelValues
-   (const SBTopologyCache&, SBModelVars&)        const {}
+   (const SBTopologyCache&, SBModelVars&)        const override {}
 
 void setMobilizerDefaultInstanceValues    
-   (const SBModelVars&,     SBInstanceVars&)     const {}
+   (const SBModelVars&,     SBInstanceVars&)     const override {}
 void setMobilizerDefaultTimeValues        
-   (const SBModelVars&,     SBTimeVars&)         const {}
+   (const SBModelVars&,     SBTimeVars&)         const override {}
 void setMobilizerDefaultPositionValues    
-   (const SBModelVars&,     Vector& q)           const {q = 0;}
+   (const SBModelVars&,     Vector& q)           const override {q = 0;}
 void setMobilizerDefaultVelocityValues    
-   (const SBModelVars&,     Vector& u)           const {u = 0;}
+   (const SBModelVars&,     Vector& u)           const override {u = 0;}
 void setMobilizerDefaultDynamicsValues    
-   (const SBModelVars&,     SBDynamicsVars&)     const {}
+   (const SBModelVars&,     SBDynamicsVars&)     const override {}
 void setMobilizerDefaultAccelerationValues
-   (const SBModelVars&,     SBAccelerationVars&) const {}
+   (const SBModelVars&,     SBAccelerationVars&) const override {}
 
-void realizeModel(SBStateDigest& sbs) const {
+void realizeModel(SBStateDigest& sbs) const override {
 }
 
-void realizeInstance(const SBStateDigest& sbs) const {
+void realizeInstance(const SBStateDigest& sbs) const override {
     // Initialize cache entries that will never be changed at later stages.
     
     SBTreePositionCache& pc = sbs.updTreePositionCache();
@@ -155,13 +155,12 @@ void realizeInstance(const SBStateDigest& sbs) const {
     updGyroscopicForce(vc) = SpatialVec(Vec3(0), Vec3(0));
     updMobilizerCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
     updTotalCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
-    updMobilizerCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
-    updTotalCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
+    updTotalCentrifugalForces(vc) = SpatialVec(Vec3(0), Vec3(0));
     updY(dc) = SpatialMat(Mat33(0), Mat33(0), Mat33(0), Mat33(1/getMass()));
     updA_GB(ac)[0] = Vec3(0);
 }
 
-void realizePosition(const SBStateDigest& sbs) const {
+void realizePosition(const SBStateDigest& sbs) const override {
     SBTreePositionCache& pc = sbs.updTreePositionCache();
     Transform& X_FM = toB(pc.bodyJointInParentJointFrame);
     const Vec3& q = Vec3::getAs(&sbs.getQ()[qIndex]);
@@ -173,7 +172,7 @@ void realizePosition(const SBStateDigest& sbs) const {
     updMk_G(pc) = SpatialInertia(getMass(), getCOM_B(), getUnitInertia_OB_B());
 }
 
-void realizeVelocity(const SBStateDigest& sbs) const {
+void realizeVelocity(const SBStateDigest& sbs) const override {
     SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
     const Vector& allU = sbs.getU();
     const Vec3& u = Vec3::getAs(&allU[uIndex]);
@@ -184,18 +183,18 @@ void realizeVelocity(const SBStateDigest& sbs) const {
     updV_GB(vc)[1] = u;
 }
 
-void realizeDynamics(const SBArticulatedBodyInertiaCache& abc, const SBStateDigest& sbs) const {
+void realizeDynamics(const SBStateDigest&) const override {
 }
 
 // There is no realizeAcceleration().
 
-void realizeReport(const SBStateDigest& sbs) const {
+void realizeReport(const SBStateDigest&) const override {
 }
 
 void realizeArticulatedBodyInertiasInward(
         const SBInstanceCache&          ic,
         const SBTreePositionCache&      pc,
-        SBArticulatedBodyInertiaCache&  abc) const {
+        SBArticulatedBodyInertiaCache&  abc) const override {
     ArticulatedInertia& P     = updP(abc);
     ArticulatedInertia& PPlus = updPPlus(abc);
 
@@ -206,19 +205,19 @@ void realizeYOutward(
             const SBInstanceCache&                ic,
             const SBTreePositionCache&            pc,
             const SBArticulatedBodyInertiaCache&  abc,
-            SBDynamicsCache&                      dc) const {
+            SBDynamicsCache&                      dc) const override {
 }
 
 void calcCompositeBodyInertiasInward
    (const SBTreePositionCache& pc, 
-    Array_<SpatialInertia,MobilizedBodyIndex>& R) const {
+    Array_<SpatialInertia,MobilizedBodyIndex>& R) const override {
     toB(R) = getMk_G(pc);
 }
 
 void multiplyBySystemJacobian(
         const SBTreePositionCache&  pc,
         const Real*                 v,
-        SpatialVec*                 Jv) const {
+        SpatialVec*                 Jv) const override {
     const Vec3& in = Vec3::getAs(&v[uIndex]);
     SpatialVec& out = Jv[nodeNum];
     out = ~getPhi(pc) * Jv[parent->getNodeNum()];
@@ -229,7 +228,7 @@ void multiplyBySystemJacobianTranspose(
         const SBTreePositionCache&  pc, 
         SpatialVec*                 zTmp,
         const SpatialVec*           X, 
-        Real*                       JtX) const {
+        Real*                       JtX) const override {
     const SpatialVec& in = X[getNodeNum()];
     Vec3& out = Vec3::updAs(&JtX[getUIndex()]);
     SpatialVec& z = zTmp[getNodeNum()];
@@ -239,10 +238,10 @@ void multiplyBySystemJacobianTranspose(
 
 void calcEquivalentJointForces(
         const SBTreePositionCache&  pc,
-        const SBDynamicsCache&      dc,
+        const SBTreeVelocityCache&  vc,
         const SpatialVec*           bodyForces,
         SpatialVec*                 allZ,
-        Real*                       jointForces) const {
+        Real*                       jointForces) const override {
     const SpatialVec& myBodyForce = bodyForces[nodeNum];
     SpatialVec& z = allZ[nodeNum];
     Vec3& eps = Vec3::updAs(&jointForces[uIndex]);
@@ -252,15 +251,15 @@ void calcEquivalentJointForces(
 
 void calcUDotPass1Inward(
         const SBInstanceCache&                  ic,
-        const SBTreePositionCache&              pc,
-        const SBArticulatedBodyInertiaCache&    abc,
-        const SBDynamicsCache&                  dc,
+        const SBTreePositionCache&,
+        const SBArticulatedBodyInertiaCache&,
+        const SBArticulatedBodyVelocityCache&,
         const Real*                             jointForces,
         const SpatialVec*                       bodyForces,
         const Real*                             allUDot,
         SpatialVec*                             allZ,
         SpatialVec*                             allZPlus,
-        Real*                                   allEpsilon) const 
+        Real*                                   allEpsilon) const override 
 {
     const Vec3&         f       = Vec3::getAs(&jointForces[uIndex]);
     const SpatialVec&   F       = bodyForces[nodeNum];
@@ -295,7 +294,7 @@ void calcUDotPass2Outward(
         const Real*                             allEpsilon,
         SpatialVec*                             allA_GB,
         Real*                                   allUDot,
-        Real*                                   allTau) const {
+        Real*                                   allTau) const override {
     const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);
     SpatialVec& A_GB = allA_GB[nodeNum];
     Vec3& udot = Vec3::updAs(&allUDot[uIndex]);
@@ -364,7 +363,7 @@ void calcBodyAccelerationsFromUdotOutward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
         const Real*                 allUDot,
-        SpatialVec*                 allA_GB) const {
+        SpatialVec*                 allA_GB) const override {
     const Vec3& udot = Vec3::getAs(&allUDot[uIndex]);
     SpatialVec& A_GB = allA_GB[nodeNum];
     A_GB = SpatialVec(Vec3(0), udot);
@@ -376,7 +375,7 @@ void calcInverseDynamicsPass2Inward(
         const Real*                 jointForces,
         const SpatialVec*           bodyForces,
         SpatialVec*                 allF,
-        Real*                       allTau) const {
+        Real*                       allTau) const override {
     const Vec3& myJointForce = Vec3::getAs(&jointForces[uIndex]);
     const SpatialVec& myBodyForce = bodyForces[nodeNum];
     const SpatialVec& A_GB = allA_GB[nodeNum];
@@ -389,7 +388,7 @@ void calcInverseDynamicsPass2Inward(
 void multiplyByMPass1Outward(
         const SBTreePositionCache&  pc,
         const Real*                 allUDot,
-        SpatialVec*                 allA_GB) const {
+        SpatialVec*                 allA_GB) const override {
     const Vec3& udot = Vec3::getAs(&allUDot[uIndex]);
     SpatialVec& A_GB = allA_GB[nodeNum];
     A_GB = SpatialVec(Vec3(0), udot);
@@ -398,7 +397,7 @@ void multiplyByMPass2Inward(
         const SBTreePositionCache&  pc,
         const SpatialVec*           allA_GB,
         SpatialVec*                 allF,
-        Real*                       allTau) const {
+        Real*                       allTau) const override {
     const SpatialVec& A_GB = allA_GB[nodeNum];
     SpatialVec& F = allF[nodeNum];
     Vec3& tau = Vec3::updAs(&allTau[uIndex]);
@@ -406,7 +405,8 @@ void multiplyByMPass2Inward(
     tau = F[1];
 }
 
-const SpatialVec& getHCol(const SBTreePositionCache& pc, int j) const {
+const SpatialVec& getHCol(const SBTreePositionCache& pc, 
+                          int j) const override {
     Mat<2,3,Vec3> H = Mat<2,3,Vec3>::getAs(&pc.storageForH[2*uIndex]);
     SpatialVec& col = H(j);
     col = SpatialVec(Vec3(0), Vec3(0));
@@ -414,7 +414,8 @@ const SpatialVec& getHCol(const SBTreePositionCache& pc, int j) const {
     return col;
 }
 
-const SpatialVec& getH_FMCol(const SBTreePositionCache& pc, int j) const {
+const SpatialVec& getH_FMCol(const SBTreePositionCache& pc, 
+                             int j) const override {
     Mat<2,3,Vec3> H = Mat<2,3,Vec3>::getAs(&pc.storageForH_FM[2*uIndex]);
     SpatialVec& col = H(j);
     col = SpatialVec(Vec3(0), Vec3(0));
@@ -422,21 +423,27 @@ const SpatialVec& getH_FMCol(const SBTreePositionCache& pc, int j) const {
     return col;
 }
 
-void setQToFitTransformImpl(const SBStateDigest&, const Transform& X_F0M0, Vector& q) const {
+void setQToFitTransformImpl(const SBStateDigest&, const Transform& X_F0M0, 
+                            Vector& q) const override {
     Vec3::updAs(&q[qIndex]) = X_F0M0.p();
 }
-void setQToFitRotationImpl(const SBStateDigest&, const Rotation& R_F0M0, Vector& q) const {
+void setQToFitRotationImpl(const SBStateDigest&, const Rotation& R_F0M0, 
+                           Vector& q) const override {
 }
-void setQToFitTranslationImpl(const SBStateDigest&, const Vec3& p_F0M0, Vector& q) const {
+void setQToFitTranslationImpl(const SBStateDigest&, const Vec3& p_F0M0, 
+                              Vector& q) const override {
     Vec3::updAs(&q[qIndex]) = p_F0M0;
 }
 
-void setUToFitVelocityImpl(const SBStateDigest&, const Vector& q, const SpatialVec& V_F0M0, Vector& u) const {
+void setUToFitVelocityImpl(const SBStateDigest&, const Vector& q, 
+                           const SpatialVec& V_F0M0, Vector& u) const override {
     Vec3::updAs(&u[uIndex]) = V_F0M0[1];
 }
-void setUToFitAngularVelocityImpl(const SBStateDigest&, const Vector& q, const Vec3& w_F0M0, Vector& u) const {    
+void setUToFitAngularVelocityImpl(const SBStateDigest&, const Vector& q, 
+                                  const Vec3& w_F0M0, Vector& u) const override {    
 }
-void setUToFitLinearVelocityImpl(const SBStateDigest&, const Vector& q, const Vec3& v_F0M0, Vector& u) const {
+void setUToFitLinearVelocityImpl(const SBStateDigest&, const Vector& q, 
+                                 const Vec3& v_F0M0, Vector& u) const override {
     Vec3::updAs(&u[uIndex]) = v_F0M0;
 }
 

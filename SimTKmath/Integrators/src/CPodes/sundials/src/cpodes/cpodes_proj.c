@@ -415,7 +415,7 @@ static int cpProjNonlinear(CPodeMem cp_mem)
  *   CP_CNSTRFUNC_FAIL - the constraint function failed unrecoverably.
  *
  *   CNSTRFUNC_RECVR - the constraint function failed recoverably.
- *   CONV_FAIL - a recoverable error occured.
+ *   CONV_FAIL - a recoverable error occurred.
  */
 
 static int cpProjNonlinearIteration(CPodeMem cp_mem)

@@ -87,7 +87,7 @@ template <> class NTraits<long double>;
 // negator<N> has exactly the same internal representation as a numeric value N, 
 // but it is to be interpreted has having the negative of the value it would 
 // have if interpreted as an N. This permits negation to be done by 
-// reinterpretation rather than compuation. A full set of arithmetic operators
+// reinterpretation rather than computation. A full set of arithmetic operators
 // are provided involving negator<N>'s and N's. Sometimes we can save an op or
 // two this way. For example negator<N>*negator<N> can be performed as an N*N
 // since the negations cancel, and we saved two floating point negations.
@@ -1073,9 +1073,19 @@ template<> struct NTraits<R>::Result<conjugate<double> > \
   {typedef conjugate<Widest<R,double>::Type> Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
 template<> struct NTraits<R>::Result<conjugate<long double> > \
   {typedef conjugate<Widest<R,long double>::Type> Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}
+
+#if defined(__clang__)
+#pragma clang diagnostic push
+// The function `T& imag(T&)` generates a null-dereference warning.
+#pragma clang diagnostic ignored "-Wnull-dereference"
+#endif
 SimTK_DEFINE_REAL_NTRAITS(float);
 SimTK_DEFINE_REAL_NTRAITS(double);
 SimTK_DEFINE_REAL_NTRAITS(long double);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 #undef SimTK_DEFINE_REAL_NTRAITS
 
 /// Specializations of CNT for numeric types.

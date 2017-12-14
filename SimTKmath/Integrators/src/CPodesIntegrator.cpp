@@ -65,7 +65,7 @@ public:
     :   integ(integ), system(system) {}
 
     // Calculate ydot = f(t,y).
-    int explicitODE(Real t, const Vector& y, Vector& ydot) const {
+    int explicitODE(Real t, const Vector& y, Vector& ydot) const override {
         try { 
             integ.setAdvancedStateAndRealizeDerivatives(t,y);
         }
@@ -75,7 +75,7 @@ public:
     }
 
     // Calculate yerr = c(t,y).
-    int constraint(Real t, const Vector& y, Vector& yerr) const {
+    int constraint(Real t, const Vector& y, Vector& yerr) const override {
         try { 
             integ.setAdvancedStateAndRealizeKinematics(t,y);
         }
@@ -89,7 +89,7 @@ public:
     // ||eps||_wrms <= epsProj. 'err' passed in as the integrator's current 
     // error estimate for state y; optionally project it to eliminate the 
     // portion normal to the manifold.
-    int project(Real t, const Vector& y, Vector& ycorr, Real epsProj, Vector& err) const {
+    int project(Real t, const Vector& y, Vector& ycorr, Real epsProj, Vector& err) const override {
         integ.setAdvancedState(t,y);
         State& advanced = integ.updAdvancedState();
        
@@ -116,7 +116,7 @@ public:
     /**
      * Calculate the event trigger functions.
      */
-    int root(Real t, const Vector& y, const Vector& yp, Vector& gout) const {
+    int root(Real t, const Vector& y, const Vector& yp, Vector& gout) const override {
         try { 
             integ.setAdvancedStateAndRealizeDerivatives(t,y);
         }

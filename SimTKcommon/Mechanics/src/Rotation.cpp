@@ -810,13 +810,13 @@ Rotation_<P>::reexpressSymMat33(const SymMat33P& S_BB) const {
 // memory locations so that the net effect is to use the transpose of
 // the original rotation from which this was created.
 template <class P> SymMat<3,P>
-InverseRotation_<P>::reexpressSymMat33(const SymMat33P& S_BB) const {
-    const RealP a=S_BB(0,0), b=S_BB(1,1), c=S_BB(2,2);
-    const RealP d=S_BB(1,0), e=S_BB(2,0), f=S_BB(2,1);
+InverseRotation_<P>::reexpressSymMat33(const SymMat<3,P>& S_BB) const {
+    const P a=S_BB(0,0), b=S_BB(1,1), c=S_BB(2,2);
+    const P d=S_BB(1,0), e=S_BB(2,0), f=S_BB(2,1);
     // Note reversal of row and column spacing here (normal is 3,1).
-    const Mat<3,3,RealP,1,3>& R   = this->asMat33();
+    const Mat<3,3,P,1,3>& R   = this->asMat33();
     // RR is just the first two columns of R.
-    const Mat<3,2,RealP,1,3>& RR  = R.template getSubMat<3,2>(0,0);
+    const Mat<3,2,P,1,3>& RR  = R.template getSubMat<3,2>(0,0);
 
     const Mat32P L( a-c ,  d,
                      d  , b-c,
@@ -825,15 +825,15 @@ InverseRotation_<P>::reexpressSymMat33(const SymMat33P& S_BB) const {
     const Mat22P Y( R[1]*L(0), R[1]*L(1),
                     R[2]*L(0), R[2]*L(1) );
 
-    const RealP Z10 = Y[0]*~RR[0], Z11 = Y[0]*~RR[1],
-                Z20 = Y[1]*~RR[0], Z21 = Y[1]*~RR[1], Z22= Y[1]*~RR[2];
-    const RealP Z00 = (L(0,0)+L(1,1)) - (Z11+Z22);
+    const P Z10 = Y[0]*~RR[0], Z11 = Y[0]*~RR[1],
+            Z20 = Y[1]*~RR[0], Z21 = Y[1]*~RR[1], Z22= Y[1]*~RR[2];
+    const P Z00 = (L(0,0)+L(1,1)) - (Z11+Z22);
 
     const Vec3P Rv( R(0,1)*e-R(0,0)*f,
                     R(1,1)*e-R(1,0)*f,
                     R(2,1)*e-R(2,0)*f );
 
-    return SymMat33P( Z00 + c,
+    return SymMat<3,P>( Z00 + c,
                       Z10 + Rv[2], Z11 + c,
                       Z20 - Rv[1], Z21 + Rv[0], Z22 + c );
 }

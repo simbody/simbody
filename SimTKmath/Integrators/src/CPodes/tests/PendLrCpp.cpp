@@ -57,8 +57,8 @@ static const Real CTOL = (Real)1e-8;
 class PendLrSystem : public SimTK::CPodesSystem {
 public:
     // Override default implementations of these virtual functions.
-    int explicitODE(Real t, const Vector& y, Vector& fout) const;
-    int constraint(Real t, const Vector& y, Vector& cout) const;
+    int explicitODE(Real t, const Vector& y, Vector& fout) const override;
+    int constraint(Real t, const Vector& y, Vector& cout) const override;
 };
 
 // Functions Called by the Solver

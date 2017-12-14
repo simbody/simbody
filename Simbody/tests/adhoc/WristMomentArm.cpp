@@ -184,7 +184,7 @@ public:
     virtual void calcForce(const State& state, 
                            Vector_<SpatialVec>& bodyForces, 
                            Vector_<Vec3>& particleForces, 
-                           Vector& mobilityForces) const
+                           Vector& mobilityForces) const override
     {
         const MobilizedBody& A = m_matter.getMobilizedBody(m_A);
         const MobilizedBody& B = m_matter.getMobilizedBody(m_B);
@@ -218,10 +218,10 @@ public:
     }
 
     // This muscle model doesn't store energy.
-    virtual Real calcPotentialEnergy(const State&) const {return 0;}
+    virtual Real calcPotentialEnergy(const State&) const override {return 0;}
 
     // Allocate variables and cache entries.
-    virtual void realizeTopology(State& state) const {
+    virtual void realizeTopology(State& state) const override {
         PlanarMuscle* mThis = const_cast<PlanarMuscle*>(this);
         mThis->m_tensionVarIx = m_forces
             .allocateDiscreteVariable(state, Stage::Dynamics, 
@@ -233,7 +233,7 @@ public:
     }
 
     // Calculate path geometry information.
-    virtual void realizePosition(const State& state) const {
+    virtual void realizePosition(const State& state) const override {
         // Get all the relevant points in Ground.
         const MobilizedBody& A = m_matter.getMobilizedBody(m_A);
         const MobilizedBody& B = m_matter.getMobilizedBody(m_B);
@@ -354,7 +354,7 @@ public:
     }
 
     // Supply the required virtual method.
-    virtual void handleEvent(const State& state) const {
+    virtual void handleEvent(const State& state) const override {
         report(state);
         saveEm.push_back(state);
     }
@@ -378,7 +378,7 @@ public:
     :   m_system(system), m_planarMuscle(muscle) {}
 
     virtual void generateDecorations(const State& state, 
-                                     Array_<DecorativeGeometry>& geometry) 
+                                     Array_<DecorativeGeometry>& geometry) override 
     {
         m_system.realize(state, Stage::Position);
         Vec3 iptA, iptB, tptA, tptB;
@@ -503,18 +503,18 @@ int main() {
     aux1Hand.push_back(MobilizedBodyIndex(hand)); 
     aux1Wrap.push_back(MobilizedBodyIndex(aux1)); 
     aux1Wrap.push_back(MobilizedBodyIndex(wrap)); 
-    Array_<MobilizerUIndex> whichUs(2, MobilizerUIndex(0));
+    Array_<MobilizerQIndex> whichQs(2, MobilizerQIndex(0));
 
     Constraint::CoordinateCoupler 
     aux1toAux2(matter,
         new Function::Linear(Vector(Vec3(ratios1[0],ratios1[1],0))),
-        aux1aux2, whichUs);
+        aux1aux2, whichQs);
     aux1toAux2.setDisabledByDefault(true);
 
     Constraint::CoordinateCoupler 
     aux1toHand(matter,
         new Function::Linear(Vector(Vec3(ratios2[0],ratios2[1],0))),
-        aux1Hand, whichUs);
+        aux1Hand, whichQs);
     aux1toHand.setDisabledByDefault(true);
 
     // Coupling ratio to the wrap surface's body is hardcoded to
@@ -522,7 +522,7 @@ int main() {
     Constraint::CoordinateCoupler
     aux1toWrap(matter,
         new Function::Linear(Vector(Vec3(1, -.4, 0))),
-        aux1Wrap, whichUs);
+        aux1Wrap, whichQs);
 
     // Enable this to make a point of the hand touch a plane fixed on ground.
     // We'll optionally use this constraint instead of one of the couplers

@@ -38,16 +38,16 @@ class SetFlagTask : public ParallelExecutor::Task {
 public:
     SetFlagTask(Array_<int>& flags, int& count) : flags(flags), count(count) {
     }
-    void execute(int index) {
+    void execute(int index) override {
         flags[index]++;
         localCount.upd()++;
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
-    void initialize() {
+    void initialize() override {
         localCount.upd() = 0;
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
-    void finish() {
+    void finish() override {
         count += localCount.get();
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
@@ -91,14 +91,18 @@ void testSingleThreadedExecution() {
         ASSERT(flags[j] == (j < numFlags-10 ? 1 : 0));
 }
 
-int main() {
-    try {
-        testParallelExecution();
-        testSingleThreadedExecution();
-    } catch(const std::exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
+void testResizeThreads() {
+    for(int x = 1; x < 100; ++x)
+    {
+        ParallelExecutor executor(x);
+        SimTK_TEST(executor.getMaxThreads() == x);
     }
-    cout << "Done" << endl;
+}
+int main() {
+    SimTK_START_TEST("TestParallelExecutor");
+        SimTK_SUBTEST(testParallelExecution);
+        SimTK_SUBTEST(testSingleThreadedExecution);
+        SimTK_SUBTEST(testResizeThreads);
+    SimTK_END_TEST();
     return 0;
 }

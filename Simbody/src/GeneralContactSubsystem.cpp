@@ -66,7 +66,7 @@ class GeneralContactSubsystemImpl : public Subsystem::Guts {
 public:
     GeneralContactSubsystemImpl() {}
 
-    GeneralContactSubsystemImpl* cloneImpl() const {
+    GeneralContactSubsystemImpl* cloneImpl() const override {
         return new GeneralContactSubsystemImpl(*this);
     }
     
@@ -129,11 +129,11 @@ public:
     const Array_<Contact>& getContacts(const State& state, ContactSetIndex set) const {
         assert(set >= 0 && set < sets.size());
         SimTK_STAGECHECK_GE_ALWAYS(state.getSubsystemStage(getMySubsystemIndex()), Stage::Dynamics, "GeneralContactSubsystemImpl::getContacts()");
-        Array_<Array_<Contact> >& contacts = Value<Array_<Array_<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
+        Array_<Array_<Contact> >& contacts = Value<Array_<Array_<Contact> > >::updDowncast(updCacheEntry(state, contactsCacheIndex)).upd();
         return contacts[set];
     }
     
-    int realizeSubsystemTopologyImpl(State& state) const {
+    int realizeSubsystemTopologyImpl(State& state) const override {
         contactsCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Array_<Array_<Contact> > >());
         contactsValidCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<bool>());
         for (int i = 0; i < (int) sets.size(); ++i) {
@@ -149,16 +149,16 @@ public:
         return 0;
     }
 
-    int realizeSubsystemPositionImpl(const State& state) const {
-        Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd() = false;
+    int realizeSubsystemPositionImpl(const State& state) const override {
+        Value<bool>::updDowncast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd() = false;
         return 0;
     }
 
-    int realizeSubsystemDynamicsImpl(const State& state) const {
-        bool& contactsValid = Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd();
+    int realizeSubsystemDynamicsImpl(const State& state) const override {
+        bool& contactsValid = Value<bool>::updDowncast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd();
         if (contactsValid)
             return 0;
-        Array_<Array_<Contact> >& contacts = Value<Array_<Array_<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
+        Array_<Array_<Contact> >& contacts = Value<Array_<Array_<Contact> > >::updDowncast(updCacheEntry(state, contactsCacheIndex)).upd();
         int numSets = getNumContactSets();
         contacts.resize(numSets);
         

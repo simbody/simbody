@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -34,6 +34,22 @@
 #include <cstdarg>
 
 namespace SimTK {
+ 
+/** This is the type to use for Stage version numbers that get incremented 
+whenever a state variable change invalidates a Stage. Whenever time or any state 
+variable is modified, we increment the %StageVersion for any Stage that gets
+invalidated. -1 means "uninitialized". 0 is never used as a %StageVersion, but 
+is allowed as a remembered %StageVersion which is guaranteed never to look 
+valid. **/
+typedef long long StageVersion;
+
+/** This is the type to use for state variable version numbers that get 
+incremented whenever a state value changes. Whenever time or any state variable 
+is modified, we increment a version number for the state variable that changes, 
+so that cache entries can have finer-grained prerequisites than just on whole 
+stages. -1 means "uninitialized". 0 is never used as a %ValueVersion, but is 
+allowed as a remembered version which is guaranteed never to look valid. **/
+typedef long long ValueVersion;
 
 /** This class is basically a glorified enumerated type, type-safe and range
 checked but permitting convenient (if limited) arithmetic. Constants look like 
@@ -165,6 +181,11 @@ private:
 
 namespace Exception {
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4996) // don't warn about sprintf, etc.
+#endif
+
 class RealizeTopologyMustBeCalledFirst : public Base {
 public:
     RealizeTopologyMustBeCalledFirst(const char* fn, int ln,
@@ -249,7 +270,8 @@ public:
 class CacheEntryOutOfDate : public Base {
 public:
     CacheEntryOutOfDate(const char* fn, int ln,
-        Stage currentStage, Stage dependsOn, int dependsOnVersion, int lastCalculatedVersion) 
+        Stage currentStage, Stage dependsOn, 
+        StageVersion dependsOnVersion, StageVersion lastCalculatedVersion) 
     :   Base(fn,ln)
     {
         setMessage("State Cache entry was out of date at Stage " + currentStage.getName() 
@@ -265,7 +287,7 @@ class RealizeCheckFailed : public Base {
 public:
     RealizeCheckFailed(const char* fn, int ln, Stage g, 
                        int subsystemId, const char* subsystemName,
-                       const char* fmt ...) : Base(fn,ln)
+                       const char* fmt, ...) : Base(fn,ln)
     {
         char buf[1024];
         va_list args;
@@ -279,6 +301,9 @@ public:
     virtual ~RealizeCheckFailed() throw() { }
 };
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 } // namespace Exception
 

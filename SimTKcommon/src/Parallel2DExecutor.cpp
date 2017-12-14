@@ -104,7 +104,7 @@ public:
     TriangleTask(const Parallel2DExecutorImpl& executor, Parallel2DExecutor::Task& task, Parallel2DExecutor::RangeType rangeType, int width, bool shouldInitialize, bool shouldFinish) :
         executor(executor), task(task), rangeType(rangeType), width(width), shouldInitialize(shouldInitialize), shouldFinish(shouldFinish) {
     }
-    void execute(int index) {
+    void execute(int index) override {
         int start = executor.getBinStart(width*index);
         int end = executor.getBinStart(width*(index+1));
         switch (rangeType) {
@@ -125,11 +125,11 @@ public:
             return;
         }
     }
-    void initialize() {
+    void initialize() override {
         if (shouldInitialize)
             task.initialize();
     }
-    void finish() {
+    void finish() override {
         if (shouldFinish)
             task.finish();
     }
@@ -146,7 +146,7 @@ public:
     SquareTask(const Parallel2DExecutorImpl& executor, Parallel2DExecutor::Task& task, const Array_<pair<int,int> >& squares, Parallel2DExecutor::RangeType rangeType, bool shouldInitialize, bool shouldFinish) :
         executor(executor), task(task), squares(squares), rangeType(rangeType), shouldInitialize(shouldInitialize), shouldFinish(shouldFinish) {
     }
-    void execute(int index) {
+    void execute(int index) override {
         const pair<int,int>& square = squares[index];
         int istart = executor.getBinStart(square.second+1);
         int iend = executor.getBinStart(square.second+2);
@@ -168,11 +168,11 @@ public:
             return;
         }
     }
-    void initialize() {
+    void initialize() override {
         if (shouldInitialize)
             task.initialize();
     }
-    void finish() {
+    void finish() override {
         if (shouldFinish)
             task.finish();
     }

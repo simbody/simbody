@@ -62,7 +62,7 @@ Unique integer type for Subsystem-local, per-stage event indexing.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventTriggerByStageIndex);
 
 /** An Event is "something that happens" during a Study that is advancing
-through time. Its occurence interrupts the normal flow of computation, allowing
+through time. Its occurrence interrupts the normal flow of computation, allowing
 an event Handler to adjust the State prior to resuming the Study.
 
 Events are allocated by Subsystems, but require some System global resources. 

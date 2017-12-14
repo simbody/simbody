@@ -10,3 +10,9 @@ debian/*debhelper
 debian/*substvars
 # The build for debian ends up in a directory like obj-x86_64-linux-gnu.
 obj-*
+# Editor backup files.
+# vim
+.*.swp
+.*.swo
+# gedit
+*~

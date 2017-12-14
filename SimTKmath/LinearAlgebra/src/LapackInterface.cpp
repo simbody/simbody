@@ -34,6 +34,10 @@
 #include "WorkSpace.h"
 #include <cstring>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strcat, sprintf, etc.
+#endif
+
 static const double EPS = .000001;
 namespace SimTK {
 
@@ -583,7 +587,7 @@ template <> void LapackInterface::geev<double>
     TypedWorkSpace<double> wi(n);
     TypedWorkSpace<double> vr(n*n);
 
-    // avoid valgrind unintialized warnings
+    // avoid valgrind uninitialized warnings
     for(int i=0;i<n;i++) wi.data[i] = 0;  
     dgeev_( jobvl, jobvr, 
 //             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr, 
@@ -635,7 +639,7 @@ template <> void LapackInterface::geev<float>
     TypedWorkSpace<float> wi(n);
     TypedWorkSpace<float> vr(n*n);
 
-    // avoid valgrind unintialized warnings
+    // avoid valgrind uninitialized warnings
     for(int i=0;i<n;i++) wi.data[i] = 0;  
 
     sgeev_( jobvl, jobvr, 

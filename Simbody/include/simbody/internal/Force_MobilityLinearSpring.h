@@ -161,7 +161,7 @@ public:
     Methods here are for backwards compatibility but have been replaced with
     better ones that you should use. **/
     /**@{**/
-    /** Deprecated: Alternate signature for backwards compatibilty -- for 
+    /** Deprecated: Alternate signature for backwards compatibility -- for 
     safety you should prefer using the other constructor signature that
     takes a MobilizerQIndex rather than a plain int. **/
     MobilityLinearSpring(GeneralForceSubsystem& forces, 

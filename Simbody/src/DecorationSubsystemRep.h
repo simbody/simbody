@@ -96,60 +96,60 @@ public:
         generators[stage].push_back(generator);
     }
 
-    DecorationSubsystemGuts* cloneImpl() const {
+    DecorationSubsystemGuts* cloneImpl() const override {
         return new DecorationSubsystemGuts(*this);
     }
 
     // Override virtual realize methods, although at the moment there is nothing here
     // so the default implementations would have been fine.
 
-    int realizeSubsystemTopologyImpl(State& s) const {
+    int realizeSubsystemTopologyImpl(State& s) const override {
         // No Topology-stage cache here
         return 0;
     }
 
-    int realizeSubsystemModelImpl(State& s) const {
+    int realizeSubsystemModelImpl(State& s) const override {
         // Sorry, no choices available at the moment.
         return 0;
     }
 
-    int realizeSubsystemInstanceImpl(const State& s) const {
+    int realizeSubsystemInstanceImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    int realizeSubsystemTimeImpl(const State& s) const {
+    int realizeSubsystemTimeImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    int realizeSubsystemPositionImpl(const State& s) const {
+    int realizeSubsystemPositionImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    int realizeSubsystemVelocityImpl(const State& s) const {
+    int realizeSubsystemVelocityImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    int realizeSubsystemDynamicsImpl(const State& s) const {
+    int realizeSubsystemDynamicsImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    int realizeSubsystemAccelerationImpl(const State& s) const {
+    int realizeSubsystemAccelerationImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    int realizeSubsystemReportImpl(const State& s) const {
+    int realizeSubsystemReportImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
     int calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
     SimTK_DOWNCAST(DecorationSubsystemGuts, Subsystem::Guts);
 private:

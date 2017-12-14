@@ -33,7 +33,7 @@ public:
     VerletIntegratorRep(Integrator* handle, const System& sys);
 protected:
     bool attemptDAEStep
-       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations);
+       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations) override;
 };
 
 } // namespace SimTK

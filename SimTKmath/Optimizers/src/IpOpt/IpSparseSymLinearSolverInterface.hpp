@@ -13,7 +13,7 @@
 #include "IpAlgStrategy.hpp"
 #include "IpSymLinearSolver.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Base class for interfaces to symmetric indefinite linear solvers
@@ -137,7 +137,7 @@ namespace Ipopt
         const Index* ia,
         const Index* ja) = 0;
 
-    /** Method returing an internal array into which the nonzero
+    /** Method returning an internal array into which the nonzero
      *  elements (in the same order as ja) will be stored by the
      *  calling routine before a call to MultiSolve with a
      *  new_matrix=true (or after a return of MultiSolve with

@@ -17,7 +17,7 @@
 /* Return codes for the Optimize call for an application */
 #include "IpReturnCodes.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   DECLARE_STD_EXCEPTION(IPOPT_APPLICATION_ERROR);
 

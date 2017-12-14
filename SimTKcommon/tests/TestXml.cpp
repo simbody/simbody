@@ -29,6 +29,8 @@
 #include <iostream>
 #include <string>
 #include <cstdio>
+
+
 using std::cout;
 using std::cin;
 using std::endl;
@@ -108,14 +110,14 @@ void testXmlFromString() {
     // Note that the "condense white space" setting is global, not 
     // document-specific.
     Xml::Document preserveWhite;
-    Xml::setXmlCondenseWhiteSpace(false);
-    SimTK_TEST(!Xml::isXmlWhiteSpaceCondensed());
+    Xml::Document::setXmlCondenseWhiteSpace(false);
+    SimTK_TEST(!Xml::Document::isXmlWhiteSpaceCondensed());
     preserveWhite.readFromString(xmlPlainTextFile);
     cout << "Plain text file with white space preserved (raw): " 
          << preserveWhite.getRootElement().getValue() << "\n";
     cout << "... (formatted with condense=false): " 
          << preserveWhite << "\n";    
-    Xml::setXmlCondenseWhiteSpace(true);
+    Xml::Document::setXmlCondenseWhiteSpace(true);
     cout << "... (formatted with condense=true): " 
          << preserveWhite << "\n";    
 
@@ -242,7 +244,7 @@ void testXmlFromScratch() {
         Xml::Comment("This should be at the top of the file, except declaration."));
     cout << scratch;
 
-    Xml scratch2;
+    Xml::Document scratch2;
     scratch2 = scratch; // deep copy
 
     scratch.eraseTopLevelNode(scratch.node_begin());
@@ -322,12 +324,10 @@ void testStringConvert() {
 
 }
 
-
 int main() {
     cout << "Path of this executable: '" << Pathname::getThisExecutablePath() << "'\n";
     cout << "Executable directory: '" << Pathname::getThisExecutableDirectory() << "'\n";
     cout << "Current working directory: '" << Pathname::getCurrentWorkingDirectory() << "'\n";
-
 
     SimTK_START_TEST("TestXml");
 

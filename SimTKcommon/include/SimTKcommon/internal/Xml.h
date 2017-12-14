@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -40,6 +40,49 @@ class TiXmlAttribute;
 class TiXmlText;
 class TiXmlComment;
 class TiXmlUnknown;
+
+/** This namespace contains Xml::Document and all the related XML classes. **/
+namespace Xml {
+
+// These classes are defined below.
+class Attribute;
+class Node;         // This is the abstract handle type for any node.
+class Comment;      // These are the concrete node types.
+class Unknown;      //                  "
+class Text;         //                  "
+class Element;      //                  "
+
+// This provides iteration over all the attributes found in a given element.
+class attribute_iterator;
+
+// This provides iteration over all the nodes, or nodes of a certain type,
+// at either the Xml document level or over the child nodes of an element.
+class node_iterator;
+
+// This provides iteration over all the element nodes that are children
+// of a given element, or over the subset of those child elements that has
+// a particular tag word.
+class element_iterator;
+
+/** The Xml::NodeType enum serves as the actual type of a node and as a filter
+for allowable node types during an iteration over nodes. We consider
+Element and Text nodes to be meaningful, while Comment and Unknown 
+nodes are meaningless junk. However, you are free to extract some meaning
+from them if you know how. In particular, DTD nodes end up as Unknown. **/
+enum NodeType {
+    NoNode      = 0x00, ///< Type of empty Node handle, or null filter
+    ElementNode = 0x01, ///< Element node type and only-Elements filter
+    TextNode    = 0x02, ///< Text node type and only-Text nodes filter
+    CommentNode = 0x04, ///< Comment node type and only-Comments filter
+    UnknownNode = 0x08, ///< Unknown node type and only-Unknowns filter
+
+    NoJunkNodes = ElementNode|TextNode,    ///< Filter out meaningless nodes
+    JunkNodes   = CommentNode|UnknownNode, ///< Filter out meaningful nodes
+    AnyNodes    = NoJunkNodes|JunkNodes    ///< Allow all nodes
+};
+
+/** Translate a NodeType to a human-readable string. **/
+String getNodeTypeAsString(NodeType type);
     
 /** This class provides a minimalist capability for reading and writing XML 
 documents, as files or strings. This is based with gratitude on the excellent 
@@ -53,10 +96,10 @@ and contents of the XML document.
 Our in-memory model of an XML document is simplified even further than 
 TinyXML's. There a lot to know about XML; you could start here: 
 http://en.wikipedia.org/wiki/XML. However, everything you need to know in
-order to read and write XML documents with the SimTK::Xml class is described 
-below.
+order to read and write XML documents with the SimTK::Xml::Document class is 
+described below.
 
-Much of the detailed documention is in the class Xml::Element; be sure to look
+Much of the detailed documentation is in the class Xml::Element; be sure to look
 there as well as at this overview.
 
 <h2>Our in-memory model of an XML document</h2>
@@ -140,11 +183,6 @@ you could write:
     for (Xml::node_iterator p=root.node_begin(); p != root.node_end(); ++p)
         cout << "Node type: " << p->getNodeTypeAsString() << endl;
 @endcode
-    
-(Some confessions: despite appearances, "Xml" is not a namespace, it is a 
-class with the other Xml classes being internal classes of Xml. An object of 
-type Xml is an XML document; the name Xml::Document is a typedef synonymous 
-with Xml.)
 
 <h2>Writing an XML document</h2>
 
@@ -162,8 +200,8 @@ Element nodes can be inserted only at the root element level and below.
 
 This section provides detailed information about the syntax of XML files as
 we accept and produce them. You won't have to know these details to read and
-write XML files using the SimTK::Xml class, but you may find this helpful for
-when you have to look at an XML file in a text editor.
+write XML files using the SimTK::Xml::Document class, but you may find this 
+helpful for when you have to look at an XML file in a text editor.
 
 <h3>Lexical elements</h3>
 
@@ -264,90 +302,42 @@ contains one Text node whose value is the original text.
 @see Xml::Element, Xml::Node **/
 
 //------------------------------------------------------------------------------
-//                                   XML
+//                               XML :: DOCUMENT
 //------------------------------------------------------------------------------
-class SimTK_SimTKCOMMON_EXPORT Xml {
+class SimTK_SimTKCOMMON_EXPORT Document {
 public:
-
-// These local classes are used to describe the contents of an XML document.
-class Attribute;
-class Node;         // This is the abstract handle type for any node.
-class Comment;      // These are the concrete node types.
-class Unknown;      //                  "
-class Text;         //                  "
-class Element;      //                  "
-
-/** This typedef allows Xml::Document to be used as the type of the document
-which is more conventional than using just Xml, and provides future 
-compatibility should we decide to upgrade Xml::Document to a class. **/
-typedef Xml Document;
-
-// This provides iteration over all the attributes found in a given element.
-class attribute_iterator;
-
-// This provides iteration over all the nodes, or nodes of a certain type,
-// at either the Xml document level or over the child nodes of an element.
-class node_iterator;
-
-// This provides iteration over all the element nodes that are children
-// of a given element, or over the subset of those child elements that has
-// a particular tag word.
-class element_iterator;
-
-/** The NodeType enum serves as the actual type of a node and as a filter
-for allowable node types during an iteration over nodes. We consider
-Element and Text nodes to be meaningful, while Comment and Unknown 
-nodes are meaningless junk. However, you are free to extract some meaning
-from them if you know how. In particular, DTD nodes end up as Unknown. **/
-enum NodeType {
-    NoNode      = 0x00, ///< Type of empty Node handle, or null filter
-    ElementNode = 0x01, ///< Element node type and only-Elements filter
-    TextNode    = 0x02, ///< Text node type and only-Text nodes filter
-    CommentNode = 0x04, ///< Comment node type and only-Comments filter
-    UnknownNode = 0x08, ///< Unknown node type and only-Unknowns filter
-
-    NoJunkNodes = ElementNode|TextNode,    ///< Filter out meaningless nodes
-    JunkNodes   = CommentNode|UnknownNode, ///< Filter out meaningful nodes
-    AnyNodes    = NoJunkNodes|JunkNodes    ///< Allow all nodes
-};
-
-/** Translate a NodeType to a human-readable string. **/
-static String getNodeTypeAsString(NodeType type);
-
 /**@name                         Construction
 You can start with an empty Xml::Document or initialize it from a file. **/
 /*@{*/
 
 /** Create an empty XML Document with default declaration and default root
-element with tag "_Root".\ (You should invoke this as Xml::Document() instead
-of just Xml().) 
+element with tag "_Root".
 
 If you were to print out this document now you would see:                                          
 @code
     <?xml version="1.0" encoding="UTF-8"?>
     <_Root />                                      
 @endcode **/
-Xml();
+Document();
 
 /** Create a new XML document and initialize it from the contents of the given
-file name.\ (You should invoke this as Xml::Document() instead
-of just Xml().)  
+file name.  
 
 An exception will be thrown if the file doesn't exist or can't be 
 parsed. @see readFromFile(), readFromString() **/
-explicit Xml(const String& pathname);
+explicit Document(const String& pathname);
 
 /** Copy constructor makes a deep copy of the entire source document; nothing
 is shared between the source and the copy. **/
-Xml(const Xml::Document& source);
+Document(const Document& source);
 
 /** Copy assignment frees all heap space associated with the current
 Xml::Document and then makes a deep copy of the source document; nothing is
 shared between the source and the copy. **/
-Xml::Document& operator=(const Xml::Document& souce);
+Document& operator=(const Document& souce);
 
 /** The destructor cleans up all heap space associated with this document. **/
-~Xml();
+~Document();
 
 /** Restore this document to its default-constructed state. **/
 void clear();
@@ -524,21 +514,21 @@ void setXmlIsStandalone(bool isStandalone);
                                   private:
 friend class Node;
 
-class Impl; // a private, local class Xml::Impl
+class Impl; // a private, local class Document::Impl
 const Impl& getImpl() const {assert(impl); return *impl;}
 Impl&       updImpl()       {assert(impl); return *impl;}
 
-Xml& unconst() const {return *const_cast<Xml*>(this);}
+Document& unconst() const {return *const_cast<Document*>(this);}
 
 Impl*       impl; // This is the lone data member.
 };
 
 /** Output a "pretty printed" textual representation of the given Xml::Document
 to an std::ostream, using the document's current indent string for
-formatting. @see Xml::setIndentString() 
-@relates Xml **/
+formatting. @see Xml::Document::setIndentString() 
+@relates Xml::Document **/
 // Do this inline so we don't have to pass the ostream through the API.
-inline std::ostream& operator<<(std::ostream& o, const Xml::Document& doc) {
+inline std::ostream& operator<<(std::ostream& o, const Document& doc) {
     String output;
     doc.writeToString(output);
     return o << output;
@@ -554,7 +544,7 @@ within the element start tag in an XML document; this class represents the
 in-memory representation of one of those attributes and can be used to examine
 or modify the name or value. Attribute names within an element tag are unique.
 **/
-class SimTK_SimTKCOMMON_EXPORT Xml::Attribute {
+class SimTK_SimTKCOMMON_EXPORT Attribute {
 public:
 /** Default constructor creates a null Attribute handle. **/
 Attribute() : tiAttr(0) {}
@@ -599,7 +589,7 @@ Attribute& setValue(const String& value);
 state but does not recover any heap space; use clearOrphan() if you know
 this attribute was never put into a document. **/
 void clear();
-/** This method explictly frees the heap space for an orphan attribute that
+/** This method explicitly frees the heap space for an orphan attribute that
 was created but never inserted into a document. It is an error to call this
 if the attribute is in a document. **/
 void clearOrphan();
@@ -618,8 +608,8 @@ bool operator!=(const Attribute& attr) const {return tiAttr!=attr.tiAttr;}
 
 //------------------------------------------------------------------------------
                                   private:
-friend class Xml::attribute_iterator;
-friend class Xml::Element;
+friend class attribute_iterator;
+friend class Element;
 
 explicit Attribute(TiXmlAttribute* attr) {tiAttr=attr;}
 const TiXmlAttribute& getTiAttr() const {assert(tiAttr);return *tiAttr;}
@@ -638,12 +628,12 @@ Attribute& unconst() const {return *const_cast<Attribute*>(this);}
 TiXmlAttribute* tiAttr; // this is the lone data member
 };
 
-/** Output a textual representation of the given Attribute to an std::ostream.
-This will be in the form the Attribute would appear in an XML file; that is,
-name="value" or name='value' with entity substituion for odd characters, 
-without surrounding blanks. @relates Xml::Attribute **/
+/** Output a textual representation of the given Xml::Attribute to an 
+std::ostream. This will be in the form the Attribute would appear in an XML 
+file; that is, name="value" or name='value' with entity substituion for odd 
+characters, without surrounding blanks. @relates Xml::Attribute **/
 // Do this inline so we don't have to pass the ostream through the API.
-inline std::ostream& operator<<(std::ostream& o, const Xml::Attribute& attr) {
+inline std::ostream& operator<<(std::ostream& o, const  Attribute& attr) {
     String output;
     attr.writeToString(output);
     return o << output;
@@ -656,8 +646,8 @@ inline std::ostream& operator<<(std::ostream& o, const Xml::Attribute& attr) {
 //------------------------------------------------------------------------------
 /** This is a bidirectional iterator suitable for moving forward or backward
 within a list of Attributes within an Element, for writable access. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::attribute_iterator 
-:   public std::iterator<std::bidirectional_iterator_tag, Xml::Attribute> {
+class SimTK_SimTKCOMMON_EXPORT attribute_iterator 
+:   public std::iterator<std::bidirectional_iterator_tag, Attribute> {
 public:
 /** Default constructor creates an iterator that compares equal to 
 attribute_end(). **/
@@ -714,7 +704,7 @@ bool operator!=(const attribute_iterator& other) const
 
 //------------------------------------------------------------------------------
                                   private:
-friend class Xml::Element;
+friend class Element;
 
 explicit attribute_iterator(TiXmlAttribute* ap) : attr(ap) {}
 
@@ -724,7 +714,7 @@ Attribute       attr;   // the lone data member
 
 
 //------------------------------------------------------------------------------
-//                               XML NODE
+//                               XML :: NODE
 //------------------------------------------------------------------------------
 /** Abstract handle for holding any kind of node in an XML tree. The concrete
 node handle types derived from Node are: Comment, Unknown, Text, and Element. 
@@ -749,7 +739,7 @@ and the time it is adopted by some element (usually in the same constructor)
 so you can ignore them for the most part. But if you must keep orphan nodes
 around, be aware that they must be referenced by only one handle at a time to 
 avoid ownership conflicts. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::Node {
+class SimTK_SimTKCOMMON_EXPORT Node {
 public:
 
 /**@name                Construction and destruction
@@ -782,7 +772,7 @@ leak unless you explicitly destruct them first with clearOrphan(). **/
 state but does not recover any heap space; use clearOrphan() if you know
 this node was never put into a document. **/
 void clear();
-/** This method explictly frees the heap space for an orphan node that
+/** This method explicitly frees the heap space for an orphan node that
 was created but never inserted into a document. It is an error to call this
 if the node is in a document. **/
 void clearOrphan();
@@ -879,13 +869,12 @@ TiXmlNode*       updTiNodePtr()       {return tiNode;}
 
 //------------------------------------------------------------------------------
                                   private:
-friend class Xml;
-friend class Xml::Impl;
-friend class Xml::node_iterator;
-friend class Xml::Comment;
-friend class Xml::Unknown;
-friend class Xml::Text;
-friend class Xml::Element;
+friend class Document;
+friend class node_iterator;
+friend class Comment;
+friend class Unknown;
+friend class Text;
+friend class Element;
 
 Node& unconst() const {return *const_cast<Node*>(this);}
 
@@ -898,7 +887,7 @@ indent string from the Node's containing Xml::Document, if this Node is in a
 document, otherwise the default of four spaces for each indent level is used.
 @relates Xml::Node **/
 // Do this inline so we don't have to pass the ostream through the API.
-inline std::ostream& operator<<(std::ostream& o, const Xml::Node& xmlNode) {
+inline std::ostream& operator<<(std::ostream& o, const Node& xmlNode) {
     String output;
     xmlNode.writeToString(output);
     return o << output;
@@ -907,13 +896,13 @@ inline std::ostream& operator<<(std::ostream& o, const Xml::Node& xmlNode) {
 
 
 //------------------------------------------------------------------------------
-//                          XML NODE ITERATOR
+//                          XML :: NODE ITERATOR
 //------------------------------------------------------------------------------
 /** This is a bidirectional iterator suitable for moving forward or backward
 within a list of Nodes, for writable access. By default we will iterate
 over all nodes but you can restrict the types at construction. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::node_iterator 
-:   public std::iterator<std::bidirectional_iterator_tag, Xml::Node> {
+class SimTK_SimTKCOMMON_EXPORT node_iterator 
+:   public std::iterator<std::bidirectional_iterator_tag, Node> {
 public:
 
 explicit node_iterator(NodeType allowed=AnyNodes) 
@@ -954,10 +943,10 @@ void reassign(TiXmlNode* tiNode)
 
 //------------------------------------------------------------------------------
                                   private:
-friend class Xml;
-friend class Xml::Node;
-friend class Xml::Element;
-friend class Xml::element_iterator;
+friend class Document;
+friend class Node;
+friend class Element;
+friend class element_iterator;
 
 Node            node;       // data members
 NodeType        allowed;
@@ -966,14 +955,13 @@ NodeType        allowed;
 
 
 //------------------------------------------------------------------------------
-//                          XML ELEMENT ITERATOR
+//                          XML :: ELEMENT ITERATOR
 //------------------------------------------------------------------------------
 /** This is a bidirectional iterator suitable for moving forward or backward
 within a list of Element nodes, for writable access. By default we will iterate
 over all elements in a list but you can restrict the element_iterator at
 construction to find only elements with a particular tag. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::element_iterator
-:   public Xml::node_iterator {
+class SimTK_SimTKCOMMON_EXPORT element_iterator: public node_iterator {
 public:
 
 /** This is the default constructor which leaves the element_iterator empty, and
@@ -1008,8 +996,7 @@ bool operator!=(const element_iterator& other) const
 
 //------------------------------------------------------------------------------
                                    private:
-friend class Xml;
-friend class Xml::Element;
+friend class Element;
 
 explicit element_iterator(TiXmlElement* tiElt, const String& tag="") 
 :   node_iterator((TiXmlNode*)tiElt, ElementNode), tag(tag) {}
@@ -1028,7 +1015,7 @@ String          tag;    // lone data member
 
 
 //------------------------------------------------------------------------------
-//                               XML ELEMENT
+//                               XML :: ELEMENT
 //------------------------------------------------------------------------------
 /** An element has (1) a tagword, (2) a map of (name,value) pairs called 
 attributes, and (3) a list of child nodes. The tag word, which begins with an 
@@ -1043,7 +1030,7 @@ attributes, and may also have comment and unknown nodes but they cannot have
 any child elements. This class provides a special set of methods for dealing 
 with value nodes very conveniently; they will fail if you attempt to use them 
 on an element that is not a value element. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::Element : public Xml::Node {
+class SimTK_SimTKCOMMON_EXPORT Element : public Node {
 public:
 
 /**@name                  Construction and destruction
@@ -1104,6 +1091,10 @@ is node_end()). The iterator must refer to a node that is a child of this
 Element. This Element takes over ownership of the node which must 
 not already have a parent. **/
 void insertNodeAfter(const node_iterator& pos, Node node);
+
+/** This is an abbreviation for `insertNodeAfter(node_end(), node);`. **/
+void appendNode(Node node) {insertNodeAfter(node_end(), node);}
+
 /** Delete the indicated node, which must be a child of this element,
 and must not be node_end(). The node will be removed from this element
 and deleted. The iterator is invalid after this call; be sure not to use it 
@@ -1407,8 +1398,8 @@ static Element& getAs(Node& node);
 
 //------------------------------------------------------------------------------
                                   private:
-friend class Xml::Node;
-friend class Xml::element_iterator;
+friend class Node;
+friend class element_iterator;
 
 explicit Element(TiXmlElement* tiElt) 
 :   Node(reinterpret_cast<TiXmlNode*>(tiElt)) {}
@@ -1438,22 +1429,22 @@ Element& unconst() const {return *const_cast<Element*>(this);}
 
 // A few element_iterator inline definitions had to wait for Element to be
 // defined.
-inline Xml::element_iterator::element_iterator
-   (Xml::Element& elt, const String& tag) 
-:   Xml::node_iterator(elt, Xml::ElementNode), tag(tag) {}
-inline Xml::Element& Xml::element_iterator::operator*() const 
+inline element_iterator::element_iterator
+   (Element& elt, const String& tag) 
+:   node_iterator(elt, ElementNode), tag(tag) {}
+inline Element& element_iterator::operator*() const 
 {   return Element::getAs(*upcast());}
-inline Xml::Element* Xml::element_iterator::operator->() const 
+inline Element* element_iterator::operator->() const 
 {   return &Element::getAs(*upcast());}
 
 
 
 
 //------------------------------------------------------------------------------
-//                               XML TEXT NODE
+//                             XML :: TEXT NODE
 //------------------------------------------------------------------------------
 /** This is the "leaf" content of an element. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::Text : public Xml::Node {
+class SimTK_SimTKCOMMON_EXPORT Text : public Node {
 public:
 /** Create an empty Text node handle, suitable only for holding references
 to other Text nodes. **/
@@ -1500,10 +1491,10 @@ explicit Text(TiXmlText* tiText)
 
 
 //------------------------------------------------------------------------------
-//                             XML COMMENT NODE
+//                           XML :: COMMENT NODE
 //------------------------------------------------------------------------------
 /** A comment contains only uninterpreted text. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::Comment : public Xml::Node {
+class SimTK_SimTKCOMMON_EXPORT Comment : public Node {
 public:
 /** Create an empty Comment node handle, suitable only for holding references
 to other Comment nodes. **/
@@ -1545,10 +1536,10 @@ explicit Comment(TiXmlComment* tiComment)
 
 
 //------------------------------------------------------------------------------
-//                             XML UNKNOWN NODE
+//                             XML :: UNKNOWN NODE
 //------------------------------------------------------------------------------
 /** This is something we don't understand but can carry around. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::Unknown : public Xml::Node {
+class SimTK_SimTKCOMMON_EXPORT Unknown : public Node {
 public:
 /** Create an empty Unknown node handle, suitable only for holding references
 to other Unknown nodes. **/
@@ -1601,6 +1592,163 @@ static Unknown& getAs(Node& node);
 explicit Unknown(TiXmlUnknown* tiUnknown) 
 :   Node(reinterpret_cast<TiXmlNode*>(tiUnknown)) {}
 };
+
+} // end of namespace Xml
+
+
+/** Default implementation of serialization to an XML element for objects whose
+class does not define a member function `toXmlElement(name)`. A name can be
+provided for this value; by default that will be used as the element's tag word
+so make sure it is a legal XML tag. If `name` is empty we'll use `<value>` as 
+the tag. This default implementation uses Simbody's stream serialization method 
+`SimTK::writeUnformatted<T>()`. Specialize this free function or provide a 
+member function if that doesn't provide the behavior you want.
+
+If type `T` provides a member function or specialization of this method, it may 
+choose any tag word, in which case the given name if any should be added as an 
+attribute `name="name"` ("value" is not used in that case if `name` is empty).
+
+A helper function `toXmlElementHelper<T>` is available for invoking the member
+function `T::toXmlElement()` if it exists, otherwise the appropriate 
+specialization of this free function. Invoke the helper like this:
+@code
+    Xml::Element e = toXmlElementHelper(T, "name", true);
+@endcode
+The third parameter `true` is a dummy that allows prioritization of the member
+function over the free function if both exist, using SFINAE.
+@see toXmlElementHelper(), fromXmlElement()
+@relates SimTK::Xml::Element **/
+template <class T> inline Xml::Element
+toXmlElement(const T& thing, const std::string& name) {
+    std::ostringstream os;
+    writeUnformatted(os, thing);
+    return Xml::Element(name.empty()?"value":name, os.str());
+}
+
+/** Helper function for toXmlElement() that selects the member function if it
+exists. @see toXmlElement() 
+@relates SimTK::Xml::Element **/
+template <class T> inline
+auto toXmlElementHelper(const T& thing, const std::string& name, bool)
+    -> decltype(std::declval<T>().toXmlElement(name)) {
+    return thing.toXmlElement(name); // call member function
+}
+
+/** Helper function for toXmlElement() that selects the free function if no
+member function exists. @see toXmlElement() 
+@relates SimTK::Xml::Element **/
+template <class T> inline
+auto toXmlElementHelper(const T& thing, const std::string& name, int) 
+    -> Xml::Element  {
+    return toXmlElement(thing, name); // call free function
+}
+
+/** Default implementation of deserialization from an XML element for objects 
+whose class does not define a member function `fromXmlElement(elt,name)`. The
+name is optional but if provided then we require that the given element has
+that name. For this default implementation, we'll expect the element's tag word
+to be the given name; specializations or member functions are free to use a
+different tag with the name as an attribute.
+
+This default implementation uses Simbody's stream deserialization method 
+`SimTK::readUnformatted<T>()`. Specialize this free function or provide a 
+member function if that doesn't provide the behavior you want.
+
+A helper function `fromXmlElementHelper<T>` is available for invoking the member
+function `T::fromXmlElement()` if it exists, otherwise the appropriate 
+specialization of this free function. Invoke the helper like this:
+@code
+    fromXmlElementHelper(T, element, "requiredName", true);
+@endcode
+The last parameter `true` is a dummy that allows prioritization of the member
+function over the free function if both exist, using SFINAE.
+@see fromXmlElementHelper(), toXmlElement()
+@relates SimTK::Xml::Element **/
+template <class T> inline void
+fromXmlElement(T& thing, Xml::Element& elt, 
+               const std::string& requiredName="") {
+    if (!requiredName.empty()) {
+        const String& name = elt.getElementTag();
+        SimTK_ERRCHK2_ALWAYS(name==requiredName, "fromXmlElement<T>",
+        "Expected element name '%s' but got '%s'.", requiredName.c_str(), 
+                                                    name.c_str());
+    }
+    std::istringstream is(elt.getValue());
+    const bool readOK = readUnformatted(is, thing);
+    SimTK_ERRCHK2_ALWAYS(readOK, "fromXmlElement<T>",
+        "Failed to read an object of type T='%s' from element value '%s' "
+        "using readUnformatted<T>().",
+        NiceTypeName<T>::namestr().c_str(), elt.getValue().c_str());
+}
+
+/** Helper function for fromXmlElement() that selects the member function if it
+exists. @see fromXmlElement() 
+@relates SimTK::Xml::Element **/
+template <class T> inline
+auto fromXmlElementHelper(T& thing, Xml::Element& elt, 
+                          const std::string& requiredTag, bool)
+    -> decltype(std::declval<T>().fromXmlElement(elt,requiredTag)) {
+    return thing.fromXmlElement(elt,requiredTag); // call member function
+}
+
+/** Helper function for fromXmlElement() that selects the free function if no
+member function exists. @see fromXmlElement() 
+@relates SimTK::Xml::Element **/
+template <class T> inline
+auto fromXmlElementHelper(T& thing, Xml::Element& elt, 
+                          const std::string& requiredTag, int) 
+    -> void {
+    fromXmlElement(thing, elt, requiredTag); // call free function
+}
+
+
+// Definition of these functions (which should really be methods of 
+// the Array_ classes) has to wait until Xml classes are declared because Xml 
+// uses Array_.
+
+/** Partial specialization for XML serialization of ArrayViewConst_ objects.
+The output is identical for this class, or its derived classes ArrayView_ and
+Array_, although there are other signatures for those to ensure this method
+gets used. The result is a single element with tag word `<Array>` with the
+given name (if any) and a version number as attributes. Then each entry is
+a subelement, as produced by type T's `toXmlElement()` method.
+
+Note that ArrayViewConst_ can't be a target for deserializaton since
+it is immutable.
+@relates SimTK::ArrayViewConst_ **/
+template <class T, class X>
+Xml::Element toXmlElement(const ArrayViewConst_<T,X>& thing,
+                          const std::string& name="") {
+    static const int version = 1;
+    Xml::Element e("Array");
+    if (!name.empty()) e.setAttributeValue("name", name);
+    e.setAttributeValue("version", String(version));
+    for (const auto& v : thing)
+        e.appendNode(toXmlElementHelper(v, "", true));
+    return e;
+}
+
+/** Partial specialization for XML serialization of ArrayView_ objects. The 
+result is a single element with tag word `<Array>` with the given name (if any) 
+and a version number as attributes. Then each entry is a subelement, as produced
+by type T's `toXmlElement()` method.
+@relates SimTK::ArrayView_ **/
+template <class T, class X>
+Xml::Element toXmlElement(const ArrayView_<T,X>& thing,
+                          const std::string& name="") {
+    return toXmlElement(static_cast<const ArrayViewConst_<T,X>&>(thing),name);
+}
+
+/** Partial specialization for XML serialization of Array_ objects. The 
+result is a single element with tag word `<Array>` with the given name (if any) 
+and a version number as attributes. Then each entry is a subelement, as produced
+by type T's `toXmlElement()` method.
+@relates SimTK::Array_ **/
+template <class T, class X>
+Xml::Element toXmlElement(const Array_<T,X>& thing,
+                          const std::string& name="") {
+    return toXmlElement(static_cast<const ArrayViewConst_<T,X>&>(thing),name);
+}
 
 } // namespace SimTK
 

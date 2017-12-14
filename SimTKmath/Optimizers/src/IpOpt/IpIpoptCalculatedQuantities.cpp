@@ -23,7 +23,7 @@
 
 #include <limits>
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 #ifdef IP_DEBUG
   static const Index dbg_verbosity = 0;
@@ -2534,7 +2534,7 @@ namespace Ipopt
 
     Number xi = MinCompl/avrg_compl;
     // The folloking line added for the case that avrg_compl is
-    // slighly smaller than MinCompl, due to numerical roundoff
+    // slightly smaller than MinCompl, due to numerical roundoff
     xi = Min(1., xi);
 
     return xi;

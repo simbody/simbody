@@ -55,7 +55,7 @@ the curve. We can check whether the control points are already convex to ensure
 that the contained curve is well behaved, and subdivide if not.
 
 Note that a cubic Bezier spline (made up of multiple segments) would not 
-necessarily be composed of these because a spline can be contructed more 
+necessarily be composed of these because a spline can be constructed more 
 compactly with shared end points. However, the primitive and inline methods 
 here can be used for fast curve segment computations.
 

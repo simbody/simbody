@@ -33,9 +33,9 @@ public:
     SemiExplicitEulerIntegratorRep(Integrator* handle, const System& sys);
 protected:
     bool attemptDAEStep
-       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations);
-    void createInterpolatedState(Real t);
-    void backUpAdvancedStateByInterpolation(Real t);
+       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations) override;
+    void createInterpolatedState(Real t) override;
+    void backUpAdvancedStateByInterpolation(Real t) override;
 };
 
 } // namespace SimTK

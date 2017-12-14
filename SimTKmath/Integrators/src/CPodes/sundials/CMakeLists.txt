@@ -1,7 +1,7 @@
 
 # add in all sundials source and headers here
-FILE(GLOB src_files  ./src/*/*.c)
-FILE(GLOB incl_files ./include/*/*.h)
+file(GLOB src_files  ./src/*/*.c)
+file(GLOB incl_files ./include/*/*.h)
 
 foreach( src ${src_files} )
     list(APPEND SOURCE_GROUPS "Source Files\\CPodes")
@@ -25,6 +25,6 @@ set(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} PARENT_SCOPE)
 
 
 # build tests that depend on source at this level
-IF( BUILD_TESTING )
+if( BUILD_TESTING )
    add_subdirectory(tests)
-ENDIF( BUILD_TESTING )
+endif( BUILD_TESTING )

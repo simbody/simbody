@@ -83,10 +83,10 @@ public:
 
     static bool isAvailable();
 
-    Real optimize(Vector &results);
-    OptimizerRep* clone() const;
+    Real optimize(Vector &results) override;
+    OptimizerRep* clone() const override;
 
-    OptimizerAlgorithm getAlgorithm() const
+    OptimizerAlgorithm getAlgorithm() const override
     {   return CFSQP; }
 
 private:

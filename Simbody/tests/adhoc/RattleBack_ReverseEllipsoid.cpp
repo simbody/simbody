@@ -52,7 +52,7 @@ public:
                    const MobilizedBody& body, Real interval) 
     :   PeriodicEventReporter(interval), system(system), body(body) {}
 
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         system.realize(state, Stage::Dynamics);
         Real energy = system.calcEnergy(state);
         SpatialVec momentum = system.getMatterSubsystem()

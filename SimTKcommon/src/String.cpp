@@ -37,6 +37,10 @@
 
 using SimTK::String;
 
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about sprintf, etc.
+#endif
+
 String::String(float r, const char* fmt) {
     if (!isFinite(r)) {
         if (isNaN(r)) {(*this)="NaN"; return;}

@@ -65,7 +65,7 @@ such pair (per %ContactTrackerSubsystem). The presence of a Contact in the set
 does not necessarily mean its two surfaces are touching, just that their 
 proximity is interesting in some way. Each Contact is characterized as 
 impending, initiated, ongoing, broken, or separating. At each evaluation, the 
-last-known set of Contacts is used in conjuction with the current State to 
+last-known set of Contacts is used in conjunction with the current State to 
 determine a disposition for each of the tracked Contacts. Contacts that have 
 become boring are removed from the tracked set, and newly-interesting ones are 
 assigned a new ContactId and added to the tracked contacts set. The ContactId 

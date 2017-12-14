@@ -238,10 +238,10 @@ extern "C" {
  * time it is called.
  *
  * A CPRhsFn should return 0 if successful, a negative value if
- * an unrecoverable error occured, and a positive value if a 
- * recoverable error (e.g. invalid y values) occured. 
- * If an unrecoverable occured, the integration is halted. 
- * If a recoverable error occured, then (in most cases) CPODES
+ * an unrecoverable error occurred, and a positive value if a 
+ * recoverable error (e.g. invalid y values) occurred. 
+ * If an unrecoverable occurred, the integration is halted. 
+ * If a recoverable error occurred, then (in most cases) CPODES
  * will try to correct and retry.
  * -----------------------------------------------------------------
  */
@@ -266,10 +266,10 @@ typedef int (*CPRhsFn)(realtype t, N_Vector y,
  * every time it is called.
  *                                                                
  * A CPResFn function should return a value of 0 if successful, a 
- * positive value if a recoverable error occured (e.g. y has an 
+ * positive value if a recoverable error occurred (e.g. y has an 
  * illegal value), or a negative value if a nonrecoverable error 
- * occured. In the latter case, the program halts. If a recoverable 
- * error occured, then (in most cases) the integrator will attempt 
+ * occurred. In the latter case, the program halts. If a recoverable 
+ * error occurred, then (in most cases) the integrator will attempt 
  * to correct and retry.
  * ----------------------------------------------------------------
  */
@@ -294,10 +294,10 @@ typedef int (*CPResFn)(realtype t, N_Vector y, N_Vector yp,
  * every time it is called.
  *
  * A CPCnstrFn should return 0 if successful, a negative value if
- * an unrecoverable error occured, and a positive value if a 
- * recoverable error (e.g. invalid y values) occured. 
- * If an unrecoverable occured, the integration is halted. 
- * If a recoverable error occured, then (in most cases) CPODES
+ * an unrecoverable error occurred, and a positive value if a 
+ * recoverable error (e.g. invalid y values) occurred. 
+ * If an unrecoverable occurred, the integration is halted. 
+ * If a recoverable error occurred, then (in most cases) CPODES
  * will try to correct and retry.
  * -----------------------------------------------------------------
  */
@@ -336,10 +336,10 @@ typedef int (*CPCnstrFn)(realtype t, N_Vector y,
  * the computation of consistent initial conditions).
  *
  * A CPProjFn should return 0 if successful, a negative value if
- * an unrecoverable error occured, and a positive value if a 
- * recoverable error (e.g. invalid y values) occured. 
- * If an unrecoverable occured, the integration is halted. 
- * If a recoverable error occured, then (in most cases) CPODES
+ * an unrecoverable error occurred, and a positive value if a 
+ * recoverable error (e.g. invalid y values) occurred. 
+ * If an unrecoverable occurred, the integration is halted. 
+ * If a recoverable error occurred, then (in most cases) CPODES
  * will try to correct and retry.
  * -----------------------------------------------------------------
  * NOTE: If the user's projection routine needs other quantities,   
@@ -367,10 +367,10 @@ typedef int (*CPProjFn)(realtype t, N_Vector ycur, N_Vector corr,
  * passed to the qfun function every time it is called.
  *
  * A CPQuadFn should return 0 if successful, a negative value if
- * an unrecoverable error occured, and a positive value if a 
- * recoverable error (e.g. invalid y values) occured. 
- * If an unrecoverable occured, the integration is halted. 
- * If a recoverable error occured, then (in most cases) CPODES
+ * an unrecoverable error occurred, and a positive value if a 
+ * recoverable error (e.g. invalid y values) occurred. 
+ * If an unrecoverable occurred, the integration is halted. 
+ * If a recoverable error occurred, then (in most cases) CPODES
  * will try to correct and retry.
  * -----------------------------------------------------------------
  */
@@ -393,7 +393,7 @@ typedef int (*CPQuadFn)(realtype t, N_Vector y,
  * passed to the user's g function every time it is called.
  *
  * A CPRootFn should return 0 if successful or a non-zero value
- * if an error occured (in which case the integration will be halted).
+ * if an error occurred (in which case the integration will be halted).
  * -----------------------------------------------------------------
  */
 
@@ -1128,7 +1128,7 @@ SUNDIALS_EXPORT int CPodeGetConsistentIC(void *cpode_mem, N_Vector yy0, N_Vector
  * CPodeGetNumLinSolvSetups returns the number of calls made to
  *    the linear solver's setup routine
  * CPodeGetNumErrTestFails returns the number of local error test
- *    failures that have occured
+ *    failures that have occurred
  * CPodeGetLastOrder returns the order used during the last
  *    internal step
  * CPodeGetCurrentOrder returns the order to be used on the next
@@ -1160,7 +1160,7 @@ SUNDIALS_EXPORT int CPodeGetConsistentIC(void *cpode_mem, N_Vector yy0, N_Vector
  * CPodeGetIntegratorStats retruns most of the optional outputs as
  *    a group.
  * CPodeGet* return values:
- *   CP_SUCCESS   if succesful
+ *   CP_SUCCESS   if successful
  *   CP_MEM_NULL  if the CPODES memory was NULL
  *   CP_NO_SLDET  if stability limit was not turned on
  * -----------------------------------------------------------------

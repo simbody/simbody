@@ -46,7 +46,9 @@ friend class CableSpring;
                      Real defDissipationCoef)
         :   k(defStiffness), L0(defSlackLength), c(defDissipationCoef) {}
 
-        Real      k, L0, c;
+        InstanceVars() = default;
+
+        Real      k{NaN}, L0{NaN}, c{NaN};
     };
 
     // Type of the velocity-stage lazy cache entry that holds the spring
@@ -104,7 +106,7 @@ friend class CableSpring;
 
     // We must always evaluate the power if we're going to calculate its
     // integral.
-    void realizeAcceleration(const State& s) const {
+    void realizeAcceleration(const State& s) const override {
         const ForceCache& forceCache = ensureForceCacheValid(s);
         updDissipatedEnergyDeriv(s) = forceCache.powerLoss;
     }

@@ -288,7 +288,7 @@ void realize(const State& state, Stage stage = Stage::HighestRuntime) const;
 /**@name                    The Constrained System
 
 These methods deal with prescribed motion and constraints on the allowable 
-values of q and u. They are primarly for use by numerical integrators. 
+values of q and u. They are primarily for use by numerical integrators. 
 Prescribed motion is always resolved exactly because it involves explicit
 computation of q=q(t) and u=u(t,q). Constraints are given by implicit
 equations like g(q)=0 and are solved to a specified tolerance. Also, prescribed

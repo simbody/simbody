@@ -66,7 +66,7 @@ void testTriMeshBoundingSphere() {
     const int NTrials = 100;
 
     for (int i = 0; i < NTrials; i++) {
-        // Create a mesh consisting of a random number of octohedra at random 
+        // Create a mesh consisting of a random number of octahedra at random 
         // places.
         
         vector<Vec3> vertices;

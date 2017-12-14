@@ -650,7 +650,7 @@ public:
     int getNumSavedStates() const {return (int)m_states.size();}
     const State& getState(int n) const {return m_states[n];}
 
-    void handleEvent(const State& s) const {
+    void handleEvent(const State& s) const override {
         const SimbodyMatterSubsystem& matter=m_mbs.getMatterSubsystem();
         const SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
         m_mbs.realize(s, Stage::Acceleration);
@@ -678,7 +678,7 @@ public:
     explicit Nada(Real reportInterval)
     :   PeriodicEventReporter(reportInterval) {} 
 
-    void handleEvent(const State& s) const {
+    void handleEvent(const State& s) const override {
 #ifndef NDEBUG
         printf("%7g NADA\n", s.getTime());
 #endif

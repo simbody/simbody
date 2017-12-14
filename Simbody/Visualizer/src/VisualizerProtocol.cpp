@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -41,16 +41,22 @@ using namespace std;
     #include <io.h>
     #include <process.h>
     #define READ _read
+    #define WRITEFUNC _write
 #else
     #include <unistd.h>
     #define READ read
+    #define WRITEFUNC write
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strcat, sprintf, etc.
 #endif
 
 // gcc 4.4.3 complains bitterly if you don't check the return
 // status from the write() system call. This avoids those 
 // warnings and maybe, someday, will catch an error.
 #define WRITE(pipeno, buf, len) \
-   {int status=write((pipeno), (buf), (len)); \
+   {int status=WRITEFUNC((pipeno), (buf), (len)); \
     SimTK_ERRCHK4_ALWAYS(status!=-1, "VisualizerProtocol",  \
     "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
     (len),(pipeno),errno,strerror(errno));}
@@ -160,8 +166,15 @@ static void spawnViz(const Array_<String>& searchPath, const String& appName,
 
 static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
-    while (totalRead < bytes)
-        totalRead += READ(srcPipe, buffer+totalRead, bytes-totalRead);
+    int oldCancelType;
+    while (totalRead < bytes) {
+        // Changing the cancel type is a workaround for Windows, which does not
+        // mark system calls as "cancellation points"; see:
+        // https://www.sourceware.org/pthreads-win32/manual/pthread_cancel.html
+        pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldCancelType);
+        totalRead += READ(srcPipe, buffer + totalRead, bytes - totalRead);
+        pthread_setcanceltype(oldCancelType, NULL);
+    }
 }
 
 static void readData(unsigned char* buffer, int bytes) 
@@ -257,11 +270,30 @@ VisualizerProtocol::VisualizerProtocol
     if (Pathname::environmentVariableExists("SIMBODY_HOME")) {
         const std::string e = Pathname::getAbsoluteDirectoryPathname(
                 Pathname::getEnvironmentVariable("SIMBODY_HOME"));
-        actualSearchPath.push_back(Pathname::addDirectoryOffset(e,"bin"));
+        actualSearchPath.push_back(Pathname::addDirectoryOffset(e,
+                    SIMBODY_VISUALIZER_REL_INSTALL_DIR));
     } else if (Pathname::environmentVariableExists("SimTK_INSTALL_DIR")) {
         const std::string e = Pathname::getAbsoluteDirectoryPathname(
             Pathname::getEnvironmentVariable("SimTK_INSTALL_DIR"));
-        actualSearchPath.push_back(Pathname::addDirectoryOffset(e,"bin"));
+        actualSearchPath.push_back(Pathname::addDirectoryOffset(e,
+                    SIMBODY_VISUALIZER_REL_INSTALL_DIR));
+    }
+
+    // Try using the location of SimTKsimbody combined with the path from the
+    // SimTKsimbody library to the simbody-visualizer install location (only
+    // available on non-Windows platforms). We must provide a function that
+    // resides in SimTKsimbody.
+    std::string SimTKsimbodyDir;
+    if (Pathname::getFunctionLibraryDirectory((void*)createPipeSim2Viz,
+                                              SimTKsimbodyDir)) {
+        // We have the path to SimTKsimbody; now we combine this with the path
+        // from SimTKsimbody to simbody-visualizer (this assumes the
+        // installation has not been reorganized from what CMake originally
+        // specified).
+        std::string absPathToVizDir =
+          Pathname::getAbsoluteDirectoryPathnameUsingSpecifiedWorkingDirectory(
+                  SimTKsimbodyDir, SIMBODY_PATH_FROM_LIBDIR_TO_VIZ_DIR);
+        actualSearchPath.push_back(absPathToVizDir);
     }
 
     // Try the build-time install location:
@@ -274,10 +306,10 @@ VisualizerProtocol::VisualizerProtocol
 
     actualSearchPath.push_back(
         Pathname::addDirectoryOffset(def,
-            Pathname::addDirectoryOffset("Simbody", "bin")));
+            Pathname::addDirectoryOffset("Simbody", SIMBODY_VISUALIZER_REL_INSTALL_DIR)));
     actualSearchPath.push_back(
         Pathname::addDirectoryOffset(def,
-            Pathname::addDirectoryOffset("SimTK", "bin")));
+            Pathname::addDirectoryOffset("SimTK", SIMBODY_VISUALIZER_REL_INSTALL_DIR)));
 
     // Pipe[0] is the read end, Pipe[1] is the write end.
     int sim2vizPipe[2], viz2simPipe[2], status;
@@ -303,8 +335,8 @@ VisualizerProtocol::VisualizerProtocol
     // Spawn the thread to listen for events.
 
     pthread_mutex_init(&sceneLock, NULL);
-    pthread_t thread;
-    pthread_create(&thread, NULL, listenForVisualizerEvents, &visualizer);
+    pthread_create(&eventListenerThread, NULL, listenForVisualizerEvents,
+                   &visualizer);
 }
 
 // This is executed on the main thread at GUI startup and thus does not
@@ -360,6 +392,14 @@ void VisualizerProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
 
 void VisualizerProtocol::shutdownGUI() {
     // Don't wait for scene completion; kill GUI now.
+    
+    // We no longer need to listen for events from the GUI. Call this before
+    // writing to the pipe, because attempting to write to the pipe may throw
+    // an exception. This detach line was added to solve an issue with OpenSim
+    // MATLAB bindings, wherein MATLAB would use more and more CPU each time
+    // a Visualizer was created.
+    pthread_cancel(eventListenerThread);
+    
     char command = Shutdown;
     WRITE(outPipe, &command, 1);
 }
@@ -474,14 +514,14 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
     
     meshes[impl] = (unsigned short)index;    // insert new mesh
     WRITE(outPipe, &DefineMesh, 1);
-    unsigned short numVertices = (unsigned)vertices.size()/3;
-    unsigned short numFaces = (unsigned)faces.size()/3;
+    unsigned short numVertices = (unsigned short)(vertices.size()/3);
+    unsigned short numFaces = (unsigned short)(faces.size()/3);
     WRITE(outPipe, &numVertices, sizeof(short));
     WRITE(outPipe, &numFaces, sizeof(short));
     WRITE(outPipe, &vertices[0], (unsigned)(vertices.size()*sizeof(float)));
     WRITE(outPipe, &faces[0], (unsigned)(faces.size()*sizeof(short)));
 
-    drawMesh(X_GM, scale, color, (short) representation, index, 0);
+    drawMesh(X_GM, scale, color, (short) representation, (unsigned short)index, 0);
 }
 
 void VisualizerProtocol::
@@ -589,11 +629,11 @@ void VisualizerProtocol::
 addMenu(const String& title, int id, const Array_<pair<String, int> >& items) {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &DefineMenu, 1);
-    short titleLength = title.size();
+    short titleLength = (short)title.size();
     WRITE(outPipe, &titleLength, sizeof(short));
     WRITE(outPipe, title.c_str(), titleLength);
     WRITE(outPipe, &id, sizeof(int));
-    short numItems = items.size();
+    short numItems = (short)items.size();
     WRITE(outPipe, &numItems, sizeof(short));
     for (int i = 0; i < numItems; i++) {
         int buffer[] = {items[i].second, items[i].first.size()};
@@ -607,7 +647,7 @@ void VisualizerProtocol::
 addSlider(const String& title, int id, Real minVal, Real maxVal, Real value) {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &DefineSlider, 1);
-    short titleLength = title.size();
+    short titleLength = (short)title.size();
     WRITE(outPipe, &titleLength, sizeof(short));
     WRITE(outPipe, title.c_str(), titleLength);
     WRITE(outPipe, &id, sizeof(int));
@@ -642,7 +682,7 @@ void VisualizerProtocol::setSliderRange(int id, Real newMin, Real newMax) const 
 void VisualizerProtocol::setWindowTitle(const String& title) const {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetWindowTitle, 1);
-    short titleLength = title.size();
+    short titleLength = (short)title.size();
     WRITE(outPipe, &titleLength, sizeof(short));
     WRITE(outPipe, title.c_str(), titleLength);
     pthread_mutex_unlock(&sceneLock);

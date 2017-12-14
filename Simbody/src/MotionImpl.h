@@ -48,7 +48,7 @@ public:
     // Default copy constructor, copy assignment, and destructor; note that the 
     // pointer to the mobilized body is not copied or deleted.
 
-    bool hasMobilizedBody() const {return m_mobodImpl != 0;}
+    bool hasMobilizedBody() const {return m_mobodImpl != nullptr;}
     const MobilizedBodyImpl& getMobilizedBodyImpl() const 
     {   assert(m_mobodImpl); return *m_mobodImpl; }
     MobilizedBodyIndex getMobilizedBodyIndex() const;

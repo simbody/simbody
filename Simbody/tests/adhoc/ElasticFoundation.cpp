@@ -29,7 +29,7 @@ public:
 
     ~ForceReporter() {}
 
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         m_system.realize(state, Stage::Dynamics);
         //cout << state.getTime() << ": E = " << m_system.calcEnergy(state)
         //     << " Ediss=" << m_compliant.getDissipatedEnergy(state)

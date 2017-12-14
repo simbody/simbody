@@ -40,7 +40,7 @@ public:
     EnergyReporter(const MultibodySystem& system, Real interval) 
     :   PeriodicEventReporter(interval), system(system) {}
 
-    void handleEvent(const State& s) const {
+    void handleEvent(const State& s) const override {
         std::cout << "t=" << s.getTime() 
              << "\tke=" << system.calcKineticEnergy(s) 
              << "\tE=" << system.calcEnergy(s)

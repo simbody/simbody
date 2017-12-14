@@ -54,7 +54,7 @@ public:
     void calcForce(const State& state,
               Vector_<SpatialVec>& bodyForces,
               Vector_<Vec3>&       particleForces,
-              Vector&              mobilityForces) const
+              Vector&              mobilityForces) const override
     {
         const Vec3& pos1 = body1.getBodyTransform(state).p();
         const Vec3& pos2 = body2.getBodyTransform(state).p();
@@ -64,7 +64,7 @@ public:
         body1.applyBodyForce(state, SpatialVec(Vec3(0),  f), bodyForces);
         body2.applyBodyForce(state, SpatialVec(Vec3(0), -f), bodyForces);
     }
-    Real calcPotentialEnergy(const State& state) const {
+    Real calcPotentialEnergy(const State& state) const override {
         return 0;
     }
 private:

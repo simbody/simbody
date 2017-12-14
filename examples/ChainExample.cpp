@@ -56,7 +56,7 @@ public:
 
     virtual void generateControls(const Visualizer&           viz, 
                                   const State&                state,
-                                  Array_<DecorativeGeometry>& geometry)
+                                  Array_<DecorativeGeometry>& geometry) override
     {
         const MobilizedBody& mobod = m_matter.getMobilizedBody(m_whichBody);
         const Transform& X_GB = mobod.getBodyTransform(state);
@@ -91,7 +91,7 @@ public:
 
     ~MyListener() {}
 
-    virtual bool keyPressed(unsigned key, unsigned modifier) {
+    virtual bool keyPressed(unsigned key, unsigned modifier) override {
         String mod;
         if (modifier&ControlIsDown) mod += "CTRL ";
         if (modifier&ShiftIsDown) mod += "SHIFT ";
@@ -123,7 +123,7 @@ public:
         return false; // key passed on
     }
 
-    virtual bool menuSelected(int menuId, int item) {
+    virtual bool menuSelected(int menuId, int item) override {
         std::cout << "Listener sees pick of menu " << menuId << " item " << item << ": ";
         Array_< std::pair<std::string, int> >& menu = menuId==1 ? m_menu1 : m_menu2;
         for (unsigned i=0; i < menu.size(); ++i)
@@ -133,7 +133,7 @@ public:
         return false; // menu click passed on
     }
 
-    virtual bool sliderMoved(int whichSlider, Real value) {
+    virtual bool sliderMoved(int whichSlider, Real value) override {
         printf("Listener sees slider %d now at %g\n", whichSlider, value);
         return false;   // slider move passed on
     }
@@ -153,7 +153,7 @@ public:
     :   PeriodicEventHandler(interval), m_viz(viz), m_silo(silo), m_gravity(gravity) {}
 
     virtual void handleEvent(State& state, Real accuracy,
-                             bool& shouldTerminate) const 
+                             bool& shouldTerminate) const override 
     {
         while (m_silo.isAnyUserInput()) {
             unsigned key, modifiers;

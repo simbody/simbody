@@ -318,7 +318,7 @@ public:
     int getNumSavedStates() const {return (int)m_states.size();}
     const State& getState(int n) const {return m_states[n];}
 
-    void handleEvent(const State& s) const {
+    void handleEvent(const State& s) const override {
         const SimbodyMatterSubsystem& matter=m_system.getMatterSubsystem();
         const SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
 
@@ -369,7 +369,7 @@ public:
     }
 
     // This is the witness function.
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
         const MyUnilateralConstraint& uni = *m_unis[m_which];
         if (!uni.isDisabled(state)) 
@@ -405,7 +405,7 @@ public:
     // of restitution to calculate the rest of the impulse, then apply
     // both impulses to produce changes in velocity. In most cases this
     // will produce the same rebound velocity as Newton, but not always.
-    void handleEvent(State& s, Real accuracy, bool& shouldTerminate) const;
+    void handleEvent(State& s, Real accuracy, bool& shouldTerminate) const override;
 
 
     // Make a list of all the unilateral constraints that could conceivably
@@ -500,7 +500,7 @@ public:
     }
 
     // This is the witness function.
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         const MyUnilateralConstraint& uni = *m_unis[m_which];
         if (uni.isDisabled(state)) return 0;
         const Real f = uni.getForce(state);
@@ -508,7 +508,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const override 
     {
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("LIFTOFF triggered by constraint %d @t=%.15g\n", 
@@ -1332,7 +1332,7 @@ updateVelocities(const Vector& u0, const Vector& lambda, State& state) const {
 // lead to a negative acceleration.
 // This is invoked by the ContactOff handler, and as the last step of the
 // ContactOn (impact) handler.
-// TODO: need to search for a consistent set of active contraints.
+// TODO: need to search for a consistent set of active constraints.
 
 /*static*/ void ContactOff::disablePullingContacts
    (const MultibodySystem& mbs, State& s, 

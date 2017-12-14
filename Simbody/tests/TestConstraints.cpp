@@ -373,10 +373,10 @@ void testDisablingConstraints() {
     public:
         DisableHandler(Constraint& constraint) : constraint(constraint) {
         }
-        void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+        void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const override {
             constraint.disable(state);
         }
-        Real getNextEventTime(const State&, bool includeCurrentTime) const {
+        Real getNextEventTime(const State&, bool includeCurrentTime) const override {
             return 4.9;
         }
         Constraint& constraint;
@@ -579,7 +579,148 @@ void testConstraintMatrices() {
     matter.calcProjectedMInv(state, GMInvGt); // O(m*n)
     SimTK_TEST_EQ(GMInvGt, numGMInvGt);
 
+    delete &system;
+}
 
+// Test the operator SimbodyMatterSubsystem::calcConstraintAccelerationErrors(),
+// which computes pvaerr = G udot - b. For the most part, we just ensure that
+// this operator gives results consistent with other methods.
+void testConstraintAccelerationErrors() {
+    // Create a chain of bodies. Copied from testConstraintMatrices().
+    MultibodySystem& system = createSystem();
+    SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
+    MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
+    MobilizedBody& second = matter.updMobilizedBody(MobilizedBodyIndex(2));
+    MobilizedBody& fifth = matter.updMobilizedBody(MobilizedBodyIndex(5));
+    MobilizedBody& last = matter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
+
+    // Add a body on a free joint to body 5 then weld it.
+    MobilizedBody::Free extra(fifth, Transform(),
+        MassProperties(1, Vec3(.01,.02,.03), Inertia(1,1.1,1.2)), Transform());
+    Constraint::Weld weld(extra, fifth);
+
+    Constraint::Ball ball(first, last);
+    Constraint::ConstantAcceleration accel2(second, MobilizerUIndex(1), .01);
+    Constraint::ConstantSpeed speed5(fifth, MobilizerUIndex(1), .1);
+
+    // Obtain constraint errors from realizing to Acceleration.
+    Vector udotFromForward, pvaerrFromForward;
+    State state;
+    {
+        State stateForward;
+        createState(system, stateForward); // Realizes to Acceleration.
+        udotFromForward = stateForward.getUDot();
+        pvaerrFromForward = stateForward.getUDotErr();
+        state = stateForward; // This copy assignment invalidates the cache.
+    }
+
+    const int nu = matter.getNU(state);
+    const int m  = matter.getNUDotErr(state);
+
+    // Ensure that we get an exception if not realized to Velocity yet.
+    {
+        system.realize(state, SimTK::Stage::Position);
+        SimTK_TEST(state.getSystemStage() == SimTK::Stage::Position);
+        Vector output; Vector udot(nu);
+        SimTK_TEST_MUST_THROW_EXC(
+                matter.calcConstraintAccelerationErrors(state, udot, output),
+                SimTK::Exception::ErrorCheck);
+    }
+
+    // Obtain constraint errors using the operator.
+    Vector biasFromOperator; // used in a subsequent test.
+    {
+        State stateOperator = state;
+        // Realizing to Velocity should be sufficient.
+        system.realize(stateOperator, SimTK::Stage::Velocity);
+
+        // With udot=0, errors should be nonzero.
+        Vector outputWithZeroUDot;
+        matter.calcConstraintAccelerationErrors
+                (stateOperator, Vector(nu, 0.0), outputWithZeroUDot);
+        SimTK_TEST(outputWithZeroUDot.norm() > 1e-6);
+        biasFromOperator = outputWithZeroUDot; // used in a subsequent test.
+
+        // Ensure the operator did not internally realize to a later stage.
+        SimTK_TEST(stateOperator.getSystemStage() == SimTK::Stage::Velocity);
+
+        // With udot from forward dynamics, errors should be close to zero.
+        Vector pvaerrFromOperator;
+        matter.calcConstraintAccelerationErrors
+                (stateOperator, udotFromForward, pvaerrFromOperator);
+
+        SimTK_TEST(pvaerrFromOperator.norm() < 1e-10);
+
+        // Forward dynamics and the operator should give the same result.
+        SimTK_TEST_EQ(pvaerrFromOperator, pvaerrFromForward);
+    }
+
+    // Check that the bias term is consistent with that from other methods.
+    {
+        State stateCompareBias = state;
+        system.realize(stateCompareBias, SimTK::Stage::Velocity);
+        Vector biasFromSepOperator;
+        matter.calcBiasForAccelerationConstraints(stateCompareBias,
+                                                  biasFromSepOperator);
+        SimTK_TEST_EQ(biasFromOperator, biasFromSepOperator);
+    }
+
+    // Compute G using calcConstraintAccelerationErrors; compare to calcG().
+    // pvaerr     = G * udot   + -bias(t,q,u)
+    // pvaerr_j   = G * udot_j + (-bias)
+    // G * udot_j = pvaerr_j   - (-bias)
+    // G_j = G * e_j (where e_j is the unit vector in direction j)
+    {
+        State stateCompareG = state;
+        system.realize(stateCompareG, SimTK::Stage::Velocity);
+        Matrix GFromCalcG;
+        matter.calcG(stateCompareG, GFromCalcG);
+        Matrix GFromOperator(m, nu);
+        Vector udot(nu, 0.0);
+        for (int icol = 0; icol < GFromCalcG.ncol(); ++icol) {
+            udot[icol] = 1.0;
+            // pvaerr_j = G * e_j + -bias
+            matter.calcConstraintAccelerationErrors
+                    (stateCompareG, udot, GFromOperator.updCol(icol));
+            // G_j = G * e_j + (-bias) - (-bias)
+            GFromOperator.updCol(icol) -= biasFromOperator;
+            udot[icol] = 0.0;
+        }
+        SimTK_TEST_EQ(GFromCalcG, GFromOperator);
+    }
+
+    // Test noncontiguous input and output vectors (similar to TestMassMatrix).
+    {
+        system.realize(state, SimTK::Stage::Velocity);
+        Matrix MatUdot(3, nu);  // use middle row
+        MatUdot.setToNaN();
+        MatUdot[1] = ~udotFromForward;
+        Matrix Matpvaerr(3, m); // use middle row
+        Matpvaerr.setToNaN();
+        matter.calcConstraintAccelerationErrors(state, ~MatUdot[1],
+                                                ~Matpvaerr[1]);
+        SimTK_TEST_EQ(Matpvaerr[1], ~pvaerrFromForward);
+    }
+
+    // Check that we object to wrong-length arguments.
+    {
+        Vector output;
+        SimTK_TEST_MUST_THROW_EXC(matter.calcConstraintAccelerationErrors
+                                          (state, Vector(1), output),
+                                  SimTK::Exception::ErrorCheck);
+    }
+
+    system.realize(state, SimTK::Stage::Velocity);
+
+    // Verify that leaving out arguments makes them act like zeros.
+    {
+        Vector outputZeros, outputEmpty;
+        matter.calcConstraintAccelerationErrors(state, Vector(nu, 0.0),
+                                                outputZeros);
+        matter.calcConstraintAccelerationErrors(state, Vector(),
+                                                outputEmpty);
+        SimTK_TEST_EQ_TOL(outputZeros, outputEmpty, SignificantReal);
+    }
 }
 
 int main() {
@@ -596,6 +737,7 @@ int main() {
         SimTK_SUBTEST(testWeldConstraintWithPreAssembly);
         SimTK_SUBTEST(testConstraintForces);
         SimTK_SUBTEST(testConstraintMatrices);
+        SimTK_SUBTEST(testConstraintAccelerationErrors);
         SimTK_SUBTEST(testDisablingConstraints);
     SimTK_END_TEST();
 }

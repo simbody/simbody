@@ -8,7 +8,7 @@
 
 #include "IpDefaultIterateInitializer.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 #ifdef IP_DEBUG
   static const Index dbg_verbosity = 0;
@@ -109,7 +109,7 @@ namespace Ipopt
 
     // Get the starting values provided by the NLP and store them
     // in the ip_data current fields.  The following line only requests
-    // intial values for the primal variables x, but later we might
+    // initial values for the primal variables x, but later we might
     // make this more flexible based on user options.
 
     /////////////////////////////////////////////////////////////////////

@@ -8,7 +8,7 @@
 
 #include "IpZeroMatrix.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   ZeroMatrix::ZeroMatrix(const MatrixSpace* owner_space)

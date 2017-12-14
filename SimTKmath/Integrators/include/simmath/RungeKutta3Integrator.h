@@ -32,7 +32,7 @@ namespace SimTK {
 class RungeKutta3IntegratorRep;
 
 /**
- * This is a 3rd order Runge-Kutta Integrator using coefficents from J.C. Butcher's
+ * This is a 3rd order Runge-Kutta Integrator using coefficients from J.C. Butcher's
  * book "The Numerical Analysis of Ordinary Differential Equations", John Wiley & Sons,
  * 1987, page 325.  It is an error controlled, third order, three stage explicit integrator
  * with an embedded 2nd order error estimate.

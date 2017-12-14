@@ -57,7 +57,7 @@ public:
     ~RealFunction() {
         delete function;
     }
-    void printValues(const State& state) const {
+    void printValues(const State& state) const override {
         Real value = function->evaluate(system, state);
         cout << "\t" << value;
     }
@@ -71,7 +71,7 @@ public:
     ~VectorFunction() {
         delete function;
     }
-    void printValues(const State& state) const {
+    void printValues(const State& state) const override {
         Vector values = function->evaluate(system, state);
         for (int i = 0; i < values.size(); ++i)
             cout << "\t" << values[i];

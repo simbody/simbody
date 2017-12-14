@@ -512,7 +512,7 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
    */
   alpha = ONE;
 
-  /* First, for each active g function, check whether an event occured in 
+  /* First, for each active g function, check whether an event occurred in 
    * (tlo,thi). Since glo != 0 for an active component, this means we check for
    * a sign change or for ghi = 0 (taking into account rootdir). For each 
    * component that triggers an event, we estimate a "proposal" mid point (by
@@ -567,7 +567,7 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
     nge++;
     if (retval != 0) return(CP_RTFUNC_FAIL);
 
-    /* Check (tlo, tmid) to see if an event occured in the "low" side
+    /* Check (tlo, tmid) to see if an event occurred in the "low" side
      * First make temporary copies of thi and tmid in case the event
      * turns out to be on the "high" side. */
     tmid_saved = tmid;

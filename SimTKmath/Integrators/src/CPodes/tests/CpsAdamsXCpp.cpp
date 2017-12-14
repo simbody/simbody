@@ -42,18 +42,18 @@ using std::printf;
 class Problem1System : public SimTK::CPodesSystem {
 public:
     // Override default implementations of these virtual functions.
-    int explicitODE(Real t, const Vector& y, Vector& fout) const;
+    int explicitODE(Real t, const Vector& y, Vector& fout) const override;
     int implicitODE(Real t, const Vector& y, const Vector& yp, 
-                    Vector& fout) const;
+                    Vector& fout) const override;
 };
 
 
 class Problem2System : public SimTK::CPodesSystem {
 public:
     // Override default implementations of these virtual functions.
-    int explicitODE(Real t, const Vector& y, Vector& fout) const;
+    int explicitODE(Real t, const Vector& y, Vector& fout) const override;
     int implicitODE(Real t, const Vector& y, const Vector& yp, 
-                    Vector& fout) const;
+                    Vector& fout) const override;
 };
 
 static const CPodes::ODEType odeType = CPodes::ExplicitODE;

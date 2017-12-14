@@ -39,29 +39,29 @@ public:
     CPodesIntegratorRep(Integrator* handle, const System& sys, CPodes::LinearMultistepMethod method);
     CPodesIntegratorRep(Integrator* handle, const System& sys, CPodes::LinearMultistepMethod method, CPodes::NonlinearSystemIterationType iterationType);
     ~CPodesIntegratorRep();
-    void methodInitialize(const State&);
-    void methodReinitialize(Stage stage, bool shouldTerminate);
-    Integrator::SuccessfulStepStatus stepTo(Real reportTime, Real scheduledEventTime);
-    Real getActualInitialStepSizeTaken() const;
-    Real getPreviousStepSizeTaken() const;
-    Real getPredictedNextStepSize() const;
-    int getNumStepsAttempted() const;
-    int getNumStepsTaken() const;
-    int getNumErrorTestFailures() const;
-    int getNumConvergenceTestFailures() const;
-    int getNumConvergentIterations() const 
+    void methodInitialize(const State&) override;
+    void methodReinitialize(Stage stage, bool shouldTerminate) override;
+    Integrator::SuccessfulStepStatus stepTo(Real reportTime, Real scheduledEventTime) override;
+    Real getActualInitialStepSizeTaken() const override;
+    Real getPreviousStepSizeTaken() const override;
+    Real getPredictedNextStepSize() const override;
+    int getNumStepsAttempted() const override;
+    int getNumStepsTaken() const override;
+    int getNumErrorTestFailures() const override;
+    int getNumConvergenceTestFailures() const override;
+    int getNumConvergentIterations() const override 
        {SimTK_ASSERT_ALWAYS(false, "CPodesIntegratorRep::getNumConvergentIterations(): not implemented");}
-    int getNumDivergentIterations() const
+    int getNumDivergentIterations() const override
        {SimTK_ASSERT_ALWAYS(false, "CPodesIntegratorRep::getNumDivergentIterations(): not implemented");}
-    int getNumIterations() const;
-    void resetMethodStatistics();
+    int getNumIterations() const override;
+    void resetMethodStatistics() override;
     void createInterpolatedState(Real t);
     void initializeIntegrationParameters();
     void reconstructForNewModel();
-    const char* getMethodName() const;
-    int getMethodMinOrder() const;
-    int getMethodMaxOrder() const;
-    bool methodHasErrorControl() const;
+    const char* getMethodName() const override;
+    int getMethodMinOrder() const override;
+    int getMethodMaxOrder() const override;
+    bool methodHasErrorControl() const override;
     void setUseCPodesProjection();
     void setOrderLimit(int order);
     class CPodesSystemImpl;

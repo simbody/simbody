@@ -44,7 +44,7 @@ public:
         PeriodicEventReporter(interval), viz(viz), dummyState(dummyState) {
     }
 
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         viz.report(dummyState);
     }
 

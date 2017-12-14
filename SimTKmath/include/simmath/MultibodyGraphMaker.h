@@ -204,7 +204,7 @@ public:
     @param[in]      name     
         A unique string identifying this body. There are no other restrictions
         on the contents of \a name. Don't delete the Ground body.
-    @returns \c true if the body is succesfully deleted, \c false if it
+    @returns \c true if the body is successfully deleted, \c false if it
         didn't exist. **/
     bool deleteBody(const std::string&  name);
 
@@ -253,7 +253,7 @@ public:
     @param[in]      name
         A string uniquely identifying this joint. There are no other 
         restrictions on the contents of \a name. 
-    @returns \c true if the joint is succesfully deleted, \c false if it
+    @returns \c true if the joint is successfully deleted, \c false if it
         didn't exist. **/
     bool deleteJoint(const std::string& name);
 
@@ -444,10 +444,15 @@ public:
     Joint(const std::string& name, int jointTypeNum, 
           int parentBodyNum, int childBodyNum,
           bool mustBeLoopJoint, void* userRef)
-    :   name(name), jointTypeNum(jointTypeNum), 
-        parentBodyNum(parentBodyNum), childBodyNum(childBodyNum),
-        mustBeLoopJoint(mustBeLoopJoint), userRef(userRef),
-        isAddedBaseJoint(false), mobilizer(-1), loopConstraint(-1) {}
+    :   name(name), 
+        mustBeLoopJoint(mustBeLoopJoint), 
+        userRef(userRef),
+        parentBodyNum(parentBodyNum), 
+        childBodyNum(childBodyNum),
+        jointTypeNum(jointTypeNum), 
+        isAddedBaseJoint(false),
+        mobilizer(-1), 
+        loopConstraint(-1) {}
 
     /** Return true if the joint is deleted as a result of restoring it
         to the state prior to generateGraph(). **/
@@ -563,6 +568,8 @@ public:
     defined in the input joint. In that case you should use a reverse joint
     when you build the system. **/
     bool isReversedFromJoint() const {return isReversed;}
+    /** Return the level of the outboard body (Ground is level 0) **/
+    int getLevel() const {return level;}
 
 private:
 friend class MultibodyGraphMaker;

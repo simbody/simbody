@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2009-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2009-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -57,11 +57,9 @@ namespace SimTK {
  *      - convenient testing of required argument checking (i.e., test
  *          fails unless an exception is thrown)
  *
- * The Testing.h header file is
- * <em>not</em> automatically included with SimTKcommon.h; you have to
- * ask for it explicilty. Here's how you use this facility:
+ * Here's how you use this facility:
  * <pre>
- * \#include "SimTKcommon/Testing.h"
+ * \#include "SimTKcommon.h"
  * void myFirstSubtest() {...}
  * void myNextSubtest() {...}
  * int main() {
@@ -114,6 +112,12 @@ namespace SimTK {
  *      SimTK_TEST_MUST_THROW_EXC(statement, exception) -- we expect a particular exception type
  *      SimTK_TEST_MUST_THROW_DEBUG(statement)  -- same as above but only checked in Debug builds
  *      SimTK_TEST_MUST_THROW_EXC_DEBUG(statement, exception) -- ditto
+ *
+ *      \#define SimTK_TEST_SUPPRESS_MUST_THROW 
+ *          -- Define this temporarily at top of test programs to make it 
+ *             easier to locate an *unexpected* exception while debugging. It
+ *             simply disables the "MUST_THROW" macros so you don't have to wade
+ *             through them in the debugger to get to the actual problem.
  * </pre>
  * The SimTK_TEST_EQ macros test scalar and composite numerical values for
  * equality to within a numerical tolerance, using both relative
@@ -555,10 +559,23 @@ private:
     {SimTK_ASSERT1_ALWAYS(!SimTK::Test::numericallyEqual((v1),(v2),1,(tol)),   \
      "Test values should NOT have been numerically equivalent at tolerance=%g.",(tol));}
 
+#ifndef SimTK_TEST_SUPPRESS_EXPECTED_THROW
+
 /// Test that the supplied statement throws an std::exception of some kind.
 #define SimTK_TEST_MUST_THROW(stmt)             \
     do {int threw=0; try {stmt;}                \
         catch(const std::exception&){threw=1;}  \
+        catch(...){threw=2;}                    \
+        if (threw==0) SimTK_TEST_FAILED1("Expected statement\n----\n%s\n----\n  to throw an exception but it did not.",#stmt); \
+        if (threw==2) SimTK_TEST_FAILED1("Expected statement\n%s\n  to throw an std::exception but it threw something else.",#stmt); \
+    }while(false)
+
+/// Test that the supplied statement throws an std::exception of some kind, and
+/// show what message got thrown.
+#define SimTK_TEST_MUST_THROW_SHOW(stmt)        \
+    do {int threw=0; try {stmt;}                \
+        catch(const std::exception& e) {threw=1; \
+            std::cout << "(OK) Threw: " << e.what() << std::endl;}  \
         catch(...){threw=2;}                    \
         if (threw==0) SimTK_TEST_FAILED1("Expected statement\n----\n%s\n----\n  to throw an exception but it did not.",#stmt); \
         if (threw==2) SimTK_TEST_FAILED1("Expected statement\n%s\n  to throw an std::exception but it threw something else.",#stmt); \
@@ -591,7 +608,7 @@ private:
 
 // When we're only required to throw in Debug, we have to suppress the
 // test case altogether in Release because it may cause damage. 
-#if defined(NDEBUG)
+#ifdef NDEBUG
     /// Include a bad statement when in Debug and insist that it get caught,
     /// but don't include the statement at all in Release.
     #define SimTK_TEST_MUST_THROW_DEBUG(stmt)
@@ -608,7 +625,15 @@ private:
                 SimTK_TEST_MUST_THROW_EXC(stmt,exc)
 #endif
 
-
+#else // expected throws are suppressed
+#define SimTK_TEST_MUST_THROW(stmt)
+#define SimTK_TEST_MUST_THROW_SHOW(stmt)
+#define SimTK_TEST_MUST_THROW_EXC(stmt,exc)
+#define SimTK_TEST_MAY_THROW(stmt)
+#define SimTK_TEST_MAY_THROW_EXC(stmt,exc)
+#define SimTK_TEST_MUST_THROW_DEBUG(stmt)
+#define SimTK_TEST_MUST_THROW_EXC_DEBUG(stmt,exc)
+#endif
 
 
 //  End of Regression testing group.

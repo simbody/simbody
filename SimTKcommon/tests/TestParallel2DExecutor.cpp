@@ -36,14 +36,14 @@ class SetFlagTask : public Parallel2DExecutor::Task {
 public:
     SetFlagTask(Array_<Array_<int> >& flags, int& count) : flags(flags), count(count) {
     }
-    void execute(int i, int j) {
+    void execute(int i, int j) override {
         flags[i][j]++;
         localCount.upd()++;
     }
-    void initialize() {
+    void initialize() override {
         localCount.upd() = 0;
     }
-    void finish() {
+    void finish() override {
         count += localCount.get();
     }
 private:

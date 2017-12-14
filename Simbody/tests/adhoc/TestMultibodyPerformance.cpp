@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2011-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2011-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -28,6 +28,10 @@
 using std::cout;
 using std::endl;
 using std::string;
+
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strerror, sprintf, etc.
+#endif
 
 using namespace SimTK;
 
@@ -59,10 +63,28 @@ void doRealizeVelocity(MultibodySystem& system, State& state) {
     system.realize(state, Stage::Velocity);
 }
 
+void doRealizePositionKinematics(MultibodySystem& system, State& state) {
+    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+    matter.invalidatePositionKinematics(state);
+    matter.realizePositionKinematics(state);
+}
+
+void doRealizeVelocityKinematics(MultibodySystem& system, State& state) {
+    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+    matter.invalidateVelocityKinematics(state);
+    matter.realizeVelocityKinematics(state);
+}
+
 void doRealizeArticulatedBodyInertias(MultibodySystem& system, State& state) {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
     matter.invalidateArticulatedBodyInertias(state);
     matter.realizeArticulatedBodyInertias(state);
+}
+
+void doRealizeArticulatedBodyVelocity(MultibodySystem& system, State& state) {
+    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+    matter.invalidateArticulatedBodyVelocity(state);
+    matter.realizeArticulatedBodyVelocity(state);
 }
 
 void doRealizeDynamics(MultibodySystem& system, State& state) {
@@ -85,6 +107,7 @@ void doRealizeDynamics2Acceleration(MultibodySystem& system, State& state) {
 // Cost to re-evaluate accelerations after updating velocities, but leaving
 // the positions unchanged (e.g. semi-implicit Euler iterating velocities).
 void doRealizeVelocity2Acceleration(MultibodySystem& system, State& state) {
+    state.updU(); // should invalidate velocity kinematics
     state.invalidateAllCacheAtOrAbove(Stage::Velocity);
     system.realize(state, Stage::Acceleration);
 }
@@ -92,6 +115,7 @@ void doRealizeVelocity2Acceleration(MultibodySystem& system, State& state) {
 // Cost for a complete acceleration calculation at a new time and state.
 // This includes the cost of articulated body inertias.
 void doRealizeTime2Acceleration(MultibodySystem& system, State& state) {
+    state.updQ(); // should invalidate position & velocity kinematics
     state.invalidateAllCacheAtOrAbove(Stage::Time);
     system.realize(state, Stage::Acceleration);
 }
@@ -179,9 +203,12 @@ void timeComputation(MultibodySystem& system, void function(MultibodySystem& sys
 void runAllTests(MultibodySystem& system, bool useEulerAngles=false) {
     std::cout << "# dofs=" << system.getMatterSubsystem().getNumMobilities() << "\n";
     timeComputation(system, doRealizeTime, "realizeTime", 5000, useEulerAngles);
+    timeComputation(system, doRealizePositionKinematics, "realizePositionKinematics", 5000, useEulerAngles);
     timeComputation(system, doRealizePosition, "realizePosition", 5000, useEulerAngles);
+    timeComputation(system, doRealizeVelocityKinematics, "realizeVelocityKinematics", 5000, useEulerAngles);
     timeComputation(system, doRealizeVelocity, "realizeVelocity", 5000, useEulerAngles);
     timeComputation(system, doRealizeArticulatedBodyInertias, "doRealizeArticulatedBodyInertias", 3000, useEulerAngles);
+    timeComputation(system, doRealizeArticulatedBodyVelocity, "doRealizeArticulatedBodyVelocity", 5000, useEulerAngles);
     timeComputation(system, doRealizeDynamics, "realizeDynamics", 5000, useEulerAngles);
     timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 5000, useEulerAngles);
     timeComputation(system, doRealizeDynamics2Acceleration, "doRealizeDynamics2Acceleration", 5000, useEulerAngles);

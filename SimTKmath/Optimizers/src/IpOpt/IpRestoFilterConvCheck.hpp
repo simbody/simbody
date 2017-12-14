@@ -12,7 +12,7 @@
 #include "IpOptErrorConvCheck.hpp"
 #include "IpFilterLSAcceptor.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Convergence check for the restoration phase as called by the
@@ -50,10 +50,10 @@ namespace Ipopt
 
     /** overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** overloaded from ConvergenceCheck */
-    virtual ConvergenceStatus CheckConvergence(bool call_intermediate_callback = true);
+    virtual ConvergenceStatus CheckConvergence(bool call_intermediate_callback = true) override;
 
     /** Methods used by IpoptType */
     //@{

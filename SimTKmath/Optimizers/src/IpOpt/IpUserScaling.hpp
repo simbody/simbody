@@ -12,7 +12,7 @@
 #include "IpNLPScaling.hpp"
 #include "IpNLP.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   /** This class does problem scaling by getting scaling parameters
    *  from the user (through the NLP interface).
@@ -44,7 +44,7 @@ namespace Ipopt
       Number& df,
       SmartPtr<Vector>& dx,
       SmartPtr<Vector>& dc,
-      SmartPtr<Vector>& dd);
+      SmartPtr<Vector>& dd) override;
 
   private:
 

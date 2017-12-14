@@ -38,8 +38,10 @@ class Force::LinearBushingImpl : public ForceImpl {
                      const Vec6& defStiffness, const Vec6& defDamping)
         :   X_B1F(defX_B1F), X_B2M(defX_B2M), k(defStiffness), c(defDamping) {}
 
+        InstanceVars() = default;
+
         Transform X_B1F, X_B2M;
-        Vec6      k, c;
+        Vec6      k{NaN}, c{NaN};
     };
     struct PositionCache {
         Transform X_GF, X_GM, X_FM;
@@ -60,22 +62,22 @@ public:
     LinearBushingImpl(const MobilizedBody& body1, const Transform& frameOnB1, 
                       const MobilizedBody& body2, const Transform& frameOnB2, 
                       const Vec6& stiffness, const Vec6& damping);
-    LinearBushingImpl* clone() const {
+    LinearBushingImpl* clone() const override {
         return new LinearBushingImpl(*this);
     }
-    bool dependsOnlyOnPositions() const {
+    bool dependsOnlyOnPositions() const override {
         return false;
     }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
-                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
-    Real calcPotentialEnergy(const State& state) const;
+                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;
+    Real calcPotentialEnergy(const State& state) const override;
 
     // Allocate the position and velocity cache entries. These are all
     // lazy-evaluation entries - be sure to check whether they have already
     // been calculated; calculate them if not; and then mark them done.
     // They will be invalidated when the indicated stage has changed and
     // can be recalculated any time after that stage is realized.
-    void realizeTopology(State& s) const {
+    void realizeTopology(State& s) const override {
         LinearBushingImpl* mThis = const_cast<LinearBushingImpl*>(this);
 
         const InstanceVars iv(defX_B1F,defX_B2M,defK,defC);
@@ -96,7 +98,7 @@ public:
             Stage::Velocity, Stage::Infinity, new Value<ForceCache>());
     }
 
-    void realizeAcceleration(const State& s) const {
+    void realizeAcceleration(const State& s) const override {
         ensureForceCacheValid(s);
         updDissipatedEnergyDeriv(s) = getForceCache(s).power;
     }

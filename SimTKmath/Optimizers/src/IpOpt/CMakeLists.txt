@@ -1,6 +1,6 @@
 # add in local source and headers here
-FILE(GLOB src_files  ./*.cpp ./*.c)
-FILE(GLOB incl_files ./*.hpp ./*.h)
+file(GLOB src_files  ./*.cpp ./*.c)
+file(GLOB incl_files ./*.hpp ./*.h)
 
 foreach( src ${src_files} )
     list(APPEND SOURCE_GROUPS "Source Files\\IpOpt")

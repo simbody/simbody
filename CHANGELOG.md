@@ -3,7 +3,102 @@ Simbody Changelog and Release Notes
 
 This is not a comprehensive list of changes but rather a hand-curated collection of the more notable ones. For a comprehensive history, see the [Simbody GitHub repo](https://github.com/simbody/simbody). You can use the release dates below to find all the PRs and issues that were included in a particular release. 
 
-**Heads up**: Simbody 3.5 will be the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
+**Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
+
+
+3.6 (in development)
+--------------------
+* Forced GCC to be at least 4.9.0, so that new C++11 features like regular
+  expressions can be used (pr #485).
+* Minimum Ubuntu version supported 14.04 LTS (Trusty), with a [manual update of GCC](http://askubuntu.com/questions/466651/how-do-i-use-the-latest-gcc-on-ubuntu-14-04).
+* Recommended minimum Ubuntu version : 15.04 (Vivid), that is shipped with GCC 4.9.2.
+* Added mixin classes `ResetOnCopy<T>` and `ReinitOnCopy<T>` to force default
+  construction or reinitialization of data members on copy construction or copy
+  assignment, without requiring a user written copy constructor and copy
+  assignment operator just to get those reinitializations done.
+* Added clone() method to `SimTK::Function_` base class and implemented it for
+  Simbody-defined concrete Function classes. Made concrete Function members
+  non-const to permit assignment, and modified Function_<T>::Step to allow
+  changing its parameters after construction.
+* Added C++11 features to the `SimTK::Array_` container including `std::initializer_list` construction, move construction, move assignment, and `emplace` methods.
+* Prevented copy construction of `Array_<T>` from `Array_<T2>` unless T2 is *implicitly*
+  convertible to T. Previously this was allowed if there was any conversion possible
+  even if it was explicit. Array_ was being too relaxed about this, causing hidden 
+  copies to occur. 
+* Added CloneOnWritePtr smart pointer (acts like ClonePtr but with deferred cloning).
+* Updated ClonePtr and ReferencePtr APIs to follow C++11 standard smart pointer
+  terminology. This required deprecating some existing methods and operators, so
+  you can expect to get annoying warnings until you switch to the new API. 
+* Possible BREAKING CHANGE: ClonePtr's operator==() previously delegated
+  to the managed object; now it just operates on the managed pointer as is done 
+  in other smart pointers. Consequently now only a clone() method is required for a type
+  to be contained in a ClonePtr; previously it had to support comparison also.
+* Make doxygen run silently so errors will be easier to see.
+* Added new methods to `Pathname` class for interpreting pathnames against a specified working directory instead
+of the current working directory (thanks to Carmichael Ong). See [Issue #264](https://github.com/simbody/simbody/issues/264) and [PR #307](https://github.com/simbody/simbody/pull/307). 
+* Added the ability to parallelize forces, robustness/performance improvements
+to ParallelExecutor, mutex state lock.
+[PR #414](https://github.com/simbody/simbody/pull/414).
+* Added move constructor and move assignment to State (very fast).
+* Added "stage version" counters for time, q, u, and z that are incremented
+  whenever one of these changes.
+* Separated time-independent position and kinematics calculations so that 
+  they are not invalidated by a time change. These can also be initiated
+  explicitly with new methods `realizePositionKinematics()` and
+  `realizeVelocityKinematics()`. They are invalidated by a change to q or
+  to u, respectively. 
+* Modified floating point-to-String conversions to use lossless number of 
+  digits by default. An attempt to use the default type-to-String conversion 
+  when no stream insertion operator is available is now a runtime rather than
+  compile time error. [PR #459](https://github.com/simbody/simbody/pull/459).
+* Upgraded `SimTK::Xml` from class to namespace; local classes like `Xml::Element`
+  were promoted to namespace level within Xml. This was necessary to untangle
+  Array_ and Xml classes which can be mutually dependent. This change is backwards
+  compatible for those following the recommended use of the previously-available
+  `Xml::Document` typedef instead of Xml directly. Otherwise you will have to change
+  uses of `SimTK::Xml` to `SimTK::Xml::Document`. Also any `using SimTK::Xml;`
+  must be removed or replaced with `using namespace SimTK::Xml` or
+  `using SimTK::Xml::Document` depending on the intent. 
+  [PR #460](https://github.com/simbody/simbody/pull/460)
+* Improved `NiceTypeName<T>::namestr()` to produce a canonicalized name that is
+  the same on all platforms (with a few exceptions). Added `xmlstr()` method to
+  make an XML-friendly modification of `namestr()` that replaces angle brackets
+  with curly braces. Added a new regression test to verify that the names come
+  out right. [PR #461](https://github.com/simbody/simbody/pull/461)
+* Added helper class IteratorRange to use range-based for loops with a pair of
+  iterators. [PR#467](https://github.com/simbody/simbody/pull/467)
+* Added the method `State::isConsistent()` to compare two states
+  [PR #469](https://github.com/simbody/simbody/pull/469).
+* Started using RPATH on OSX so that users need not set `DYLD_LIBRARY_PATH` to
+  run `simbody-visualizer` or the example executables, regardless of where you
+  install Simbody.
+* Improved the ability to find the simbody-visualizer executable when Simbody
+  is installed in non-standard locations or if the Simbody installation is
+  relocated (even to different computers). This enhancement is only for
+  non-Windows operating systems.
+* Fixed a bug when compiling on macOS (OSX) with SDK MacOSX10.12.sdk, related
+  to the POSIX function `clock_gettime()`.
+  [Issue #523](https://github.com/simbody/simbody/issues/523),
+  [PR 524](#https://github.com/simbody/simbody/pull/524)
+* (There are more that haven't been added yet)
+
+
+3.5.3 (15 June 2015)
+-------------------
+This is the release that shipped with OpenSim 3.3.
+* Small changes to allow compilation with Visual Studio 2015 (PRs [#395](https://github.com/simbody/simbody/pull/395) and [#396](https://github.com/simbody/simbody/pull/396)).
+* Fixed a problem with SpatialInertia::shift() with non-zero COM offset, see issue [#334](https://github.com/simbody/simbody/issues/334). This also affected calcCompositeBodyInertias(). These are not commonly used.
+* Fixed a problem with VectorIterator which could unnecessary copying, possibly affecting mesh handling performance. See issue [#349](https://github.com/simbody/simbody/issues/349). 
+
+
+3.5.2 (15 May 2015)
+-------------------
+Same as 3.5.1 except on 64 bit Windows which has a patched version of Lapack that
+addresses an error handling problem that caused trouble for some OpenSim users.
+This is a patch to Lapack 3.4.2 (64 bit) to fix the bug discussed in [Issue #177](https://github.com/simbody/simbody/issues/177) and [PR #342](https://github.com/simbody/simbody/pull/342).
+There were two functions where convergence failures incorrectly caused an abort (XERBLA in Lapack-speak). See discussion on Lapack forum:
+http://icl.cs.utk.edu/lapack-forum/viewtopic.php?f=13&t=4586
+This Lapack DLL is binary compatible with the previous one, same functions and ordinals.
 
 
 3.5.1 (31 Dec 2014)

@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Chris Dembia, Thomas Lau                                     *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -85,6 +85,23 @@ public:
     be explicitly enabled. **/
     void setForceIsDisabled
        (State& state, ForceIndex index, bool shouldBeDisabled) const;
+       
+    /** Set the number of threads that the GeneralForceSubsystem can use to
+    calculate computationally expensive forces (that have the
+    shouldBeParallelIfPossible() method overridden). By default, the
+    number of threads is the number of total processors (including hyperthreads)
+    on the machine.
+    
+    @note This method should NOT be called while realizing Stage::Dynamics.**/
+    void setNumberOfThreads(unsigned numThreads);
+    
+    /** Returns the number of threads that the GeneralForceSubsystem can
+    use to calculate computationally expensive forces (that have the
+    shouldBeParallelIfPossible() method overridden).
+    
+    @return Maximum number of threads GeneralForceSubsystem can use for force
+    computations**/
+    int getNumberOfThreads() const;
 
     /** Every Subsystem is owned by a System; a GeneralForceSubsystem expects
     to be owned by a MultibodySystem. This method returns a const reference

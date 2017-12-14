@@ -168,8 +168,7 @@ bool SemiExplicitEuler2IntegratorRep::attemptDAEStep
     advanced.updZ() = m_zBig = getPreviousZ() + h * getPreviousZDot();
     advanced.updU() = getPreviousU() + h * getPreviousUDot();
 
-    //TODO: need to be able to do this without invalidating q's.
-    // Should be able to calculate u_prescribed(newTime, oldQ)
+    // Note that changing time does not invalidate position kinematics.
     advanced.updTime() = t1;
     system.realize(advanced, Stage::Position); // old q, new t=t1
     system.prescribeU(advanced);
@@ -213,7 +212,7 @@ bool SemiExplicitEuler2IntegratorRep::attemptDAEStep
     advanced.updZ() += hHalf * zdotHalf;
     advanced.updU() += hHalf * udotHalf;
 
-    advanced.updTime() = t1;
+    advanced.updTime() = t1; // position kinematics unchanged
     system.realize(advanced, Stage::Position); // old q=qHalf, new t=t1
     system.prescribeU(advanced);
 

@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -387,7 +387,7 @@ void SimbodyMatterSubsystem::multiplyByM(const State&  state,
     const int nu = rep.getNU(state);
 
     SimTK_ERRCHK2_ALWAYS(a.size() == nu,
-        "SimbodyMatterSubsystem::multiplyByMInv()",
+        "SimbodyMatterSubsystem::multiplyByM()",
         "Argument 'a' had length %d but should have the same length"
         " as the number of mobilities (generalized speeds u) %d.", 
         a.size(), nu);
@@ -500,12 +500,6 @@ void SimbodyMatterSubsystem::calcPq(const State& s, Matrix& Pq) const
 {   getRep().calcPq(s,Pq); }
 void SimbodyMatterSubsystem::calcPqTranspose(const State& s, Matrix& Pqt) const 
 {   getRep().calcPqTranspose(s,Pqt); }
-
-// OBSOLETE
-void SimbodyMatterSubsystem::
-calcPNInv(const State& s, Matrix& PNInv) const {
-    return getRep().calcHolonomicConstraintMatrixPNInv(s,PNInv);
-}
 
 void SimbodyMatterSubsystem::
 calcP(const State& s, Matrix& P) const {
@@ -759,8 +753,74 @@ calcBiasForAccelerationConstraints(const State& state,
     }
 }
 
+//==============================================================================
+//                     CALC CONSTRAINT ACCELERATION ERRORS
+//==============================================================================
+// If knownUDot is empty, just provide the bias term. Make sure we have
+// contiguous inputs and outputs.
+void SimbodyMatterSubsystem::
+calcConstraintAccelerationErrors(const State&               state,
+                                 const Vector&              knownUDot,
+                                 Vector&                    pvaerr) const
+{
+    // Interpret 0-length knownUDot as nu all-zero udots.
+    if (knownUDot.size() == 0) {
+        // It's faster to use the operator that just computes the bias vector.
+        calcBiasForAccelerationConstraints(state, pvaerr);
+        return;
+    }
 
+    const int nu = getNumMobilities();
 
+    SimTK_ERRCHK2_ALWAYS(knownUDot.size() == nu,
+        "SimbodyMatterSubsystem::calcConstraintAccelerationErrors()",
+        "Length of knownUDot argument was %d but should have been either"
+                " zero or the same as the number of mobilities nu=%d.\n",
+        knownUDot.size(), nu);
+
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int m = rep.getNMultipliers(state);
+    pvaerr.resize(m);
+
+    // If the arguments use contiguous memory we'll work in place, otherwise
+    // we'll work in contiguous temporaries and copy back.
+
+    Vector        udotspace; // allocate only if we need to
+    Vector        pvaerrspace;
+
+    const Vector* udotp;
+    Vector*       pvaerrp;
+
+    if (knownUDot.hasContiguousData()) {
+        udotp = &knownUDot;
+    } else {
+        udotspace.resize(nu); // contiguous memory
+        udotspace(0, nu) = knownUDot; // prevent reallocation
+        udotp = (const Vector*)&udotspace;
+    }
+
+    bool needToCopyBack = false;
+    if (pvaerr.hasContiguousData()) {
+        pvaerrp = &pvaerr;
+    } else {
+        pvaerrspace.resize(m); // contiguous memory
+        pvaerrp = &pvaerrspace;
+        needToCopyBack = true;
+    }
+
+    // Obtain consistent A_GB and qdotdot.
+    Vector_<SpatialVec> A_GB;
+    rep.calcBodyAccelerationFromUDot(state, *udotp, A_GB);
+
+    Vector qdotdot;
+    rep.calcQDotDot(state, *udotp, qdotdot);
+
+    rep.calcConstraintAccelerationErrors(state, A_GB, *udotp, qdotdot,
+                                         *pvaerrp);
+
+    if (needToCopyBack)
+        pvaerr = *pvaerrp;
+}
 
 
 //==============================================================================
@@ -862,32 +922,6 @@ calcBiasForMultiplyByPq(const State& state,
 
 
 //==============================================================================
-//             CALC Gt -- OBSOLETE, use calcGTranspose()
-//==============================================================================
-void SimbodyMatterSubsystem::
-calcGt(const State& s, Matrix& Gt) const {
-    const SimbodyMatterSubsystemRep& rep = getRep();
-    const int mHolo    = rep.getNumHolonomicConstraintEquationsInUse(s);
-    const int mNonholo = rep.getNumNonholonomicConstraintEquationsInUse(s);
-    const int mAccOnly = rep.getNumAccelerationOnlyConstraintEquationsInUse(s);
-    const int m  = mHolo+mNonholo+mAccOnly;
-    const int nu = rep.getNU(s);
-
-    Gt.resize(nu,m);
-
-    if (m==0 || nu==0)
-        return;
-
-    // Fill in all the columns of Gt
-    rep.calcHolonomicVelocityConstraintMatrixPt(s, Gt(0,     0,          nu, mHolo));
-    rep.calcNonholonomicConstraintMatrixVt     (s, Gt(0,   mHolo,        nu, mNonholo));
-    rep.calcAccelerationOnlyConstraintMatrixAt (s, Gt(0, mHolo+mNonholo, nu, mAccOnly));
-}
-
-
-
-
-//==============================================================================
 //                      CALC BODY ACCELERATION FROM UDOT
 //==============================================================================
 // Here we implement the zero-length udot, which is interpreted as an all-zero
@@ -952,8 +986,6 @@ calcBodyAccelerationFromUDot(const State&         state,
     if (needToCopyBack)
         A_GB = *Ap;
 }
-
-
 
 //==============================================================================
 //                        MULTIPLY BY N, NInv, NDot
@@ -1964,14 +1996,19 @@ const SpatialVec&
 SimbodyMatterSubsystem::getGyroscopicForce(const State& s, MobilizedBodyIndex body) const {
     return getRep().getGyroscopicForce(s,body);
 }
-const SpatialVec&
-SimbodyMatterSubsystem::getMobilizerCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
-    return getRep().getMobilizerCentrifugalForces(s,body);
-}
+
 const SpatialVec&
 SimbodyMatterSubsystem::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
     return getRep().getTotalCentrifugalForces(s,body);
 }
+
+//TODO: user access to this quantity is deprecated in Simbody 3.6.
+const SpatialVec&
+SimbodyMatterSubsystem::getMobilizerCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
+    return getRep().getArticulatedBodyCentrifugalForces(s,body);
+}
+
+
 const Vector& 
 SimbodyMatterSubsystem::getAllParticleMasses(const State& s) const { 
     return getRep().getAllParticleMasses(s); 
@@ -2003,23 +2040,72 @@ void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyInde
     bodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
 
-void SimbodyMatterSubsystem::realizeCompositeBodyInertias(const State& s) const {
+void SimbodyMatterSubsystem::
+realizePositionKinematics(const State& s) const {
+    getRep().realizePositionKinematics(s);
+}
+
+
+void SimbodyMatterSubsystem::
+realizeVelocityKinematics(const State& s) const {
+    getRep().realizeVelocityKinematics(s);
+}
+
+void SimbodyMatterSubsystem::
+realizeCompositeBodyInertias(const State& s) const {
     getRep().realizeCompositeBodyInertias(s);
 }
 
-void SimbodyMatterSubsystem::realizeArticulatedBodyInertias(const State& s) const {
+void SimbodyMatterSubsystem::
+realizeArticulatedBodyInertias(const State& s) const {
     getRep().realizeArticulatedBodyInertias(s);
 }
 
+void SimbodyMatterSubsystem::
+realizeArticulatedBodyVelocity(const State& s) const {
+    getRep().realizeArticulatedBodyVelocity(s);
+}
 
-void SimbodyMatterSubsystem::invalidateCompositeBodyInertias(const State& s) const {
+void SimbodyMatterSubsystem::
+invalidatePositionKinematics(const State& s) const {
+    getRep().invalidatePositionKinematics(s);
+}
+
+void SimbodyMatterSubsystem::
+invalidateVelocityKinematics(const State& s) const {
+    getRep().invalidateVelocityKinematics(s);
+}
+
+void SimbodyMatterSubsystem::
+invalidateCompositeBodyInertias(const State& s) const {
     getRep().invalidateCompositeBodyInertias(s);
 }
 
-void SimbodyMatterSubsystem::invalidateArticulatedBodyInertias(const State& s) const {
+void SimbodyMatterSubsystem::
+invalidateArticulatedBodyInertias(const State& s) const {
     getRep().invalidateArticulatedBodyInertias(s);
 }
 
+void SimbodyMatterSubsystem::
+invalidateArticulatedBodyVelocity(const State& s) const {
+    getRep().invalidateArticulatedBodyVelocity(s);
+}
+
+bool SimbodyMatterSubsystem::
+isPositionKinematicsRealized(const State& state) const
+{   return getRep().isPositionKinematicsRealized(state); }
+bool SimbodyMatterSubsystem::
+isVelocityKinematicsRealized(const State& state) const
+{   return getRep().isVelocityKinematicsRealized(state); }
+bool SimbodyMatterSubsystem::
+isCompositeBodyInertiasRealized(const State& state) const
+{   return getRep().isCompositeBodyInertiasRealized(state); }
+bool SimbodyMatterSubsystem::
+isArticulatedBodyInertiasRealized(const State& state) const
+{   return getRep().isArticulatedBodyInertiasRealized(state); }
+bool SimbodyMatterSubsystem::
+isArticulatedBodyVelocityRealized(const State& state) const
+{   return getRep().isArticulatedBodyVelocityRealized(state); }
 
 const Array_<QIndex>& SimbodyMatterSubsystem::
 getFreeQIndex(const State& state) const

@@ -94,7 +94,7 @@
 #endif
 
 // TODO: Currently this is unused and may not be needed anymore.
-// Call these routines to intialize the GNU Fortran RTL.
+// Call these routines to initialize the GNU Fortran RTL.
 // 
 
 #ifdef USING_G77

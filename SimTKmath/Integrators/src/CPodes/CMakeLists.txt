@@ -2,8 +2,8 @@
 add_subdirectory(sundials)
 
 # add in local source and headers here
-FILE(GLOB src_files  ./*.cpp)
-FILE(GLOB incl_files ./*.h)
+file(GLOB src_files  ./*.cpp)
+file(GLOB incl_files ./*.h)
 
 # append to the local scope copy, and then copy up to parent scope
 list(APPEND SOURCE_FILES ${src_files})

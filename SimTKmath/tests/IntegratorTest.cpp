@@ -68,7 +68,7 @@ public:
 
     inline const MyPendulum& getMyPendulum() const;
 
-    /*virtual*/MyPendulumGuts* cloneImpl() const {return new MyPendulumGuts(*this);}
+    /*virtual*/MyPendulumGuts* cloneImpl() const override {return new MyPendulumGuts(*this);}
 
         /////////////////////////////////////////////////////////
         // Implementation of continuous DynamicSystem virtuals //
@@ -125,9 +125,12 @@ public:
     {
         // Generate an event every 5.123 seconds.
         int nFives = (int)(s.getTime() / 5.123); // rounded down
-        tNextEvent = (nFives+1) * Real(5.123);
+        if (s.getTime()==0) nFives=1; // don't start with the event
+
+        tNextEvent = nFives * Real(5.123);
         // Careful ...
-        if (tNextEvent <= s.getTime())
+        if (   tNextEvent < s.getTime() 
+            || (tNextEvent == s.getTime() && !includeCurrentTime))
             tNextEvent += Real(5.123);
         eventIds.push_back(eventId1); // event Id for scheduled pulse
 
@@ -304,19 +307,24 @@ int main () {
     integ.initialize(sys.getDefaultState());
 
     cout << "ACCURACY IN USE = " << integ.getAccuracyInUse() << endl;
+    cout << "Initial y=" << integ.getState().getY() << endl;
+    cout << "Initial ydot=" << integ.getState().getYDot() << endl;
 
-
+    Real prevScheduledEventTime = -Infinity;
     for (int reportNo=0; !integ.isSimulationOver(); 
          reportNo += (integ.getTime() >= reportNo*hReport))
     {
         Array_<EventId> scheduledEventIds;
         Real nextScheduledEvent = NTraits<Real>::getInfinity();
         sys.calcTimeOfNextScheduledEvent(integ.getAdvancedState(), 
-            nextScheduledEvent, scheduledEventIds, true);
+            nextScheduledEvent, scheduledEventIds, 
+            integ.getAdvancedTime() > prevScheduledEventTime);
 
         HandleEventsOptions handleOpts(integ.getAccuracyInUse());
         HandleEventsResults handleResults;
 
+        printf("----------------------------------------------------------\n");
+        printf("stepTo(%g,%g)\n", reportNo*hReport, nextScheduledEvent);
         switch(integ.stepTo(reportNo*hReport, nextScheduledEvent)) {
             case Integrator::ReachedStepLimit: printf("STEP LIMIT\n"); break;
             case Integrator::ReachedReportTime: printf("REPORT TIME AT t=%.17g\n", integ.getTime()); break;
@@ -334,6 +342,7 @@ int main () {
                     handleResults.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 lowestModified = handleResults.getLowestModifiedStage();
                 integ.reinitialize(lowestModified, shouldTerminate);
+                prevScheduledEventTime = integ.getAdvancedTime();
                 break;
             }
 
@@ -575,7 +584,8 @@ int MyPendulumGuts::realizeDynamicsImpl(const State& s) const {
     const Real m  = getMyPendulum().getMass(s);
     const Real g  = getMyPendulum().getGravity(s);
 
-    Real& mg = Value<Real>::downcast(s.updCacheEntry(subsysIndex, mgForceIndex)).upd();
+    Real& mg = Value<Real>::updDowncast
+                            (s.updCacheEntry(subsysIndex, mgForceIndex)).upd();
     // Calculate the force due to gravity.
     mg = m*g;
     System::Guts::realizeDynamicsImpl(s);
@@ -586,7 +596,7 @@ int MyPendulumGuts::realizeAccelerationImpl(const State& s) const {
     const Real m  = getMyPendulum().getMass(s);
     const Real g  = getMyPendulum().getGravity(s);
     // we're pretending we couldn't calculate this here!
-    const Real mg = Value<Real>::downcast
+    const Real mg = Value<Real>::updDowncast
                        (s.updCacheEntry(subsysIndex, mgForceIndex)).get();
 
     const Vector& q    = s.getQ(subsysIndex);

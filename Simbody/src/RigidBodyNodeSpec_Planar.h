@@ -72,7 +72,8 @@ void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM,
     setQToFitRotationImpl(sbs, X_FM.R(), q);
 }
 
-void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
+void setQToFitRotationImpl(const SBStateDigest& sbs,
+                           const Rotation& R_FM, Vector& q) const override {
     // The only rotation our planar joint can handle is about z.
     // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
     // in that case 1 and 3 are aligned and the conversion routine allocates all the
@@ -82,18 +83,22 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, Vecto
     const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
     this->toQ(q)[0] = angles123[2];
 }
-void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3&  p_FM, Vector& q) const {
+void setQToFitTranslationImpl(const SBStateDigest& sbs,
+                              const Vec3&  p_FM, Vector& q) const override {
     // Ignore translation in the z direction.
     this->toQ(q)[1] = p_FM[0]; // x
     this->toQ(q)[2] = p_FM[1]; // y
 }
 
-void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
+void setUToFitAngularVelocityImpl(const SBStateDigest& sbs,
+                                  const Vector&, const Vec3& w_FM,
+                                  Vector& u) const override {
     // We can represent the z angular velocity exactly, but nothing else.
     this->toU(u)[0] = w_FM[2];
 }
-void setUToFitLinearVelocityImpl
-    (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
+void setUToFitLinearVelocityImpl(const SBStateDigest& sbs,
+                                 const Vector&, const Vec3& v_FM,
+                                 Vector& u) const override
 {
     // Ignore translational velocity in the z direction.
     this->toU(u)[1] = v_FM[0]; // x
@@ -103,14 +108,14 @@ void setUToFitLinearVelocityImpl
 enum {PoolSize=2};
 enum {CosQ=0, SinQ=1};
 // We want space for cos(q) and sin(q).
-int calcQPoolSize(const SBModelVars&) const
+int calcQPoolSize(const SBModelVars&) const override
 {   return PoolSize; }
 
 // Precalculation of sin/cos costs around 50 flops.
 void performQPrecalculations(const SBStateDigest& sbs,
                              const Real* q, int nq,
                              Real* qCache,  int nQCache,
-                             Real* qErr,    int nQErr) const
+                             Real* qErr,    int nQErr) const override
 {
     assert(q && nq==3 && qCache && nQCache==PoolSize && nQErr==0);
     qCache[CosQ] = std::cos(q[0]);
@@ -121,7 +126,7 @@ void performQPrecalculations(const SBStateDigest& sbs,
 void calcX_FM(const SBStateDigest& sbs,
                 const Real* q,      int nq,
                 const Real* qCache, int nQCache,
-                Transform&  X_FM) const
+                Transform&  X_FM) const override
 {
     assert(q && nq==3 && qCache && nQCache==PoolSize);
     // Rotational q is about common z axis, translational q's along 
@@ -134,7 +139,7 @@ void calcX_FM(const SBStateDigest& sbs,
 // are along Fx and Fy so all axes are constant in F.
 void calcAcrossJointVelocityJacobian(
     const SBStateDigest& sbs,
-    HType&               H_FM) const
+    HType&               H_FM) const override
 {
     H_FM(0) = SpatialVec( Vec3(0,0,1),   Vec3(0) );
     H_FM(1) = SpatialVec(   Vec3(0),   Vec3(1,0,0) );
@@ -144,7 +149,7 @@ void calcAcrossJointVelocityJacobian(
 // Since the Jacobian above is constant in F, its time derivative is zero.
 void calcAcrossJointVelocityJacobianDot(
     const SBStateDigest& sbs,
-    HType&               HDot_FM) const
+    HType&               HDot_FM) const override
 {
     HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
     HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );

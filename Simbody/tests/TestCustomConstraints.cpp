@@ -75,18 +75,18 @@ private:
 
 class LinearFunction : public Function {
 public:
-    Real calcValue(const Vector& x) const {
+    Real calcValue(const Vector& x) const override {
         return x[0];
     }
-    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const override {
         if (derivComponents.size() == 1)
             return 1;
         return 0;
     }
-    int getArgumentSize() const {
+    int getArgumentSize() const override {
         return 1;
     }
-    int getMaxDerivativeOrder() const {
+    int getMaxDerivativeOrder() const override {
         return 100;
     }
 };
@@ -97,19 +97,19 @@ public:
 
 class CompoundFunction : public Function {
 public:
-    Real calcValue(const Vector& x) const {
+    Real calcValue(const Vector& x) const override {
         return 1*x[0]+2*x[1]+3*x[2];
     }
-    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const override {
         if (derivComponents.size() == 1) {
             return derivComponents[0]+1; // i.e. coef. 1, 2, or 3
         }
         return 0;
     }
-    int getArgumentSize() const {
+    int getArgumentSize() const override {
         return 3;
     }
-    int getMaxDerivativeOrder() const {
+    int getMaxDerivativeOrder() const override {
         return 2;
     }
 };

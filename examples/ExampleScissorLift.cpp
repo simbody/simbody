@@ -61,7 +61,7 @@ public:
     virtual void calcForce(const State&         state, 
                            Vector_<SpatialVec>& bodyForces, 
                            Vector_<Vec3>&       particleForces, 
-                           Vector&              mobilityForces) const
+                           Vector&              mobilityForces) const override
     {
         const Vec3 p = follower.findStationLocationInAnotherBody
                                                         (state, point, plane);
@@ -76,7 +76,7 @@ public:
         follower.applyForceToBodyPoint(state, point, -forceOnPlane, bodyForces);
    }
 
-    virtual Real calcPotentialEnergy(const State& state) const {
+    virtual Real calcPotentialEnergy(const State& state) const override {
         const Vec3 p = follower.findStationLocationInAnotherBody
                                                         (state, point, plane);
         const Real x = dot(p,normal) - h; // height of point over plane

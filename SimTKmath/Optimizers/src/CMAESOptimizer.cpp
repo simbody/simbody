@@ -159,15 +159,32 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     
     // init_stepsize
     // --------
-    double init_stepsize = 0;
+    Vector init_stepsizeVec;
     double* stddev = NULL;
-    Vector init_stepsizeArray;
-    if (getAdvancedRealOption("init_stepsize", init_stepsize)) {
-        init_stepsizeArray.resize(n);
+    double init_stepsizeReal = 0;
+    // for backward compatibility init_stepsize can be set
+    // from a single double value
+    if (getAdvancedRealOption("init_stepsize", init_stepsizeReal)) {
+        init_stepsizeVec.resize(n);
         for (int i = 0; i < n; i++) {
-            init_stepsizeArray[i] = init_stepsize;
+            init_stepsizeVec[i] = init_stepsizeReal;
         }
-        stddev = &init_stepsizeArray[0];
+        stddev = &init_stepsizeVec[0];
+    }
+    // or init_stepsize can be set from a Vector
+    if (getAdvancedVectorOption("init_stepsize", init_stepsizeVec)) {
+        SimTK_ERRCHK_ALWAYS(init_stepsizeVec.size() == n,
+                            "CMAESOptimizer::init ",
+                            "init_stepsize dimentions should be equal to the num of parameters");
+        stddev = &init_stepsizeVec[0];
+    }
+    // if both types are set inform user
+    if (getAdvancedVectorOption("init_stepsize", init_stepsizeVec) &&
+            getAdvancedRealOption("init_stepsize", init_stepsizeReal))
+    {
+        throw std::logic_error(std::string("CMAESOptimizer::init ") +
+                        "user should set init_stepsize either through " +
+                        "getAdvancedRealOption or getAdvancedVectorOption but not both");
     }
 
     // seed

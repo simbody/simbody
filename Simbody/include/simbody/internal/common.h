@@ -53,23 +53,19 @@ any other Simbody header. **/
 // affect only the simbody library, meaning that other libraries can
 // be clients of this one. However, we are assuming all-static or all-shared.
 
-#ifdef _WIN32
-    #ifdef _MSC_VER
+#if defined(_WIN32) && defined(_MSC_VER)
     #pragma warning(disable:4231) // need to use 'extern' template explicit instantiation
-    #endif
     #if defined(SimTK_SIMBODY_BUILDING_SHARED_LIBRARY)
         #define SimTK_SIMBODY_EXPORT __declspec(dllexport)
         // Keep MS VC++ quiet when it tries to instantiate incomplete template classes in a DLL.
-        #ifdef _MSC_VER
         #pragma warning(disable:4661)
-        #endif
     #elif defined(SimTK_SIMBODY_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
         #define SimTK_SIMBODY_EXPORT
     #else
         #define SimTK_SIMBODY_EXPORT __declspec(dllimport)   // i.e., a client of a shared library
     #endif
 #else
-    #define SimTK_SIMBODY_EXPORT // Linux, Mac
+    #define SimTK_SIMBODY_EXPORT // Linux, Mac, MinGW
 #endif
 
 // Every SimTK library must provide these two routines, with the library

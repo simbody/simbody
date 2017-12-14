@@ -364,7 +364,6 @@
 // the first #include or #ifdef) of whatever compilation unit you are fiddling with.
 #if defined(NDEBUG) && !defined(SimTK_KEEP_ASSERT)
     #define SimTK_ASSERT(cond,msg)
-    #define SimTK_ASSERT(cond,msg)
     #define SimTK_ASSERT1(cond,msg,a1)
     #define SimTK_ASSERT2(cond,msg,a1,a2)
     #define SimTK_ASSERT3(cond,msg,a1,a2,a3)

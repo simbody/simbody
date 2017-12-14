@@ -11,7 +11,7 @@
 #include "IpRestoIpoptNLP.hpp"
 #include "IpDefaultIterateInitializer.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 #ifdef IP_DEBUG
   static const Index dbg_verbosity = 0;
@@ -230,7 +230,7 @@ namespace Ipopt
         THROW_EXCEPTION(FEASIBILITY_PROBLEM_SOLVED, "Restoration phase converged to sufficiently feasible point of original square problem.");
       }
 
-      // Update the bound multiplers, pretending that the entire
+      // Update the bound multipliers, pretending that the entire
       // progress in x and s in the restoration phase has been one
       // [rimal-dual Newton step (and therefore the result of solving
       // an augmented system)

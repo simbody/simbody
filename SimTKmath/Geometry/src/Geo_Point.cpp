@@ -451,7 +451,7 @@ public:
 
     // This function calculates the volume as a function of rotation angles
     // relative to the starting frame B0.
-    int f(const Vector& angles, Real& volume) const {
+    int f(const Vector& angles, Real& volume) const override {
         Vec3P a; a[0] = P(angles[0]); a[1] = P(angles[1]); a[2] = P(angles[2]);
         Rotation_<P> R_B0B(BodyRotationSequence,
                            a[0], XAxis, a[1], YAxis, a[2], ZAxis);

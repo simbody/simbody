@@ -39,7 +39,7 @@ public:
     RungeKutta3IntegratorRep(Integrator* handle, const System& sys);
 protected:
     bool attemptODEStep
-       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations);
+       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations) override;
 private:    
     static const int NTemps = 2;
     Vector ytmp[NTemps];

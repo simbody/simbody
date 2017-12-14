@@ -212,12 +212,12 @@ const ContactForceGenerator& getDefaultForceGenerator() const
 // These override default implementations of virtual methods in the 
 // Subsystem::Guts class.
 
-CompliantContactSubsystemImpl* cloneImpl() const 
+CompliantContactSubsystemImpl* cloneImpl() const override 
 {   return new CompliantContactSubsystemImpl(*this); }
 
 // Allocate lazy evaluation cache entries to hold potential energy (calculable
 // after position stage) and forces and power (calculable after velocity stage).
-int realizeSubsystemTopologyImpl(State& s) const {
+int realizeSubsystemTopologyImpl(State& s) const override {
     // Get writability briefly to fill in the Topology cache.
     CompliantContactSubsystemImpl* wThis = 
         const_cast<CompliantContactSubsystemImpl*>(this);
@@ -241,27 +241,27 @@ int realizeSubsystemTopologyImpl(State& s) const {
     return 0;
 }
 
-int realizeSubsystemModelImpl(State& s) const {
+int realizeSubsystemModelImpl(State& s) const override {
     return 0;
 }
 
-int realizeSubsystemInstanceImpl(const State& s) const {
+int realizeSubsystemInstanceImpl(const State& s) const override {
     return 0;
 }
 
-int realizeSubsystemTimeImpl(const State& s) const {
+int realizeSubsystemTimeImpl(const State& s) const override {
     return 0;
 }
 
-int realizeSubsystemPositionImpl(const State& s) const {
+int realizeSubsystemPositionImpl(const State& s) const override {
     return 0;
 }
 
-int realizeSubsystemVelocityImpl(const State& s) const {
+int realizeSubsystemVelocityImpl(const State& s) const override {
     return 0;
 }
 
-int realizeSubsystemDynamicsImpl(const State& s) const {
+int realizeSubsystemDynamicsImpl(const State& s) const override {
     ensureForceCacheValid(s);
 
     const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
@@ -298,12 +298,12 @@ int realizeSubsystemDynamicsImpl(const State& s) const {
 // Velocity stage. But if only positions are available, we
 // have to calculate forces at zero velocity and then throw away everything
 // but the PE.
-Real calcPotentialEnergy(const State& state) const {
+Real calcPotentialEnergy(const State& state) const override {
     ensurePotentialEnergyCacheValid(state);
     return getPotentialEnergyCache(state);
 }
 
-int realizeSubsystemAccelerationImpl(const State& state) const {
+int realizeSubsystemAccelerationImpl(const State& state) const override {
     if (!m_trackDissipatedEnergy)
         return 0; // nothing to do here in that case
 
@@ -316,7 +316,7 @@ int realizeSubsystemAccelerationImpl(const State& state) const {
     return 0;
 }
 
-int realizeSubsystemReportImpl(const State&) const {
+int realizeSubsystemReportImpl(const State&) const override {
     return 0;
 }
 

@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -771,12 +771,12 @@ MatrixHelperRep<S>::subIn(const MatrixHelper<typename CNT<S>::TNeg>& nh) {
 template <class S> void
 MatrixHelperRep<S>::fillWith(const S* eltp) {
     if (hasContiguousData()) {
-        int len = length();
+        const ptrdiff_t len = nelt();
         if (getEltSize() == 1)
-            for (int i = 0; i < len; i++)
+            for (ptrdiff_t i = 0; i < len; i++)
                 m_data[i] = *eltp;
         else
-            for (int i = 0; i < len; i++)
+            for (ptrdiff_t i = 0; i < len; i++)
                 for (int j = 0; j < getEltSize(); j++)
                     m_data[i*getEltSize()+j] = eltp[j];
     }
