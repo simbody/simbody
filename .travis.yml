@@ -45,7 +45,7 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes update; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes install liblapack-dev; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes install freeglut3-dev libxi-dev libxmu-dev; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$ADOLC" = "yes" ]]; then sudo apt-get --yes install libadolc-dev; fi
+  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$ADOLC" = "on" ]]; then sudo apt-get --yes install libadolc-dev; fi
 
   # C++11 on Ubuntu. Update to gcc 4.9, which provides full C++11 support.  We
   # use this script because if building Simbody with C++11, we need gcc-4.9,
