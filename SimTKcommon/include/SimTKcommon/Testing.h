@@ -201,10 +201,6 @@ public:
         const double scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 1.0);
         return std::abs(v1-v2) < scale*(double)tol;
     }
-    static bool numericallyEqual(long double v1, long double v2, int n, double tol=defTol<long double>()) {
-        const long double scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 1.0l);
-        return std::abs(v1-v2) < scale*(long double)tol;
-    }
 
     // For integers we ignore tolerance.
     static bool numericallyEqual(int i1, int i2, int n, double tol=0) {return i1==i2;}
@@ -215,14 +211,6 @@ public:
     {   return numericallyEqual((double)v1, v2, n, tol); }
     static bool numericallyEqual(double v1, float v2, int n, double tol=defTol<float>())
     {   return numericallyEqual(v1, (double)v2, n, tol); }
-    static bool numericallyEqual(float v1, long double v2, int n, double tol=defTol<float>())
-    {   return numericallyEqual((long double)v1, v2, n, tol); }
-    static bool numericallyEqual(long double v1, float v2, int n, double tol=defTol<float>())
-    {   return numericallyEqual(v1, (long double)v2, n, tol); }
-    static bool numericallyEqual(double v1, long double v2, int n, double tol=defTol<double>())
-    {   return numericallyEqual((long double)v1, v2, n, tol); }
-    static bool numericallyEqual(long double v1, double v2, int n, double tol=defTol<double>())
-    {   return numericallyEqual(v1, (long double)v2, n, tol); }
 
     // Mixed int/floating just upgrades int to floating type.
     static bool numericallyEqual(int i1, float f2, int n, double tol=defTol<float>())
@@ -241,14 +229,6 @@ public:
     {   return numericallyEqual((double)i1,f2,n,tol); }
     static bool numericallyEqual(double f1, unsigned i2, int n, double tol=defTol<double>())
     {   return numericallyEqual(f1,(double)i2,n,tol); }
-    static bool numericallyEqual(int i1, long double f2, int n, double tol=defTol<long double>())
-    {   return numericallyEqual((long double)i1,f2,n,tol); }
-    static bool numericallyEqual(long double f1, int i2, int n, double tol=defTol<long double>())
-    {   return numericallyEqual(f1,(long double)i2,n,tol); }
-    static bool numericallyEqual(unsigned i1, long double f2, int n, double tol=defTol<long double>())
-    {   return numericallyEqual((long double)i1,f2,n,tol); }
-    static bool numericallyEqual(long double f1, unsigned i2, int n, double tol=defTol<long double>())
-    {   return numericallyEqual(f1,(long double)i2,n,tol); }
 
     template <class P>
     static bool numericallyEqual(const std::complex<P>& v1, const std::complex<P>& v2, int n, double tol=defTol<P>()) {
