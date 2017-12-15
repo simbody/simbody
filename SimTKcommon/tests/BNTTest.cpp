@@ -331,21 +331,21 @@ int main() {
     cout << "f=" << setprecision(NTraits<float>::getNumDigits()+2) << NTraits<float>::getOneOverSqrt2()
          << " d=" << setprecision(NTraits<double>::getNumDigits()+2) << NTraits<double>::getOneOverSqrt2() << endl;
 
-    printf("Eps f=%.16Lg d=%.16Lg\n",
-        (long double)NTraits<float>::getEps(), 
-        (long double)NTraits<double>::getEps());
+    printf("Eps f=%.16g d=%.16g\n",
+        (double)NTraits<float>::getEps(), 
+        (double)NTraits<double>::getEps());
 
-    printf("SqrtEps f=%.16Lg d=%.16Lg\n",
-        (long double)NTraits<float>::getSqrtEps(), 
-        (long double)NTraits<double>::getSqrtEps());
+    printf("SqrtEps f=%.16g d=%.16g\n",
+        (double)NTraits<float>::getSqrtEps(), 
+        (double)NTraits<double>::getSqrtEps());
 
-    printf("Significant f=%.16Lg d=%.16Lg\n",
-        (long double)NTraits<float>::getSignificant(), 
-        (long double)NTraits<double>::getSignificant());
+    printf("Significant f=%.16g d=%.16g\n",
+        (double)NTraits<float>::getSignificant(), 
+        (double)NTraits<double>::getSignificant());
 
-    printf("Tiny f=%.16Lg d=%.16Lg\n",
-        (long double)NTraits<float>::getTiny(), 
-        (long double)NTraits<double>::getTiny());
+    printf("Tiny f=%.16g d=%.16g\n",
+        (double)NTraits<float>::getTiny(), 
+        (double)NTraits<double>::getTiny());
 
   } catch(const std::exception& e) {
       std::cout << "exception: " << e.what() << std::endl;
