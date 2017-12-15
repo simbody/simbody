@@ -12,7 +12,7 @@
 #include "IpAlgStrategy.hpp"
 #include "IpIpoptCalculatedQuantities.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Base class for line search objects.

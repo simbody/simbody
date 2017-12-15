@@ -13,7 +13,7 @@
 #include "IpSymMatrix.hpp"
 #include "IpMultiVectorMatrix.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /* forward declarations */

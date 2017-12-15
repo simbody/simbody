@@ -12,7 +12,7 @@
 #include "IpUtils.hpp"
 #include "IpSymMatrix.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Class for Matrices which are multiples of the identity matrix.

@@ -650,17 +650,6 @@ void testStep() {
     SimTK_TEST(dstepDown(0.f)==0 && dstepDown(.5f)<0 && dstepDown(1.f)==0);
     SimTK_TEST(d2stepUp(0.f)==0 && d2stepUp(1.f)==0);
     SimTK_TEST(d2stepDown(0.f)==0 && d2stepDown(1.f)==0);
-        // long double
-    SimTK_TEST(stepUp(0.L)==0 && stepUp(.5L)==.5L && stepUp(1.L)==1);
-    SimTK_TEST(0 < stepUp(.3L) && stepUp(.3L) < .5L);
-    SimTK_TEST(.5L < stepUp(.7L) && stepUp(.7L) < 1);
-    SimTK_TEST(stepDown(0.L)==1 && stepDown(.5L)==.5L && stepDown(1.L)==0);
-    SimTK_TEST(.5L < stepDown(.3L) && stepDown(.3L) < 1);
-    SimTK_TEST(0 < stepDown(.7L) && stepDown(.7L) < .5L);
-    SimTK_TEST(dstepUp(0.L)==0 && dstepUp(.5L)>0 && dstepUp(1.L)==0);
-    SimTK_TEST(dstepDown(0.L)==0 && dstepDown(.5L)<0 && dstepDown(1.L)==0);
-    SimTK_TEST(d2stepUp(0.L)==0 && d2stepUp(1.L)==0);
-    SimTK_TEST(d2stepDown(0.L)==0 && d2stepDown(1.L)==0);
 
         // int is treated as a double, but only for stepUp()/stepDown()
     SimTK_TEST(stepUp(0)==0 && stepUp(1)==1);
@@ -706,9 +695,6 @@ void testStep() {
     SimTK_TEST(stepAny(-1,2,0,1,0.f) == -1);
     SimTK_TEST(stepAny(-1,2,0,1,.5f) == 0);
     SimTK_TEST(stepAny(-1,2,0,1,1.f) == 1);
-    SimTK_TEST(stepAny(-1,2,0,1,0.L) == -1);
-    SimTK_TEST(stepAny(-1,2,0,1,.5L) == 0);
-    SimTK_TEST(stepAny(-1,2,0,1,1.L) == 1);
 
     // y goes from -7 down to -14 as x goes from -3.1 up to +429.3.
     const double x0=-3.1, x1=429.3, y0=-7., y1=-14.;

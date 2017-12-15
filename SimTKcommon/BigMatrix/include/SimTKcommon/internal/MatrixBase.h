@@ -46,7 +46,7 @@ Type itself.
 
 <h2>Implementation</h2>
 MatrixBase<ELT> uses MatrixHelper<S> for implementation, where S 
-is ELT::Scalar, that is, the underlying float, double, long double,
+is ELT::Scalar, that is, the underlying float, double,
 complex<float>, negator<conjugate<double>>, 
 etc. from which ELT is constructed. This is a finite set of which all
 members are explicitly instantiated in the implementation code, so 

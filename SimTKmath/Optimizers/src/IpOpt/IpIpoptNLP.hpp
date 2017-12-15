@@ -13,7 +13,7 @@
 #include "IpJournalist.hpp"
 #include "IpNLPScaling.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   // forward declarations
   class IteratesVector;
