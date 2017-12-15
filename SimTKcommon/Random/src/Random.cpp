@@ -25,6 +25,7 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/internal/Random.h"
 #include "SimTKcommon/internal/AtomicInteger.h"
+#include <SimTKcommon/internal/NTraits.h>
 #include "SFMT.h"
 
 #include <cassert>
@@ -77,7 +78,7 @@ public:
     }
 
     int getInt(int max) {
-        return (int) floor(getValue()*max);
+        return (int)NTraits<Real>::value(floor(getValue()*max));
     }
 
     void fillArray(Real array[], int length) const {
@@ -150,7 +151,7 @@ public:
             y = 2*getNextRandom()-1;
             r2 = x*x + y*y;
         } while (r2 >= 1.0 || r2 == 0.0);
-        Real multiplier = std::sqrt((-2*std::log(r2))/r2);
+        Real multiplier = NTraits<Real>::sqrt((-2* NTraits<Real>::log(r2))/r2);
         nextGaussian = y*multiplier;
         nextGaussianIsValid = true;
         return mean+stddev*x*multiplier;
@@ -227,7 +228,8 @@ const Random::Uniform::UniformImpl& Random::Uniform::getConstImpl() const {
 }
 
 int Random::Uniform::getIntValue() {
-    return (int) std::floor(getImpl().getValue());
+    return (int)NTraits<Real>::value(
+            NTraits<Real>::floor(getImpl().getValue()));
 }
 
 Real Random::Uniform::getMin() const {

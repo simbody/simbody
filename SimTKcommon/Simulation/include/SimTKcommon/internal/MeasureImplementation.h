@@ -274,6 +274,19 @@ public:
     static void makeZeroLike(const double&, double& zeroValue) {zeroValue=0.;}
 };
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> class Measure_Num<adouble> {
+    public:
+        typedef adouble Element;
+        static int size(const adouble&) {return 1;}
+        static const Real& get(const adouble& v, int i) {assert(i==0); return v;}
+        static adouble& upd(adouble& v, int i) {assert(i==0); return v;}
+        static void makeNaNLike(const adouble&, adouble& nanValue)
+        {  nanValue = CNT<adouble>::getNaN(); }
+        static void makeZeroLike(const adouble&, adouble& zeroValue) {zeroValue=0.;}
+    };
+#endif
+
 // We only support stride 1 (densely packed) Vec types.
 template <int M, class E>
 class Measure_Num< Vec<M,E,1> > {
@@ -1653,8 +1666,8 @@ private:
         switch (operation) {
         case Extreme::Maximum: return newVal > oldExtreme;
         case Extreme::Minimum: return newVal < oldExtreme;
-        case Extreme::MaxAbs: return std::abs(newVal) > std::abs(oldExtreme);
-        case Extreme::MinAbs: return std::abs(newVal) < std::abs(oldExtreme);
+        case Extreme::MaxAbs: return NTraits<Real>::abs(newVal) > NTraits<Real>::abs(oldExtreme);
+        case Extreme::MinAbs: return NTraits<Real>::abs(newVal) < NTraits<Real>::abs(oldExtreme);
         };
         SimTK_ASSERT1_ALWAYS(!"recognized", 
             "Measure::Extreme::Implementation::isNewExtreme(): "
@@ -1748,7 +1761,7 @@ public:
     bool empty() const {return size()==0;}
     bool full()  const {return size()==capacity();}
 
-    double getEntryTime(int i) const
+    Real getEntryTime(int i) const
     {   assert(i < size()); return m_times[getArrayIndex(i)];}
     const T& getEntryValue(int i) const
     {   assert(i < size()); return m_values[getArrayIndex(i)];}
@@ -1762,7 +1775,7 @@ public:
 
     // Add a new entry to the end of the list, throwing out old entries that
     // aren't needed to answer requests at tEarliest or later.
-    void append(double tEarliest, double tNow, const T& valueNow) {
+    void append(Real tEarliest, Real tNow, const T& valueNow) {
         forgetEntriesMuchOlderThan(tEarliest);
         removeEntriesLaterOrEq(tNow);
         if (full()) 
@@ -1777,7 +1790,7 @@ public:
     }
 
     // Prepend an older entry to the beginning of the list. No cleanup is done.
-    void prepend(double tNewOldest, const T& value) {
+    void prepend(Real tNewOldest, const T& value) {
         assert(empty() || tNewOldest < m_times[m_oldest]);
         if (full()) makeMoreRoom();
         m_oldest = empty() ? 0 : getArrayIndex(-1);
@@ -1793,8 +1806,8 @@ public:
     // needed to answer that earliest request. We won't copy anything at or
     // newer than tNow, and finally we'll push (tNow,valueNow) as the newest
     // entry.
-    void copyInAndUpdate(const Measure_Delay_Buffer& oldBuf, double tEarliest,
-                         double tNow, const T& valueNow) {
+    void copyInAndUpdate(const Measure_Delay_Buffer& oldBuf, Real tEarliest,
+                         Real tNow, const T& valueNow) {
         // clear all current entries (no heap activity)
         m_oldest = m_size = 0;
 
@@ -1834,7 +1847,7 @@ public:
             m_values[nxt] = oldBuf.getEntryValue(i);
         }
         // Now add the newest entry and set the size.
-        m_times[nxt]  = tNow;
+        m_times[nxt] = tNow;
         m_values[nxt] = valueNow;
         assert(nxt+1==newSize);
         m_size = nxt+1;
@@ -1844,12 +1857,12 @@ public:
     // Given the current time and value and the earlier time at which the
     // value is needed, use the buffer and (if necessary) the current value
     // to estimate the delayed value.
-    T calcValueAtTime(double tDelay, double tNow, const T& valueNow) const;
+    T calcValueAtTime(Real tDelay, Real tNow, const T& valueNow) const;
 
     // Given the current time but *not* the current value of the source measure,
     // provide an estimate for the value at tDelay=tNow-delay using only the 
     // buffer contents and linear interpolation or extrapolation.
-    void calcValueAtTimeLinearOnly(double tDelay, T& delayedValue) const {
+    void calcValueAtTimeLinearOnly(Real tDelay, T& delayedValue) const {
         if (empty()) {
             // Nothing in the buffer?? Shouldn't happen. Return empty Vector
             // or NaN for fixed-size types.
@@ -1862,7 +1875,7 @@ public:
         if (firstLater > 0) {
             // Normal case: tDelay is between two buffer entries.
             int firstEarlier = firstLater-1;
-            double t0=getEntryTime(firstEarlier), t1=getEntryTime(firstLater);
+            Real t0=getEntryTime(firstEarlier), t1=getEntryTime(firstLater);
             const T& v0=getEntryValue(firstEarlier);
             const T& v1=getEntryValue(firstLater);
             Real fraction = Real((tDelay-t0)/(t1-t0));
@@ -1887,7 +1900,7 @@ public:
         }
 
         // Extrapolate using the last two entries.
-        double t0=getEntryTime(size()-2), t1=getEntryTime(size()-1);
+        Real t0=getEntryTime(size()-2), t1=getEntryTime(size()-1);
         const T& v0=getEntryValue(size()-2);
         const T& v1=getEntryValue(size()-1);
         Real fraction = Real((tDelay-t0)/(t1-t0));  // > 1
@@ -1915,7 +1928,7 @@ private:
         else return rawIndex % capacity(); }
 
     // Remove all but two entries older than the given time.
-    void forgetEntriesMuchOlderThan(double tEarliest) {
+    void forgetEntriesMuchOlderThan(Real tEarliest) {
         const int numToRemove = countNumUnneededOldEntries(tEarliest);
         if (numToRemove) {
             m_oldest = getArrayIndex(numToRemove);
@@ -1926,14 +1939,14 @@ private:
     // Count up how many old entries at the beginning of the buffer are so old
     // that they wouldn't be needed to respond to a request at time tEarliest or
     // later. We'll keep no more than two entries earlier than tEarliest.
-    int countNumUnneededOldEntries(double tEarliest) const {
+    int countNumUnneededOldEntries(Real tEarliest) const {
         const int firstLater = findFirstLaterOrEq(tEarliest);
         return std::max(0, firstLater-2);
     }
 
     // Given the time now, delete anything at the end of the queue that is
     // at that same time or later.
-    void removeEntriesLaterOrEq(double t) {
+    void removeEntriesLaterOrEq(Real t) {
         int lastEarlier = findLastEarlier(t);
         m_size = lastEarlier+1;
         if (m_size==0) m_oldest=0; // restart at beginning of array
@@ -1941,7 +1954,7 @@ private:
 
     // Return the entry number (0..size-1) of the first entry whose time 
     // is >= the given time, or -1 if there is none such.
-    int findFirstLaterOrEq(double tDelay) const {
+    int findFirstLaterOrEq(Real tDelay) const {
         for (int i=0; i < size(); ++i)
             if (getEntryTime(i) >= tDelay)
                 return i;
@@ -1950,7 +1963,7 @@ private:
 
     // Return the entry number(size-1..0) of the last entry whose time 
     // is < the given time, or -1 if there is none such.
-    int findLastEarlier(double t) const {
+    int findLastEarlier(Real t) const {
         for (int i=size()-1; i>=0; --i)
             if (getEntryTime(i) < t)
                 return i;
@@ -1989,7 +2002,7 @@ private:
         Array_<T,int> newValues(newSizeRequest); 
         if (newValues.capacity() > newValues.size())
             newValues.resize(newValues.capacity()); // don't waste any     
-        Array_<double,int> newTimes(newValues.size(), dNaN); 
+        Array_<Real,int> newTimes(newValues.size(), dNaN); 
 
         // Pack existing values into start of new arrays.
         for (int i=0; i < size(); ++i) {
@@ -2010,7 +2023,7 @@ private:
     }
 
     // These are circular buffers of the same size.
-    Array_<double,int>  m_times;
+    Array_<Real,int>    m_times;
     Array_<T,int>       m_values;
     int                 m_oldest; // Array index of oldest (time,value)
     int                 m_size;   // number of entries in use
