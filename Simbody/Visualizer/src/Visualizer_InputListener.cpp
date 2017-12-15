@@ -30,6 +30,7 @@ built-in concrete InputListeners, currently just Visualizer::InputSilo. **/
 
 #include <deque>
 #include <utility>
+#include <condition_variable>
 
 using namespace SimTK;
 

@@ -28,6 +28,7 @@
 #include "simbody/internal/Visualizer.h"
 #include <utility>
 #include <map>
+#include <atomic>
 
 /** @file
  * This file defines commands that are used for communication between the 

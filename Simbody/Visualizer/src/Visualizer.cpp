@@ -37,6 +37,7 @@
 #include <ctime>
 #include <iostream>
 #include <limits>
+#include <condition_variable>
 
 using namespace SimTK;
 using namespace std;
