@@ -31,6 +31,7 @@ Declares ContactMaterial and ContactSurface classes. **/
 #include "simbody/internal/common.h"
 
 #include <algorithm>
+#include <atomic>
 
 namespace SimTK {
 

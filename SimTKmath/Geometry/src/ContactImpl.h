@@ -27,6 +27,8 @@
 #include "simmath/internal/common.h"
 #include "simmath/internal/Contact.h"
 
+#include <atomic>
+
 namespace SimTK {
 
 
