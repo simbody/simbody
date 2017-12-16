@@ -5,10 +5,10 @@
 #   Simbody_ROOT_DIR - the installation directory; all the pieces must be
 #                      found together
 #   Simbody_INCLUDE_DIR - location of Simbody.h
-#   Simbody_LIB_DIR     - location of libSimTKsimbody.{a,so,dylib} 
+#   Simbody_LIB_DIR     - location of libSimTKsimbody.{a,so,dylib}
 #                         or SimTKsimbody.lib
 #   Simbody_BIN_DIR     - location of .dll's on Windows
-#   Simbody_VIZ_DIR     - location of simbody-visualizer 
+#   Simbody_VIZ_DIR     - location of simbody-visualizer
 #   Simbody_LIBRARIES   - suitable for target_link_libraries(); includes
 #                         both optimized and debug libraries if both are
 #                         available
@@ -35,27 +35,27 @@
 set_and_check(@PKG_NAME@_ROOT_DIR
               "@PACKAGE_CMAKE_INSTALL_PREFIX@")
 
-set_and_check(@PKG_NAME@_INCLUDE_DIR 
+set_and_check(@PKG_NAME@_INCLUDE_DIR
               "@PACKAGE_SIMBODY_INCLUDE_INSTALL_DIR@")
 
-set_and_check(@PKG_NAME@_LIB_DIR 
+set_and_check(@PKG_NAME@_LIB_DIR
               "@PACKAGE_CMAKE_INSTALL_LIBDIR@")
 
-list(APPEND @PKG_NAME@_BIN_DIR 
+list(APPEND @PKG_NAME@_BIN_DIR
             "@PACKAGE_CMAKE_INSTALL_BINDIR@")
 
-list(APPEND @PKG_NAME@_VIZ_DIR 
+list(APPEND @PKG_NAME@_VIZ_DIR
             "@PACKAGE_SIMBODY_VISUALIZER_INSTALL_DIR@")
 
-list(APPEND @PKG_NAME@_CFLAGS 
+list(APPEND @PKG_NAME@_CFLAGS
             -I"@PACKAGE_SIMBODY_INCLUDE_INSTALL_DIR@")
 
-list(APPEND @PKG_NAME@_LDFLAGS 
+list(APPEND @PKG_NAME@_LDFLAGS
             -L"@PACKAGE_CMAKE_INSTALL_LIBDIR@")
 
 if (NOT "@SIMBODY_DOXYGEN_TAGFILE_NAME@" STREQUAL "")
     # Must check tagfile variable, since the doxygen install dir is created
-    # even if Doxygen documentation is not install.
+    # even if Doxygen documentation is not installed.
     set(temp_doxygen_dir "@PACKAGE_SIMBODY_INSTALL_DOXYGENDIR@")
     set(temp_tagfile_path
         "${temp_doxygen_dir}/@SIMBODY_DOXYGEN_TAGFILE_NAME@")
@@ -107,7 +107,11 @@ endif()
 
 
 # These are IMPORTED targets created by SimbodyTargets.cmake
-set(Simbody_LIBRARIES @SimTKCOMMON_SHARED_LIBRARY@ @SimTKMATH_SHARED_LIBRARY@ @SimTKSIMBODY_SHARED_LIBRARY@)
+if(@BUILD_DYNAMIC_LIBRARIES@)
+    set(Simbody_LIBRARIES @SimTKCOMMON_SHARED_LIBRARY@ @SimTKMATH_SHARED_LIBRARY@ @SimTKSIMBODY_SHARED_LIBRARY@)
+else()
+    set(Simbody_LIBRARIES Simbody_LIBRARIES-NOTFOUND)
+endif()
 if(@BUILD_STATIC_LIBRARIES@) # this is ON if static libraries were built
     set(Simbody_STATIC_LIBRARIES @SimTKCOMMON_STATIC_LIBRARY@ @SimTKMATH_STATIC_LIBRARY@ @SimTKSIMBODY_STATIC_LIBRARY@)
 else()
