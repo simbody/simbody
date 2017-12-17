@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-17 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 // This test originally tested the SimTK::AtomicInteger class template. When
-// SimTK::AtomicInteger was replaced with C++11 std::atomic, this test cased
+// SimTK::AtomicInteger was replaced with C++11 std::atomic, this test case
 // was simplified. This test is now moreso a test of ParallelExecutor (rather
 // than of operators for std::atomic).
 
@@ -44,9 +44,9 @@ void testParallelExecution() {
     for (int i = 0; i < (int)flags.size(); ++i)
         flags[i] = 0;
     ParallelExecutor executor;
-    
+
     // See if the ++ operator is properly atomic.
-    
+
     class SetFlagTask : public ParallelExecutor::Task {
     public:
         SetFlagTask(vector<int>& flags, std::atomic<int>& index) : flags(flags), index(index) {
@@ -66,9 +66,9 @@ void testParallelExecution() {
         for (int j = 0; j < (int)flags.size(); ++j)
             ASSERT(flags[j] == (j < 5000 ? i+1 : 0));
     }
-    
+
     // See if the += operator is properly atomic.
-    
+
     class IncrementTask : public ParallelExecutor::Task {
     public:
         IncrementTask(std::atomic<int>& index) : index(index) {
@@ -85,25 +85,6 @@ void testParallelExecution() {
         executor.execute(task, 5000);
         ASSERT(index == 10000);
     }
-    
-    /* C++11 std::atomic does not support operator*=().
-    class MultiplyTask : public ParallelExecutor::Task {
-    public:
-        MultiplyTask(std::atomic<int>& index) : index(index) {
-        }
-        void execute(int i) override {
-            index *= (i%500 == 0 ? 2 : -1);
-        }
-    private:
-        std::atomic<int>& index;
-    };
-    for (int i = 0; i < 100; ++i) {
-        MultiplyTask task(index);
-        index = 1;
-        executor.execute(task, 4999);
-        ASSERT(index == -1024);
-    }
-    */
 }
 
 int main() {
