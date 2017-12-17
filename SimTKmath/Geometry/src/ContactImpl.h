@@ -27,6 +27,8 @@
 #include "simmath/internal/common.h"
 #include "simmath/internal/Contact.h"
 
+#include <atomic>
+
 namespace SimTK {
 
 
@@ -67,7 +69,7 @@ public:
     (thread safe). Each distinct type of Contact should use this to
     initialize a static variable for that concrete class. */
     static ContactTypeId  createNewContactTypeId()
-    {   static AtomicInteger nextAvailableId = 1;
+    {   static std::atomic<int> nextAvailableId(1);
         return ContactTypeId(nextAvailableId++); }
 
 
@@ -76,7 +78,7 @@ public:
     initialize a static variable for that concrete class. This will
     roll over at approximately 1 billion. */
     static ContactId  createNewContactId()
-    {   static AtomicInteger nextAvailableId = 1;
+    {   static std::atomic<int> nextAvailableId(1);
         const int MaxContactId = 999999999; // 1 billion-1
         const int id = nextAvailableId++;
         // Other threads might get a few more high-numbered ids here before

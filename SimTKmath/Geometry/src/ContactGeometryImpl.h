@@ -32,6 +32,7 @@
 #include "simmath/Differentiator.h"
 #include "simmath/internal/ContactGeometry.h"
 
+#include <atomic>
 #include <limits>
 
 namespace SimTK {
@@ -64,7 +65,7 @@ public:
     (thread safe). Each distinct type of ContactGeometry should use this to
     initialize a static variable for that concrete class. */
     static ContactGeometryTypeId  createNewContactGeometryTypeId()
-    {   static AtomicInteger nextAvailableId = 1;
+    {   static std::atomic<int> nextAvailableId(1);
         return ContactGeometryTypeId(nextAvailableId++); }
 
     virtual ContactGeometryImpl*  clone() const = 0;
