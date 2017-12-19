@@ -113,6 +113,11 @@ if(@BUILD_STATIC_LIBRARIES@) # this is ON if static libraries were built
 else()
     set(Simbody_STATIC_LIBRARIES Simbody_STATIC_LIBRARIES-NOTFOUND)
 endif()
-mark_as_advanced(Simbody_LIBRARIES Simbody_STATIC_LIBRARIES)
+if(@BUILD_ADOLC_LIBRARIES@)
+    set(Simbody_ADOLC_LIBRARIES @SimTKCOMMON_ADOLC_LIBRARY@ @SimTKMATH_ADOLC_LIBRARY@ @SimTKSIMBODY_ADOLC_LIBRARY@)
+else()
+    set(Simbody_ADOLC_LIBRARIES Simbody_ADOLC_LIBRARIES-NOTFOUND)
+endif()
+mark_as_advanced(Simbody_LIBRARIES Simbody_STATIC_LIBRARIES Simbody_ADOLC_LIBRARIES)
 
 check_required_components(Simbody)

@@ -12,7 +12,7 @@
 #include "IpIterationOutput.hpp"
 #include "IpOrigIterationOutput.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Class for the iteration summary output for the restoration

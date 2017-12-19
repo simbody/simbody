@@ -29,6 +29,18 @@ foreach(TEST_PROG ${ADHOC_TESTS})
           PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
         target_link_libraries(${TEST_ROOT} 
                     ${TEST_SHARED_TARGET})
+                    
+        if(BUILD_ADOLC_LIBRARIES)
+            # Link with adolc library
+            set(TEST_ADOLC ${TEST_ROOT}ADOLC)
+            add_executable(${TEST_ADOLC} ${TEST_PROG})
+            set_target_properties(${TEST_ADOLC}
+                    PROPERTIES
+                    PROJECT_LABEL "Test_Adhoc - ${TEST_ADOLC}")
+            target_link_libraries(${TEST_ADOLC}
+                    ${TEST_ADOLC_TARGET})
+        endif()
+              
     endif(BUILD_TESTS_AND_EXAMPLES_SHARED)
 
     if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)

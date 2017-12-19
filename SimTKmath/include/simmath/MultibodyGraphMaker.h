@@ -568,6 +568,8 @@ public:
     defined in the input joint. In that case you should use a reverse joint
     when you build the system. **/
     bool isReversedFromJoint() const {return isReversed;}
+    /** Return the level of the outboard body (Ground is level 0) **/
+    int getLevel() const {return level;}
 
 private:
 friend class MultibodyGraphMaker;

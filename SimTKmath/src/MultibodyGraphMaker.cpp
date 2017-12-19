@@ -29,6 +29,7 @@
 #include "simmath/MultibodyGraphMaker.h"
 
 #include <exception>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <iostream>
@@ -612,13 +613,27 @@ findHeaviestUnassignedReverseJoint(int inboardBody) const {
 // TODO: keep a list of unprocessed joints so we don't have to go through
 // all of them again at each level.
 void MultibodyGraphMaker::growTree() {
+    // Record the joints for which we added mobilizers during this subtree
+    // sweep. That way if we jumped levels ahead due to massless bodies we
+    // can take credit and keep going rather than quit.
+    std::set<int> jointsAdded;
     for (int level=1; ;++level) { // level of outboard (mobilized) body
         bool anyMobilizerAdded = false;
         for (int jNum=0; jNum<getNumJoints(); ++jNum) {
             // See if this joint is at the right level (meaning its inboard
             // body is at level-1) and is available to become a mobilizer.
             const Joint& joint = getJoint(jNum);
-            if (joint.hasMobilizer()) continue; // already done
+            if (joint.hasMobilizer()) {
+                // Already done -- one of ours?
+                if (jointsAdded.count(jNum)) {
+                    // We added it during this growTree() call -- is it at
+                    // the current level?
+                    const Mobilizer& mob = mobilizers[joint.mobilizer];
+                    if (mob.getLevel() == level)
+                        anyMobilizerAdded = true; // Added one at level.
+                }
+                continue; 
+            }
             if (joint.mustBeLoopJoint) continue; // can't be a tree joint
             const Body& parent = getBody(joint.parentBodyNum);
             const Body& child  = getBody(joint.childBodyNum);
@@ -630,6 +645,7 @@ void MultibodyGraphMaker::growTree() {
                 if (child.level != level-1) continue; // not time yet
             } 
             addMobilizerForJoint(jNum);
+            jointsAdded.insert(jNum);
             anyMobilizerAdded = true;
 
             // We just made joint jNum a mobilizer. If its outboard body 
@@ -650,11 +666,13 @@ void MultibodyGraphMaker::growTree() {
                 const int jfwd = findHeaviestUnassignedForwardJoint(bNum);
                 if (jfwd>=0 && getBody(getJoint(jfwd).childBodyNum).mass > 0) {
                     addMobilizerForJoint(jfwd);
+                    jointsAdded.insert(jfwd);
                     break;
                 }
                 const int jrev = findHeaviestUnassignedReverseJoint(bNum);
                 if (jrev>=0 && getBody(getJoint(jrev).parentBodyNum).mass > 0) {
                     addMobilizerForJoint(jrev);
+                    jointsAdded.insert(jrev);
                     break;
                 }
 
@@ -662,10 +680,12 @@ void MultibodyGraphMaker::growTree() {
                 // body (if there is one) and keep trying.
                 if (jfwd >= 0) {
                     addMobilizerForJoint(jfwd);
+                    jointsAdded.insert(jfwd);
                     continue;
                 }
                 if (jrev >= 0) {
                     addMobilizerForJoint(jrev);
+                    jointsAdded.insert(jrev);
                     continue;
                 }
 

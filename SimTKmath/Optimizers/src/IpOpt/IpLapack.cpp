@@ -55,7 +55,7 @@ extern "C"
                              int jobz_len, int uplo_len);
 }
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   /* Interface to FORTRAN routine DPOTRS. */
   void IpLapackDpotrs(Index ndim, Index nrhs, const Number *a, Index lda,

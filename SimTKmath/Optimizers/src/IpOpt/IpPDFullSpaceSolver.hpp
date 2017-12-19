@@ -13,7 +13,7 @@
 #include "IpAugSystemSolver.hpp"
 #include "IpPDPerturbationHandler.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** This is the implemetation of the Primal-Dual System, using the

@@ -11,7 +11,7 @@
 
 #include "IpAlgStrategy.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   /** Abstract Base Class for classes that implement methods for computing
    *  the barrier and fraction-to-the-boundary rule parameter for the
