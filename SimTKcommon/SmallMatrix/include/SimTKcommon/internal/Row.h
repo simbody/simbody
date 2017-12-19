@@ -892,14 +892,6 @@ template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<double>::Mul
 operator*(const double& l, const Row<N,E,S>& r) {return r*l;}
 
-template <int N, class E, int S> inline
-typename Row<N,E,S>::template Result<long double>::Mul
-operator*(const Row<N,E,S>& l, const long double& r)
-  { return Row<N,E,S>::template Result<long double>::MulOp::perform(l,r); }
-template <int N, class E, int S> inline
-typename Row<N,E,S>::template Result<long double>::Mul
-operator*(const long double& l, const Row<N,E,S>& r) {return r*l;}
-
 // v = v*int, int*v -- just convert int to v's precision float
 template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<typename CNT<E>::Precision>::Mul
@@ -958,15 +950,6 @@ template <int N, class E, int S> inline
 typename CNT<double>::template Result<Row<N,E,S> >::Dvd
 operator/(const double& l, const Row<N,E,S>& r)
   { return CNT<double>::template Result<Row<N,E,S> >::DvdOp::perform(l,r); }
-
-template <int N, class E, int S> inline
-typename Row<N,E,S>::template Result<long double>::Dvd
-operator/(const Row<N,E,S>& l, const long double& r)
-  { return Row<N,E,S>::template Result<long double>::DvdOp::perform(l,r); }
-template <int N, class E, int S> inline
-typename CNT<long double>::template Result<Row<N,E,S> >::Dvd
-operator/(const long double& l, const Row<N,E,S>& r)
-  { return CNT<long double>::template Result<Row<N,E,S> >::DvdOp::perform(l,r); }
 
 // v = v/int, int/v -- just convert int to v's precision float
 template <int N, class E, int S> inline
@@ -1029,14 +1012,6 @@ template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<double>::Add
 operator+(const double& l, const Row<N,E,S>& r) {return r+l;}
 
-template <int N, class E, int S> inline
-typename Row<N,E,S>::template Result<long double>::Add
-operator+(const Row<N,E,S>& l, const long double& r)
-  { return Row<N,E,S>::template Result<long double>::AddOp::perform(l,r); }
-template <int N, class E, int S> inline
-typename Row<N,E,S>::template Result<long double>::Add
-operator+(const long double& l, const Row<N,E,S>& r) {return r+l;}
-
 // v = v+int, int+v -- just convert int to v's precision float
 template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<typename CNT<E>::Precision>::Add
@@ -1092,15 +1067,6 @@ template <int N, class E, int S> inline
 typename CNT<double>::template Result<Row<N,E,S> >::Sub
 operator-(const double& l, const Row<N,E,S>& r)
   { return CNT<double>::template Result<Row<N,E,S> >::SubOp::perform(l,r); }
-
-template <int N, class E, int S> inline
-typename Row<N,E,S>::template Result<long double>::Sub
-operator-(const Row<N,E,S>& l, const long double& r)
-  { return Row<N,E,S>::template Result<long double>::SubOp::perform(l,r); }
-template <int N, class E, int S> inline
-typename CNT<long double>::template Result<Row<N,E,S> >::Sub
-operator-(const long double& l, const Row<N,E,S>& r)
-  { return CNT<long double>::template Result<Row<N,E,S> >::SubOp::perform(l,r); }
 
 // v = v-int, int-v // just convert int to v's precision float
 template <int N, class E, int S> inline
