@@ -98,7 +98,7 @@ or any other Index type to an argument expecting a certain Index type. **/
  * This compile-time constant determines the default precision used everywhere
  * in %SimTK Core code. Wherever a SimTK::Real, SimTK::Vector, SimTK::Matrix,
  * etc. appears with no precision specified, it will have this underlying precision.
- * We use 1==float, 2==double, 4==long double. Any other value will cause
+ * We use 1==float, 2==double. Any other value will cause
  * a compile time error. The default is 2, i.e., double precision.
  */
 #ifndef SimTK_DEFAULT_PRECISION
@@ -129,9 +129,6 @@ or any other Index type to an argument expecting a certain Index type. **/
             #pragma warning(pop)
         #endif
     #endif
-#elif (SimTK_DEFAULT_PRECISION == 4)
-/** This type is for use in C; in C++ use SimTK::Real instead. */
-    typedef long double SimTK_Real;
 #else
     #error ILLEGAL VALUE FOR DEFAULT PRECISION
 #endif
@@ -768,7 +765,6 @@ types to specialize the IsFloatingType struct template for those types. **/
 
 SimTK_SPECIALIZE_FLOATING_TYPE(float); 
 SimTK_SPECIALIZE_FLOATING_TYPE(double); 
-SimTK_SPECIALIZE_FLOATING_TYPE(long double); 
 #ifdef SimTK_REAL_IS_ADOUBLE
     SimTK_SPECIALIZE_FLOATING_TYPE(adouble);
 #endif

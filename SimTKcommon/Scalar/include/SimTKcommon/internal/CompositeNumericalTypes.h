@@ -92,7 +92,7 @@
  * <number>         ::= <standard> | <conjugate>
  * <standard>       ::= <real> | <complex>
  *
- * <real>           ::= float | double | long double
+ * <real>           ::= float | double
  * <complex>        ::= std::complex< <real> >
  * <conjugate>      ::= SimTK::conjugate< <real> >
  *
@@ -161,7 +161,7 @@ public:
     typedef typename K::ULessScalar  ULessScalar;   // <number> or negator<number>
     typedef typename K::Number       Number;        // <real>, <complex> or <conjugate>
     typedef typename K::StdNumber    StdNumber;     // <real>, <complex>
-    typedef typename K::Precision    Precision;     // float, double, long double
+    typedef typename K::Precision    Precision;     // float, double
 
     typedef typename K::ScalarNormSq ScalarNormSq;  // type of conjugate square of underlying scalar or
                                                     //   numeric value (squares the units too)
@@ -193,7 +193,7 @@ public:
         IsULessScalar       = K::IsULessScalar,     // real, complex, conjugate, negator
         IsNumber            = K::IsNumber,          // real, complex, conjugate
         IsStdNumber         = K::IsStdNumber,       // real, complex
-        IsPrecision         = K::IsPrecision,       // real (float, double, long double)
+        IsPrecision         = K::IsPrecision,       // real (float, double)
         SignInterpretation  = K::SignInterpretation // 1 normally, -1 if elements are negated
     };
 

@@ -59,8 +59,8 @@ class MatrixCommitment;
 /// of possible CNT templates to a finite set of scalar templates which
 /// can then have hidden implementations in the Simmatrix library.
 /// The hidden implementation class will be instantiated once each for 
-/// float, double, long double and the associated complex and conjugate types,
-/// and their negators (a total of 18 types). Element size is
+/// float, double and the associated complex and conjugate types,
+/// and their negators (a total of 12 types). Element size is
 /// dealt with at run time; otherwise the helper knows nothing about the 
 /// structure of the elements.
 /// 

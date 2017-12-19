@@ -64,18 +64,14 @@ int main() {
     const Real nan = CNT<Real>::getNaN();
     const float fnan = NTraits<float>::getNaN();
     const double dnan = NTraits<double>::getNaN();
-    const long double lnan = NTraits<long double>::getNaN();
     const std::complex<float> cfnan(fnan, fnan);
     const std::complex<double> cdnan(3, dnan);
-    const std::complex<long double> clnan(lnan, 0L);
     const conjugate<float> jfnan(fnan, 0.09f);
     const conjugate<double> jdnan(3, dnan);
-    const conjugate<long double> jlnan(lnan, lnan);    
     const negator<Real>& nzero = reinterpret_cast<const negator<Real>&>(zero);
     const negator<Real>& ntwo = reinterpret_cast<const negator<Real>&>(two);
     const negator<float>& nfnan = reinterpret_cast<const negator<float>&>(fnan);
     const negator< std::complex<float> >& ncfnan = reinterpret_cast<const negator<std::complex<float> >&>(cfnan);
-    const negator< conjugate<long double> >& njlnan = reinterpret_cast<const negator<conjugate<long double> >&>(jlnan);
 
     writeUnformatted(std::cout, fcinf);
     Array_< negator<Complex> > arrc;
@@ -208,12 +204,6 @@ int main() {
     cout << "NC<C> nan=" << CNT<negator<conjugate<Real> > >::getNaN() << endl;
     cout << "NC<C> inf=" << CNT<negator<conjugate<Real> > >::getInfinity() << endl;
 
-    cout << "negator<complex<float>>*long double=" <<
-        typeid( negator< complex<float> >::Result<long double>::Mul ).name() << endl;
-    negator< complex<long double> > nlc = 
-        negator< complex<float> >::Result<long double>::Mul(complex<long double>(1,2));
-    cout << "nlc=" << nlc << endl;
-
     cout << "NegConjugate<double>*float=" <<
         typeid( negator<conjugate<double> >::Result<float>::Mul ).name() << endl;
     negator<conjugate<double> > ncdc = 
@@ -276,17 +266,13 @@ int main() {
     // Check mixed-mode complex & conjugate operators
     complex<float> cff;
     complex<double> dff;
-    complex<long double> lff;
     cff * 3.; 3.*cff; cff /3.; 3./cff; cff + 3.;3.+cff;cff-3.;3.-cff;
     dff * 3.f; 3.f*dff; dff / 3.f; 3.f/dff;dff + 3.f;3.f+dff;dff-3.f;3.f-dff;
-    lff * 3.; 3.*lff; lff/3.; 3./lff;lff + 3.;3.+lff;lff-3.;3.-lff;
-    cff*3;lff/3;3/dff;3+cff;
+    cff*3;3/dff;3+cff;
     conjugate<float> ccf;
     conjugate<double> dcf;
-    conjugate<long double> lcf;
     ccf * 3.; 3.*ccf; ccf /3.; 3./ccf; ccf + 3.;3.+ccf;ccf-3.;3.-ccf;
     dcf * 3.f; 3.f*dcf; dcf / 3.f; 3.f/dcf;dcf + 3.f;3.f+dcf;dcf-3.f;3.f-dcf;
-    lcf * 3.; 3.*lcf; lcf/3.; 3./lcf;lcf + 3.;3.+lcf;lcf-3.;3.-lcf;
 
     // Constants in various precisions
 #define STRZ_(X) #X
@@ -339,33 +325,27 @@ int main() {
 
     printf("PI=%s\n", STRZ(SimTK_PI));
     cout << "f=" << setprecision(NTraits<float>::getNumDigits()+2) << NTraits<float>::getPi()
-         << " d=" << setprecision(NTraits<double>::getNumDigits()+2) << NTraits<double>::getPi()
-         << " ld=" << setprecision(NTraits<long double>::getNumDigits()+2) << NTraits<long double>::getPi() << endl;
+         << " d=" << setprecision(NTraits<double>::getNumDigits()+2) << NTraits<double>::getPi() << endl;
     
     std::printf("1/sqrt(2)=%.18Lg\n", 1/SimTK_SQRT2);
     cout << "f=" << setprecision(NTraits<float>::getNumDigits()+2) << NTraits<float>::getOneOverSqrt2()
-         << " d=" << setprecision(NTraits<double>::getNumDigits()+2) << NTraits<double>::getOneOverSqrt2()
-         << " ld=" << setprecision(NTraits<long double>::getNumDigits()+2) << NTraits<long double>::getOneOverSqrt2() << endl;
+         << " d=" << setprecision(NTraits<double>::getNumDigits()+2) << NTraits<double>::getOneOverSqrt2() << endl;
 
-    printf("Eps f=%.16Lg d=%.16Lg ld=%.16Lg\n",
-        (long double)NTraits<float>::getEps(), 
-        (long double)NTraits<double>::getEps(), 
-        NTraits<long double>::getEps());
+    printf("Eps f=%.16g d=%.16g\n",
+        (double)NTraits<float>::getEps(), 
+        (double)NTraits<double>::getEps());
 
-    printf("SqrtEps f=%.16Lg d=%.16Lg ld=%.16Lg\n",
-        (long double)NTraits<float>::getSqrtEps(), 
-        (long double)NTraits<double>::getSqrtEps(), 
-        NTraits<long double>::getSqrtEps());
+    printf("SqrtEps f=%.16g d=%.16g\n",
+        (double)NTraits<float>::getSqrtEps(), 
+        (double)NTraits<double>::getSqrtEps());
 
-    printf("Significant f=%.16Lg d=%.16Lg ld=%.16Lg\n",
-        (long double)NTraits<float>::getSignificant(), 
-        (long double)NTraits<double>::getSignificant(), 
-        NTraits<long double>::getSignificant());
+    printf("Significant f=%.16g d=%.16g\n",
+        (double)NTraits<float>::getSignificant(), 
+        (double)NTraits<double>::getSignificant());
 
-    printf("Tiny f=%.16Lg d=%.16Lg ld=%.16Lg\n",
-        (long double)NTraits<float>::getTiny(), 
-        (long double)NTraits<double>::getTiny(), 
-        NTraits<long double>::getTiny());
+    printf("Tiny f=%.16g d=%.16g\n",
+        (double)NTraits<float>::getTiny(), 
+        (double)NTraits<double>::getTiny());
 
   } catch(const std::exception& e) {
       std::cout << "exception: " << e.what() << std::endl;
