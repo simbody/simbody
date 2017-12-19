@@ -32,14 +32,15 @@ using std::cin;
 
 using namespace SimTK;
 
-// Test derivative with ADOLC
+// Test derivative of simple function with ADOLC
 void testAdouble() {
-    double* xp = new double[1];
+    double xp[1];
     xp[0] = -2.3;
-    adouble* x = new adouble[1];
+
     trace_on(1);
+    adouble* x = new adouble[1];
+    adouble* y = new adouble[1];
     x[0] <<= xp[0];
-    adouble y[1];
     y[0] = 3 * pow(x[0],3) + cos(x[0]) + 1;
     double y0[1];
     y[0] >>= y0[0];
@@ -49,6 +50,9 @@ void testAdouble() {
     J = myalloc(1,1);
     jacobian(1, 1, 1, xp, J);
     SimTK_TEST(J[0][0] == 48.355705212176716);
+
+    delete[] y;
+    delete[] x;
 }
 
 int main() {
