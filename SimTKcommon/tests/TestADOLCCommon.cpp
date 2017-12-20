@@ -23,7 +23,7 @@
 
 #include "SimTKcommon.h"
 #include "SimTKcommon/Testing.h"
-#include <adolc\adolc.h>
+#include <adolc/adolc.h> // for jacobian() ADOLC driver
 
 #include <iostream>
 using std::cout;
@@ -32,16 +32,17 @@ using std::cin;
 
 using namespace SimTK;
 
-// Test derivative of simple function with ADOLC
-void testAdouble() {
+// Test derivative of simple function with ADOLC without Simbody; just to make
+// sure that ADOLC is included properly
+void testDerivativeADOLC() {
     double xp[1];
     xp[0] = -2.3;
 
     trace_on(1);
-    adouble* x = new adouble[1];
-    adouble* y = new adouble[1];
+    adouble* x = new adouble;
+    adouble* y = new adouble;
     x[0] <<= xp[0];
-    y[0] = 3 * pow(x[0],3) + cos(x[0]) + 1;
+    y[0] = 3*pow(x[0],3)+cos(x[0])+1;
     double y0[1];
     y[0] >>= y0[0];
     trace_off();
@@ -49,14 +50,15 @@ void testAdouble() {
     double** J;
     J = myalloc(1,1);
     jacobian(1, 1, 1, xp, J);
-    SimTK_TEST(J[0][0] == 48.355705212176716);
+    SimTK_TEST(J[0][0] == 9*pow(x[0],2)-sin(x[0]));
 
-    delete[] y;
-    delete[] x;
+    myfree(J);
+    delete y;
+    delete x;
 }
 
 int main() {
     SimTK_START_TEST("TestADOLCCommon");
-        SimTK_SUBTEST(testAdouble);
+        SimTK_SUBTEST(testDerivativeADOLC);
     SimTK_END_TEST();
 }

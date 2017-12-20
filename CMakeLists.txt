@@ -42,7 +42,7 @@ endif()
 include(GNUInstallDirs)
 
 # Include CMake macros that we wrote to reduce duplication in this project.
-include(cmake/simbody_macros.cmake)
+include(cmake/SimbodyMacros.cmake)
 
 # Declare the option for code coverage
 option(SIMBODY_COVERAGE

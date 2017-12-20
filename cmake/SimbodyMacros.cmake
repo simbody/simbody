@@ -31,7 +31,7 @@ function(simbody_copy_dlls DEP_NAME DEP_INSTALL_DIR)
             COMMENT "Copying DLLs from ${DEP_INSTALL_DIR} to ${DEST_DIR}:${DLL_NAMES}")
         add_custom_target(Copy_${DEP_NAME}_DLLs ALL DEPENDS ${DLLS_DEST})
         set_target_properties(Copy_${DEP_NAME}_DLLs PROPERTIES
-            PROJECT_LABEL "Copy ${DEP_NAME} DLLs" FOLDER "simbody")
+            PROJECT_LABEL "Copy ${DEP_NAME} DLLs")
         install(FILES ${DLLS} DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif()
 endfunction()
