@@ -39,22 +39,19 @@ void testDerivativeADOLC() {
     xp[0] = -2.3;
 
     trace_on(1);
-    adouble* x = new adouble;
-    adouble* y = new adouble;
-    x[0] <<= xp[0];
-    y[0] = 3*pow(x[0],3)+cos(x[0])+1;
-    double y0[1];
-    y[0] >>= y0[0];
+    adouble x;
+    adouble y;
+    x <<= xp[0];
+    y = 3*pow(x,3)+cos(x)+1;
+    double y0;
+    y >>= y0;
     trace_off();
 
     double** J;
     J = myalloc(1,1);
     jacobian(1, 1, 1, xp, J);
-    SimTK_TEST(J[0][0] == 9*pow(x[0],2)-sin(x[0]));
-
+    SimTK_TEST(J[0][0] == 9*pow(x,2)-sin(x));
     myfree(J);
-    delete y;
-    delete x;
 }
 
 int main() {
