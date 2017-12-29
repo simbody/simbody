@@ -26,8 +26,9 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/Visualizer.h"
-#include <pthread.h>
 #include <utility>
+#include <map>
+#include <atomic>
 
 /** @file
  * This file defines commands that are used for communication between the 
@@ -102,8 +103,10 @@ class VisualizerProtocol {
 public:
     VisualizerProtocol(Visualizer& visualizer,
                        const Array_<String>& searchPath);
+    ~VisualizerProtocol();
     void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
     void shutdownGUI();
+    void killListenerThreadIfNecessary();
     void beginScene(Real simTime);
     void finishScene();
     void drawBox(const Transform& transform, const Vec3& scale, 
@@ -158,8 +161,12 @@ private:
     // For user-defined meshes, map their unique memory addresses to the 
     // assigned visualizer cache index.
     mutable std::map<const void*, unsigned short> meshes;
-    mutable pthread_mutex_t sceneLock;
-    mutable pthread_t eventListenerThread;
+
+    mutable std::mutex sceneMutex;
+    // This lock should only be used in beginScene() and endScene().
+    std::unique_lock<std::mutex> sceneLockBeginEnd;
+    mutable std::thread eventListenerThread;
+    std::atomic<bool> continueListening {true};
 };
 }
 

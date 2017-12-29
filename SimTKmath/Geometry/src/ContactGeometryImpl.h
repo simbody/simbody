@@ -34,6 +34,7 @@
 
 #include <atomic>
 #include <limits>
+#include <atomic>
 
 namespace SimTK {
 

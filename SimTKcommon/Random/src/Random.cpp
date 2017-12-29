@@ -29,6 +29,7 @@
 #include <atomic>
 #include <cassert>
 #include <cmath>
+#include <atomic>
 
 using namespace SimTK_SFMT;
 

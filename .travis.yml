@@ -7,6 +7,9 @@
 sudo: required
 dist: trusty
 language: cpp
+
+# For thread_local support on macOS.
+osx_image: xcode8
     
 matrix:
   include:
