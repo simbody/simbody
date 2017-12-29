@@ -27,8 +27,10 @@
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include "SimTKcommon/internal/Array.h"
 
-#include <thread>
 #include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 namespace SimTK {
 

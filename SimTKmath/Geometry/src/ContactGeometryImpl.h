@@ -33,6 +33,7 @@
 #include "simmath/internal/ContactGeometry.h"
 
 #include <limits>
+#include <atomic>
 
 namespace SimTK {
 

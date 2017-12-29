@@ -24,6 +24,8 @@
 #include "ParallelWorkQueueImpl.h"
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include <utility>
+#include <mutex>
+#include <condition_variable>
 
 using std::queue;
 

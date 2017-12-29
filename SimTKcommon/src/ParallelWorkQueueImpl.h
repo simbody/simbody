@@ -27,6 +27,7 @@
 #include "SimTKcommon/internal/ParallelWorkQueue.h"
 #include "SimTKcommon/internal/Array.h"
 #include <queue>
+#include <mutex>
 
 namespace SimTK {
 
