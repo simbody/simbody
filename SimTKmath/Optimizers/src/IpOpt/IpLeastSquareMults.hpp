@@ -12,7 +12,7 @@
 #include "IpAugSystemSolver.hpp"
 #include "IpEqMultCalculator.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Class for calculator for the least-square equality constraint

@@ -13,7 +13,7 @@
 #include "IpLineSearch.hpp"
 #include "IpRegOptions.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Monotone Mu Update. This class implements the standard monotone mu update

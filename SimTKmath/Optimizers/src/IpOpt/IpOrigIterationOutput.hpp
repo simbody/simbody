@@ -11,7 +11,7 @@
 
 #include "IpIterationOutput.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Class for the iteration summary output for the original NLP.

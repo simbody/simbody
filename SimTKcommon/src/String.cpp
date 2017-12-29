@@ -63,17 +63,6 @@ String::String(double r, const char* fmt) {
     char buf[64]; sprintf(buf,fmt,r); (*this)=buf; 
 }
 
-String::String(long double r, const char* fmt) {
-    if (!isFinite(r)) {
-        if (isNaN(r)) {(*this)="NaN"; return;}
-        if (isInf(r)) {(*this)=(r<0?"-Inf":"Inf"); return;}
-        SimTK_ERRCHK1_ALWAYS(false, "SimTK::String(long double)",
-            "Unrecognized non-finite value %lg.", r);
-        return;
-    }
-    char buf[128]; sprintf(buf,fmt,r); (*this)=buf; 
-}
-
 static String cleanUp(const String& in) {
     return String(in).trimWhiteSpace().toLower();
 }
@@ -108,19 +97,6 @@ bool String::tryConvertToDouble(double& out) const {
     {   out = NTraits<double>::getInfinity(); return true;}
     if (adjusted=="-inf" || adjusted=="-infinity") 
     {   out = -NTraits<double>::getInfinity(); return true;}
-    std::istringstream sstream(adjusted);
-    sstream >> out;
-    return !sstream.fail();
-}
-
-bool String::tryConvertToLongDouble(long double& out) const {
-    const String adjusted = cleanUp(*this);
-    if (adjusted=="nan")  {out=NTraits<long double>::getNaN();  return true;}
-    if (   adjusted=="inf" || adjusted=="infinity"
-        || adjusted=="+inf" || adjusted=="+infinity") 
-    {   out = NTraits<long double>::getInfinity(); return true;}
-    if (adjusted=="-inf" || adjusted=="-infinity") 
-    {   out = -NTraits<long double>::getInfinity(); return true;}
     std::istringstream sstream(adjusted);
     sstream >> out;
     return !sstream.fail();

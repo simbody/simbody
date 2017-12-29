@@ -11,7 +11,7 @@
 
 #include "IpConvCheck.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Brief Class Description.

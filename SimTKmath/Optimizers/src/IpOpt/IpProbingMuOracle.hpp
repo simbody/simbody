@@ -12,7 +12,7 @@
 #include "IpMuOracle.hpp"
 #include "IpPDSystemSolver.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Implementation of the probing strategy for computing the

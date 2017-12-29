@@ -32,6 +32,7 @@
 #include "simmath/Differentiator.h"
 #include "simmath/internal/ContactGeometry.h"
 
+#include <atomic>
 #include <limits>
 #include <atomic>
 

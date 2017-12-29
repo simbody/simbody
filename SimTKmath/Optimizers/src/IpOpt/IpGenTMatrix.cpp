@@ -10,7 +10,7 @@
 #include "IpDenseVector.hpp"
 #include "IpBlas.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   GenTMatrix::GenTMatrix(const GenTMatrixSpace* owner_space)

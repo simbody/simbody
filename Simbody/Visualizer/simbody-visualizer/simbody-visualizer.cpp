@@ -39,6 +39,7 @@
 #include <cerrno>
 #include <cstring>
 #include <thread>
+#include <condition_variable>
 #include <sys/stat.h>
 #ifdef _WIN32
     #include <direct.h>

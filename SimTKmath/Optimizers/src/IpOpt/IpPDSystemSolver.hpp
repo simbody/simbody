@@ -14,7 +14,7 @@
 #include "IpAlgStrategy.hpp"
 #include "IpIteratesVector.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Pure Primal Dual System Solver Base Class.

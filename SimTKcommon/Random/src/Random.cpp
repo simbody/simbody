@@ -26,6 +26,7 @@
 #include "SimTKcommon/internal/Random.h"
 #include "SFMT.h"
 
+#include <atomic>
 #include <cassert>
 #include <cmath>
 #include <atomic>

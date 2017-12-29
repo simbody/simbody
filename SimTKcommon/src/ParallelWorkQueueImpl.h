@@ -28,6 +28,7 @@
 #include "SimTKcommon/internal/Array.h"
 #include <queue>
 #include <mutex>
+#include <condition_variable>
 
 namespace SimTK {
 

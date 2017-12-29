@@ -8,7 +8,7 @@
 
 #include "IpMatrix.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   void Matrix::MultVector(Number alpha, const Vector& x, Number beta,
                           Vector& y) const
