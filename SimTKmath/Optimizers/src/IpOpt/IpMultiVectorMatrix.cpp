@@ -19,7 +19,7 @@
 
 
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
 #ifdef IP_DEBUG

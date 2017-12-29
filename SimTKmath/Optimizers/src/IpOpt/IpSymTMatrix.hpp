@@ -12,7 +12,7 @@
 #include "IpUtils.hpp"
 #include "IpSymMatrix.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /* forward declarations */

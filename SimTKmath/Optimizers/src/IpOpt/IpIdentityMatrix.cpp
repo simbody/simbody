@@ -8,7 +8,7 @@
 
 #include "IpIdentityMatrix.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   IdentityMatrix::IdentityMatrix(const SymMatrixSpace* owner_space)

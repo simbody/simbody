@@ -2,7 +2,7 @@
 #include "IpTripletToDenseConverter.hpp"
 #include <list>
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 #ifdef IP_DEBUG
   static const Index dbg_verbosity = 0;

@@ -37,7 +37,7 @@
 # endif
 #endif
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   bool OptionsList::SetStringValue(const std::string& tag,

@@ -71,101 +71,55 @@ using std::complex;
 
 #ifndef SimTK_MIXED_PRECISION_REAL_COMPLEX_ALREADY_DEFINED
 namespace SimTK {
-// complex<float> with int, double, long double
+// complex<float> with int, double
 inline complex<float> operator*(const complex<float>& c,int r) {return c*(float)r;}
 inline complex<float> operator*(int r,const complex<float>& c) {return (float)r*c;}
 inline complex<double> operator*(const complex<float>& c,const double& r)           {return complex<double>(c)*r;}
 inline complex<double> operator*(const double& r,const complex<float>& c)           {return r*complex<double>(c);}
-inline complex<long double> operator*(const complex<float>& c,const long double& r) {return complex<long double>(c)*r;}
-inline complex<long double> operator*(const long double& r,const complex<float>& c) {return r*complex<long double>(c);}
 
 inline complex<float> operator/(const complex<float>& c,int r) {return c/(float)r;}
 inline complex<float> operator/(int r,const complex<float>& c) {return (float)r/c;}
 inline complex<double> operator/(const complex<float>& c,const double& r)           {return complex<double>(c)/r;}
 inline complex<double> operator/(const double& r,const complex<float>& c)           {return r/complex<double>(c);}
-inline complex<long double> operator/(const complex<float>& c,const long double& r) {return complex<long double>(c)/r;}
-inline complex<long double> operator/(const long double& r,const complex<float>& c) {return r/complex<long double>(c);}
 
 inline complex<float> operator+(const complex<float>& c,int r) {return c+(float)r;}
 inline complex<float> operator+(int r,const complex<float>& c) {return (float)r+c;}
 inline complex<double> operator+(const complex<float>& c,const double& r)           {return complex<double>(c)+r;}
 inline complex<double> operator+(const double& r,const complex<float>& c)           {return r+complex<double>(c);}
-inline complex<long double> operator+(const complex<float>& c,const long double& r) {return complex<long double>(c)+r;}
-inline complex<long double> operator+(const long double& r,const complex<float>& c) {return r+complex<long double>(c);}
 
 inline complex<float> operator-(const complex<float>& c,int r) {return c-(float)r;}
 inline complex<float> operator-(int r,const complex<float>& c) {return (float)r-c;}
 inline complex<double> operator-(const complex<float>& c,const double& r)           {return complex<double>(c)-r;}
 inline complex<double> operator-(const double& r,const complex<float>& c)           {return r-complex<double>(c);}
-inline complex<long double> operator-(const complex<float>& c,const long double& r) {return complex<long double>(c)-r;}
-inline complex<long double> operator-(const long double& r,const complex<float>& c) {return r-complex<long double>(c);}
 
-// complex<double> with int, float, long double
+// complex<double> with int, float
 inline complex<double> operator*(const complex<double>& c,int r) {return c*(double)r;}
 inline complex<double> operator*(int r,const complex<double>& c) {return (double)r*c;}
 inline complex<double> operator*(const complex<double>& c,const float& r)           {return c*(double)r;}
 inline complex<double> operator*(const float& r,const complex<double>& c)           {return (double)r*c;}
-inline complex<long double> operator*(const complex<double>& c,const long double& r){return complex<long double>(c)*r;}
-inline complex<long double> operator*(const long double& r,const complex<double>& c){return r*complex<long double>(c);}
 
 inline complex<double> operator/(const complex<double>& c,int r) {return c/(double)r;}
 inline complex<double> operator/(int r,const complex<double>& c) {return (double)r/c;}
 inline complex<double> operator/(const complex<double>& c,const float& r)           {return c/(double)r;}
 inline complex<double> operator/(const float& r,const complex<double>& c)           {return (double)r/c;}
-inline complex<long double> operator/(const complex<double>& c,const long double& r){return complex<long double>(c)/r;}
-inline complex<long double> operator/(const long double& r,const complex<double>& c){return r/complex<long double>(c);}
 
 inline complex<double> operator+(const complex<double>& c,int r) {return c+(double)r;}
 inline complex<double> operator+(int r,const complex<double>& c) {return (double)r+c;}
 inline complex<double> operator+(const complex<double>& c,const float& r)           {return c+(double)r;}
 inline complex<double> operator+(const float& r,const complex<double>& c)           {return (double)r+c;}
-inline complex<long double> operator+(const complex<double>& c,const long double& r){return complex<long double>(c)+r;}
-inline complex<long double> operator+(const long double& r,const complex<double>& c){return r+complex<long double>(c);}
 
 inline complex<double> operator-(const complex<double>& c,int r) {return c-(double)r;}
 inline complex<double> operator-(int r,const complex<double>& c) {return (double)r-c;}
 inline complex<double> operator-(const complex<double>& c,const float& r)           {return c-(double)r;}
 inline complex<double> operator-(const float& r,const complex<double>& c)           {return (double)r-c;}
-inline complex<long double> operator-(const complex<double>& c,const long double& r){return complex<long double>(c)-r;}
-inline complex<long double> operator-(const long double& r,const complex<double>& c){return r-complex<long double>(c);}
-
-// complex<long double> with int, float, double
-inline complex<long double> operator*(const complex<long double>& c,int r) {return c*(long double)r;}
-inline complex<long double> operator*(int r,const complex<long double>& c) {return (long double)r*c;}
-inline complex<long double> operator*(const complex<long double>& c,const float& r) {return c*(long double)r;}
-inline complex<long double> operator*(const float& r,const complex<long double>& c) {return (long double)r*c;}
-inline complex<long double> operator*(const complex<long double>& c,const double& r){return c*(long double)r;}
-inline complex<long double> operator*(const double& r,const complex<long double>& c){return (long double)r*c;}
-
-inline complex<long double> operator/(const complex<long double>& c,int r) {return c/(long double)r;}
-inline complex<long double> operator/(int r,const complex<long double>& c) {return (long double)r/c;}
-inline complex<long double> operator/(const complex<long double>& c,const float& r) {return c/(long double)r;}
-inline complex<long double> operator/(const float& r,const complex<long double>& c) {return (long double)r/c;}
-inline complex<long double> operator/(const complex<long double>& c,const double& r){return c/(long double)r;}
-inline complex<long double> operator/(const double& r,const complex<long double>& c){return (long double)r/c;}
-
-inline complex<long double> operator+(const complex<long double>& c,int r) {return c+(long double)r;}
-inline complex<long double> operator+(int r,const complex<long double>& c) {return (long double)r+c;}
-inline complex<long double> operator+(const complex<long double>& c,const float& r) {return c+(long double)r;}
-inline complex<long double> operator+(const float& r,const complex<long double>& c) {return (long double)r+c;}
-inline complex<long double> operator+(const complex<long double>& c,const double& r){return c+(long double)r;}
-inline complex<long double> operator+(const double& r,const complex<long double>& c){return (long double)r+c;}
-
-inline complex<long double> operator-(const complex<long double>& c,int r) {return c-(long double)r;}
-inline complex<long double> operator-(int r,const complex<long double>& c) {return (long double)r-c;}
-inline complex<long double> operator-(const complex<long double>& c,const float& r) {return c-(long double)r;}
-inline complex<long double> operator-(const float& r,const complex<long double>& c) {return (long double)r-c;}
-inline complex<long double> operator-(const complex<long double>& c,const double& r){return c-(long double)r;}
-inline complex<long double> operator-(const double& r,const complex<long double>& c){return (long double)r-c;}
 } // namespace SimTK
 #endif
     
 namespace SimTK {
 
-template <class R> class conjugate;    // Only defined for float, double, long double
+template <class R> class conjugate;    // Only defined for float, double
 template <> class conjugate<float>;
 template <> class conjugate<double>;
-template <> class conjugate<long double>;
 
 // This is an adaptor for number types which negates the apparent values. A
 // negator<N> has exactly the same internal representation as a number
@@ -203,35 +157,10 @@ template <> struct Wider<double,double> {
     typedef complex<double>     WCplx;
     typedef conjugate<double>   WConj;
 };
-template <> struct Wider<float,long double> {
-    typedef long double             WReal;
-    typedef complex<long double>    WCplx;
-    typedef conjugate<long double>  WConj;
-};
-template <> struct Wider<double,long double> {
-    typedef long double             WReal;
-    typedef complex<long double>    WCplx;
-    typedef conjugate<long double>  WConj;
-};
-template <> struct Wider<long double,float> {
-    typedef long double             WReal;
-    typedef complex<long double>    WCplx;
-    typedef conjugate<long double>  WConj;
-};
-template <> struct Wider<long double,double> {
-    typedef long double             WReal;
-    typedef complex<long double>    WCplx;
-    typedef conjugate<long double>  WConj;
-};
-template <> struct Wider<long double,long double> {
-    typedef long double             WReal;
-    typedef complex<long double>    WCplx;
-    typedef conjugate<long double>  WConj;
-};
 
 
 /**
- * SimTK::conjugate<R> should be instantiated only for float, double, long double.
+ * SimTK::conjugate<R> should be instantiated only for float, double.
  * This should behave just like std::complex<R> and in most cases we'll just
  * convert and punt to the std class.
  *
@@ -246,7 +175,7 @@ template <> struct Wider<long double,long double> {
  * class need only be done once, and has a grand total of three specializations,
  * I felt it made more sense to do each of them explicitly here (sherm 051006).
  */
-template <class R> class conjugate {/*Only defined for float, double, long double*/};
+template <class R> class conjugate {/*Only defined for float, double*/};
 
 /////////////////////////////////////////
 // Specialization for conjugate<float> //
@@ -271,16 +200,12 @@ public:
     conjugate(const float& real) { re = real; negIm = 0.f; }
     conjugate(int r) { re = float(r); negIm = 0.f; }
 
-    // No implicit conversions from double or long double because precision
-    // will be lost. Some definitions must be deferred until conjugate<double>
-    // and conjugate<long double> are defined below.
+    // No implicit conversions from double because precision will be lost. Some
+    // definitions must be deferred until conjugate<double> is defined below.
     inline explicit conjugate(const conjugate<double>& cd);
-    inline explicit conjugate(const conjugate<long double>& cl);
 
     explicit conjugate(const double& rd)
       { re = float(rd); negIm = 0.f; }
-    explicit conjugate(const long double& rl)
-      { re = float(rl); negIm = 0.f; }
 
     // Conversions from complex are always explicit. Note that the value
     // represented by the conjugate must be identical to that represented by
@@ -288,8 +213,6 @@ public:
     explicit conjugate(const complex<float>& x)
       { re = x.real(); negIm = -x.imag(); }
     explicit conjugate(const complex<double>& x)
-      { re = float(x.real()); negIm = float(-x.imag()); }
-    explicit conjugate(const complex<long double>& x)
       { re = float(x.real()); negIm = float(-x.imag()); }
 
     /// Implicit conversion to complex<float> when necessary
@@ -406,17 +329,11 @@ public:
     conjugate(int r) { re = double(r); negIm = 0.; }
 
     // Implicit conversions from float are allowed since
-    // there is no loss in going to double, but long double
-    // requires explicit conversions.
+    // there is no loss in going to double.
     conjugate(const conjugate<float>& cf)
       { re = double(cf.real()); negIm = double(cf.negImag()); }
     conjugate(const float& rf)
       { re = double(rf); negIm = 0.; }
-
-    // Definition must be deferred until conjugate<long double> is defined below.
-    inline explicit conjugate(const conjugate<long double>& cl);
-    explicit conjugate(const long double& rl)
-      { re = double(rl); negIm = 0.; }
 
     // Conversions from complex are always explicit. Note that the value
     // represented by the conjugate must be identical to that represented by
@@ -425,8 +342,6 @@ public:
       { re = double(x.real()); negIm = double(-x.imag()); }
     explicit conjugate(const complex<double>& x)
       { re = x.real(); negIm = -x.imag(); }
-    explicit conjugate(const complex<long double>& x)
-      { re = double(x.real()); negIm = double(-x.imag()); }
 
     /// Implicit conversion to complex<double> when necessary
     /// (costs an actual negation -- yuck!).
@@ -553,213 +468,9 @@ private:
 
 
 
-///////////////////////////////////////////////
-// Specialization for conjugate<long double> //
-///////////////////////////////////////////////
-
-template <>  class conjugate<long double> {
-public:
-    conjugate() {
-    #ifndef NDEBUG
-        re = negIm = std::numeric_limits<long double>::quiet_NaN();
-    #endif  
-    }
-    // default copy constructor, copy assignment, destructor
-
-    /// Construction from reals. Note that the numeric result is (real-imag*i).
-    conjugate(const long double& real, const long double& imag) { re = real; negIm = imag; }
-    conjugate(const long double& real, int i) { re = real; negIm = (long double)i; }
-    conjugate(int r, const long double& imag) { re = (long double)r; negIm = imag; }
-    conjugate(int r, int i) { re = (long double)r; negIm = (long double)i; }
-
-    /// Implicit conversion from long double to conjugate<long double>.
-    conjugate(const long double& real) { re = real; negIm = 0.L; }
-    conjugate(int r) { re = (long double)r; negIm = 0.L; }
-
-    // Implicit conversions from float and double are allowed since
-    // there is no loss in going to long double.
-    conjugate(const conjugate<float>& cf)
-      { re = (long double)cf.real(); negIm = (long double)cf.negImag(); }
-    conjugate(const conjugate<double>& cd)
-      { re = (long double)cd.real(); negIm = (long double)cd.negImag(); }
-
-    conjugate(const float& rf)
-      { re = (long double)rf; negIm = 0.L; }
-    conjugate(const double& rd)
-      { re = (long double)rd; negIm = 0.L; }
-
-
-    // Conversions from complex are always explicit. Note that the value
-    // represented by the conjugate must be identical to that represented by
-    // the complex, which means we must negate the imaginary part.
-    explicit conjugate(const complex<float>& x)
-      { re = (long double)x.real(); negIm = (long double)(-x.imag()); }
-    explicit conjugate(const complex<double>& x)
-      { re = (long double)x.real(); negIm = (long double)(-x.imag()); }
-    explicit conjugate(const complex<long double>& x)
-      { re = x.real(); negIm = -x.imag(); }
-
-    /// Implicit conversion to complex<long double> when necessary
-    /// (costs an actual negation -- yuck!).
-    operator complex<long double>() const
-      { return complex<long double>(re,-negIm); } 
-    
-    // Can't defer here by casting to negator<conjugate> -- this must act
-    // like a built-in. But ... we can use this as a chance to convert
-    // to complex and save one negation.
-    complex<long double> operator-() const
-      { return complex<long double>(-re,negIm); }
-
-    // Useless.
-    const conjugate& operator+() const { return *this; }
-
-    // Computed assignment operators. We don't depend on implicit conversions
-    // from reals to conjugates here because we can save a few flops by handling
-    // the reals explicitly. Note that we only provide operators for implicitly
-    // convertible precisions, though, which in this case means any floating
-    // point precision.
-    conjugate& operator=(const long double& r)
-      { re = r; negIm = 0.L; return *this; }
-    conjugate& operator+=(const long double& r)
-      { re += r; return *this; }
-    conjugate& operator-=(const long double& r)
-      { re -= r; return *this; }
-    conjugate& operator*=(const long double& r)
-      { re *= r; negIm *= r; return *this; }
-    conjugate& operator/=(const long double& r)
-      { re /= r; negIm /= r; return *this; }
-
-    conjugate& operator=(const double& r)
-      { re = r; negIm = 0.L; return *this; }
-    conjugate& operator+=(const double& r)
-      { re += r; return *this; }
-    conjugate& operator-=(const double& r)
-      { re -= r; return *this; }
-    conjugate& operator*=(const double& r)
-      { re *= r; negIm *= r; return *this; }
-    conjugate& operator/=(const double& r)
-      { re /= r; negIm /= r; return *this; }
-
-    conjugate& operator=(const float& r)
-      { re = r; negIm = 0.L; return *this; }
-    conjugate& operator+=(const float& r)
-      { re += r; return *this; }
-    conjugate& operator-=(const float& r)
-      { re -= r; return *this; }
-    conjugate& operator*=(const float& r)
-      { re *= r; negIm *= r; return *this; }
-    conjugate& operator/=(const float& r)
-      { re /= r; negIm /= r; return *this; }
-
-    // Disambiguate int to be a long double.
-    conjugate& operator =(int i) {*this =(long double)i; return *this;}
-    conjugate& operator+=(int i) {*this+=(long double)i; return *this;}
-    conjugate& operator-=(int i) {*this-=(long double)i; return *this;}
-    conjugate& operator*=(int i) {*this*=(long double)i; return *this;}
-    conjugate& operator/=(int i) {*this/=(long double)i; return *this;}
-
-    conjugate& operator+=(const conjugate<long double>& c)
-      { re += c.re; negIm += c.negIm; return *this; }
-    conjugate& operator-=(const conjugate<long double>& c)
-      { re -= c.re; negIm -= c.negIm; return *this; }
-
-    conjugate& operator+=(const conjugate<double>& c)
-      { re += c.real(); negIm += c.negImag(); return *this; }
-    conjugate& operator-=(const conjugate<double>& c)
-      { re -= c.real(); negIm -= c.negImag(); return *this; }
-
-    conjugate& operator+=(const conjugate<float>& c)
-      { re += c.real(); negIm += c.negImag(); return *this; }
-    conjugate& operator-=(const conjugate<float>& c)
-      { re -= c.real(); negIm -= c.negImag(); return *this; }
-
-    conjugate& operator=(const complex<long double>& c)
-      { re =  c.real(); negIm = -c.imag(); return *this; }
-    conjugate& operator+=(const complex<long double>& c)
-      { re += c.real(); negIm -= c.imag(); return *this; }
-    conjugate& operator-=(const complex<long double>& c)
-      { re -= c.real(); negIm += c.imag(); return *this; }
-
-    conjugate& operator=(const complex<double>& c)
-      { re =  c.real(); negIm = -c.imag(); return *this; }
-    conjugate& operator+=(const complex<double>& c)
-      { re += c.real(); negIm -= c.imag(); return *this; }
-    conjugate& operator-=(const complex<double>& c)
-      { re -= c.real(); negIm += c.imag(); return *this; }
-
-    conjugate& operator=(const complex<float>& c)
-      { re =  c.real(); negIm = -c.imag(); return *this; }
-    conjugate& operator+=(const complex<float>& c)
-      { re += c.real(); negIm -= c.imag(); return *this; }
-    conjugate& operator-=(const complex<float>& c)
-      { re -= c.real(); negIm += c.imag(); return *this; }
-
-    // It is pleasant to note that we can self-multiply by either a complex or
-    // a conjugate (leaving a conjugate result) in six flops which is the same
-    // cost as an ordinary complex multiply:
-    //    cplx=cplx*cplx: (a+bi)(r+si) = (ar-bs)+(as+br)i
-    //    conj=conj*conj: (a-bi)(r-si) = (ar-bs)-(as+br)i
-    //    conj=conj*cplx: (a-bi)(r+si) = (ar+bs)-(br-as)i
-    conjugate& operator*=(const conjugate<long double>& c) {
-        const long double r=(re*c.re - negIm*c.negIm);
-        negIm=(re*c.negIm + negIm*c.re); re=r; return *this;
-    }
-    conjugate& operator*=(const complex<long double>& t) {
-        const long double r=(re*t.real() + negIm*t.imag()); 
-        negIm=(negIm*t.real() - re*t.imag()); re=r; return *this;
-    }
-
-    conjugate& operator*=(const conjugate<double>& c)    { return operator*=(conjugate<long double>(c)); }
-    conjugate& operator*=(const complex<double>& c) { return operator*=(complex<long double>(c)); }
-    conjugate& operator*=(const conjugate<float>& c)     { return operator*=(conjugate<long double>(c)); }
-    conjugate& operator*=(const complex<float>& c)  { return operator*=(complex<long double>(c)); }
-
-    // Complex divide is messy and slow anyway so we'll convert to complex and back here,
-    // making use of the fact that for complex c and d, c/d=conj(conj(c)/conj(d)).
-    conjugate& operator/=(const conjugate<long double>& d) {
-        const complex<long double> t = conj()/d.conj();
-        re = t.real(); negIm = t.imag(); // conjugating!
-        return *this;
-    }
-    conjugate& operator/=(const complex<long double>& d) {
-        const complex<long double> t = conj()/std::conj(d);
-        re = t.real(); negIm = t.imag(); // conjugating!
-        return *this;
-    }
-
-    conjugate& operator/=(const conjugate<double>& c)    { return operator/=(conjugate<long double>(c)); }
-    conjugate& operator/=(const complex<double>& c) { return operator/=(complex<long double>(c)); }
-    conjugate& operator/=(const conjugate<float>& c)     { return operator/=(conjugate<long double>(c)); }
-    conjugate& operator/=(const complex<float>& c)  { return operator/=(complex<long double>(c)); }
-
-    const long double&               real() const { return re; }
-    long double&                     real()       { return re; }
-
-    const negator<long double>&      imag() const { return reinterpret_cast<const negator<long double>&>(negIm); }
-    negator<long double>&            imag()       { return reinterpret_cast<negator<long double>&>(negIm); }
-
-    const complex<long double>& conj() const { return reinterpret_cast<const complex<long double>&>(*this); }
-    complex<long double>&       conj()       { return reinterpret_cast<complex<long double>&>(*this); }
-
-    // Special conjugate methods of use primarily in operator implementations.
-    const long double& negImag() const { return negIm; }
-    long double&       negImag()       { return negIm; }
-    bool         isReal()  const { return negIm==0.L; }
-
-private:
-    long double re;   // The value represented here is re - negIm*i.
-    long double negIm;
-};
-
 // These definitions had to be deferred until all the specializations have been declared.
 conjugate<float>::conjugate(const conjugate<double>& cd) { 
     re = float(cd.real()); negIm = float(cd.negImag());
-}
-conjugate<float>::conjugate(const conjugate<long double>& cl) {
-    re = float(cl.real()); negIm = float(cl.negImag());
-}
-conjugate<double>::conjugate(const conjugate<long double>& cl) {
-    re = double(cl.real()); negIm = double(cl.negImag());
 }
 
 // Global functions real(),imag(), conj(), abs(), and norm() are overloaded here
@@ -779,12 +490,6 @@ inline const negator<double>&      imag(const conjugate<double>& c) { return c.i
 inline const complex<double>& conj(const conjugate<double>& c) { return c.conj(); }
 inline double abs (const conjugate<double>& c) { return std::abs(c.conj()); }
 inline double norm(const conjugate<double>& c) { return std::norm(c.conj()); }
-
-inline const long double&               real(const conjugate<long double>& c) { return c.real(); }
-inline const negator<long double>&      imag(const conjugate<long double>& c) { return c.imag(); }
-inline const complex<long double>& conj(const conjugate<long double>& c) { return c.conj(); }
-inline long double abs (const conjugate<long double>& c) { return std::abs(c.conj()); }
-inline long double norm(const conjugate<long double>& c) { return std::norm(c.conj()); }
 
 
 
@@ -811,56 +516,44 @@ operator<<(std::basic_ostream<CHAR,TRAITS>& os, const conjugate<R>& c) {
 // of conjugate<R> and some other real type S, because the 'class S' template
 // argument can match anything and create ambiguities.
 
-// conjugate<R> with float, double, long double. With 'float' we can be sure that R
-// is the right width for the return value. With 'long double' we are sure that
-// 'long double' is the return width. 'double' is trickier and we have to use the
-// Wider<R,...> helper class to give us the right return type.
+// conjugate<R> with float, double. With 'float' we can be sure that R
+// is the right width for the return value. 'double' is trickier and we have
+// to use the Wider<R,...> helper class to give us the right return type.
 
 // Commutative ops need be done only once: +, *, ==, and != is defined in terms of ==.
 
 // conjugate = conjugate + real
 template <class R> inline conjugate<R>                    operator+(const conjugate<R>& a, const float&       b)
   { return conjugate<R>(a) += b; }
-template <class R> inline conjugate<long double>          operator+(const conjugate<R>& a, const long double& b)
-  { return conjugate<long double>(a) += b; }
 template <class R> inline typename Wider<R,double>::WConj operator+(const conjugate<R>& a, const double&      b)
   { return typename Wider<R,double>::WConj(a) += b; }
 
 // conjugate = real + conjugate
 template <class R> inline conjugate<R>                    operator+(const float&       a, const conjugate<R>& b) {return b+a;}
-template <class R> inline conjugate<long double>          operator+(const long double& a, const conjugate<R>& b) {return b+a;}
 template <class R> inline typename Wider<R,double>::WConj operator+(const double&      a, const conjugate<R>& b) {return b+a;}
 
 // conjugate = conjugate * real
 template <class R> inline conjugate<R>                    operator*(const conjugate<R>& a, const float&       b)
   { return conjugate<R>(a) *= b; }
-template <class R> inline conjugate<long double>          operator*(const conjugate<R>& a, const long double& b)
-  { return conjugate<long double>(a) *= b; }
 template <class R> inline typename Wider<R,double>::WConj operator*(const conjugate<R>& a, const double&      b)
   { return typename Wider<R,double>::WConj(a) *= b; }
 
 // conjugate = real * conjugate
 template <class R> inline conjugate<R>                    operator*(const float&       a, const conjugate<R>& b) {return b*a;}
-template <class R> inline conjugate<long double>          operator*(const long double& a, const conjugate<R>& b) {return b*a;}
 template <class R> inline typename Wider<R,double>::WConj operator*(const double&      a, const conjugate<R>& b) {return b*a;}
 
 // bool = conjugate==real
 template <class R> inline bool                            operator==(const conjugate<R>& a, const float&       b)
-  { return a.isReal() && a.real()==b; }
-template <class R> inline bool                            operator==(const conjugate<R>& a, const long double& b)
   { return a.isReal() && a.real()==b; }
 template <class R> inline bool                            operator==(const conjugate<R>& a, const double&      b)
   { return a.isReal() && a.real()==b; }
 
 // bool = real==conjugate, bool = conjugate!=real, bool = real!=conjugate 
 template <class R> inline bool operator==(const float&        a, const conjugate<R>& b) {return b==a;}
-template <class R> inline bool operator==(const long double&  a, const conjugate<R>& b) {return b==a;}
 template <class R> inline bool operator==(const double&       a, const conjugate<R>& b) {return b==a;}
 template <class R> inline bool operator!=(const conjugate<R>& a, const float&        b) {return !(a==b);}
-template <class R> inline bool operator!=(const conjugate<R>& a, const long double&  b) {return !(a==b);}
 template <class R> inline bool operator!=(const conjugate<R>& a, const double&       b) {return !(a==b);}
 template <class R> inline bool operator!=(const float&        a, const conjugate<R>& b) {return !(a==b);}
-template <class R> inline bool operator!=(const long double&  a, const conjugate<R>& b) {return !(a==b);}
 template <class R> inline bool operator!=(const double&       a, const conjugate<R>& b) {return !(a==b);}
 
 // Non-commutative ops are a little messier.
@@ -868,8 +561,6 @@ template <class R> inline bool operator!=(const double&       a, const conjugate
 // conjugate = conjugate - real
 template <class R> inline conjugate<R>                    operator-(const conjugate<R>& a, const float&       b)
   { return conjugate<R>(a) -= b; }
-template <class R> inline conjugate<long double>          operator-(const conjugate<R>& a, const long double& b)
-  { return conjugate<long double>(a) -= b; }
 template <class R> inline typename Wider<R,double>::WConj operator-(const conjugate<R>& a, const double&      b)
   { return typename Wider<R,double>::WConj(a) -= b; }
 
@@ -877,16 +568,12 @@ template <class R> inline typename Wider<R,double>::WConj operator-(const conjug
 // This is nice because -conjugate.imag() is free.
 template <class R> inline complex<R>                      operator-(const float&       a, const conjugate<R>& b)
   { return complex<R>(a-b.real(), -b.imag()); }
-template <class R> inline complex<long double>            operator-(const long double& a, const conjugate<R>& b)
-  { return complex<long double>(a-b.real(), -b.imag()); }
 template <class R> inline typename Wider<R,double>::WCplx operator-(const double&      a, const conjugate<R>& b)
   { return typename Wider<R,double>::WCplx(a-b.real(), -b.imag()); }
 
 // conjugate = conjugate / real
 template <class R> inline conjugate<R>                    operator/(const conjugate<R>& a, const float&       b)
   { return conjugate<R>(a) /= b; }
-template <class R> inline conjugate<long double>          operator/(const conjugate<R>& a, const long double& b)
-  { return conjugate<long double>(a) /= b; }
 template <class R> inline typename Wider<R,double>::WConj operator/(const conjugate<R>& a, const double&      b)
   { return typename Wider<R,double>::WConj(a) /= b; }
 
@@ -895,8 +582,6 @@ template <class R> inline typename Wider<R,double>::WConj operator/(const conjug
 // at the cost of one negation.
 template <class R> inline complex<R>                      operator/(const float&       a, const conjugate<R>& b)
   { return (R)a/complex<R>(b); }
-template <class R> inline complex<long double>            operator/(const long double& a, const conjugate<R>& b)
-  { return a/complex<long double>(b); }
 template <class R> inline typename Wider<R,double>::WCplx operator/(const double&      a, const conjugate<R>& b)
   { return (typename Wider<R,double>::WReal)a/(typename Wider<R,double>::WCplx(b)); }
 

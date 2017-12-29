@@ -9,7 +9,7 @@
 #include "IpFilter.hpp"
 #include "IpJournalist.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
 #ifdef IP_DEBUG

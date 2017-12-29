@@ -13,7 +13,7 @@
 #include "IpAlgStrategy.hpp"
 #include "IpSymLinearSolver.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Base class for interfaces to symmetric indefinite linear solvers

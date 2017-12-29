@@ -9,7 +9,7 @@
 #include "IpSolveStatistics.hpp"
 #include "IpIpoptCalculatedQuantities.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   SolveStatistics::SolveStatistics(

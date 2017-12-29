@@ -129,7 +129,7 @@ extern "C"
                              int transa_len, int diag_len);
 }
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 #ifndef HAVE_CBLAS
   /* Interface to FORTRAN routine DDOT. */

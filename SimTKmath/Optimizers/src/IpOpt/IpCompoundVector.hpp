@@ -13,7 +13,7 @@
 #include "IpVector.hpp"
 #include <vector>
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /* forward declarations */

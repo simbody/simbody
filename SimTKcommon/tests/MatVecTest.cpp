@@ -342,7 +342,6 @@ void testMiscellaneous()
     cout << "(cv2+cv2)/complex<float>(1000,0):" << (cv2 + cv2) / complex<float>(1000,0) << endl; 
     cout << "(cv2+cv2)/1000.f:" << (cv2 + cv2) / 1000.f << endl;
     cout << "(cv2+cv2)/1000.:" << (cv2 + cv2) / 1000. << endl;
-    cout << "(cv2+cv2)/1000.L:" << (cv2 + cv2) / 1000.L << endl;
     cout << "(cv2+cv2)/1000:" << (cv2 + cv2) / 1000 << endl;
 
     cout << "negCv2=" << negCv2 << endl;

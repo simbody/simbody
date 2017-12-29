@@ -12,7 +12,7 @@
 #include "IpUtils.hpp"
 #include "IpAlgStrategy.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   /** Base Class for objects that compute estimates for the equality
    *  constraint multipliers y_c and y_d.  For example, this is the

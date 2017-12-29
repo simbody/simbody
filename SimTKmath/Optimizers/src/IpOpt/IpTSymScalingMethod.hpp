@@ -12,7 +12,7 @@
 #include "IpUtils.hpp"
 #include "IpAlgStrategy.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   DECLARE_STD_EXCEPTION(ERROR_IN_LINEAR_SCALING_METHOD);
