@@ -100,7 +100,7 @@ Dependencies
 Simbody depends on the following:
 
 * cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.10 or later (3.1.3 or later for Visual Studio).
-* compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.9.0 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
+* compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.9.0 or later (typically on Linux), [Clang](http://clang.llvm.org/) 3.4 or later, or Apple Clang (Xcode) 8 or later.
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) 3.6.0 or later and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.8.6 or later; we recommend at least 1.8.8.
