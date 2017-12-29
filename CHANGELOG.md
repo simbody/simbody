@@ -82,6 +82,7 @@ to ParallelExecutor, mutex state lock.
   [PR 524](#https://github.com/simbody/simbody/pull/524)
 * Replaced usages of pthreads with C++11 classes. Removed the following classes:
     - ThreadLocal
+    - AtomicInteger
 * (There are more that haven't been added yet)
 
 

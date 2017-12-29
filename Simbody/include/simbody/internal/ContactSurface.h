@@ -31,6 +31,7 @@ Declares ContactMaterial and ContactSurface classes. **/
 #include "simbody/internal/common.h"
 
 #include <algorithm>
+#include <atomic>
 
 namespace SimTK {
 
@@ -453,7 +454,7 @@ static bool cliquesIntersect(const Array_<ContactCliqueId,short>& a,
 safe). Every contact surface is automatically a member of a clique containing 
 all the surfaces that reside on the same body. **/
 static ContactCliqueId createNewContactClique()
-{   static AtomicInteger nextAvailableContactClique = 1;
+{   static std::atomic<int> nextAvailableContactClique(1);
     return ContactCliqueId(nextAvailableContactClique++); }
 
 /** For selection or other purposes, you may want to use this method to store
