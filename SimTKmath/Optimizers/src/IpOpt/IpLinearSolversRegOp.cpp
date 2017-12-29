@@ -12,7 +12,7 @@
 #include "IpTSymLinearSolver.hpp"
 
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   void RegisterOptions_LinearSolvers(const SmartPtr<RegisteredOptions>& roptions)

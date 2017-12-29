@@ -793,7 +793,6 @@ void RPoly<T>::quad(T a,T b1,T c,T *sr,T *si,
 
 template class RPoly<float>;
 template class RPoly<double>;
-template class RPoly<long double>;
 
 } // namespace SimTK
 

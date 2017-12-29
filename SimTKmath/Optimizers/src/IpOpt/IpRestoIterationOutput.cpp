@@ -29,7 +29,7 @@
 
 
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   RestoIterationOutput::RestoIterationOutput(const SmartPtr<OrigIterationOutput>& resto_orig_iteration_output)
       :

@@ -14,7 +14,7 @@
 #include <list>
 #include <vector>
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Class for one filter entry. */

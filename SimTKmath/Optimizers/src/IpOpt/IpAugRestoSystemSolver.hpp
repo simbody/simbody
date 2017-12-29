@@ -11,7 +11,7 @@
 
 #include "IpAugSystemSolver.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Class that converts the an augmented system with compound restoration

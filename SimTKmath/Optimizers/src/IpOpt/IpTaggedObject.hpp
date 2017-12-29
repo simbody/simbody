@@ -15,7 +15,7 @@
 #include "IpObserver.hpp"
 #include <limits>
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** TaggedObject class.

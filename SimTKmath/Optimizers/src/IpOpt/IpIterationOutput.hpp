@@ -14,7 +14,7 @@
 #include "IpIpoptData.hpp"
 #include "IpIpoptCalculatedQuantities.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Base class for objects that do the output summary per iteration.

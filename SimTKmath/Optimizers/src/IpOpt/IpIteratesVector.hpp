@@ -11,7 +11,7 @@
 
 #include "IpCompoundVector.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   /* forward declarations */
   class IteratesVectorSpace;

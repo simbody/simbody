@@ -14,7 +14,7 @@
 #include "IpAlgStrategy.hpp"
 #include <vector>
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Enum to report outcome of a linear solve */
