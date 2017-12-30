@@ -810,6 +810,7 @@ EXCLUDE_PATTERNS       = *.md \
                          *.yml \
                          *.in \
                          */Platform/* \
+                         */doc/* \
                          */cmake/* \
                          */tests/* \
                          */examples/* \
