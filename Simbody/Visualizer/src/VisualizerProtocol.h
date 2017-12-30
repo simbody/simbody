@@ -164,7 +164,7 @@ private:
 
     mutable std::mutex sceneMutex;
     // This lock should only be used in beginScene() and endScene().
-    std::unique_lock<std::mutex> sceneLockBeginEnd;
+    std::unique_lock<std::mutex> sceneLockBeginEnd{sceneMutex, std::defer_lock};
     mutable std::thread eventListenerThread;
     std::atomic<bool> continueListening {true};
 };

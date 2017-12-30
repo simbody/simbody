@@ -431,7 +431,7 @@ void VisualizerProtocol::killListenerThreadIfNecessary() {
 }
 
 void VisualizerProtocol::beginScene(Real time) {
-    sceneLockBeginEnd = std::unique_lock<std::mutex>(sceneMutex);
+    sceneLockBeginEnd.lock();
     char command = StartOfScene;
     WRITE(outPipe, &command, 1);
     float fTime = (float)time;
