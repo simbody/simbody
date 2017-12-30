@@ -133,14 +133,14 @@ void ParallelExecutorImpl::incrementWaitingThreads() {
     pthread_mutex_unlock(&runLock);
 }
 
-ThreadLocal<bool> ParallelExecutorImpl::isWorker(false);
+thread_local bool ParallelExecutorImpl::isWorker(false);
 
 /**
  * This function contains the code executed by the worker threads.
  */
 
 void* threadBody(void* args) {
-    ParallelExecutorImpl::isWorker.upd() = true;
+    ParallelExecutorImpl::isWorker = true;
     ThreadInfo& info = *reinterpret_cast<ThreadInfo*>(args);
     ParallelExecutorImpl& executor = *info.executor;
     int threadCount = executor.getThreadCount();
@@ -248,7 +248,7 @@ int ParallelExecutor::getNumProcessors() {
 }
 
 bool ParallelExecutor::isWorkerThread() {
-    return ParallelExecutorImpl::isWorker.get();
+    return ParallelExecutorImpl::isWorker;
 }
 int ParallelExecutor::getMaxThreads() const{
     return getImpl().getMaxThreads();

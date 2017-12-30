@@ -31,6 +31,7 @@
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/SystemGuts.h"
 
+#include <map>
 #include <iostream>
 using std::cout;
 using std::endl;

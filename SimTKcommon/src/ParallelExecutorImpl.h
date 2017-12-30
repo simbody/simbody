@@ -25,7 +25,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon/internal/ParallelExecutor.h"
-#include "SimTKcommon/internal/ThreadLocal.h"
 #include "SimTKcommon/internal/Array.h"
 
 #include <pthread.h>
@@ -84,7 +83,7 @@ public:
       return numMaxThreads;
     }
     void incrementWaitingThreads();
-    static ThreadLocal<bool> isWorker;
+    static thread_local bool isWorker;
 private:
     void init();
     bool finished;

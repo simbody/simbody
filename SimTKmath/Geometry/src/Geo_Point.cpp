@@ -33,6 +33,7 @@ Non-inline static methods from the Geo::Point_ class. **/
 #include "simmath/internal/Geo_Box.h"
 #include "simmath/internal/Geo_Sphere.h"
 
+#include <set>
 #include <cstdio>
 #include <iostream>
 using std::cout; using std::endl;
