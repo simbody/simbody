@@ -33,7 +33,7 @@ using namespace std;
 
 namespace SimTK {
 
-static void threadBody(ThreadInfo* info);
+static void threadBody(ThreadInfo& info);
 
 ParallelExecutorImpl::ParallelExecutorImpl() : finished(false) {
 
@@ -57,7 +57,7 @@ ParallelExecutorImpl::~ParallelExecutorImpl() {
     std::unique_lock<std::mutex> lock(runMutex);
     finished = true;
     for (int i = 0; i < (int) threads.size(); ++i)
-        threadInfo[i]->running = true;
+        threadInfo[i].running = true;
     runCondition.notify_all();
     lock.unlock();
     
@@ -87,8 +87,8 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
     {
       threads.resize(numMaxThreads);
       for (int i = 0; i < numMaxThreads; ++i) {
-          threadInfo.push_back(new ThreadInfo(i, this));
-          threads[i] = std::thread(threadBody, threadInfo[i]);
+          threadInfo.emplace_back(i, this);
+          threads[i] = std::thread(threadBody, std::ref(threadInfo[i]));
       }
     }
 
@@ -98,7 +98,7 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
   currentTaskCount = times;
   waitingThreadCount = 0;
   for (int i = 0; i < (int) threadInfo.size(); ++i)
-      threadInfo[i]->running = true;
+      threadInfo[i].running = true;
 
   // Wake up the worker threads and wait until they finish.
   runCondition.notify_all();
@@ -121,16 +121,16 @@ thread_local bool ParallelExecutorImpl::isWorker(false);
  * This function contains the code executed by the worker threads.
  */
 
-void threadBody(ThreadInfo* info) {
+void threadBody(ThreadInfo& info) {
     ParallelExecutorImpl::isWorker = true;
-    ParallelExecutorImpl& executor = *info->executor;
+    ParallelExecutorImpl& executor = *info.executor;
     int threadCount = executor.getThreadCount();
     while (!executor.isFinished()) {
         
         // Wait for a Task to come in.
         
         std::unique_lock<std::mutex> lock(executor.getMutex());
-        executor.getCondition().wait(lock, [&] { return info->running; });
+        executor.getCondition().wait(lock, [&] { return info.running; });
         lock.unlock();
         if (!executor.isFinished()) {
             
@@ -139,7 +139,7 @@ void threadBody(ThreadInfo* info) {
             int count = executor.getCurrentTaskCount();
             ParallelExecutor::Task& task = executor.getCurrentTask();
             task.initialize();
-            int index = info->index;
+            int index = info.index;
                         
             try {
                 while (index < count) {
@@ -154,11 +154,10 @@ void threadBody(ThreadInfo* info) {
             catch (...) {
                 std::cerr <<"The parallel task threw an error."<< std::endl;
             }
-            info->running = false;
+            info.running = false;
             executor.incrementWaitingThreads();
         }
     }
-    delete info;
 }
 
 ParallelExecutor::ParallelExecutor() : HandleBase(new ParallelExecutorImpl()) {

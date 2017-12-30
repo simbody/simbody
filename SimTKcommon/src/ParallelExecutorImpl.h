@@ -88,7 +88,7 @@ private:
     std::mutex runMutex;
     std::condition_variable runCondition, waitCondition;
     Array_<std::thread> threads;
-    Array_<ThreadInfo*> threadInfo;
+    Array_<ThreadInfo> threadInfo;
     ParallelExecutor::Task* currentTask;
     int currentTaskCount;
     int waitingThreadCount;
