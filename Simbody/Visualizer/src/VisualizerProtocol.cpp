@@ -431,17 +431,19 @@ void VisualizerProtocol::killListenerThreadIfNecessary() {
 }
 
 void VisualizerProtocol::beginScene(Real time) {
-    sceneLockBeginEnd.lock();
+    sceneLockBeginFinishScene.lock();
     char command = StartOfScene;
     WRITE(outPipe, &command, 1);
     float fTime = (float)time;
     WRITE(outPipe, &fTime, sizeof(float));
+    // The sceneMutex is NOT unlocked at the end of this scope
+    // (sceneLockBeginFinishScene is a member variable); see finishScene().
 }
 
 void VisualizerProtocol::finishScene() {
     char command = EndOfScene;
     WRITE(outPipe, &command, 1);
-    sceneLockBeginEnd.unlock();
+    sceneLockBeginFinishScene.unlock();
 }
 
 void VisualizerProtocol::drawBox(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {

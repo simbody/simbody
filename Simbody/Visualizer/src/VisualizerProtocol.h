@@ -163,8 +163,9 @@ private:
     mutable std::map<const void*, unsigned short> meshes;
 
     mutable std::mutex sceneMutex;
-    // This lock should only be used in beginScene() and endScene().
-    std::unique_lock<std::mutex> sceneLockBeginEnd{sceneMutex, std::defer_lock};
+    // This lock should only be used in beginScene() and finishScene().
+    std::unique_lock<std::mutex> sceneLockBeginFinishScene
+            {sceneMutex, std::defer_lock};
     mutable std::thread eventListenerThread;
     std::atomic<bool> continueListening {true};
 };

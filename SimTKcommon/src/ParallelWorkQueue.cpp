@@ -92,11 +92,13 @@ void ParallelWorkQueueImpl::addTask(ParallelWorkQueue::Task* task) {
     taskQueue.push(task);
     ++pendingTasks;
     waitForTaskCondition.notify_one();
+    lock.unlock();
 }
 
 void ParallelWorkQueueImpl::flush() {
     std::unique_lock<std::mutex> lock(queueMutex);
     queueFullCondition.wait(lock, [this] { return pendingTasks == 0; });
+    lock.unlock();
 }
 
 queue<ParallelWorkQueue::Task*>& ParallelWorkQueueImpl::updTaskQueue() {

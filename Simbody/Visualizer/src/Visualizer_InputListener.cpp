@@ -74,7 +74,7 @@ void Visualizer::InputSilo::waitForAnyUserInput() const {
     const Impl& impl = getImpl();
     std::unique_lock<std::mutex> lock(impl.m_siloMutex);
     impl.m_someInputAvailable.wait(lock, [this] {return isAnyUserInput();});
-    // The mutex is unlocked at the end of the scope.
+    lock.unlock();
 }
 
 bool Visualizer::InputSilo::takeKeyHit(unsigned& key, unsigned& modifiers) {
@@ -89,8 +89,8 @@ bool Visualizer::InputSilo::takeKeyHit(unsigned& key, unsigned& modifiers) {
         --impl.m_inputCount;
         gotOne = true;
     }
+    lock.unlock();
     return gotOne;
-    // The mutex is unlocked at the end of the scope.
 }
 
 void Visualizer::InputSilo::waitForKeyHit(unsigned& key, unsigned& modifiers) {
@@ -101,7 +101,7 @@ void Visualizer::InputSilo::waitForKeyHit(unsigned& key, unsigned& modifiers) {
     modifiers = impl.m_keyHitSilo.front().second;
     impl.m_keyHitSilo.pop_front();
     --impl.m_inputCount;
-    // The mutex is unlocked at the end of the scope.
+    lock.unlock();
 }
 
 
@@ -117,8 +117,8 @@ bool Visualizer::InputSilo::takeMenuPick(int& menuId, int& item) {
         --impl.m_inputCount;
         gotOne = true;
     }
+    lock.unlock();
     return gotOne;
-    // The mutex is unlocked at the end of the scope.
 }
 
 void Visualizer::InputSilo::waitForMenuPick(int& menuId, int& item) {
@@ -131,7 +131,7 @@ void Visualizer::InputSilo::waitForMenuPick(int& menuId, int& item) {
     item   = impl.m_menuPickSilo.front().second;
     impl.m_menuPickSilo.pop_front();
     --impl.m_inputCount;
-    // The mutex is unlocked at the end of the scope.
+    lock.unlock();
 }
 
 bool Visualizer::InputSilo::takeSliderMove(int& slider, Real& value) {
@@ -146,8 +146,8 @@ bool Visualizer::InputSilo::takeSliderMove(int& slider, Real& value) {
         --impl.m_inputCount;
         gotOne = true;
     }
+    lock.unlock();
     return gotOne;
-    // The mutex is unlocked at the end of the scope.
 }
 
 void Visualizer::InputSilo::waitForSliderMove(int& slider, Real& value) {
@@ -159,7 +159,7 @@ void Visualizer::InputSilo::waitForSliderMove(int& slider, Real& value) {
     value  = impl.m_sliderMoveSilo.front().second;
     impl.m_sliderMoveSilo.pop_front();
     --impl.m_inputCount;
-    // The mutex is unlocked at the end of the scope.
+    lock.unlock();
 }
 
 void Visualizer::InputSilo::clear() {
@@ -169,7 +169,7 @@ void Visualizer::InputSilo::clear() {
     impl.m_keyHitSilo.clear();
     impl.m_menuPickSilo.clear();
     impl.m_sliderMoveSilo.clear();
-    // The mutex is unlocked at the end of the scope.
+    lock.unlock();
 }
 
 bool Visualizer::InputSilo::keyPressed(unsigned key, unsigned modifiers) {
@@ -182,8 +182,8 @@ bool Visualizer::InputSilo::keyPressed(unsigned key, unsigned modifiers) {
     if (impl.m_keyHitSilo.size() == 1)
         // a key hit is now available
         impl.m_keyHitAvailable.notify_one();
+    lock.unlock();
     return true;
-    // The mutex is unlocked at the end of the scope.
 }
 bool Visualizer::InputSilo::menuSelected(int menu, int item) {
     Impl& impl = updImpl();
@@ -195,8 +195,8 @@ bool Visualizer::InputSilo::menuSelected(int menu, int item) {
     if (impl.m_menuPickSilo.size() == 1)
         // a menu pick is now available
         impl.m_menuPickAvailable.notify_one();
+    lock.unlock();
     return true;
-    // The mutex is unlocked at the end of the scope.
 }
 
 // We optimize here for the common case that the same slider is moving
@@ -216,7 +216,7 @@ bool Visualizer::InputSilo::sliderMoved(int slider, Real value) {
             // a slider move is now available
             impl.m_sliderMoveAvailable.notify_one();
     }
+    lock.unlock();
     return true;
-    // The mutex is unlocked at the end of the scope.
 }
 
