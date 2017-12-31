@@ -240,7 +240,7 @@ static void listenForVisualizerEvents(Visualizer& visualizer,
                 (unsigned)buffer[0]);
         }
     }
-  } catch (const ReadingInterrupted& e) {
+  } catch (const ReadingInterrupted&) {
         // We were told (by the main thread) to stop listening, or
         // simbody-visualizer closed.
   } catch (const std::exception& e) {

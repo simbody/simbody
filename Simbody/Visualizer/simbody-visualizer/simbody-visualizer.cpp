@@ -2450,7 +2450,7 @@ void listenForInput() {
         if (!issuedActiveRedisplay)
             requestPassiveRedisplay();         //------- PASSIVE REDISPLAY --
     }
-  } catch (const ReadingInterrupted& e) {
+  } catch (const ReadingInterrupted&) {
         // Stop listening, because the simulator was closed.
   } catch (const std::exception& e) {
         std::cout << "simbody-visualizer listenerThread: unrecoverable error:\n";

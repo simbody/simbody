@@ -85,6 +85,9 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
     // We launch the maximum number of threads and save them for later use
     if(threads.size() < (size_t)numMaxThreads)
     {
+      // We do not support numMaxThreads changing for a given instance of
+      // ParallelExecutor.
+      assert(threads.size() == 0);
       threads.resize(numMaxThreads);
       for (int i = 0; i < numMaxThreads; ++i) {
           threadInfo.emplace_back(i, this);
