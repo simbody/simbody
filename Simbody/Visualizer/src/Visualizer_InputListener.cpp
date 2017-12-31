@@ -42,21 +42,6 @@ Visualizer::InputSilo handle. */
 
 class Visualizer::InputSilo::Impl {
 public:
-    using Lock = std::unique_lock<std::mutex>;
-    Lock LOCK_silo()     const {return Lock(m_siloMutex);}
-
-    void WAIT_anyInput(Lock& lock) const {m_someInputAvailable.wait(lock);}
-    void POST_anyInput() const {m_someInputAvailable.notify_one();}
-
-    void WAIT_keyHit(Lock& lock)   const {m_keyHitAvailable.wait(lock);}
-    void POST_keyHit()   const {m_keyHitAvailable.notify_one();}
-
-    void WAIT_menuPick(Lock& lock) const {m_menuPickAvailable.wait(lock);}
-    void POST_menuPick() const {m_menuPickAvailable.notify_one();}
-
-    void WAIT_sliderMove(Lock& lock) const {m_sliderMoveAvailable.wait(lock);}
-    void POST_sliderMove() const {m_sliderMoveAvailable.notify_one();}
-
     std::deque<std::pair<unsigned,unsigned> >   m_keyHitSilo;
     std::deque<std::pair<int,int> >             m_menuPickSilo;
     std::deque<std::pair<int,Real> >            m_sliderMoveSilo;
@@ -87,14 +72,15 @@ bool Visualizer::InputSilo::isAnyUserInput() const
 void Visualizer::InputSilo::waitForAnyUserInput() const {
     if (isAnyUserInput()) return;
     const Impl& impl = getImpl();
-    Impl::Lock lock = impl.LOCK_silo();
-    while (!isAnyUserInput()) {impl.WAIT_anyInput(lock);}
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
+    impl.m_someInputAvailable.wait(lock, [this] {return isAnyUserInput();});
+    lock.unlock();
 }
 
 bool Visualizer::InputSilo::takeKeyHit(unsigned& key, unsigned& modifiers) {
     if (!isAnyUserInput()) return false;
     Impl& impl = updImpl(); bool gotOne;
-    Impl::Lock lock = impl.LOCK_silo();
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
     if (impl.m_keyHitSilo.empty()) key=0, modifiers=0, gotOne=false;
     else {
         key       = impl.m_keyHitSilo.front().first; 
@@ -103,25 +89,26 @@ bool Visualizer::InputSilo::takeKeyHit(unsigned& key, unsigned& modifiers) {
         --impl.m_inputCount;
         gotOne = true;
     }
+    lock.unlock();
     return gotOne;
 }
 
 void Visualizer::InputSilo::waitForKeyHit(unsigned& key, unsigned& modifiers) {
     Impl& impl = updImpl();
-    Impl::Lock lock = impl.LOCK_silo();
-    while (!impl.m_keyHitSilo.size()) 
-        impl.WAIT_keyHit(lock);
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
+    impl.m_keyHitAvailable.wait(lock, [&] {return impl.m_keyHitSilo.size();});
     key       = impl.m_keyHitSilo.front().first; 
     modifiers = impl.m_keyHitSilo.front().second;
     impl.m_keyHitSilo.pop_front();
     --impl.m_inputCount;
+    lock.unlock();
 }
 
 
 bool Visualizer::InputSilo::takeMenuPick(int& menuId, int& item) {
     if (!isAnyUserInput()) return false;
     Impl& impl = updImpl(); bool gotOne;
-    Impl::Lock lock = impl.LOCK_silo();
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
     if (impl.m_menuPickSilo.empty()) item=0, gotOne=false;
     else {
         menuId = impl.m_menuPickSilo.front().first; 
@@ -130,24 +117,27 @@ bool Visualizer::InputSilo::takeMenuPick(int& menuId, int& item) {
         --impl.m_inputCount;
         gotOne = true;
     }
+    lock.unlock();
     return gotOne;
 }
 
 void Visualizer::InputSilo::waitForMenuPick(int& menuId, int& item) {
     Impl& impl = updImpl();
-    Impl::Lock lock = impl.LOCK_silo();
-    while (!impl.m_menuPickSilo.size()) 
-        impl.WAIT_menuPick(lock);
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
+    impl.m_menuPickAvailable.wait(lock,
+            [&] {return impl.m_menuPickSilo.size();});
+    
     menuId = impl.m_menuPickSilo.front().first; 
     item   = impl.m_menuPickSilo.front().second;
     impl.m_menuPickSilo.pop_front();
     --impl.m_inputCount;
+    lock.unlock();
 }
 
 bool Visualizer::InputSilo::takeSliderMove(int& slider, Real& value) {
     if (!isAnyUserInput()) return false;
     Impl& impl = updImpl(); bool gotOne;
-    Impl::Lock lock = impl.LOCK_silo();
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
     if (impl.m_sliderMoveSilo.empty()) slider=0, value=NaN, gotOne=false;
     else {
         slider = impl.m_sliderMoveSilo.front().first; 
@@ -156,47 +146,56 @@ bool Visualizer::InputSilo::takeSliderMove(int& slider, Real& value) {
         --impl.m_inputCount;
         gotOne = true;
     }
+    lock.unlock();
     return gotOne;
 }
 
 void Visualizer::InputSilo::waitForSliderMove(int& slider, Real& value) {
     Impl& impl = updImpl();
-    Impl::Lock lock = impl.LOCK_silo();
-    while (!impl.m_sliderMoveSilo.size()) 
-        impl.WAIT_sliderMove(lock);
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
+    impl.m_sliderMoveAvailable.wait(lock, 
+            [&] {return impl.m_sliderMoveSilo.size();});
     slider = impl.m_sliderMoveSilo.front().first; 
     value  = impl.m_sliderMoveSilo.front().second;
     impl.m_sliderMoveSilo.pop_front();
     --impl.m_inputCount;
+    lock.unlock();
 }
 
 void Visualizer::InputSilo::clear() {
     Impl& impl = updImpl();
-    Impl::Lock lock = impl.LOCK_silo();
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
     impl.m_inputCount = 0;
     impl.m_keyHitSilo.clear();
     impl.m_menuPickSilo.clear();
     impl.m_sliderMoveSilo.clear();
+    lock.unlock();
 }
 
 bool Visualizer::InputSilo::keyPressed(unsigned key, unsigned modifiers) {
     Impl& impl = updImpl();
-    Impl::Lock lock = impl.LOCK_silo();
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
     impl.m_keyHitSilo.push_back(std::make_pair(key,modifiers));
     if (++impl.m_inputCount == 1)
-        impl.POST_anyInput(); // in case someone was waiting for any input
+        // in case someone was waiting for any input
+        impl.m_someInputAvailable.notify_one();  
     if (impl.m_keyHitSilo.size() == 1)
-        impl.POST_keyHit();   // a key hit is now available
+        // a key hit is now available
+        impl.m_keyHitAvailable.notify_one();
+    lock.unlock();
     return true;
 }
 bool Visualizer::InputSilo::menuSelected(int menu, int item) {
     Impl& impl = updImpl();
-    Impl::Lock lock = impl.LOCK_silo();
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
     impl.m_menuPickSilo.push_back(std::make_pair(menu,item));
     if (++impl.m_inputCount == 1)
-        impl.POST_anyInput(); // in case someone was waiting for any input
+        // in case someone was waiting for any input
+        impl.m_someInputAvailable.notify_one();  
     if (impl.m_menuPickSilo.size() == 1)
-        impl.POST_menuPick(); // a menu pick is now available
+        // a menu pick is now available
+        impl.m_menuPickAvailable.notify_one();
+    lock.unlock();
     return true;
 }
 
@@ -204,17 +203,20 @@ bool Visualizer::InputSilo::menuSelected(int menu, int item) {
 // for a while -- in that case we just keep the most recent position.
 bool Visualizer::InputSilo::sliderMoved(int slider, Real value) {
     Impl& impl = updImpl();
-    Impl::Lock lock = impl.LOCK_silo();
+    std::unique_lock<std::mutex> lock(impl.m_siloMutex);
     std::deque<std::pair<int,Real> >& silo = impl.m_sliderMoveSilo;
     if (!silo.empty() && silo.front().first == slider)
         silo.front().second = value; // just replace the value; count unchanged
     else {
         silo.push_back(std::make_pair(slider,value));
         if (++impl.m_inputCount == 1)
-            impl.POST_anyInput(); // in case someone was waiting for any input
+            // in case someone was waiting for any input
+            impl.m_someInputAvailable.notify_one();  
         if (silo.size() == 1)
-            impl.POST_sliderMove(); // a slider move is now available
+            // a slider move is now available
+            impl.m_sliderMoveAvailable.notify_one();
     }
+    lock.unlock();
     return true;
 }
 

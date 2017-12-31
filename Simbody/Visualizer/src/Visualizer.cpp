@@ -346,6 +346,8 @@ public:
         if (++m_nframe == 1) 
             // wake up rendering thread on first frame
             m_queueNotEmpty.notify_one();
+
+        lock.unlock();
     }
 
     // Call from simulation thread to allow the drawing thread to flush
@@ -356,6 +358,7 @@ public:
             return;
         std::unique_lock<std::mutex> lock(m_queueMutex);
         m_queueIsEmpty.wait(lock, [&] {return m_nframe == 0;});
+        lock.unlock();
     }
 
     // The drawing thread uses this to find the oldest frame in the buffer.
@@ -397,6 +400,7 @@ public:
         // Start the simulation again when the pool is about half empty.
         if (m_nframe <= m_pool.size()/2+1)
             m_queueNotFull.notify_one();
+        lock.unlock();
     }
 
     // Given a time t in simulation time units, return the equivalent time r in
