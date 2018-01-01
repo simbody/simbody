@@ -88,26 +88,28 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
       // We do not support numMaxThreads changing for a given instance of
       // ParallelExecutor.
       assert(threads.size() == 0);
+      threadInfo.reserve(numMaxThreads);
       threads.resize(numMaxThreads);
       for (int i = 0; i < numMaxThreads; ++i) {
           threadInfo.emplace_back(i, this);
           threads[i] = std::thread(threadBody, std::ref(threadInfo[i]));
       }
     }
+   
+    // Initialize fields to execute the new task.
+    std::unique_lock<std::mutex> lock(runMutex);
+    currentTask = &task;
+    currentTaskCount = times;
+    waitingThreadCount = 0;
+    for (int i = 0; i < (int)threadInfo.size(); ++i) {
+        threadInfo[i].running = true;
+    }
 
-  // Initialize fields to execute the new task.
-  std::unique_lock<std::mutex> lock(runMutex);
-  currentTask = &task;
-  currentTaskCount = times;
-  waitingThreadCount = 0;
-  for (int i = 0; i < (int) threadInfo.size(); ++i)
-      threadInfo[i].running = true;
-
-  // Wake up the worker threads and wait until they finish.
-  runCondition.notify_all();
-  waitCondition.wait(lock,
-          [&] { return waitingThreadCount == (int) threads.size(); });
-  lock.unlock();
+    // Wake up the worker threads and wait until they finish.
+    runCondition.notify_all();
+    waitCondition.wait(lock,
+        [&] { return waitingThreadCount == (int)threads.size(); });
+    lock.unlock();
 }
 void ParallelExecutorImpl::incrementWaitingThreads() {
     std::lock_guard<std::mutex> lock(runMutex);
