@@ -101,10 +101,12 @@ static void shutdown();
     #include <io.h>
     #define READ _read
     #define WRITEFUNC _write
+    #define CLOSE _close
 #else
     #include <unistd.h>
     #define READ read
     #define WRITEFUNC write
+    #define CLOSE close
 #endif
 
 #ifdef _MSC_VER
@@ -129,7 +131,12 @@ using namespace std;
 // default transform for the camera until we know what the SimTK::System
 // we're viewing considers to be its "up" and "look at" directions.
 static fTransform X_GC;
+
+// Communication with the simulator.
 static int inPipe, outPipe;
+// If the simulator told us to stop communication, then we close the outPipe
+// and can no longer write to the simulator.
+static std::atomic<bool> writeToSimulator{true};
 
 static void computeBoundingSphereForVertices(const vector<float>& vertices, float& radius, fVec3& center) {
     fVec3 lower(vertices[0], vertices[1], vertices[2]);
@@ -1025,9 +1032,11 @@ int Menu::currentMenuGlutId = InvalidMenuId;
 // to the simulator the integer index that was associated with the particular
 // menu entry on which the user clicked.
 void menuSelected(int option) {
-    WRITE(outPipe, &MenuSelected, 1);
-    WRITE(outPipe, &Menu::getCurrentMenuId(), sizeof(int));
-    WRITE(outPipe, &option, sizeof(int));
+    if (writeToSimulator) {
+        WRITE(outPipe, &MenuSelected, 1);
+        WRITE(outPipe, &Menu::getCurrentMenuId(), sizeof(int));
+        WRITE(outPipe, &option, sizeof(int));
+    }
 }
 
 static vector<Menu>     menus;
@@ -1194,10 +1203,12 @@ public:
 
 private:
     void positionChanged() {
-        WRITE(outPipe, &SliderMoved, 1);
-        WRITE(outPipe, &id, sizeof(int));
-        float value = calcValue();
-        WRITE(outPipe, &value, sizeof(float));
+        if (writeToSimulator) {
+            WRITE(outPipe, &SliderMoved, 1);
+            WRITE(outPipe, &id, sizeof(int));
+            float value = calcValue();
+            WRITE(outPipe, &value, sizeof(float));
+        }
         requestPassiveRedisplay();              //----- PASSIVE REDISPLAY ----
     }
     string title;
@@ -1827,35 +1838,43 @@ static void mouseMoved(int x, int y) {
 // ones like arrows and function keys. We will map either case
 // into the same "key pressed" command to send to the simulator.
 static void ordinaryKeyPressed(unsigned char key, int x, int y) {
-    char command = KeyPressed;
-    WRITE(outPipe, &command, 1);
-    unsigned char buffer[2];
-    buffer[0] = key;
-    buffer[1] = 0;
-    unsigned char modifiers = glutGetModifiers();
-    if ((modifiers & GLUT_ACTIVE_SHIFT) != 0)
-        buffer[1] += Visualizer::InputListener::ShiftIsDown;
-    if ((modifiers & GLUT_ACTIVE_CTRL) != 0)
-        buffer[1] += Visualizer::InputListener::ControlIsDown;
-    if ((modifiers & GLUT_ACTIVE_ALT) != 0)
-        buffer[1] += Visualizer::InputListener::AltIsDown;
-    WRITE(outPipe, buffer, 2);
+    if (writeToSimulator) {
+        char command = KeyPressed;
+        WRITE(outPipe, &command, 1);
+        unsigned char buffer[2];
+        buffer[0] = key;
+        buffer[1] = 0;
+        unsigned char modifiers = glutGetModifiers();
+        if ((modifiers & GLUT_ACTIVE_SHIFT) != 0)
+            buffer[1] += Visualizer::InputListener::ShiftIsDown;
+        if ((modifiers & GLUT_ACTIVE_CTRL) != 0)
+            buffer[1] += Visualizer::InputListener::ControlIsDown;
+        if ((modifiers & GLUT_ACTIVE_ALT) != 0)
+            buffer[1] += Visualizer::InputListener::AltIsDown;
+        WRITE(outPipe, buffer, 2);
+    }
 }
 
 static void specialKeyPressed(int key, int x, int y) {
-    char command = KeyPressed;
-    WRITE(outPipe, &command, 1);
-    unsigned char buffer[2];
-    buffer[0] = (unsigned char)key; // this is the special key code
-    buffer[1] = Visualizer::InputListener::IsSpecialKey;
-    unsigned char modifiers = glutGetModifiers();
-    if ((modifiers & GLUT_ACTIVE_SHIFT) != 0)
-        buffer[1] &= Visualizer::InputListener::ShiftIsDown;
-    if ((modifiers & GLUT_ACTIVE_CTRL) != 0)
-        buffer[1] &= Visualizer::InputListener::ControlIsDown;
-    if ((modifiers & GLUT_ACTIVE_ALT) != 0)
-        buffer[1] &= Visualizer::InputListener::AltIsDown;
-    WRITE(outPipe, buffer, 2);
+    if (writeToSimulator) {
+        char command = KeyPressed;
+        WRITE(outPipe, &command, 1);
+        unsigned char buffer[2];
+        buffer[0] = (unsigned char)key; // this is the special key code
+        buffer[1] = Visualizer::InputListener::IsSpecialKey;
+        unsigned char modifiers = glutGetModifiers();
+        if ((modifiers & GLUT_ACTIVE_SHIFT) != 0)
+            buffer[1] &= Visualizer::InputListener::ShiftIsDown;
+        if ((modifiers & GLUT_ACTIVE_CTRL) != 0)
+            buffer[1] &= Visualizer::InputListener::ControlIsDown;
+        if ((modifiers & GLUT_ACTIVE_ALT) != 0)
+            buffer[1] &= Visualizer::InputListener::AltIsDown;
+        WRITE(outPipe, buffer, 2);
+    }
+}
+
+static void shutdownWhenKeyPressed(unsigned char, int, int) {
+    exit(0);
 }
 
 // This function is called when the timer goes off after an overlay message
@@ -2438,6 +2457,30 @@ void listenForInput() {
         case Shutdown:
             shutdown(); // doesn't return
             break;
+
+        case StopCommunication: {
+            // Before we stop listening to the simulator, we tell the simulator
+            // to stop listening to the GUI.
+            writeToSimulator = false;
+            int retval = CLOSE(outPipe);
+            if (retval == -1) {
+                std::cout << "Warning in simbody-visualizer: "
+                    << "An attempt to close() pipe " << outPipe
+                    << " failed with errno=" << errno
+                    << " (" << strerror(errno) << ")." << std::endl;
+            }
+
+            // Stop this listener thread, but do not kill the entire GUI; the
+            // user may still want to save images, etc.
+
+            // If the user presses a key after we have disconnected from the
+            // simulator, then shut down.
+            glutKeyboardFunc(shutdownWhenKeyPressed);
+            // Remove the callback for special keys.
+            glutSpecialFunc(nullptr);
+
+            return;
+        }
 
         default:
             SimTK_ERRCHK1_ALWAYS(!"unrecognized command", "listenForInput()",

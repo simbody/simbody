@@ -37,7 +37,7 @@
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 33;
+static const unsigned ProtocolVersion   = 34;
 
 // The visualizer has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -86,9 +86,10 @@ static const unsigned char SetShowFrameRate      = 27;
 static const unsigned char SetShowSimTime        = 28;
 static const unsigned char SetShowFrameNumber    = 29;
 static const unsigned char Shutdown              = 30;
+static const unsigned char StopCommunication     = 31;
 
 
-// Events sent from the GUI back to the application.
+// Events sent from the GUI back to the simulation application.
 
 // This should always be command #1 so we can reliably check whether
 // we're talking to a compatible protocol.

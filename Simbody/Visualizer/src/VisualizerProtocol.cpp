@@ -418,14 +418,24 @@ VisualizerProtocol::~VisualizerProtocol() {
     // If shutdownGUI() was not called, then the listener thread is still
     // running and we should kill it.
     killListenerThreadIfNecessary();
+    int retval = CLOSE(outPipe); // TODO is this necessary?
+    if (retval == -1) {
+        std::cout << "Warning in Simbody VisualizerProtocol: "
+            << "An attempt to close() pipe " << outPipe
+            << " failed with errno=" << errno << " (" << strerror(errno) << ")."
+            << std::endl;
+    }
 }
 
 void VisualizerProtocol::killListenerThreadIfNecessary() {
     if (eventListenerThread.joinable()) {
-        // Shut down the listener thread cleanly.
+        // Shut down the listener thread cleanly. TODO remove this.
         continueListening = false;
         // Close the read pipe so that the thread stops waiting for data.
-        CLOSE(inPipe); // TODO make this work on Windows.
+        // Tell the GUI to tell the simulator's listener thread to stop
+        // listening, which will allow the the simulator's listener thread to
+        // die.
+        WRITE(outPipe, &StopCommunication, 1);
         eventListenerThread.join();
     }
 }
