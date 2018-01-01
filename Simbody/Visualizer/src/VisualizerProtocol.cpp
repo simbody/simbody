@@ -406,7 +406,7 @@ void VisualizerProtocol::shutdownGUI() {
     // the pipe may throw an exception. Shutting down the listener thread was
     // added to solve an issue with OpenSim MATLAB bindings, wherein MATLAB
     // would use more and more CPU each time a Visualizer was created.
-    killListenerThreadIfNecessary();
+    stopListeningIfNecessary();
     
     char command = Shutdown;
     WRITE(outPipe, &command, 1);
@@ -415,7 +415,7 @@ void VisualizerProtocol::shutdownGUI() {
 VisualizerProtocol::~VisualizerProtocol() {
     // If shutdownGUI() was not called, then the listener thread is still
     // running and we should kill it.
-    killListenerThreadIfNecessary();
+    stopListeningIfNecessary();
     int retval = CLOSE(outPipe); // TODO is this necessary?
     if (retval == -1) {
         std::cout << "Warning in Simbody VisualizerProtocol: "
@@ -425,7 +425,7 @@ VisualizerProtocol::~VisualizerProtocol() {
     }
 }
 
-void VisualizerProtocol::killListenerThreadIfNecessary() {
+void VisualizerProtocol::stopListeningIfNecessary() {
     if (eventListenerThread.joinable()) {
         // Shut down the listener thread cleanly. Tell the GUI to tell the
         // simulator's listener thread to stop listening, which will allow the

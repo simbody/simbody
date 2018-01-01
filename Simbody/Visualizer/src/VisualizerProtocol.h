@@ -107,7 +107,7 @@ public:
     ~VisualizerProtocol();
     void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
     void shutdownGUI();
-    void killListenerThreadIfNecessary();
+    void stopListeningIfNecessary();
     void beginScene(Real simTime);
     void finishScene();
     void drawBox(const Transform& transform, const Vec3& scale, 
