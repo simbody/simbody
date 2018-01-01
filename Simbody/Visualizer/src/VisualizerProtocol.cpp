@@ -193,12 +193,11 @@ static void readData(unsigned char* buffer, int bytes)
     readDataFromPipe(inPipe, buffer, bytes);
 }
 
-static void listenForVisualizerEvents(Visualizer& visualizer,
-        const std::atomic<bool>& continueListening) {
+static void listenForVisualizerEvents(Visualizer& visualizer) {
     unsigned char buffer[256];
 
     try
-  { while (continueListening) {
+  { while (true) {
         // Receive a user input event.
         readData(buffer, 1);
         switch (buffer[0]) {
@@ -344,9 +343,8 @@ VisualizerProtocol::VisualizerProtocol
     shakeHandsWithGUI(outPipe, inPipe);
 
     // Spawn the thread to listen for events.
-    continueListening = true;
     eventListenerThread = std::thread(listenForVisualizerEvents,
-            std::ref(visualizer), std::ref(continueListening));
+            std::ref(visualizer));
 }
 
 // This is executed on the main thread at GUI startup and thus does not
@@ -429,12 +427,9 @@ VisualizerProtocol::~VisualizerProtocol() {
 
 void VisualizerProtocol::killListenerThreadIfNecessary() {
     if (eventListenerThread.joinable()) {
-        // Shut down the listener thread cleanly. TODO remove this.
-        continueListening = false;
-        // Close the read pipe so that the thread stops waiting for data.
-        // Tell the GUI to tell the simulator's listener thread to stop
-        // listening, which will allow the the simulator's listener thread to
-        // die.
+        // Shut down the listener thread cleanly. Tell the GUI to tell the
+        // simulator's listener thread to stop listening, which will allow the
+        // the (simulator's) listener thread to die.
         WRITE(outPipe, &StopCommunication, 1);
         eventListenerThread.join();
     }
