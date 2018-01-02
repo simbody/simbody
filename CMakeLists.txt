@@ -555,7 +555,7 @@ if(UNIX)
     set(DL_LIBRARY dl)
 endif()
 
-set(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread
+set(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED}
                         ${REALTIME_LIB} ${DL_LIBRARY} ${MATH_LIBRARY})
 set(MATH_LIBS_TO_USE_VN ${MATH_LIBS_TO_USE})
 
@@ -693,14 +693,14 @@ install(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
 if(WIN32)
     if(${PLATFORM_ABI} MATCHES "x64")
         # win 64 bits
-        set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2_x64")
+        set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas")
     else()
-        set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2")
+        set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas")
     endif()
 elseif(APPLE)
-    set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -lpthread -ldl")
+    set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -ldl")
 else()
-    set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -lpthread -lrt -ldl -lm")
+    set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -lrt -ldl -lm")
 endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/cmake/pkgconfig/simbody.pc.in
