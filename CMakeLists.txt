@@ -550,12 +550,15 @@ endif()
 if(UNIX)
     if(NOT APPLE)
         set(REALTIME_LIB rt)
+        # We do not use pthreads directly anymore, but on Linux, C++11 threads
+        # are implemented with pthreads, and we must link to it.
+	set(PTHREAD_LIB pthread)
     endif()
     set(MATH_LIBRARY m)
     set(DL_LIBRARY dl)
 endif()
 
-set(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED}
+set(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} ${PTHREAD_LIB}
                         ${REALTIME_LIB} ${DL_LIBRARY} ${MATH_LIBRARY})
 set(MATH_LIBS_TO_USE_VN ${MATH_LIBS_TO_USE})
 
