@@ -552,7 +552,7 @@ if(UNIX)
         set(REALTIME_LIB rt)
         # We do not use pthreads directly anymore, but on Linux, C++11 threads
         # are implemented with pthreads, and we must link to it.
-	set(PTHREAD_LIB pthread)
+        set(PTHREAD_LIB pthread)
     endif()
     set(MATH_LIBRARY m)
     set(DL_LIBRARY dl)
