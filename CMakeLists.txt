@@ -700,7 +700,7 @@ if(WIN32)
 elseif(APPLE)
     set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -ldl")
 else()
-    set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -lrt -ldl -lm")
+    set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -lpthread -lrt -ldl -lm")
 endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/cmake/pkgconfig/simbody.pc.in
