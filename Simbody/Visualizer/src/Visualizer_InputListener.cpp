@@ -176,12 +176,14 @@ bool Visualizer::InputSilo::keyPressed(unsigned key, unsigned modifiers) {
     Impl& impl = updImpl();
     std::unique_lock<std::mutex> lock(impl.m_siloMutex);
     impl.m_keyHitSilo.push_back(std::make_pair(key,modifiers));
-    if (++impl.m_inputCount == 1)
+    if (++impl.m_inputCount == 1) {
         // in case someone was waiting for any input
-        impl.m_someInputAvailable.notify_one();  
-    if (impl.m_keyHitSilo.size() == 1)
+        impl.m_someInputAvailable.notify_one();
+    }
+    if (impl.m_keyHitSilo.size() == 1) {
         // a key hit is now available
         impl.m_keyHitAvailable.notify_one();
+    }
     lock.unlock();
     return true;
 }
@@ -189,12 +191,14 @@ bool Visualizer::InputSilo::menuSelected(int menu, int item) {
     Impl& impl = updImpl();
     std::unique_lock<std::mutex> lock(impl.m_siloMutex);
     impl.m_menuPickSilo.push_back(std::make_pair(menu,item));
-    if (++impl.m_inputCount == 1)
+    if (++impl.m_inputCount == 1) {
         // in case someone was waiting for any input
-        impl.m_someInputAvailable.notify_one();  
-    if (impl.m_menuPickSilo.size() == 1)
+        impl.m_someInputAvailable.notify_one();
+    }
+    if (impl.m_menuPickSilo.size() == 1) {
         // a menu pick is now available
         impl.m_menuPickAvailable.notify_one();
+    }
     lock.unlock();
     return true;
 }
@@ -209,12 +213,14 @@ bool Visualizer::InputSilo::sliderMoved(int slider, Real value) {
         silo.front().second = value; // just replace the value; count unchanged
     else {
         silo.push_back(std::make_pair(slider,value));
-        if (++impl.m_inputCount == 1)
+        if (++impl.m_inputCount == 1) {
             // in case someone was waiting for any input
-            impl.m_someInputAvailable.notify_one();  
-        if (silo.size() == 1)
+            impl.m_someInputAvailable.notify_one();
+        }
+        if (silo.size() == 1) {
             // a slider move is now available
             impl.m_sliderMoveAvailable.notify_one();
+        }
     }
     lock.unlock();
     return true;

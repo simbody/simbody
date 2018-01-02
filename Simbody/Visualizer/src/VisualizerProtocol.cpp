@@ -416,7 +416,7 @@ VisualizerProtocol::~VisualizerProtocol() {
     // If shutdownGUI() was not called, then the listener thread is still
     // running and we should kill it.
     stopListeningIfNecessary();
-    int retval = CLOSE(outPipe); // TODO is this necessary?
+    int retval = CLOSE(outPipe); // TODO(chrisdembia) is this necessary?
     if (retval == -1) {
         std::cout << "Warning in Simbody VisualizerProtocol: "
             << "An attempt to close() pipe " << outPipe
