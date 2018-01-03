@@ -75,6 +75,19 @@
 
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/Exception.h"
+#ifdef SimTK_REAL_IS_ADOUBLE
+    #ifdef _MSC_VER
+        // Ignore warnings from ADOL-C headers.
+        #pragma warning(push)
+        // 'argument': conversion from 'size_t' to 'locint', possible loss of data.
+        #pragma warning(disable: 4267)
+    #endif
+    #include <adolc/adolc.h> // for isTaping() ADOL-C driver
+    typedef double SimTK_Real;
+    #ifdef _MSC_VER
+        #pragma warning(pop)
+    #endif
+#endif
 
 #include <string>
 #include <iostream>
@@ -376,6 +389,17 @@
     #define SimTK_ASSERT3(cond,msg,a1,a2,a3) SimTK_ASSERT3_ALWAYS(cond,msg,a1,a2,a3)
     #define SimTK_ASSERT4(cond,msg,a1,a2,a3,a4) SimTK_ASSERT4_ALWAYS(cond,msg,a1,a2,a3,a4)
     #define SimTK_ASSERT5(cond,msg,a1,a2,a3,a4,a5) SimTK_ASSERT5_ALWAYS(cond,msg,a1,a2,a3,a4,a5)
+#endif
+
+// ---------------------------------ADOL-C-------------------------------------
+// This exception is to be used for situations in which a user attempts to tape
+// (ie wants to get derivatives) through undifferentiable code. It is fine to
+// switch between adouble and double as long as the user is not expecting to
+// get derivatives.
+// ----------------------------------------------------------------------------
+#ifdef SimTK_REAL_IS_ADOUBLE
+#define SimTK_ADOLC_NO_TAPING_ALLOWED_ALWAYS \
+        do{if(isTaping())SimTK_THROW(SimTK::Exception::ADOLCTapingNotAllowed);}while(false)
 #endif
 
 
