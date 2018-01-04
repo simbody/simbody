@@ -1225,6 +1225,9 @@ template <> class CNT<double> : public NTraits<double> { };
     adub cosh(const badouble&);
     adub tanh(const badouble&);
     adub log10(const badouble&);
+    adub fabs(const badouble&);
+    adub fmax(const badouble&, const badouble&);
+    adub fmin(const badouble&, const badouble&);
 
     namespace SimTK {
 
