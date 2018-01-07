@@ -23,7 +23,6 @@
 
 #include "Parallel2DExecutorImpl.h"
 #include "SimTKcommon/internal/ParallelExecutor.h"
-#include <pthread.h>
 #include <utility>
 
 using std::pair;

@@ -4,12 +4,11 @@
 # Simbody has dependencies on several low-level packages
 # for which the details differ on different platforms.
 # Dependencies are:
-#    - pthreads
 #    - Blas, Lapack
-# Pthreads is standard on Linux platforms, and close enough
-# on Macs. On Windows we have to supply our own.
 # We provide our own high-performance Lapack library
 # for Windows; Linux and Macs are expected to have one.
+# We used to supply our own Pthreads on Windows, but this
+# was replaced with C++11 threading in 2018.
 #-----------------------------------------------------------
 
 set(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${CMAKE_HOST_SYSTEM_NAME})
@@ -174,8 +173,8 @@ foreach(LIBF ${LIB_FILES})
 endforeach()
 
 # Create "fake" IMPORTED targets to represent the pre-built platform libraries.
-# When CMake sees that a target links to, e.g., the pthread target, CMake will
-# use the appropriate library paths below.
+# When CMake sees that a target links to, e.g., the blas target, CMake will use
+# the appropriate library paths below.
 # Note: we don't need to do this for the other platform libraries
 # (gcc_s_sjlj-1, gfortran, quadmath, ...) since Simbody's libraries do not link
 # to them when compiling; we only need to do this for import libraries (.lib).
@@ -194,17 +193,6 @@ if(WIN32 AND NOT BUILD_USING_OTHER_LAPACK)
         IMPORTED_IMPLIB "${LIB_ABI_DIR}/liblapack.lib"
         # lapack depends on blas:
         INTERFACE_LINK_LIBRARIES blas
-        )
-endif()
-if(MSVC)
-    if(${PLATFORM_ABI} MATCHES "x64")
-        set(CMAKE_THREAD_LIBS_INIT pthreadVC2_x64)
-    else()
-        set(CMAKE_THREAD_LIBS_INIT pthreadVC2)
-    endif()
-    add_library(pthread SHARED IMPORTED GLOBAL)
-    set_target_properties(pthread PROPERTIES
-        IMPORTED_IMPLIB "${LIB_ABI_DIR}/${CMAKE_THREAD_LIBS_INIT}.lib"
         )
 endif()
 

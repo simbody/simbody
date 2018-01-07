@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-17 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Christopher Dembia                                           *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -26,8 +26,9 @@
 
 #include "SimTKcommon/internal/ParallelWorkQueue.h"
 #include "SimTKcommon/internal/Array.h"
-#include <pthread.h>
 #include <queue>
+#include <mutex>
+#include <condition_variable>
 
 namespace SimTK {
 
@@ -47,18 +48,18 @@ public:
     void flush();
     std::queue<ParallelWorkQueue::Task*>& updTaskQueue();
     bool isFinished() const;
-    pthread_mutex_t& getQueueLock();
-    pthread_cond_t& getWaitCondition();
-    pthread_cond_t& getQueueFullCondition();
+    std::mutex& getQueueMutex();
+    std::condition_variable& getWaitCondition();
+    std::condition_variable& getQueueFullCondition();
     void markTaskCompleted();
 private:
     const int queueSize;
     int pendingTasks;
     bool finished;
     std::queue<ParallelWorkQueue::Task*> taskQueue;
-    pthread_mutex_t queueLock;
-    pthread_cond_t waitForTaskCondition, queueFullCondition;
-    Array_<pthread_t> threads;
+    std::mutex queueMutex;
+    std::condition_variable waitForTaskCondition, queueFullCondition;
+    SimTK::Array_<std::thread> threads;
 };
 
 } // namespace SimTK
