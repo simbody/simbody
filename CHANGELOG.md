@@ -9,7 +9,7 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 3.6 (in development)
 --------------------
 * Forced GCC to be at least 4.9.0, so that new C++11 features like regular
-  expressions can be used (pr #485).
+  expressions can be used (PR #485).
 * Minimum Ubuntu version supported 14.04 LTS (Trusty), with a [manual update of GCC](http://askubuntu.com/questions/466651/how-do-i-use-the-latest-gcc-on-ubuntu-14-04).
 * Recommended minimum Ubuntu version : 15.04 (Vivid), that is shipped with GCC 4.9.2.
 * Added mixin classes `ResetOnCopy<T>` and `ReinitOnCopy<T>` to force default
@@ -85,7 +85,21 @@ to ParallelExecutor, mutex state lock.
     - AtomicInteger
 * Deprecated some badly-named methods in MobilizedBody::Translation
   [Issue #604](https://github.com/simbody/simbody/issues/604)
-* (There are more that haven't been added yet)
+* Removed support for `long double`. 
+  [PR #597](https://github.com/simbody/simbody/pull/597)
+* Moved Ipopt into the namespace `SimTKIpopt` to avoid duplicate symbols when
+  combining Simbody with an independent Ipopt.
+* Fixed a bug where RowVectors could not be constructed with 0 elements.
+* CMake: Downstream projects no longer need to use `include_directories()`.
+* CMAES: You can now specify a different initial step size (standard deviation)
+  for each variable. [PR #540](https://github.com/simbody/simbody/pull/540)
+* SimbodyMatterSubsystem now provides a function for the error in
+  acceleration-level constraint equations.
+  [PR #517](https://github.com/simbody/simbody/pull/517)
+* The visualizer now supports lazily loading mesh geometry from a file.
+  [PR #475](https://github.com/simbody/simbody/pull/475)
+* Simbody can now be built with MinGW on Windows.
+  [PR #441](https://github.com/simbody/simbody/pull/441)
 
 
 3.5.3 (15 June 2015)
