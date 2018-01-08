@@ -8,7 +8,7 @@
  *                                                                            *
  * Portions copyright (c) 2010-17 Stanford University and the Authors.        *
  * Authors: Antoine Falisse                                                   *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman, Chris Dembia                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -28,7 +28,6 @@
 #include <iostream>
 using std::cout;
 using std::endl;
-using std::cin;
 
 using namespace SimTK;
 
@@ -104,14 +103,10 @@ void testNTraitsADOLC() {
     float xf = (float)-9.45;
     adouble yad = -9;
     int yi = -9;
-    std::complex<float> cf;
-    cf = std::complex<float>(xf,0.);
-    std::complex<double> cd;
-    cd = std::complex<double>(xd,0.);
-    SimTK::conjugate<float> cjf;
-    cjf = SimTK::conjugate<float>(xf,0);
-    SimTK::conjugate<double> cjd;
-    cjd = SimTK::conjugate<double>(xd,0.);
+    std::complex<float> cf(xf, 0.);
+    std::complex<double> cd(xd,0.);
+    SimTK::conjugate<float> cjf(xf,0);
+    SimTK::conjugate<double> cjd(xd,0.);
     SimTK_TEST(isNumericallyEqual(xad,xd));
     SimTK_TEST(isNumericallyEqual(xd,xad));
     SimTK_TEST(isNumericallyEqual(xad,xad));
@@ -121,12 +116,12 @@ void testNTraitsADOLC() {
     SimTK_TEST(isNumericallyEqual(yi,yad));
     SimTK_TEST(isNumericallyEqual(cd,xad));
     SimTK_TEST(isNumericallyEqual(xad,cd));
-    SimTK_TEST(isNumericallyEqual(cf,xad,1e-7));
-    SimTK_TEST(isNumericallyEqual(xad,cf,1e-7));
+    SimTK_TEST(isNumericallyEqual(cf,xad));
+    SimTK_TEST(isNumericallyEqual(xad,cf));
     SimTK_TEST(isNumericallyEqual(cjd,xad));
     SimTK_TEST(isNumericallyEqual(xad,cjd));
-    SimTK_TEST(isNumericallyEqual(cjf,xad,1e-7));
-    SimTK_TEST(isNumericallyEqual(xad,cjf,1e-7));
+    SimTK_TEST(isNumericallyEqual(cjf,xad));
+    SimTK_TEST(isNumericallyEqual(xad,cjf));
 }
 
 // This test should throw an exception when using value() while taping
@@ -136,7 +131,9 @@ void testExceptionTaping() {
     SimTK_TEST(b == 5);
 
     trace_on(0);
-    double c = NTraits<adouble>::value(a);
+    SimTK_TEST_MUST_THROW_EXC(NTraits<adouble>::value(a),
+        SimTK::Exception::ADOLCTapingNotAllowed
+    );
     trace_off();
 }
 
@@ -144,11 +141,6 @@ int main() {
     SimTK_START_TEST("TestADOLCCommon");
         SimTK_SUBTEST(testDerivativeADOLC);
         SimTK_SUBTEST(testNTraitsADOLC);
-        try {
-            SimTK_SUBTEST(testExceptionTaping);
-        }
-        catch (const std::exception& e) {
-            cout << "exception: " << e.what() << endl;
-        }
+        SimTK_SUBTEST(testExceptionTaping);
     SimTK_END_TEST();
 }

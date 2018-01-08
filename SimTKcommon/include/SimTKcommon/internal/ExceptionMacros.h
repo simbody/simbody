@@ -75,19 +75,6 @@
 
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/Exception.h"
-#ifdef SimTK_REAL_IS_ADOUBLE
-    #ifdef _MSC_VER
-        // Ignore warnings from ADOL-C headers.
-        #pragma warning(push)
-        // 'argument': conversion from 'size_t' to 'locint', possible loss of data.
-        #pragma warning(disable: 4267)
-    #endif
-    #include <adolc/adolc.h> // for isTaping() ADOL-C driver
-    typedef double SimTK_Real;
-    #ifdef _MSC_VER
-        #pragma warning(pop)
-    #endif
-#endif
 
 #include <string>
 #include <iostream>
