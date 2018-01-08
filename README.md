@@ -154,9 +154,9 @@ All needed library dependencies are provided with the Simbody installation on Wi
 * Method 2: Clone the git repository.
     1. Get git. There are many options:
 
-       * [Git for Windows](http://msysgit.github.io/)(most advanced),
-       * [TortoiseGit](https://code.google.com/p/tortoisegit/wiki/Download) (intermediate; good for TortoiseSVN users),
-       * [GitHub for Windows](https://windows.github.com/) (easiest).
+       * [Git for Windows](http://gitforwindows.org/) (most advanced),
+       * [TortoiseGit](https://tortoisegit.org/download/) (intermediate; good for TortoiseSVN users),
+       * [GitHub Desktop](https://desktop.github.com/) (easiest).
 
     2. Clone the github repository into `C:/Simbody-source`. Run the following in a Git Bash / Git Shell, or find a way to run the equivalent commands in a GUI client:
 
