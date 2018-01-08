@@ -144,7 +144,7 @@ Windows using Visual Studio
 
 All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies.
 
-1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2015 or 2017. The Community edition is free and sufficient. 
+1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version [2015](https://www.visualstudio.com/vs/older-downloads/) or 2017. The Community edition is free and sufficient. 
   * 2015: By default, Visual Studio 2015 does not provide C++ support; when installing, be sure to select *Custom*, and check *Programming Languages > Visual C++ > Common Tools for Visual C++ 2015*. If you have already installed Visual Studio without C++ support, simply re-run the installer and select *Modify*.
   * 2017: In the installer, select the *Desktop development with C++* workload.
   * Any other C++ code you plan to use with Simbody should be compiled with the
