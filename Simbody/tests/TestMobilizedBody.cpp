@@ -239,13 +239,13 @@ void testBushing() {
 
     State state = system.realizeTopology();
     p1.setQ(state, Vec6(.1,.2,.3,1,2,3));
-    dummy0.setMobilizerTranslation(state, Vec3(1,2,3));
+    dummy0.setTranslation(state, Vec3(1,2,3));
     dummy1.setAngle(state, .1);
     dummy2.setAngle(state, .2);
     p2.setAngle(state, .3);
 
     p1.setU(state, Vec6(1, 2, 3, -.1, -.2, -.3));
-    dummy0.setMobilizerVelocity(state, Vec3(-.1, -.2, -.3));
+    dummy0.setVelocity(state, Vec3(-.1, -.2, -.3));
     dummy1.setRate(state, 1);
     dummy2.setRate(state, 2);
     p2.setRate(state, 3);

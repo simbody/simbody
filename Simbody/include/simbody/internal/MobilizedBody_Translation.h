@@ -73,46 +73,81 @@ public:
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
-    // This is just a nicer name for setting this mobilizer's generalized coordinates,
-    // which together constitute the vector from the F frame's origin to the M
-    // frame's origin, expressed in F.
-
-    // Set the topological default values for the initial q's.
+    /** This is just a nicer name for setting this mobilizer's topological
+    default generalized coordinates q, which together constitute the vector
+    p_FM from the F frame's origin Fo to the M frame's origin Mo, expressed
+    in F. */
     Translation& setDefaultTranslation(const Vec3& p_FM) {
         return setDefaultQ(p_FM);
     }
 
-    // Get the topological default values for the initial q's.
+    /** Get the topological default values for the initial q's. **/
     const Vec3& getDefaultTranslation() const {
         return getDefaultQ();
     }
 
-    // Set the current value of q's in the given State. Note that this is
-    // the *cross-mobilizer* translation, not location in the Ground frame.
-    void setMobilizerTranslation(State& s, const Vec3& p_FM) const {
+    /** Set the current value of q's in the given State. Note that this is
+    the _cross-mobilizer_ translation vector p_FM, not location in the Ground
+    frame. **/
+    void setTranslation(State& s, const Vec3& p_FM) const {
         setQ(s,p_FM);
     }
 
-    // Get the current value of the q's for this mobilizer from the given State.
-    const Vec3& getMobilizerTranslation(const State& s) const {
+    /** Get the current value of the q's for this mobilizer from the given
+    State. This is the _cross-mobilizer_ translation vector p_FM, not location
+    in the Ground frame. **/
+    const Vec3& getTranslation(const State& s) const {
         return getQ(s);
     }
 
-
-    // Set the current value of u's in the given State. Note that this is
-    // the *cross-mobilizer* velocity v_FM, not velocity in the Ground frame.
-    void setMobilizerVelocity(State& s, const Vec3& v_FM) const {
+    /** Set the current value of u's in the given State. Note that this is
+    the _cross-mobilizer_ velocity vector v_FM, not velocity in the Ground
+    frame. **/
+    void setVelocity(State& s, const Vec3& v_FM) const {
         setU(s,v_FM);
     }
 
-    // Get the current value of the u's for this mobilizer from the given State.
-    const Vec3& getMobilizerVelocity(const State& s) const {
+    /** Get the current value of the u's for this mobilizer from the given
+    State. For this Translation mobilizer, this is v_FM the linear velocity
+    of the M frame origin Mo in the F frame. **/
+    const Vec3& getVelocity(const State& s) const {
         return getU(s);
     }
 
-    // Get the value of the udot's for this mobilizer from the given State.
-    const Vec3& getMobilizerAcceleration(const State& s) const {
+    /** Get the current value of the udot's for this mobilizer from the given
+    State, which must be realized to the Acceleration stage. For this
+    Translation mobilizer, this is a_FM the linear acceleration of the M frame
+    origin Mo in the F frame. **/
+    const Vec3& getAcceleration(const State& s) const {
         return getUDot(s);
+    }
+
+    // These methods were misnamed and created some confusion with similar
+    // methods in the MobilizedBody base class. See issue #604.
+
+    DEPRECATED_14("use setTranslation() instead")
+    void setMobilizerTranslation(State& s, const Vec3& p_FM) const {
+        setTranslation(s,p_FM);
+    }
+
+    DEPRECATED_14("use getTranslation() instead")
+    const Vec3& getMobilizerTranslation(const State& s) const {
+        return getTranslation(s);
+    }
+
+    DEPRECATED_14("use setVelocity() instead")
+    void setMobilizerVelocity(State& s, const Vec3& v_FM) const {
+        setVelocity(s,v_FM);
+    }
+
+    DEPRECATED_14("use getVelocity() instead")
+    const Vec3& getMobilizerVelocity(const State& s) const {
+        return getVelocity(s);
+    }
+
+    DEPRECATED_14("use getAcceleration() instead")
+    const Vec3& getMobilizerAcceleration(const State& s) const {
+        return getAcceleration(s);
     }
 
     // Generic default state Topology methods.

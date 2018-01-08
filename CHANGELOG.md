@@ -79,10 +79,12 @@ to ParallelExecutor, mutex state lock.
 * Fixed a bug when compiling on macOS (OSX) with SDK MacOSX10.12.sdk, related
   to the POSIX function `clock_gettime()`.
   [Issue #523](https://github.com/simbody/simbody/issues/523),
-  [PR 524](#https://github.com/simbody/simbody/pull/524)
+  [PR #524](https://github.com/simbody/simbody/pull/524)
 * Replaced usages of pthreads with C++11 classes. Removed the following classes:
     - ThreadLocal
     - AtomicInteger
+* Deprecated some badly-named method in MobilizedBody::Translation
+  [Issue #604](https://github.com/simbody/simbody/issues/604)
 * (There are more that haven't been added yet)
 
 
