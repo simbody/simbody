@@ -21,7 +21,7 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-// Avoid annoying deprecated warnings regarding std::copy during instatiations.
+// Avoid annoying deprecated warnings regarding std::copy during instantiations.
 #ifdef _MSC_VER
 #pragma warning(disable:4996)
 #endif

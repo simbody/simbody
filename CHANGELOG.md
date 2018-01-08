@@ -83,7 +83,7 @@ to ParallelExecutor, mutex state lock.
 * Replaced usages of pthreads with C++11 classes. Removed the following classes:
     - ThreadLocal
     - AtomicInteger
-* Deprecated some badly-named method in MobilizedBody::Translation
+* Deprecated some badly-named methods in MobilizedBody::Translation
   [Issue #604](https://github.com/simbody/simbody/issues/604)
 * (There are more that haven't been added yet)
 
