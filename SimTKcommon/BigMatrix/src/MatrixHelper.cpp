@@ -21,6 +21,11 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+// Avoid annoying deprecated warnings regarding std::copy during instantiations.
+#ifdef _MSC_VER
+#pragma warning(disable:4996)
+#endif
+
 #include "SimTKcommon/Scalar.h"
 #include "SimTKcommon/SmallMatrix.h"
 #include "SimTKcommon/TemplatizedLapack.h"
@@ -972,7 +977,6 @@ template class Helper< negator< std::complex<float> > >;    \
 template class Helper< negator< std::complex<double> > >;   \
 template class Helper< negator< conjugate<float> > >;       \
 template class Helper< negator< conjugate<double> > >
-
 
 INSTANTIATE(MatrixHelper);
 INSTANTIATE(MatrixHelperRep);
