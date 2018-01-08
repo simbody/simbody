@@ -24,9 +24,9 @@
 
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/internal/Random.h"
-#include "SimTKcommon/internal/AtomicInteger.h"
 #include "SFMT.h"
 
+#include <atomic>
 #include <cassert>
 #include <cmath>
 
@@ -44,7 +44,7 @@ private:
     static const int bufferSize = 1024;
     mutable uint64_t buffer[bufferSize];
     mutable int nextIndex;
-    static AtomicInteger nextSeed;
+    static std::atomic<int> nextSeed;
 public:
     class UniformImpl;
     class GaussianImpl;
@@ -86,7 +86,7 @@ public:
     }
 };
 
-AtomicInteger Random::RandomImpl::nextSeed = 0;
+std::atomic<int> Random::RandomImpl::nextSeed(0);
 
 /**
  * This is the private implementation class for uniform random numbers.

@@ -73,7 +73,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/SimbodyTargets.cmake")
 
 # Create "fake" IMPORTED targets to represent the pre-built platform libraries
 # that Simbody usually carries along on Windows.
-# When CMake sees that a target links to, e.g., the pthread target, CMake will
+# When CMake sees that a target links to, e.g., the blas target, CMake will
 # use the appropriate library paths below.
 set(SIMBODY_WAS_BUILT_USING_OTHER_LAPACK "@BUILD_USING_OTHER_LAPACK@")
 if(WIN32 AND NOT SIMBODY_WAS_BUILT_USING_OTHER_LAPACK)
@@ -89,19 +89,6 @@ if(WIN32 AND NOT SIMBODY_WAS_BUILT_USING_OTHER_LAPACK)
         IMPORTED_LOCATION "@PACKAGE_CMAKE_INSTALL_BINDIR@/liblapack.dll"
         # lapack depends on blas:
         INTERFACE_LINK_LIBRARIES blas
-        )
-endif()
-if(MSVC)
-    # If using MinGW, you get pthread elsewhere.
-    if(@PLATFORM_ABI@ MATCHES "x64")
-        set(THREAD_LIB_NAME pthreadVC2_x64)
-    else()
-        set(THREAD_LIB_NAME pthreadVC2)
-    endif()
-    add_library(pthread SHARED IMPORTED)
-    set_target_properties(pthread PROPERTIES
-        IMPORTED_IMPLIB "@PACKAGE_CMAKE_INSTALL_LIBDIR@/${THREAD_LIB_NAME}.lib"
-        IMPORTED_LOCATION "@PACKAGE_CMAKE_INSTALL_BINDIR@/${THREAD_LIB_NAME}.dll"
         )
 endif()
 

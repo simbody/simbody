@@ -33,16 +33,16 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <pthread.h>
 #include <string>
 #include <ctime>
 #include <iostream>
 #include <limits>
+#include <condition_variable>
 
 using namespace SimTK;
 using namespace std;
 
-static void* drawingThreadMain(void* visualizerAsVoidp);
+static void drawingThreadMain(Visualizer::Impl& vizImpl);
 
 static const long long UsToNs = 1000LL;          // ns = us * UsToNs
 static const long long MsToNs = 1000LL * UsToNs; // ns = ms * MsToNs
@@ -114,11 +114,6 @@ public:
         m_drawThreadIsRunning(false), m_drawThreadShouldSuicide(false),
         m_refCount(0)
     {   
-        pthread_mutex_init(&m_queueLock, NULL); 
-        pthread_cond_init(&m_queueNotFull, NULL); 
-        pthread_cond_init(&m_queueNotEmpty, NULL); 
-        pthread_cond_init(&m_queueIsEmpty, NULL); 
-
         setMode(PassThrough);
         clearStats();
 
@@ -131,7 +126,7 @@ public:
     
     ~Impl() {
         if (m_mode==RealTime && m_pool.size()) {
-            pthread_cancel(m_drawThread);
+            killDrawThreadIfNecessary();
         }
         for (unsigned i = 0; i < m_controllers.size(); i++)
             delete m_controllers[i];
@@ -139,10 +134,6 @@ public:
             delete m_listeners[i];
         for (unsigned i = 0; i < m_generators.size(); i++)
             delete m_generators[i];
-        pthread_cond_destroy(&m_queueIsEmpty);
-        pthread_cond_destroy(&m_queueNotEmpty);
-        pthread_cond_destroy(&m_queueNotFull);
-        pthread_mutex_destroy(&m_queueLock);
 
         if (m_shutdownWhenDestructed) {
             try {
@@ -164,13 +155,7 @@ public:
         SimTK_ASSERT_ALWAYS(!m_drawThreadIsRunning,
             "Tried to start the draw thread when it was already running.");
         m_drawThreadShouldSuicide = false;
-        // Make sure the thread is joinable, although that is probably
-        // the default.
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-        pthread_create(&m_drawThread, &attr, drawingThreadMain, this);
-        pthread_attr_destroy(&attr);
+        m_drawThread = std::thread(drawingThreadMain, std::ref(*this));
         m_drawThreadIsRunning = true;
     }
 
@@ -183,10 +168,10 @@ public:
         // case we have to wake it up (see getOldestFrameInQueue()).
         // We'll do it twice 100ms apart to avoid a timing issue where
         // we signal just before the thread waits.
-        POST_QueueNotEmpty(); // wake it if necessary
+        m_queueNotEmpty.notify_one(); // wake it if necessary
         sleepInSec(0.1); 
-        POST_QueueNotEmpty();
-        pthread_join(m_drawThread, 0); // wait for death
+        m_queueNotEmpty.notify_one();
+        m_drawThread.join(); // wait for death
         m_drawThreadIsRunning = m_drawThreadShouldSuicide = false;
     }
 
@@ -319,9 +304,8 @@ public:
 
     // Set the maximum number of frames in the buffer.
     void initializePool(int sz) {
-        pthread_mutex_lock(&m_queueLock);
+        std::lock_guard<std::mutex> lock(m_queueMutex);
         m_pool.resize(sz);m_oldest=m_nframe=0;
-        pthread_mutex_unlock(&m_queueLock);
     }
 
     int getNFramesInQueue() const {return m_nframe;}
@@ -331,16 +315,6 @@ public:
     bool queueIsFull() const {return m_nframe==m_pool.size();}
     bool queueIsEmpty() const {return m_nframe==0;}
 
-    // I'm capitalizing these methods because they are VERY important!
-    void LOCK_Queue()   {pthread_mutex_lock(&m_queueLock);}
-    void UNLOCK_Queue() {pthread_mutex_unlock(&m_queueLock);}
-    void WAIT_QueueNotFull() {pthread_cond_wait(&m_queueNotFull,&m_queueLock);}
-    void POST_QueueNotFull() {pthread_cond_signal(&m_queueNotFull);}
-    void WAIT_QueueNotEmpty() {pthread_cond_wait(&m_queueNotEmpty,&m_queueLock);}
-    void POST_QueueNotEmpty() {pthread_cond_signal(&m_queueNotEmpty);}
-    void WAIT_QueueIsEmpty() {pthread_cond_wait(&m_queueIsEmpty,&m_queueLock);}
-    void POST_QueueIsEmpty() {pthread_cond_signal(&m_queueIsEmpty);}
-
     // Called from simulation thread. Blocks until there is room in
     // the queue, then inserts this state unconditionally, with the indicated
     // desired rendering time in adjusted real time. We then update the 
@@ -349,12 +323,13 @@ public:
     void addFrameToQueueWithWait(const State& state, 
                                  const long long& desiredDrawTimeAdjRT)
     {
-        LOCK_Queue();
+        std::unique_lock<std::mutex> lock(m_queueMutex);
         ++numReportedFramesThatWereQueued;
         if (queueIsFull()) {
             ++numQueuedFramesThatHadToWait;
-            do {WAIT_QueueNotFull();} // atomic: unlock, long wait, relock
-            while (queueIsFull()); // must recheck condition
+            // atomic: unlock, long wait, relock
+            // Only wake up if queue is not full (ignore spurious wakeups).
+            m_queueNotFull.wait(lock, [&] {return !queueIsFull();});
         }
 
         // There is room in the queue now. We're holding the lock.
@@ -369,9 +344,10 @@ public:
         m_nextFrameDueAdjRT = desiredDrawTimeAdjRT + m_timeBetweenFramesInNs;
 
         if (++m_nframe == 1) 
-            POST_QueueNotEmpty(); // wake up rendering thread on first frame
+            // wake up rendering thread on first frame
+            m_queueNotEmpty.notify_one();
 
-        UNLOCK_Queue();
+        lock.unlock();
     }
 
     // Call from simulation thread to allow the drawing thread to flush
@@ -380,9 +356,9 @@ public:
         if (   !queuingIsEnabled() || m_nframe==0 
             || !m_drawThreadIsRunning || m_drawThreadShouldSuicide)
             return;
-        LOCK_Queue();
-        while (m_nframe) {WAIT_QueueIsEmpty();}
-        UNLOCK_Queue();
+        std::unique_lock<std::mutex> lock(m_queueMutex);
+        m_queueIsEmpty.wait(lock, [&] {return m_nframe == 0;});
+        lock.unlock();
     }
 
     // The drawing thread uses this to find the oldest frame in the buffer.
@@ -394,18 +370,19 @@ public:
     // operation since it waits until one is available), false if the draw
     // thread should quit.
     bool getOldestFrameInQueue(const Frame** fp) {
-        LOCK_Queue();
+        std::unique_lock<std::mutex> lock(m_queueMutex);
         if (m_nframe == 0 && !m_drawThreadShouldSuicide) {
             ++numTimesDrawThreadBlockedOnEmptyQueue;
-            do {WAIT_QueueNotEmpty();} // atomic: unlock, long wait, relock
-            while (m_nframe==0 && !m_drawThreadShouldSuicide); // must recheck
+            // atomic: unlock, long wait, relock; ignore spurious wakeups.
+            m_queueNotEmpty.wait(lock,
+                    [&] {return m_nframe || m_drawThreadShouldSuicide;});
         } else {
             sumOfQueueLengths        += double(m_nframe);
             sumSquaredOfQueueLengths += double(square(m_nframe));
         }
         // There is at least one frame available now, unless we're supposed
         // to quit. We are holding the lock.
-        UNLOCK_Queue();
+        lock.unlock();
         if (m_drawThreadShouldSuicide) {*fp=0; return false;}
         else {*fp=&m_pool[m_oldest]; return true;} // sim thread won't change oldest
     }
@@ -415,15 +392,15 @@ public:
     // condition is posted if there is a reasonable amount of room in the pool 
     // now.
     void noteThatOldestFrameIsNowAvailable() {
-        LOCK_Queue();
+        std::unique_lock<std::mutex> lock(m_queueMutex);
         m_oldest = (m_oldest+1)%m_pool.size(); // move to next-oldest
         --m_nframe; // there is now one fewer frame in use
         if (m_nframe == 0)
-            POST_QueueIsEmpty(); // in case we're flushing
+            m_queueIsEmpty.notify_one(); // in case we're flushing
         // Start the simulation again when the pool is about half empty.
         if (m_nframe <= m_pool.size()/2+1)
-            POST_QueueNotFull();
-        UNLOCK_Queue();
+            m_queueNotFull.notify_one();
+        lock.unlock();
     }
 
     // Given a time t in simulation time units, return the equivalent time r in
@@ -518,12 +495,12 @@ public:
     // The frame buffer:
     Array_<Frame,int> m_pool; // fixed size, old to new order but circular
     int m_oldest, m_nframe;   // oldest is index into pool, nframe is #valid entries
-    pthread_mutex_t     m_queueLock;
-    pthread_cond_t      m_queueNotFull;   // these must use with m_queueLock
-    pthread_cond_t      m_queueNotEmpty;
-    pthread_cond_t      m_queueIsEmpty;
+    std::mutex              m_queueMutex;
+    std::condition_variable m_queueNotFull;  // these must use m_queueMutex
+    std::condition_variable m_queueNotEmpty;
+    std::condition_variable m_queueIsEmpty;
 
-    pthread_t           m_drawThread;     // the rendering thread
+    std::thread         m_drawThread;    // the rendering thread
     bool                m_drawThreadIsRunning;
     bool                m_drawThreadShouldSuicide;
 
@@ -1172,9 +1149,7 @@ frame is ahead of AdjRT, we'll sleep to let real time catch up. If the
 frame is substantially behind, we'll render it now and then adjust the AdjRT 
 base to acknowledge that we have irretrievably slipped from real time and need 
 to adjust our expectations for the future. */
-static void* drawingThreadMain(void* visualizerRepAsVoidp) {
-    Visualizer::Impl& vizImpl = 
-        *reinterpret_cast<Visualizer::Impl*>(visualizerRepAsVoidp);
+static void drawingThreadMain(Visualizer::Impl& vizImpl) {
 
     do {
         // Grab the oldest frame in the queue.
@@ -1194,8 +1169,6 @@ static void* drawingThreadMain(void* visualizerRepAsVoidp) {
 
     // Attempt to wake up the simulation thread if it is waiting for
     // the draw thread since there won't be any more notices!
-    vizImpl.POST_QueueNotFull(); // wake up if waiting for queue space
-    vizImpl.POST_QueueIsEmpty(); // wake up if flushing
-
-    return 0;
+    vizImpl.m_queueNotFull.notify_one(); // wake up if waiting for queue space
+    vizImpl.m_queueIsEmpty.notify_one(); // wake up if flushing
 }

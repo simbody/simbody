@@ -23,17 +23,17 @@
 
 #include "ParallelExecutorImpl.h"
 #include "SimTKcommon/internal/ParallelExecutor.h"
-#include <pthread.h>
 
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <mutex>
 
 using namespace std;
 
 namespace SimTK {
 
-static void* threadBody(void* args);
+static void threadBody(ThreadInfo& info);
 
 ParallelExecutorImpl::ParallelExecutorImpl() : finished(false) {
 
@@ -42,8 +42,6 @@ ParallelExecutorImpl::ParallelExecutorImpl() : finished(false) {
     numMaxThreads = ParallelExecutor::getNumProcessors();
     if(numMaxThreads <= 0)
       numMaxThreads = 1;
-
-    ParallelExecutorImpl::init();
 }
 ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
 
@@ -51,39 +49,25 @@ ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
     SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl",
                  "ParallelExecutorImpl", "Number of threads must be positive.");
     numMaxThreads = numThreads;
-
-    ParallelExecutorImpl::init();
 }
 ParallelExecutorImpl::~ParallelExecutorImpl() {
     
     // Notify the threads that they should exit.
     
-    pthread_mutex_lock(&runLock);
+    std::unique_lock<std::mutex> lock(runMutex);
     finished = true;
     for (int i = 0; i < (int) threads.size(); ++i)
-        threadInfo[i]->running = true;
-    pthread_cond_broadcast(&runCondition);
-    pthread_mutex_unlock(&runLock);
+        threadInfo[i].running = true;
+    runCondition.notify_all();
+    lock.unlock();
     
     // Wait until all the threads have finished.
     
     for (int i = 0; i < (int) threads.size(); ++i)
-        pthread_join(threads[i], NULL);
-    
-    // Clean up threading related objects.
-    
-    pthread_mutex_destroy(&runLock);
-    pthread_cond_destroy(&runCondition);
-    pthread_cond_destroy(&waitCondition);
+        threads[i].join();
 }
 ParallelExecutorImpl* ParallelExecutorImpl::clone() const {
     return new ParallelExecutorImpl(numMaxThreads);
-}
-void ParallelExecutorImpl::init()
-{
-  pthread_mutex_init(&runLock, NULL);
-  pthread_cond_init(&runCondition, NULL);
-  pthread_cond_init(&waitCondition, NULL);
 }
 void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
   if (min(times, numMaxThreads) == 1) {
@@ -101,58 +85,58 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
     // We launch the maximum number of threads and save them for later use
     if(threads.size() < (size_t)numMaxThreads)
     {
+      // We do not support numMaxThreads changing for a given instance of
+      // ParallelExecutor.
+      assert(threads.size() == 0);
+      threadInfo.reserve(numMaxThreads);
       threads.resize(numMaxThreads);
       for (int i = 0; i < numMaxThreads; ++i) {
-          threadInfo.push_back(new ThreadInfo(i, this));
-          pthread_create(&threads[i], NULL, threadBody, threadInfo[i]);
+          threadInfo.emplace_back(i, this);
+          threads[i] = std::thread(threadBody, std::ref(threadInfo[i]));
       }
     }
+   
+    // Initialize fields to execute the new task.
+    std::unique_lock<std::mutex> lock(runMutex);
+    currentTask = &task;
+    currentTaskCount = times;
+    waitingThreadCount = 0;
+    for (int i = 0; i < (int)threadInfo.size(); ++i) {
+        threadInfo[i].running = true;
+    }
 
-  // Initialize fields to execute the new task.
-  pthread_mutex_lock(&runLock);
-  currentTask = &task;
-  currentTaskCount = times;
-  waitingThreadCount = 0;
-  for (int i = 0; i < (int) threadInfo.size(); ++i)
-      threadInfo[i]->running = true;
-
-  // Wake up the worker threads and wait until they finish.
-  pthread_cond_broadcast(&runCondition);
-  do {
-      pthread_cond_wait(&waitCondition, &runLock);
-  } while (waitingThreadCount < (int) threads.size());
-  pthread_mutex_unlock(&runLock);
+    // Wake up the worker threads and wait until they finish.
+    runCondition.notify_all();
+    waitCondition.wait(lock,
+        [&] { return waitingThreadCount == (int)threads.size(); });
+    lock.unlock();
 }
 void ParallelExecutorImpl::incrementWaitingThreads() {
-    pthread_mutex_lock(&runLock);
+    std::lock_guard<std::mutex> lock(runMutex);
     getCurrentTask().finish();
     waitingThreadCount++;
     if (waitingThreadCount == (int)threads.size()) {
-        pthread_cond_signal(&waitCondition);
+        waitCondition.notify_one();
     }
-    pthread_mutex_unlock(&runLock);
 }
 
-ThreadLocal<bool> ParallelExecutorImpl::isWorker(false);
+thread_local bool ParallelExecutorImpl::isWorker(false);
 
 /**
  * This function contains the code executed by the worker threads.
  */
 
-void* threadBody(void* args) {
-    ParallelExecutorImpl::isWorker.upd() = true;
-    ThreadInfo& info = *reinterpret_cast<ThreadInfo*>(args);
+void threadBody(ThreadInfo& info) {
+    ParallelExecutorImpl::isWorker = true;
     ParallelExecutorImpl& executor = *info.executor;
     int threadCount = executor.getThreadCount();
     while (!executor.isFinished()) {
         
         // Wait for a Task to come in.
         
-        pthread_mutex_lock(executor.getLock());
-        while (!info.running) {
-            pthread_cond_wait(executor.getCondition(), executor.getLock());
-        }
-        pthread_mutex_unlock(executor.getLock());
+        std::unique_lock<std::mutex> lock(executor.getMutex());
+        executor.getCondition().wait(lock, [&] { return info.running; });
+        lock.unlock();
         if (!executor.isFinished()) {
             
             // Execute the task for all the indices belonging to this thread.
@@ -179,8 +163,6 @@ void* threadBody(void* args) {
             executor.incrementWaitingThreads();
         }
     }
-    delete &info;
-    return 0;
 }
 
 ParallelExecutor::ParallelExecutor() : HandleBase(new ParallelExecutorImpl()) {
@@ -248,7 +230,7 @@ int ParallelExecutor::getNumProcessors() {
 }
 
 bool ParallelExecutor::isWorkerThread() {
-    return ParallelExecutorImpl::isWorker.get();
+    return ParallelExecutorImpl::isWorker;
 }
 int ParallelExecutor::getMaxThreads() const{
     return getImpl().getMaxThreads();

@@ -25,12 +25,12 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon/internal/ParallelExecutor.h"
-#include "SimTKcommon/internal/ThreadLocal.h"
 #include "SimTKcommon/internal/Array.h"
 
-#include <pthread.h>
-#include <thread>
 #include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 namespace SimTK {
 
@@ -39,8 +39,6 @@ class ParallelExecutorImpl;
 /**
  * This class stores per-thread information used while executing a task.
  */
- 
-//TODO: Rewrite the threading class using C++11 std::thread
 
 class ThreadInfo {
 public:
@@ -74,24 +72,23 @@ public:
     bool isFinished() {
         return finished;
     }
-    pthread_mutex_t* getLock() {
-        return &runLock;
+    std::mutex& getMutex() {
+        return runMutex;
     }
-    pthread_cond_t* getCondition() {
-        return &runCondition;
+    std::condition_variable& getCondition() {
+        return runCondition;
     }
     int getMaxThreads() const{
       return numMaxThreads;
     }
     void incrementWaitingThreads();
-    static ThreadLocal<bool> isWorker;
+    static thread_local bool isWorker;
 private:
-    void init();
     bool finished;
-    pthread_mutex_t runLock;
-    pthread_cond_t runCondition, waitCondition;
-    Array_<pthread_t> threads;
-    Array_<ThreadInfo*> threadInfo;
+    std::mutex runMutex;
+    std::condition_variable runCondition, waitCondition;
+    Array_<std::thread> threads;
+    Array_<ThreadInfo> threadInfo;
     ParallelExecutor::Task* currentTask;
     int currentTaskCount;
     int waitingThreadCount;

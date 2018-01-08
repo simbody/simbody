@@ -26,8 +26,9 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/Visualizer.h"
-#include <pthread.h>
 #include <utility>
+#include <map>
+#include <atomic>
 
 /** @file
  * This file defines commands that are used for communication between the 
@@ -36,7 +37,7 @@
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 33;
+static const unsigned ProtocolVersion   = 34;
 
 // The visualizer has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -85,9 +86,10 @@ static const unsigned char SetShowFrameRate      = 27;
 static const unsigned char SetShowSimTime        = 28;
 static const unsigned char SetShowFrameNumber    = 29;
 static const unsigned char Shutdown              = 30;
+static const unsigned char StopCommunication     = 31;
 
 
-// Events sent from the GUI back to the application.
+// Events sent from the GUI back to the simulation application.
 
 // This should always be command #1 so we can reliably check whether
 // we're talking to a compatible protocol.
@@ -102,8 +104,10 @@ class VisualizerProtocol {
 public:
     VisualizerProtocol(Visualizer& visualizer,
                        const Array_<String>& searchPath);
+    ~VisualizerProtocol();
     void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
     void shutdownGUI();
+    void stopListeningIfNecessary();
     void beginScene(Real simTime);
     void finishScene();
     void drawBox(const Transform& transform, const Vec3& scale, 
@@ -158,8 +162,12 @@ private:
     // For user-defined meshes, map their unique memory addresses to the 
     // assigned visualizer cache index.
     mutable std::map<const void*, unsigned short> meshes;
-    mutable pthread_mutex_t sceneLock;
-    mutable pthread_t eventListenerThread;
+
+    mutable std::mutex sceneMutex;
+    // This lock should only be used in beginScene() and finishScene().
+    std::unique_lock<std::mutex> sceneLockBeginFinishScene
+            {sceneMutex, std::defer_lock};
+    mutable std::thread eventListenerThread;
 };
 }
 

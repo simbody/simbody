@@ -38,19 +38,21 @@ public:
     }
     void execute(int i, int j) override {
         flags[i][j]++;
-        localCount.upd()++;
+        localCount++;
     }
     void initialize() override {
-        localCount.upd() = 0;
+        localCount = 0;
     }
     void finish() override {
-        count += localCount.get();
+        count += localCount;
     }
 private:
     Array_<Array_<int> >& flags;
     int& count;
-    ThreadLocal<int> localCount;
+    static thread_local int localCount;
 };
+
+/*static*/ thread_local int SetFlagTask::localCount = 0;
 
 void clearFlags(Array_<Array_<int> >& flags) {
     int numFlags = flags.size();

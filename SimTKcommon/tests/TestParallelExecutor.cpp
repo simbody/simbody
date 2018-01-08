@@ -40,22 +40,24 @@ public:
     }
     void execute(int index) override {
         flags[index]++;
-        localCount.upd()++;
+        localCount++;
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
     void initialize() override {
-        localCount.upd() = 0;
+        localCount = 0;
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
     void finish() override {
-        count += localCount.get();
+        count += localCount;
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
 private:
     Array_<int>& flags;
     int& count;
-    ThreadLocal<int> localCount;
+    static thread_local int localCount;
 };
+
+/*static*/ thread_local int SetFlagTask::localCount = 0;
 
 void testParallelExecution() {
     const int numFlags = 100;
