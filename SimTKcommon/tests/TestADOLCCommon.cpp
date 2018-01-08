@@ -103,7 +103,7 @@ void testNTraitsADOLC() {
     float xf = (float)-9.45;
     adouble yad = -9;
     int yi = -9;
-    std::complex<float> cf(xf, 0.);
+    std::complex<float> cf(xf,0.);
     std::complex<double> cd(xd,0.);
     SimTK::conjugate<float> cjf(xf,0);
     SimTK::conjugate<double> cjd(xd,0.);
