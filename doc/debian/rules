@@ -4,8 +4,7 @@
 .PHONY: override_dh_auto_configure   \
         override_dh_auto_build-indep \
         override_dh_auto_install     \
-        override_dh_auto_test        \
-        override_dh_strip
+        override_dh_auto_test
 
 override_dh_auto_configure:
 	dh_auto_configure --  \
@@ -22,8 +21,6 @@ override_dh_auto_install:
 	# Remove extra LICENSE file
 	rm debian/tmp/usr/share/doc/simbody/LICENSE.txt
 
-override_dh_strip:
-	dh_strip -a --dbg-package=libsimbody3.5-dbg
 
 %:
 	dh $@ --parallel --buildsystem=cmake
