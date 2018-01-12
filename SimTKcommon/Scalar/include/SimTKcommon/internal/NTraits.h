@@ -1022,14 +1022,12 @@ SimTK_NTRAITS_CONJ_SPEC(double,float);SimTK_NTRAITS_CONJ_SPEC(double,double);
 // no support for conjugate<adouble> at the moment. However, these structs
 // are necessary for compilation.
 #ifdef SimTK_REAL_IS_ADOUBLE
-    template<> template<> struct NTraits< conjugate<float> >::Result<adouble> {
-        typedef conjugate<Widest<float,adouble>::Type> W;
-        typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub;
-    };
+    template<> template<> struct NTraits< conjugate<float> >::Result<adouble>
+    {   typedef conjugate<Widest<float,adouble>::Type> W;
+        typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; };
     template<> template<> struct NTraits< conjugate<double> >::Result<adouble>
     {   typedef conjugate<Widest<double,adouble>::Type> W;
-        typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub;
-    };
+        typedef W Mul; typedef W Dvd; typedef W Add; typedef W Sub; };
 #endif
 
 
