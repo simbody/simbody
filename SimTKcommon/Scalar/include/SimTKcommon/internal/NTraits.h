@@ -153,8 +153,8 @@ template <> struct Narrowest<float,double>             {typedef float  Type; typ
 template <> struct Narrowest<double,float>             {typedef float  Type; typedef float Precision;};
 template <> struct Narrowest<double,double>            {typedef double Type; typedef double Precision;};
 #ifdef SimTK_REAL_IS_ADOUBLE
-    /// Be careful that Narrowest(float,adouble) is adouble since it is the
-    /// narrowest type than can hold the value and the derivative.
+    /// Be careful that Narrowest(float,adouble)::Type is adouble since it is
+    /// the narrowest type than can hold the value and the derivative.
     template <> struct Narrowest<float,adouble>
       {typedef adouble Type; typedef float Precision;};
     template <> struct Narrowest<adouble,float>
@@ -1401,8 +1401,8 @@ template <> class CNT<double> : public NTraits<double> { };
         static bool isNaN   (const T& t) {return SimTK::isNaN(t);}
         static bool isInf   (const T& t) {return SimTK::isInf(t);}
         /* Methods to use for approximate comparisons. Perform comparison in
-        /* the wider of the two precisions, using the default tolerance from
-        /* the narrower of the two precisions. */
+        the wider of the two precisions, using the default tolerance from
+        the narrower of the two precisions. */
         static double getDefaultTolerance()
         {return RTraits<T>::getDefaultTolerance();}
         static bool isNumericallyEqual(const T& t, const float& f)
