@@ -6,8 +6,8 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 **Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
 
 
-3.6 (in development)
---------------------
+3.6 (16 January 2018)
+---------------------
 * Forced GCC to be at least 4.9.0, so that new C++11 features like regular
   expressions can be used (PR #485).
 * Minimum Ubuntu version supported 14.04 LTS (Trusty), with a [manual update of GCC](http://askubuntu.com/questions/466651/how-do-i-use-the-latest-gcc-on-ubuntu-14-04).
