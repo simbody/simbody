@@ -2,7 +2,7 @@ simbody (3.6.0-1~xenial) xenial; urgency=medium
 
   * simbody 3.6.0-1 release
 
- -- Jose Luis Rivero <jrivero@osrfoundation.org>  Tue, 09 Jan 2018 00:15:12 +0100
+ -- Jose Luis Rivero <jrivero@osrfoundation.org>  Tue, 16 Jan 2018 00:15:12 +0100
 
 simbody (3.5.1-1~trusty) trusty; urgency=medium
 
