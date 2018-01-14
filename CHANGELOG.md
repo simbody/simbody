@@ -87,6 +87,10 @@ to ParallelExecutor, mutex state lock.
   [Issue #604](https://github.com/simbody/simbody/issues/604)
 * Removed support for `long double`. 
   [PR #597](https://github.com/simbody/simbody/pull/597)
+* Fixed a bug in `MultibodyGraphMaker` where massless bodies were handled
+  incorrectly.
+  [PR #592](https://github.com/simbody/simbody/pull/592) and 
+  [PR #594](https://github.com/simbody/simbody/pull/594).
 * Moved Ipopt into the namespace `SimTKIpopt` to avoid duplicate symbols when
   combining Simbody with an independent Ipopt.
 * Fixed a bug where RowVectors could not be constructed with 0 elements.
