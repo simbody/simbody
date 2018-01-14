@@ -137,10 +137,50 @@ void testExceptionTaping() {
     trace_off();
 }
 
+// Various unit tests verifying that negator<adouble> works properly
+void testNegator() {
+    // Test evaluation of simple function and its derivative
+    double xp[1];
+    xp[0] = 2;
+    trace_on(2);
+    adouble x;
+    adouble y;
+    x <<= xp[0];
+    y = (negator<adouble>&)pow(x,3);
+    double y0;
+    y >>= y0;
+    trace_off();
+    // function evaluation
+    double f[1];
+    function(2, 1, 1, xp, f);
+    SimTK_TEST(f[0] == -8.);
+    // derivative evaluation
+    double** J;
+    J = myalloc(1, 1);
+    jacobian(2, 1, 1, xp, J);
+    SimTK_TEST(J[0][0] == -3*pow(x,2));
+    myfree(J);
+    // isNumericallyEqual
+    adouble xd = 9.45;
+    SimTK_TEST(isNumericallyEqual(-xd,(negator<adouble>&)xd));
+    // isNaN, isFinite, isInf
+    adouble xad = -9.45;
+    adouble xNaN = SimTK::NaN;
+    adouble xInf = SimTK::Infinity;
+    SimTK_TEST(isNaN((negator<adouble>&)xNaN));
+    SimTK_TEST(!isNaN((negator<adouble>&)xad));
+    SimTK_TEST(isFinite((negator<adouble>&)xad));
+    SimTK_TEST(!isFinite((negator<adouble>&)xNaN));
+    SimTK_TEST(!isFinite((negator<adouble>&)xInf));
+    SimTK_TEST(isInf((negator<adouble>&)xInf));
+    SimTK_TEST(!isInf((negator<adouble>&)xad));
+}
+
 int main() {
     SimTK_START_TEST("TestADOLCCommon");
         SimTK_SUBTEST(testDerivativeADOLC);
         SimTK_SUBTEST(testNTraitsADOLC);
         SimTK_SUBTEST(testExceptionTaping);
+        SimTK_SUBTEST(testNegator);
     SimTK_END_TEST();
 }
