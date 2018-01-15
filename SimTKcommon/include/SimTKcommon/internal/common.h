@@ -105,12 +105,31 @@ or any other Index type to an argument expecting a certain Index type. **/
 #   define SimTK_DEFAULT_PRECISION 2
 #endif
 
+#if (SimTK_DEFAULT_PRECISION != 2) && SimTK_REAL_IS_ADOUBLE
+    #error MUST USE DOUBLE PRECISION WITH ADOL-C ADOUBLE.
+#endif
+
 #if   (SimTK_DEFAULT_PRECISION == 1)
 /** This type is for use in C; in C++ use SimTK::Real instead. */
     typedef float SimTK_Real;
 #elif (SimTK_DEFAULT_PRECISION == 2)
 /** This type is for use in C; in C++ use SimTK::Real instead. */
-    typedef double SimTK_Real;
+    #ifndef SimTK_REAL_IS_ADOUBLE
+        typedef double SimTK_Real;
+    #else
+        #ifdef _MSC_VER
+            // Ignore warnings from ADOL-C headers.
+            #pragma warning(push)
+            // 'argument': conversion from 'size_t' to 'locint', possible loss
+            // of data.
+            #pragma warning(disable: 4267)
+        #endif
+        #include <adolc/adolc.h>
+        typedef double SimTK_Real;
+        #ifdef _MSC_VER
+            #pragma warning(pop)
+        #endif
+    #endif
 #else
     #error ILLEGAL VALUE FOR DEFAULT PRECISION
 #endif
@@ -165,6 +184,7 @@ or any other Index type to an argument expecting a certain Index type. **/
     #pragma warning(disable:4251) /*no DLL interface for type of member of exported class*/
     #pragma warning(disable:4275) /*no DLL interface for base class of exported class*/
     #pragma warning(disable:4345) /*warning about PODs being default-initialized*/
+    #pragma warning(disable:4800) /*warning about forcing value to bool true or false*/
 
 
     /* Until VS2015 struct timespec was missing from <ctime> so is faked here 
@@ -746,6 +766,9 @@ types to specialize the IsFloatingType struct template for those types. **/
 
 SimTK_SPECIALIZE_FLOATING_TYPE(float); 
 SimTK_SPECIALIZE_FLOATING_TYPE(double); 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    SimTK_SPECIALIZE_FLOATING_TYPE(adouble);
+#endif
 
 /** Compile-time type test: is this the void type?. **/
 template <class T> struct IsVoidType {
@@ -922,6 +945,9 @@ SimTK_NICETYPENAME_LITERAL(std::complex<double>);
 SimTK_NICETYPENAME_LITERAL(std::complex<long double>); 
 SimTK_NICETYPENAME_LITERAL(SimTK::FalseType);
 SimTK_NICETYPENAME_LITERAL(SimTK::TrueType); 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    SimTK_NICETYPENAME_LITERAL(adouble);
+#endif
 
 
 #endif /* C++ stuff */

@@ -41,6 +41,9 @@ endif()
 # Include GNUInstallDirs to get canonical paths
 include(GNUInstallDirs)
 
+# Include CMake macros that we wrote to reduce duplication in this project.
+include(cmake/SimbodyMacros.cmake)
+
 # Declare the option for code coverage
 option(SIMBODY_COVERAGE
        "Adding ability to assess test coverage (requires gcc or clang)."
@@ -575,6 +578,7 @@ if(BUILD_ADOLC_LIBRARIES)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
     find_package(ADOLC REQUIRED)
     include_directories("${ADOLC_INCLUDES}")
+    simbody_copy_dlls(ADOLC "${ADOLC_DIR}/bin")
 endif()
 
 #
