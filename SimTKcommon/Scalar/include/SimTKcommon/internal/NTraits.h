@@ -1240,14 +1240,24 @@ template <> class CNT<double> : public NTraits<double> { };
 } // namespace SimTK
 
 #ifdef SimTK_REAL_IS_ADOUBLE
-    // Must declare certain friend functions of adouble in the global namespace
-    // so that they are visible within NTraits<adouble>.
+    // If we implement NTraits::abs(const T& t) as { abs(t); }, then we get an
+    // infinite recursion. Therefore, we use { ::abs(t); } so that the compiler
+    // can find the friend functions that ADOL-C declares in adouble.h and
+    // internal/adubfunc.h. However, this is not sufficient: the standard says,
+    // "A name prefixed by the unary scope operator :: ... shall be declared in
+    // global namespace scope or shall be a name whose declaration is visible
+    // in global scope because of a using-directive." ADOL-C does not declare
+    // these functions in global namespace scope (the functions are declared
+    // within a class, at the same time they are marked as friends), so we must
+    // make them "visible in global scope [with] a using-directive."
     // https://stackoverflow.com/questions/18449855/c-friend-function-hidden-by-class-function/18451369
     adub sqrt(const badouble&);
     adub sin(const badouble&);
     adub cos(const badouble&);
     adub floor(const badouble&);
     adouble pow(const badouble&, const badouble&);
+    adouble pow(double, const badouble&);
+    adub pow(const badouble&, double);
     adub exp(const badouble&);
     adub log(const badouble&);
     adub tan(const badouble&);
@@ -1361,7 +1371,9 @@ template <> class CNT<double> : public NTraits<double> { };
         static T    sin(const T& t)     {return ::sin(t);}
         static T    cos(const T& t)     {return ::cos(t);}
         static T    floor(const T& t)   {return ::floor(t);}
-        static T    pow(const T& t, const T& order) {return ::pow(t, order);}
+        template <typename TBase, typename TExp>
+        static T pow(const TBase& base, const TExp& exponent)
+            {return ::pow(base, exponent);}
         static T    exp(const T& t)     {return ::exp(t);}
         static T    log(const T& t)     {return ::log(t);}
         static T    tan(const T& t)     {return ::tan(t);}
