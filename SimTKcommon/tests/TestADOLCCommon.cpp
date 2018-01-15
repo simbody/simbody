@@ -8,7 +8,7 @@
  *                                                                            *
  * Portions copyright (c) 2010-17 Stanford University and the Authors.        *
  * Authors: Antoine Falisse                                                   *
- * Contributors: Michael Sherman, Chris Dembia                                                              *
+ * Contributors: Michael Sherman, Chris Dembia                                *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
