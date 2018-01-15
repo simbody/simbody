@@ -120,7 +120,7 @@ or any other Index type to an argument expecting a certain Index type. **/
         #ifdef _MSC_VER
             // Ignore warnings from ADOL-C headers.
             #pragma warning(push)
-            // 'argument': conversion from 'size_t' to 'locint', possible loss 
+            // 'argument': conversion from 'size_t' to 'locint', possible loss
             // of data.
             #pragma warning(disable: 4267)
         #endif
