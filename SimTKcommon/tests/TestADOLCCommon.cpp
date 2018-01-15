@@ -146,19 +146,19 @@ void testNegator() {
     adouble x;
     adouble y;
     x <<= xp[0];
-    y = (negator<adouble>&)pow(x,3);
+    y = (negator<adouble>&)x;;
     double y0;
     y >>= y0;
     trace_off();
     // function evaluation
     double f[1];
     function(2, 1, 1, xp, f);
-    SimTK_TEST(f[0] == -8.);
+    SimTK_TEST(f[0] == -2.);
     // derivative evaluation
     double** J;
     J = myalloc(1, 1);
     jacobian(2, 1, 1, xp, J);
-    SimTK_TEST(J[0][0] == -3*pow(x,2));
+    SimTK_TEST(J[0][0] == -1);
     myfree(J);
     // isNumericallyEqual
     adouble xd = 9.45;
