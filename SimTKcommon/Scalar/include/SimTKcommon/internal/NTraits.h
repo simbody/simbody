@@ -1271,7 +1271,11 @@ template <> class CNT<double> : public NTraits<double> { };
     adub log10(const badouble&);
     adub fabs(const badouble&);
     adub fmax(const badouble&, const badouble&);
+    adub fmax(double, const badouble&);
+    adub fmax(const badouble&, double);
     adub fmin(const badouble&, const badouble&);
+    adub fmin(double, const badouble&);
+    adub fmin(const badouble&, double);
 
     namespace SimTK {
 
@@ -1384,8 +1388,12 @@ template <> class CNT<double> : public NTraits<double> { };
         static T    sinh(const T& t)    {return ::sinh(t);}
         static T    cosh(const T& t)    {return ::cosh(t);}
         static T    tanh(const T& t)    {return ::tanh(t);}
-        static T    max(const T& t, const T& t2) {return ::fmax(t,t2);}
-        static T    min(const T& t, const T& t2) {return ::fmin(t,t2);}
+        template <typename T1, typename T2>
+        static T max(const T1& t, const T2& t2)
+            {return ::fmax(t,t2);}
+        template <typename T1, typename T2>
+        static T min(const T1& t, const T2& t2)
+            {return ::fmin(t,t2);}
         static T    log10(const T& t)   {return ::log10(t);}
         /* properties of this floating point representation, with memory
         /* addresses */
