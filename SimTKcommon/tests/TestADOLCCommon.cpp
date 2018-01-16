@@ -146,7 +146,8 @@ void testNegator() {
     adouble x;
     adouble y;
     x <<= xp[0];
-    y = (negator<adouble>&)NTraits<adouble>::pow(x,3);
+    auto result = NTraits<adouble>::pow(x,3);
+    y = (negator<adouble>&)result;
     double y0;
     y >>= y0;
     trace_off();
