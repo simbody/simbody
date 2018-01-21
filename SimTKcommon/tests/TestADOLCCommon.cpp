@@ -202,7 +202,7 @@ void testVec() {
     SimTK_TEST(vresdr[0] == b/a);
     SimTK_TEST(vresdr[1] == c/a);
     SimTK_TEST(vresdr[2] == d/a);
-    //Vec<3,adouble,1> vresdl = a/v;
+    //auto vresdl = a/v;
     // addition
     Vec<3,adouble,1> vresar = v+a;
     SimTK_TEST(vresar[0] == b+a);
