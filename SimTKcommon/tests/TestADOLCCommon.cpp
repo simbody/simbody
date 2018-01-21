@@ -202,7 +202,6 @@ void testVec() {
     SimTK_TEST(vresdr[0] == b/a);
     SimTK_TEST(vresdr[1] == c/a);
     SimTK_TEST(vresdr[2] == d/a);
-    //auto vresdl = a/v;
     // addition
     Vec<3,adouble,1> vresar = v+a;
     SimTK_TEST(vresar[0] == b+a);
@@ -217,7 +216,6 @@ void testVec() {
     SimTK_TEST(vressr[0] == b-a);
     SimTK_TEST(vressr[1] == c-a);
     SimTK_TEST(vressr[2] == d-a);
-    //Vec<3,adouble,1> vressl = a-v;
 }
 
 // Various unit tests verifying that operators involving a matrix and an
@@ -273,7 +271,6 @@ void testMat() {
     SimTK_TEST(mressr[1][0] == m[1][0]);
     SimTK_TEST(mressr[0][1] == m[0][1]);
     SimTK_TEST(mressr[1][1] == e-a);
-    //Mat<2,2,adouble,2,1> mressl = a-m;
 }
 
 
