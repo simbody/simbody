@@ -177,11 +177,113 @@ void testNegator() {
     SimTK_TEST(!isInf((negator<adouble>&)xad));
 }
 
+// Various unit tests verifying that operators involving a vector and an
+// adouble work properly
+void testVec() {
+    adouble a = -2;
+    adouble b = 2;
+    adouble c = -1.5;
+    adouble d = -2.8;
+    Vec<3,adouble,1> v;
+    v[0] = b;
+    v[1] = c;
+    v[2] = d;
+    // multiplication
+    Vec<3,adouble,1> vresmr = v*a;
+    SimTK_TEST(vresmr[0] == b*a);
+    SimTK_TEST(vresmr[1] == c*a);
+    SimTK_TEST(vresmr[2] == d*a);
+    Vec<3,adouble,1> vresml = a*v;
+    SimTK_TEST(vresml[0] == a*b);
+    SimTK_TEST(vresml[1] == a*c);
+    SimTK_TEST(vresml[2] == a*d);
+    // division
+    Vec<3,adouble,1> vresdr = v/a;
+    SimTK_TEST(vresdr[0] == b/a);
+    SimTK_TEST(vresdr[1] == c/a);
+    SimTK_TEST(vresdr[2] == d/a);
+    //Vec<3,adouble,1> vresdl = a/v;
+    // addition
+    Vec<3,adouble,1> vresar = v+a;
+    SimTK_TEST(vresar[0] == b+a);
+    SimTK_TEST(vresar[1] == c+a);
+    SimTK_TEST(vresar[2] == d+a);
+    Vec<3,adouble,1> vresal = a+v;
+    SimTK_TEST(vresal[0] == a+b);
+    SimTK_TEST(vresal[1] == a+c);
+    SimTK_TEST(vresal[2] == a+d);
+    // substraction
+    Vec<3,adouble,1> vressr = v-a;
+    SimTK_TEST(vressr[0] == b-a);
+    SimTK_TEST(vressr[1] == c-a);
+    SimTK_TEST(vressr[2] == d-a);
+    //Vec<3,adouble,1> vressl = a-v;
+}
+
+// Various unit tests verifying that operators involving a matrix and an
+// adouble work properly
+void testMat() {
+    adouble a = -2;
+    adouble b = 2;
+    adouble c = -1.5;
+    adouble d = -2.8;
+    adouble e = 1.87;
+    Mat<2,2,adouble,2,1> m;
+    m[0][0] = b;
+    m[1][0] = c;
+    m[0][1] = d;
+    m[1][1] = e;
+    // multiplication
+    Mat<2,2,adouble,2,1> mresmr = m*a;
+    SimTK_TEST(mresmr[0][0] == b*a);
+    SimTK_TEST(mresmr[1][0] == c*a);
+    SimTK_TEST(mresmr[0][1] == d*a);
+    SimTK_TEST(mresmr[1][1] == e*a);
+    Mat<2,2,adouble,2,1> mresml = a*m;
+    SimTK_TEST(mresml[0][0] == a*b);
+    SimTK_TEST(mresml[1][0] == a*c);
+    SimTK_TEST(mresml[0][1] == a*d);
+    SimTK_TEST(mresml[1][1] == a*e);
+    // division
+    Mat<2,2,adouble,2,1> mresdr = m/a;
+    SimTK_TEST(mresdr[0][0] == b/a);
+    SimTK_TEST(mresdr[1][0] == c/a);
+    SimTK_TEST(mresdr[0][1] == d/a);
+    SimTK_TEST(mresdr[1][1] == e/a);
+    Mat<2,2,adouble,2,1> mresdl = a/m;
+    Mat<2,2,adouble,2,1> minv = a*m.invert();
+    SimTK_TEST(mresdl[0][0] == minv[0][0]);
+    SimTK_TEST(mresdl[1][0] == minv[1][0]);
+    SimTK_TEST(mresdl[0][1] == minv[0][1]);
+    SimTK_TEST(mresdl[1][1] == minv[1][1]);
+    // addition
+    Mat<2,2,adouble,2,1> mresar = m+a;
+    SimTK_TEST(mresar[0][0] == b+a);
+    SimTK_TEST(mresar[1][0] == m[1][0]);
+    SimTK_TEST(mresar[0][1] == m[0][1]);
+    SimTK_TEST(mresar[1][1] == e+a);
+    Mat<2,2,adouble,2,1> mresal = a+m;
+    SimTK_TEST(mresal[0][0] == a+b);
+    SimTK_TEST(mresal[1][0] == m[1][0]);
+    SimTK_TEST(mresal[0][1] == m[0][1]);
+    SimTK_TEST(mresal[1][1] == a+e);
+    // substraction
+    Mat<2,2,adouble,2,1> mressr = m-a;
+    SimTK_TEST(mressr[0][0] == b-a);
+    SimTK_TEST(mressr[1][0] == m[1][0]);
+    SimTK_TEST(mressr[0][1] == m[0][1]);
+    SimTK_TEST(mressr[1][1] == e-a);
+    //Mat<2,2,adouble,2,1> mressl = a-m;
+}
+
+
 int main() {
     SimTK_START_TEST("TestADOLCCommon");
         SimTK_SUBTEST(testDerivativeADOLC);
         SimTK_SUBTEST(testNTraitsADOLC);
         SimTK_SUBTEST(testExceptionTaping);
         SimTK_SUBTEST(testNegator);
+        SimTK_SUBTEST(testVec);
+        SimTK_SUBTEST(testMat);
     SimTK_END_TEST();
 }
