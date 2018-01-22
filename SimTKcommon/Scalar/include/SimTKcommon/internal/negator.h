@@ -69,7 +69,7 @@ template <class N> class negator;   // negator is only defined for numbers.
 /**
  * negator<N>, where N is a number type (real, complex, conjugate), is represented in 
  * memory identically to N, but behaves as though multiplied by -1, though at zero
- * cost. Only negators instantiated with the six (more if using ADOl-C) number
+ * cost. Only negators instantiated with the six (more if using ADOL-C) number
  * types (real, complex, conjugate) are allowed.
  */ 
 template <class NUMBER> 
