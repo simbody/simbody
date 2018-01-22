@@ -1127,6 +1127,7 @@ public:                                         \
     static const TStandard& standardize(const T& t) {return t;}             \
     static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));} \
     static TInvert invert(const T& t) {return T(1)/t;}                      \
+    template <typename TRet> static TRet cast(const T& t) {return (TRet)t;} \
     /** Method to use when we want to use a variable as a double */     \
     /** but this variable may be of type double or adouble       */     \
     static const T& value(const T& t) {return t;}                           \
@@ -1357,6 +1358,16 @@ template <> class CNT<double> : public NTraits<double> { };
             {return reinterpret_cast<const TWithoutNegator&>(t);}
         static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)
             {return reinterpret_cast<TWithoutNegator&>(t);}
+        template <typename TRet>
+        static TRet cast(const T& t,
+            typename std::enable_if<std::is_same<TRet, adouble>::value>::type*
+                         = nullptr)
+        {return t;}
+        template <typename TRet>
+        static TRet cast(const T& t,
+            typename std::enable_if<!std::is_same<TRet, adouble>::value>::type*
+                         = nullptr)
+        {return (TRet)NTraits<T>::value(t);}
         /** Method to use when we want to use a variable as a double
         but this variable may be of type double or adouble. The user
         cannot use this method when taping */
