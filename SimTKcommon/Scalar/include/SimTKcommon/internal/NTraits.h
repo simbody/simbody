@@ -1396,7 +1396,7 @@ template <> class CNT<double> : public NTraits<double> { };
             {return ::fmin(t,t2);}
         static T    log10(const T& t)   {return ::log10(t);}
         /* properties of this floating point representation, with memory
-        /* addresses */
+        addresses */
         static const T& getEps()
         {static const T c=RTraits<T>::getEps();                     return c;}
         static const T& getSignificant()
