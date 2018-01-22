@@ -378,6 +378,17 @@
     #define SimTK_ASSERT5(cond,msg,a1,a2,a3,a4,a5) SimTK_ASSERT5_ALWAYS(cond,msg,a1,a2,a3,a4,a5)
 #endif
 
+// ---------------------------------ADOL-C-------------------------------------
+// This exception is to be used for situations in which a user attempts to tape
+// (ie wants to get derivatives) through undifferentiable code. It is fine to
+// switch between adouble and double as long as the user is not expecting to
+// get derivatives.
+// ----------------------------------------------------------------------------
+#ifdef SimTK_REAL_IS_ADOUBLE
+#define SimTK_ADOLC_NO_TAPING_ALLOWED_ALWAYS \
+        do{if(isTaping())SimTK_THROW(SimTK::Exception::ADOLCTapingNotAllowed);}while(false)
+#endif
+
 
 #endif // SimTK_SimTKCOMMON_EXCEPTION_MACROS_H_
 
