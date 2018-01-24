@@ -1341,8 +1341,16 @@ template <> class CNT<double> : public NTraits<double> { };
         static const T& real(const T& t) { return t; }
         static T&       real(T& t)       { return t; }
         static const T& imag(const T&)   { return getZero(); }
+#if defined(__clang__)
+#pragma clang diagnostic push
+// The function `T& imag(T&)` generates a null-dereference warning.
+#pragma clang diagnostic ignored "-Wnull-dereference"
+#endif
         static T&       imag(T&)
             { assert(false); return *reinterpret_cast<T*>(0); }
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         static const TNeg& negate(const T& t)
             {return reinterpret_cast<const TNeg&>(t);}
         static       TNeg& negate(T& t) {return reinterpret_cast<TNeg&>(t);}
