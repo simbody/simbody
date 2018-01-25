@@ -229,7 +229,7 @@ public:
         // (T is actually unused; just needed for the SFINAE).
         template <typename T,
             typename std::enable_if<
-                std::is_same<T, adouble>::value && 
+                std::is_same<T, adouble>::value &&
                 std::is_same<N, adouble>::value, int>::type = 0>
         negator(const adouble& t)
         {   v = -N(t); }

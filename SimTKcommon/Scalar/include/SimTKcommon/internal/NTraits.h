@@ -1366,6 +1366,9 @@ template <> class CNT<double> : public NTraits<double> { };
             {return reinterpret_cast<const TWithoutNegator&>(t);}
         static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)
             {return reinterpret_cast<TWithoutNegator&>(t);}
+        /** Method to use when we want to cast an adouble. This method calls
+        value() when casting an adouble to another scalar type, which prevents
+        taping */
         template <typename TRet>
         static TRet cast(const T& t,
             typename std::enable_if<std::is_same<TRet, adouble>::value>::type*

@@ -177,11 +177,31 @@ void testNegator() {
     SimTK_TEST(!isInf((negator<adouble>&)xad));
 }
 
+// Various unit tests verifying that cast() works properly
+void testCast() {
+    // cast an adouble in a double
+    adouble a = 5.;
+    double b = NTraits<adouble>::cast<double>(a);
+    SimTK_TEST(b == a);
+    // cast an adouble in a double when taping, this should throw an exception
+    trace_on(3);
+    SimTK_TEST_MUST_THROW_EXC(NTraits<adouble>::cast<double>(a),
+        SimTK::Exception::ADOLCTapingNotAllowed
+    );
+    trace_off();
+    // cast an adouble in an adouble when taping
+    trace_on(4);
+    adouble c = NTraits<adouble>::cast<adouble>(a);
+    trace_off();
+    SimTK_TEST(c == a);
+}
+
 int main() {
     SimTK_START_TEST("TestADOLCCommon");
         SimTK_SUBTEST(testDerivativeADOLC);
         SimTK_SUBTEST(testNTraitsADOLC);
         SimTK_SUBTEST(testExceptionTaping);
         SimTK_SUBTEST(testNegator);
+        SimTK_SUBTEST(testCast);
     SimTK_END_TEST();
 }
