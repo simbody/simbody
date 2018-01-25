@@ -226,19 +226,18 @@ public:
     #ifdef SimTK_REAL_IS_ADOUBLE
         // Allow converting an adouble to negator<N>.
         // If N is adouble, then simply negate the adouble.
-        // (T is actually unused; just needed for the SFINAE).
-        template <typename T,
+        template <typename NN,
             typename std::enable_if<
-                std::is_same<T, adouble>::value &&
+                std::is_same<NN, adouble>::value &&
                 std::is_same<N, adouble>::value, int>::type = 0>
-        negator(const adouble& t)
+        negator(const NN& t)
         {   v = -N(t); }
         // If N is not adouble, we must call value() (this prevents taping).
-        template <typename T,
+        template <typename NN,
             typename std::enable_if<
-                std::is_same<T, adouble>::value &&
+                std::is_same<NN, adouble>::value &&
                 !std::is_same<N, adouble>::value, int>::type = 0>
-        negator(const adouble& t)
+        negator(const NN& t)
         {v = -N((typename NTraits<N>::Precision)NTraits<adouble>::value(t));}
     #endif
 
