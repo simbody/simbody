@@ -175,6 +175,11 @@ void testNegator() {
     SimTK_TEST(!isFinite((negator<adouble>&)xInf));
     SimTK_TEST(isInf((negator<adouble>&)xInf));
     SimTK_TEST(!isInf((negator<adouble>&)xad));
+    // ensure consistent behavior between double and adouble
+    double a = 5;
+    adouble ad = 5;
+    SimTK_TEST((negator<double>)a == (negator<adouble>)ad);
+    SimTK_TEST((negator<double>&)a == (negator<adouble>&)ad);
 }
 
 // Various unit tests verifying that cast() works properly
