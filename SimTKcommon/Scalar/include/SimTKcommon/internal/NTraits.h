@@ -1127,6 +1127,7 @@ public:                                         \
     static const TStandard& standardize(const T& t) {return t;}             \
     static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));} \
     static TInvert invert(const T& t) {return T(1)/t;}                      \
+    template <typename TRet> static TRet cast(const T& t) {return (TRet)t;} \
     /** Method to use when we want to use a variable as a double */     \
     /** but this variable may be of type double or adouble       */     \
     static const T& value(const T& t) {return t;}                           \
@@ -1340,8 +1341,16 @@ template <> class CNT<double> : public NTraits<double> { };
         static const T& real(const T& t) { return t; }
         static T&       real(T& t)       { return t; }
         static const T& imag(const T&)   { return getZero(); }
+#if defined(__clang__)
+#pragma clang diagnostic push
+// The function `T& imag(T&)` generates a null-dereference warning.
+#pragma clang diagnostic ignored "-Wnull-dereference"
+#endif
         static T&       imag(T&)
             { assert(false); return *reinterpret_cast<T*>(0); }
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         static const TNeg& negate(const T& t)
             {return reinterpret_cast<const TNeg&>(t);}
         static       TNeg& negate(T& t) {return reinterpret_cast<TNeg&>(t);}
@@ -1357,6 +1366,19 @@ template <> class CNT<double> : public NTraits<double> { };
             {return reinterpret_cast<const TWithoutNegator&>(t);}
         static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)
             {return reinterpret_cast<TWithoutNegator&>(t);}
+        /** Method to use when we want to cast an adouble. This method calls
+        value() when casting an adouble to another scalar type, which prevents
+        taping */
+        template <typename TRet>
+        static TRet cast(const T& t,
+            typename std::enable_if<std::is_same<TRet, adouble>::value>::type*
+                         = nullptr)
+        {return t;}
+        template <typename TRet>
+        static TRet cast(const T& t,
+            typename std::enable_if<!std::is_same<TRet, adouble>::value>::type*
+                         = nullptr)
+        {return (TRet)NTraits<T>::value(t);}
         /** Method to use when we want to use a variable as a double
         but this variable may be of type double or adouble. The user
         cannot use this method when taping */
@@ -1396,7 +1418,7 @@ template <> class CNT<double> : public NTraits<double> { };
             {return ::fmin(t,t2);}
         static T    log10(const T& t)   {return ::log10(t);}
         /* properties of this floating point representation, with memory
-        /* addresses */
+        addresses */
         static const T& getEps()
         {static const T c=RTraits<T>::getEps();                     return c;}
         static const T& getSignificant()
