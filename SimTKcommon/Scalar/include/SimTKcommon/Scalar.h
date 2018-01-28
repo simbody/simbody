@@ -911,7 +911,6 @@ T stepUp(T x)
 {   assert(0 <= x && x <= 1);
     return x*x*x*(10+x*(6*x-15)); }  //10x^3-15x^4+6x^5
 
-
 /** Interpolate smoothly from 1 down to 0 as the input argument goes from 
 0 to 1, with first and second derivatives zero at either end of the interval.
 
@@ -1051,7 +1050,7 @@ T d2stepUp(T x) {
 @param[in] x    Control parameter in range [0,1]. 
 @return Second derivative of stepDown() at x. **/
 template <typename T>
-T d2stepDown(T x) { T -d2stepUp(x);}
+T d2stepDown(T x) {return -d2stepUp(x);}
 
 /** Second derivative of stepAny(): d^2/dx^2 stepAny(x). 
 See stepAny() for parameter documentation. 
@@ -1093,10 +1092,11 @@ T d3stepAny(T yRange, T x0, T oneOverXRange, T x)
         // int converts to double; only supplied for stepUp(), stepDown()
 /** @copydoc SimTK::stepUp(double)
 Treats int argument as a double (avoids ambiguity). **/
-inline double stepUp(int x) {return stepUp((double)x);}
+inline double stepUp(int x) { return stepUp<double>(x); }
+
 /** @copydoc SimTK::stepDown(double)
 Treats int argument as a double (avoids ambiguity). **/
-inline double stepDown(int x) {return stepDown((double)x);}
+inline double stepDown(int x) {return stepDown<double>(x);}
 
 
 /*@}*/

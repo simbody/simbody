@@ -297,6 +297,93 @@ void testMat() {
     SimTK_TEST(mressr[1][1] == e-a);
 }
 
+// Various unit tests verifying that functions defined in Scalar work properly
+// with adouble
+void testScalar() {
+    // signBit()
+    double a = 2;
+    double b = -2;
+    double c = 0;
+    adouble ad = 2;
+    adouble bd = -2;
+    adouble cd = 0;
+    SimTK_TEST(signBit(a) == signBit(ad));
+    SimTK_TEST(signBit(b) == signBit(bd));
+    SimTK_TEST(signBit(c) == signBit(cd));
+    SimTK_TEST(signBit((negator<double>&)a) == signBit((negator<adouble>&)ad));
+    SimTK_TEST(signBit((negator<double>&)b) == signBit((negator<adouble>&)bd));
+    SimTK_TEST(signBit((negator<double>&)c) == signBit((negator<adouble>&)cd));
+    // sign()
+    SimTK_TEST(sign(a) == sign(ad));
+    SimTK_TEST(sign(b) == sign(bd));
+    SimTK_TEST(sign(c) == sign(cd));
+    SimTK_TEST(sign((negator<double>&)a) == sign((negator<adouble>&)ad));
+    SimTK_TEST(sign((negator<double>&)b) == sign((negator<adouble>&)bd));
+    SimTK_TEST(sign((negator<double>&)c) == sign((negator<adouble>&)cd));
+    // square()
+    SimTK_TEST(square(a) == square(ad));
+    SimTK_TEST(square((negator<double>&)a) == square((negator<adouble>&)ad));
+    // cube()
+    SimTK_TEST(cube(a) == cube(ad));
+    SimTK_TEST(cube((negator<double>&)a) == cube((negator<adouble>&)ad));
+    // ensure that recast() is differentiable
+    double xp[1];
+    xp[0] = 2;
+    adouble x;
+    adouble y[2];
+    trace_on(5);
+    x <<= xp[0];
+    y[0] = cube(-x);
+    y[1] = cube((negator<adouble>&)x);
+    double y0[2];
+    y[0] >>= y0[0];
+    y[1] >>= y0[1];
+    trace_off();
+    double f[2];
+    function(5, 2, 1, xp, f);
+    SimTK_TEST(f[0] == cube(-xp[0]));
+    SimTK_TEST(f[1] == cube(-xp[0]));
+    double** J;
+    J = myalloc(2, 1);
+    jacobian(5, 2, 1, xp, J);
+    SimTK_TEST(J[0][0] == -3*square(xp[0]));
+    SimTK_TEST(J[1][0] == -3*square(xp[0]));
+    myfree(J);
+    ////// clampInPlace()
+    //double h = 4;
+    //adouble hd = 4;
+    //double cip1 = clamp(b,h,a);
+    //std::cout << cip1 << std::endl;
+    //std::cout << h << std::endl;
+    //double cip2 = clampInPlace(b,h,a);
+    //std::cout << cip2 << std::endl;
+    //std::cout << h << std::endl;
+    //std::cout << clampInPlace(bd,hd,ad) << std::endl;
+    //std::cout << hd << std::endl;
+    //std::cout << cip1d << std::endl;
+    ////SimTK_TEST(cip1d == cip1d);
+    // stepUp(), stepDown(), dstepAny(), d2stepUp(), d2stepDown(), d2stepAny(),
+    // d3stepUp(), d3stepDown(), d3stepAny()
+    double d = 0.2;
+    adouble dd = 0.2;
+    SimTK_TEST(stepUp(d) == stepUp(dd));
+    SimTK_TEST(stepDown(d) == stepDown(dd));
+    double e = -1;
+    double g = 1;
+    adouble ed = -1;
+    adouble gd = 1;
+    SimTK_TEST(stepAny(e,a,c,g,d) == stepAny(ed,ad,cd,gd,dd));
+    SimTK_TEST(dstepUp(d) == dstepUp(dd));
+    SimTK_TEST(dstepDown(d) == dstepDown(dd));
+    SimTK_TEST(dstepAny(a,c,g,d) == dstepAny(ad,cd,gd,dd));
+    SimTK_TEST(d2stepUp(d) == d2stepUp(dd));
+    SimTK_TEST(d2stepDown(d) == d2stepDown(dd));
+    SimTK_TEST(d2stepAny(a,c,g,d) == d2stepAny(ad,cd,gd,dd));
+    SimTK_TEST(d3stepUp(d) == d3stepUp(dd));
+    SimTK_TEST(d3stepDown(d) == d3stepDown(dd));
+    SimTK_TEST(d3stepAny(a,c,g,d) == d3stepAny(ad,cd,gd,dd));
+}
+
 
 int main() {
     SimTK_START_TEST("TestADOLCCommon");
@@ -307,5 +394,6 @@ int main() {
         SimTK_SUBTEST(testCast);
         SimTK_SUBTEST(testVec);
         SimTK_SUBTEST(testMat);
+        SimTK_SUBTEST(testScalar);
     SimTK_END_TEST();
 }
