@@ -6,10 +6,10 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 **Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
 
 
-3.6 (in development)
---------------------
+3.6 (16 January 2018)
+---------------------
 * Forced GCC to be at least 4.9.0, so that new C++11 features like regular
-  expressions can be used (pr #485).
+  expressions can be used (PR #485).
 * Minimum Ubuntu version supported 14.04 LTS (Trusty), with a [manual update of GCC](http://askubuntu.com/questions/466651/how-do-i-use-the-latest-gcc-on-ubuntu-14-04).
 * Recommended minimum Ubuntu version : 15.04 (Vivid), that is shipped with GCC 4.9.2.
 * Added mixin classes `ResetOnCopy<T>` and `ReinitOnCopy<T>` to force default
@@ -85,7 +85,25 @@ to ParallelExecutor, mutex state lock.
     - AtomicInteger
 * Deprecated some badly-named methods in MobilizedBody::Translation
   [Issue #604](https://github.com/simbody/simbody/issues/604)
-* (There are more that haven't been added yet)
+* Removed support for `long double`. 
+  [PR #597](https://github.com/simbody/simbody/pull/597)
+* Fixed a bug in `MultibodyGraphMaker` where massless bodies were handled
+  incorrectly.
+  [PR #592](https://github.com/simbody/simbody/pull/592) and 
+  [PR #594](https://github.com/simbody/simbody/pull/594).
+* Moved Ipopt into the namespace `SimTKIpopt` to avoid duplicate symbols when
+  combining Simbody with an independent Ipopt.
+* Fixed a bug where RowVectors could not be constructed with 0 elements.
+* CMake: Downstream projects no longer need to use `include_directories()`.
+* CMAES: You can now specify a different initial step size (standard deviation)
+  for each variable. [PR #540](https://github.com/simbody/simbody/pull/540)
+* SimbodyMatterSubsystem now provides a function for the error in
+  acceleration-level constraint equations.
+  [PR #517](https://github.com/simbody/simbody/pull/517)
+* The visualizer now supports lazily loading mesh geometry from a file.
+  [PR #475](https://github.com/simbody/simbody/pull/475)
+* Simbody can now be built with MinGW on Windows.
+  [PR #441](https://github.com/simbody/simbody/pull/441)
 
 
 3.5.3 (15 June 2015)
