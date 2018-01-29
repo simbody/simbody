@@ -8,8 +8,11 @@ sudo: required
 dist: trusty
 language: cpp
 
-# For thread_local support on macOS.
-osx_image: xcode8
+# For thread_local support on macOS, we require xcode8 or greater.
+# Before 2018, xcode7 was the default. Now that xcode8.3 is the default,
+# we no longer need to specify an osx_image.
+# https://docs.travis-ci.com/user/reference/osx/#OS-X-Version
+# osx_image: xcode8
     
 matrix:
   include:
