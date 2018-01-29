@@ -565,14 +565,16 @@ inline double& clampInPlace(double low, double& v, double high)
     statements and allow taping. */
     inline adouble& clampInPlace(double low, adouble& v, double high)
     {   assert(low<=high);
-        return NTraits<adouble>::min(NTraits<adouble>::max(v,low),high); }
+        v = NTraits<adouble>::min(NTraits<adouble>::max(v,low),high);
+        return v; }
     /** @copydoc SimTK::clampInPlace(double,double&,double)
 
     ADOL-C: the clamping is not done in-place for adoubles to avoid using if
     statements and allow taping. */
     inline adouble& clampInPlace(adouble low, adouble& v, adouble high)
     {   assert(low<=high);
-        return NTraits<adouble>::min(NTraits<adouble>::max(v,low),high); }
+        v = NTraits<adouble>::min(NTraits<adouble>::max(v,low),high);
+        return v; }
 #endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) **/
 inline float& clampInPlace(float low, float& v, float high) 
@@ -628,7 +630,7 @@ inline double& clampInPlace(double low, double& v, int high)
     ADOL-C: the clamping is not done in-place for adoubles to avoid using if
     statements and allow taping. */
     inline adouble& clampInPlace(double low, adouble& v, int high)
-    { return clampInPlace(low,v,(double)high); }
+    {   return clampInPlace(low,v,(double)high); }
 #endif
 /** @copydoc SimTK::clampInPlace(double,double&,double) 
 Takes an integer bound to avoid need for explicit casts. **/
@@ -686,8 +688,7 @@ inline negator<double>& clampInPlace(double low, negator<double>& v, double high
                                           double high)
     {   assert(low<=high);
         v = NTraits<adouble>::min(NTraits<adouble>::max(v,low),high);
-        return v;
-    }
+        return v; }
     /** @copydoc SimTK::clampInPlace(double,double&,double)
 
     ADOL-C: the clamping is not done in-place for adoubles to avoid using if
@@ -696,8 +697,7 @@ inline negator<double>& clampInPlace(double low, negator<double>& v, double high
                                           adouble high)
     {   assert(low<=high);
         v =  NTraits<adouble>::min(NTraits<adouble>::max(v,low),high);
-        return v;
-    }
+        return v; }
 #endif
 
 
