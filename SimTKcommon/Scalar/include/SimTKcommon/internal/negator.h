@@ -28,9 +28,9 @@
  * This file defines the negator<N> template which is an adaptor for
  * the numeric types N (Real, Complex, conjugate). negator must NOT
  * be instantiated for anything other than these three types (each
- * of which comes in three precisions). negator<N> is guaranteed to
- * have the same memory layout as N, except that the stored values
- * represent the *negative* value of that number.
+ * of which comes in two precisions; more if using ADOL-C). negator<N> is
+ * guaranteed to have the same memory layout as N, except that the stored
+ * values represent the *negative* value of that number.
  *
  * This is part of the SimTK Scalar package, which forms the basis
  * for composite numerical types like vectors and matrices. The negator
@@ -41,7 +41,8 @@
  *
  * The Scalar Types
  * ----------------
- * Here is a complete taxonomy of the scalar types we support.
+ * Here is a complete (not including ADOL-C cases) taxonomy of the scalar
+ * types we support.
  *
  * <scalar>    ::= <number> | negator< <number> >
  * <number>    ::= <standard> | <conjugate>
@@ -68,8 +69,8 @@ template <class N> class negator;   // negator is only defined for numbers.
 /**
  * negator<N>, where N is a number type (real, complex, conjugate), is represented in 
  * memory identically to N, but behaves as though multiplied by -1, though at zero
- * cost. Only negators instantiated with the nine number types (real, complex, 
- * conjugate) are allowed.
+ * cost. Only negators instantiated with the six (more if using ADOL-C) number
+ * types (real, complex, conjugate) are allowed.
  */ 
 template <class NUMBER> 
 class SimTK_SimTKCOMMON_EXPORT negator {
@@ -222,6 +223,23 @@ public:
     negator(int                t) {v = -N((typename NTraits<N>::Precision)t);}
     negator(const float&       t) {v = -N((typename NTraits<N>::Precision)t);}
     negator(const double&      t) {v = -N((typename NTraits<N>::Precision)t);}
+    #ifdef SimTK_REAL_IS_ADOUBLE
+        // Allow converting an adouble to negator<N>.
+        // If N is adouble, then simply negate the adouble.
+        template <typename NN,
+            typename std::enable_if<
+                std::is_same<NN, adouble>::value &&
+                std::is_same<N, adouble>::value, int>::type = 0>
+        negator(const NN& t)
+        {   v = -N(t); }
+        // If N is not adouble, we must call value() (this prevents taping).
+        template <typename NN,
+            typename std::enable_if<
+                std::is_same<NN, adouble>::value &&
+                !std::is_same<N, adouble>::value, int>::type = 0>
+        negator(const NN& t)
+        {v = -N((typename NTraits<N>::Precision)NTraits<adouble>::value(t));}
+    #endif
 
     // Some of these may not compile if instantiated -- you can't cast a complex
     // to a float, for example.
@@ -271,6 +289,9 @@ template <class N2> friend class negator;
 //@{
 inline bool isNaN(const negator<float>&  x) {return isNaN(-x);}
 inline bool isNaN(const negator<double>& x) {return isNaN(-x);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline bool isNaN(const negator<adouble>& x) {return isNaN(-x);}
+#endif
 template <class P> inline bool
 isNaN(const negator< std::complex<P> >& x) {return isNaN(-x);}
 template <class P> inline bool
@@ -284,6 +305,9 @@ isNaN(const negator< conjugate<P> >&    x) {return isNaN(-x);}
 //@{
 inline bool isFinite(const negator<float>&  x) {return isFinite(-x);}
 inline bool isFinite(const negator<double>& x) {return isFinite(-x);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline bool isFinite(const negator<adouble>& x) {return isFinite(-x);}
+#endif
 template <class P> inline bool
 isFinite(const negator< std::complex<P> >& x) {return isFinite(-x);}
 template <class P> inline bool
@@ -297,6 +321,9 @@ isFinite(const negator< conjugate<P> >&    x) {return isFinite(-x);}
 //@{
 inline bool isInf(const negator<float>&  x) {return isInf(-x);}
 inline bool isInf(const negator<double>& x) {return isInf(-x);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    inline bool isInf(const negator<adouble>& x) {return isInf(-x);}
+#endif
 template <class P> inline bool
 isInf(const negator< std::complex<P> >& x) {return isInf(-x);}
 template <class P> inline bool
