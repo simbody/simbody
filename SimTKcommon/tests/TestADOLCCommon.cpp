@@ -142,59 +142,75 @@ void testNegator() {
     // Test evaluation of simple function and its derivative
     double xp[1];
     xp[0] = 2;
-    trace_on(2);
-    adouble x;
-    adouble y;
-    x <<= xp[0];
+    const short int TraceTag = 2;
+    trace_on(TraceTag);
+    adouble x, y; // Declare active variables
+    x <<= xp[0]; // Select independent variable
     auto result = NTraits<adouble>::pow(x,3);
-    y = (negator<adouble>&)result;
+    // Negate the result by reinterpretation rather than computation
+    y = reinterpret_cast<const negator<adouble>&>(result);
     double y0;
-    y >>= y0;
+    y >>= y0; // Select dependent variable
     trace_off();
-    // function evaluation
+    // Function evaluation. function(arg1,arg2,arg3,arg4,arg5) evaluates the
+    // desired function from the tape instead of executing the corresponding
+    // source code. arg1 is the tape identification, arg2 the number of
+    // dependent variables m, arg3 the number of independent variables n, arg4
+    // the independent vector x, and arg4 the dependent vector y = f(x) with
+    // f: R(n) -> R(m). Please see ADOL-C manual for more details.
     double f[1];
-    function(2, 1, 1, xp, f);
+    function(TraceTag, 1, 1, xp, f);
     SimTK_TEST(f[0] == -8.);
-    // derivative evaluation
-    double** J;
-    J = myalloc(1, 1);
-    jacobian(2, 1, 1, xp, J);
-    SimTK_TEST(J[0][0] == -3*NTraits<adouble>::pow(x,2));
-    myfree(J);
+    // Derivative evaluation. gradient(arg1,arg2,arg3,arg4) evaluates the
+    // the desired function derivative. arg1 is the tape identification, arg2
+    // the number of independent variables n (the number of dependent variables
+    // m = 1), arg3 the independent vector x, and arg4 the resulting gradient
+    // of f(x). Please see ADOL-C manual for more details.
+    double g[1];
+    gradient(TraceTag, 1, xp, g);
+    SimTK_TEST(g[0] == -3*NTraits<adouble>::pow(x,2));
     // isNumericallyEqual
     adouble xd = 9.45;
-    SimTK_TEST(isNumericallyEqual(-xd,(negator<adouble>&)xd));
+    auto& nxd = reinterpret_cast<const negator<adouble>&>(xd);
+    SimTK_TEST(isNumericallyEqual(-xd,nxd));
     // isNaN, isFinite, isInf
     adouble xad = -9.45;
     adouble xNaN = SimTK::NaN;
     adouble xInf = SimTK::Infinity;
-    SimTK_TEST(isNaN((negator<adouble>&)xNaN));
-    SimTK_TEST(!isNaN((negator<adouble>&)xad));
-    SimTK_TEST(isFinite((negator<adouble>&)xad));
-    SimTK_TEST(!isFinite((negator<adouble>&)xNaN));
-    SimTK_TEST(!isFinite((negator<adouble>&)xInf));
-    SimTK_TEST(isInf((negator<adouble>&)xInf));
-    SimTK_TEST(!isInf((negator<adouble>&)xad));
-    // ensure consistent behavior between double and adouble
+    auto& nxad = reinterpret_cast<const negator<adouble>&>(xad);
+    auto& nxNaN = reinterpret_cast<const negator<adouble>&>(xNaN);
+    auto& nxInf = reinterpret_cast<const negator<adouble>&>(xInf);
+    SimTK_TEST(isNaN(nxNaN));
+    SimTK_TEST(!isNaN(nxad));
+    SimTK_TEST(isFinite(nxad));
+    SimTK_TEST(!isFinite(nxNaN));
+    SimTK_TEST(!isFinite(nxInf));
+    SimTK_TEST(isInf(nxInf));
+    SimTK_TEST(!isInf(nxad));
+    // Ensure consistent behavior between double and adouble. The values should
+    // be unchanged by conversion to the negated type and negated by
+    // reinterpretation as the negated type.
     double a = 5;
     adouble ad = 5;
-    SimTK_TEST((negator<double>)a == (negator<adouble>)ad);
-    SimTK_TEST((negator<double>&)a == (negator<adouble>&)ad);
+    SimTK_TEST(static_cast<negator<double>>(a) == a);
+    SimTK_TEST(static_cast<negator<adouble>>(ad) == ad);
+    SimTK_TEST(reinterpret_cast<negator<double>&>(a) == -a);
+    SimTK_TEST(reinterpret_cast<negator<adouble>&>(ad) == -ad);
 }
 
 // Various unit tests verifying that cast() works properly
 void testCast() {
-    // cast an adouble in a double
+    // cast an adouble to a double
     adouble a = 5.;
     double b = NTraits<adouble>::cast<double>(a);
     SimTK_TEST(b == a);
-    // cast an adouble in a double when taping, this should throw an exception
+    // cast an adouble to a double when taping, this should throw an exception
     trace_on(3);
     SimTK_TEST_MUST_THROW_EXC(NTraits<adouble>::cast<double>(a),
         SimTK::Exception::ADOLCTapingNotAllowed
     );
     trace_off();
-    // cast an adouble in an adouble when taping
+    // cast an adouble to an adouble when taping
     trace_on(4);
     adouble c = NTraits<adouble>::cast<adouble>(a);
     trace_off();

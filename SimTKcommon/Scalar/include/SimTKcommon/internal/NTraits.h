@@ -1305,7 +1305,7 @@ template <> class CNT<double> : public NTraits<double> { };
         typedef T                ULessScalar;
         typedef T                Number;
         typedef T                StdNumber;
-        typedef T                Precision;
+        typedef double           Precision;
         typedef T                ScalarNormSq;
         template <class P> struct Result {
             typedef typename CNT<P>::template Result<adouble>::Mul Mul;
