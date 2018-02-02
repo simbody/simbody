@@ -36,8 +36,6 @@ class ParallelExecutorImpl;
 // We only want the template instantiation to occur once. This symbol is defined in the SimTK core
 // compilation unit that defines the ParallelExecutor class but should not be defined any other time.
 
-//TODO: Rewrite the threading class using C++11 std::thread
-
 #ifndef SimTK_SIMTKCOMMON_DEFINING_PARALLEL_EXECUTOR
     extern template class PIMPLHandle<ParallelExecutor, ParallelExecutorImpl>;
 #endif
