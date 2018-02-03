@@ -323,48 +323,66 @@ void testScalar() {
     adouble ad = 2;
     adouble bd = -2;
     adouble cd = 0;
+    // Negate the result by reinterpretation rather than computation
+    auto& na = reinterpret_cast<const negator<double>&>(a);
+    auto& nb = reinterpret_cast<const negator<double>&>(b);
+    auto& nc = reinterpret_cast<const negator<double>&>(c);
+    auto& nad = reinterpret_cast<const negator<adouble>&>(ad);
+    auto& nbd = reinterpret_cast<const negator<adouble>&>(bd);
+    auto& ncd = reinterpret_cast<const negator<adouble>&>(cd);
     SimTK_TEST(signBit(a) == signBit(ad));
     SimTK_TEST(signBit(b) == signBit(bd));
     SimTK_TEST(signBit(c) == signBit(cd));
-    SimTK_TEST(signBit((negator<double>&)a) == signBit((negator<adouble>&)ad));
-    SimTK_TEST(signBit((negator<double>&)b) == signBit((negator<adouble>&)bd));
-    SimTK_TEST(signBit((negator<double>&)c) == signBit((negator<adouble>&)cd));
+    SimTK_TEST(signBit(na) == signBit(nad));
+    SimTK_TEST(signBit(nb) == signBit(nbd));
+    SimTK_TEST(signBit(nc) == signBit(ncd));
     // sign()
     SimTK_TEST(sign(a) == sign(ad));
     SimTK_TEST(sign(b) == sign(bd));
     SimTK_TEST(sign(c) == sign(cd));
-    SimTK_TEST(sign((negator<double>&)a) == sign((negator<adouble>&)ad));
-    SimTK_TEST(sign((negator<double>&)b) == sign((negator<adouble>&)bd));
-    SimTK_TEST(sign((negator<double>&)c) == sign((negator<adouble>&)cd));
+    SimTK_TEST(sign(na) == sign(nad));
+    SimTK_TEST(sign(nb) == sign(nbd));
+    SimTK_TEST(sign(nc) == sign(ncd));
     // square()
     SimTK_TEST(square(a) == square(ad));
-    SimTK_TEST(square((negator<double>&)a) == square((negator<adouble>&)ad));
+    SimTK_TEST(square(na) == square(nad));
     // cube()
     SimTK_TEST(cube(a) == cube(ad));
-    SimTK_TEST(cube((negator<double>&)a) == cube((negator<adouble>&)ad));
-    // ensure that recast() is differentiable
+    SimTK_TEST(cube(na) == cube(nad));
+    // Ensure that recast(), used in cube(const negator<adouble>& x), is
+    // differentiable. Function and derivative evaluations should be the same
+    // when negating variables by reinterpretaion or by computation.
     double xp[1];
     xp[0] = 2;
-    adouble x;
-    adouble y[2];
-    trace_on(5);
-    x <<= xp[0];
-    y[0] = cube(-x);
-    y[1] = cube((negator<adouble>&)x);
+    adouble x, y[2];
+    const short int TraceTag = 5;
+    trace_on(TraceTag);
+    x <<= xp[0]; // select independent variables
+    y[0] = cube(-x); // negate variable by computation
+    // negate variable by reintepretation
+    y[1] = cube(reinterpret_cast<const negator<adouble>&>(x));
     double y0[2];
-    y[0] >>= y0[0];
-    y[1] >>= y0[1];
+    y[0] >>= y0[0]; // select dependent variables
+    y[1] >>= y0[1]; // select dependent variables
     trace_off();
+    // Function evaluation
     double f[2];
-    function(5, 2, 1, xp, f);
+    function(TraceTag, 2, 1, xp, f);
     SimTK_TEST(f[0] == cube(-xp[0]));
     SimTK_TEST(f[1] == cube(-xp[0]));
-    double** J;
-    J = myalloc(2, 1);
-    jacobian(5, 2, 1, xp, J);
+    // Derivative evaluation. jacobian(arg1,arg2,arg3,arg4,arg5) evaluates the
+    // the desired function derivatives. arg1 is the tape identification, arg2
+    // the number of dependent variables m, arg3 the number of independent
+    // variables n, arg4 the independent vector x, and arg5 the resulting
+    // jacobian of f(x). Please see ADOL-C manual for more details.
+    double** J = myalloc(2,1); // initialization and allocation of J, a column
+    // of row pointers that will contain the derivatives. J has dimensions
+    // m x n where m is the number of dependent variables and n the number of
+    // independent variables.
+    jacobian(TraceTag, 2, 1, xp, J);
     SimTK_TEST(J[0][0] == -3*square(xp[0]));
     SimTK_TEST(J[1][0] == -3*square(xp[0]));
-    myfree(J);
+    myfree(J); // clean memory
     // clampInPlace()
     double h = 4;
     double i = 4;
@@ -399,13 +417,12 @@ void testScalar() {
     SimTK_TEST(clampInPlace(-2,jn,2) == clampInPlace(-2,jdn,2) && jdn==-2);
     SimTK_TEST(clampInPlace(-2,kn,a) == clampInPlace(-2,kdn,a) && kdn==b);
     SimTK_TEST(clampInPlace(b,ln,2) == clampInPlace(b,ldn,2) && ldn==-2);
-    //std::cout << clampInPlace(-2, (negator<double>)m, 2) << std::endl;
-    //std::cout << clampInPlace(-2, (negator<adouble>&)md, 2) << std::endl;
-    //auto temp = (negator<adouble>&)md;
-    //auto temp2 = (negator<adouble>&)mdn;
-    //std::cout << NTraits<adouble>::max(temp,temp2) << std::endl;
-    //NTraits<adouble>::max(negator<adouble>&)md,a) << std::endl;
-    //std::cout << (negator<double>&)m << std::endl;
+    auto nm = reinterpret_cast<const negator<double>&>(m);
+    std::cout << clampInPlace(-2,nm,2) << std::endl;
+    auto nmd = reinterpret_cast<const negator<adouble>&>(md);
+    std::cout << clampInPlace(-2,nmd,2) << std::endl;
+    //std::cout << (nmd > 2) << std::endl;
+    //std::cout << NTraits<adouble>::max(nmd,2) << std::endl;
     // clamp()
     double hc = 4;
     double ic = 4;
