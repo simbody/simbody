@@ -682,22 +682,18 @@ inline negator<double>& clampInPlace(double low, negator<double>& v, double high
 #ifdef SimTK_REAL_IS_ADOUBLE
     /** @copydoc SimTK::clampInPlace(double,double&,double)
 
-    ADOL-C: the clamping is not done in-place for adoubles to avoid using if
-    statements and allow taping. */
+    ADOL-C: the user will not be able to tape when using this function. */
     inline negator<adouble>& clampInPlace(double low, negator<adouble>& v,
                                           double high)
-    {   assert(low<=high);
-        v = NTraits<adouble>::min(NTraits<adouble>::max(v,low),high);
-        return v; }
+    {   assert(low<=high); if (NTraits<adouble>::value(v)<low) v=low;
+        else if (NTraits<adouble>::value(v)>high) v=high; return v; }
     /** @copydoc SimTK::clampInPlace(double,double&,double)
 
-    ADOL-C: the clamping is not done in-place for adoubles to avoid using if
-    statements and allow taping. */
+    ADOL-C: the user will not be able to tape when using this function. */
     inline negator<adouble>& clampInPlace(adouble low, negator<adouble>& v,
                                           adouble high)
-    {   assert(low<=high);
-        v =  NTraits<adouble>::min(NTraits<adouble>::max(v,low),high);
-        return v; }
+    {   assert(low<=high); if (NTraits<adouble>::value(v)<low) v=low;
+        else if (NTraits<adouble>::value(v)>high) v=high; return v; }
 #endif
 
 
