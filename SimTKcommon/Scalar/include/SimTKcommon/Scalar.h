@@ -336,7 +336,7 @@ inline int sign(const negator<float>&       x) {return -sign(-x);} // -x is free
 inline int sign(const negator<double>&      x) {return -sign(-x);}
 #ifdef SimTK_REAL_IS_ADOUBLE
     inline int sign(const adouble&          x)
-        {return -sign(NTraits<adouble>::value(-x)); }
+        {return sign(NTraits<adouble>::value(x)); }
     inline int sign(const negator<adouble>& x)
         {return -sign(NTraits<adouble>::value(-x)); }
 #endif
@@ -888,6 +888,18 @@ stepAny() methods cost 6 extra flops (provided you do some precalculation;
 see the stepAny() documentation). **/
 /*@{*/
 
+/** This alias allows us to enable certain functions for only floating
+point types (float, double, and maybe ADOL-C's adouble). */
+// https://stackoverflow.com/questions/31596565/template-function-that-matches-only-certain-types
+template <typename T>
+using enable_if_floating_point = typename std::enable_if<
+           std::is_same<T, float>::value
+        || std::is_same<T, double>::value
+#ifdef SimTK_REAL_IS_ADOUBLE
+        || std::is_same<T, adouble>::value
+#endif
+        >::type;
+
 /** Interpolate smoothly from 0 up to 1 as the input argument goes from 0 to 1,
 with first and second derivatives zero at either end of the interval.
 
@@ -902,7 +914,7 @@ scale this function to produce arbitrary steps.
 This function is overloaded for all the floating point precisions.
 Cost is 7 flops.
 @see stepDown(), stepAny() **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T stepUp(T x)
 {   assert(0 <= x && x <= 1);
     return x*x*x*(10+x*(6*x-15)); }  //10x^3-15x^4+6x^5
@@ -921,7 +933,7 @@ scale this function to produce arbitrary steps.
 This function is overloaded for all the floating point precisions.
 Cost is 8 flops.
 @see stepUp(), stepAny() **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T stepDown(T x) {return 1.0 -stepUp(x);}
 
 /** Interpolate smoothly from y0 to y1 as the input argument goes from x0 to x1,
@@ -998,7 +1010,7 @@ from 0 to 1:
 It would be extremely rare for these few flops to matter at all; you should
 almost always choose based on what looks better and/or is less error prone
 instead. **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T stepAny(T y0, T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj
@@ -1009,7 +1021,7 @@ T stepAny(T y0, T yRange, T x0, T oneOverXRange, T x)
 /** First derivative of stepUp(): d/dx stepUp(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return First derivative of stepUp() at x. **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T dstepUp(T x) {
     assert(0 <= x && x <= 1);
     const T xxm1=x*(x-1);
@@ -1019,13 +1031,13 @@ T dstepUp(T x) {
 /** First derivative of stepDown(): d/dx stepDown(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return First derivative of stepDown() at x. **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T dstepDown(T x) {return -dstepUp(x);}
 
 /** First derivative of stepAny(): d/dx stepAny(x). 
 See stepAny() for parameter documentation. 
 @return First derivative of stepAny() at x. **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T dstepAny(T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj
@@ -1036,7 +1048,7 @@ T dstepAny(T yRange, T x0, T oneOverXRange, T x)
 /** Second derivative of stepUp(): d^2/dx^2 stepUp(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return Second derivative of stepUp() at x. **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T d2stepUp(T x) {
     assert(0 <= x && x <= 1);
     return 60*x*(1+x*(2*x-3));  //60x-180x^2+120x^3
@@ -1045,13 +1057,13 @@ T d2stepUp(T x) {
 /** Second derivative of stepDown(): d^2/dx^2 stepDown(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return Second derivative of stepDown() at x. **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T d2stepDown(T x) {return -d2stepUp(x);}
 
 /** Second derivative of stepAny(): d^2/dx^2 stepAny(x). 
 See stepAny() for parameter documentation. 
 @return Second derivative of stepAny() at x. **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T d2stepAny(T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj
@@ -1062,7 +1074,7 @@ T d2stepAny(T yRange, T x0, T oneOverXRange, T x)
 /** Third derivative of stepUp(): d^3/dx^3 stepUp(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return Third derivative of stepUp() at x. **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T d3stepUp(T x) {
     assert(0 <= x && x <= 1);
     return 60+360*x*(x-1);      //60-360*x+360*x^2
@@ -1071,13 +1083,13 @@ T d3stepUp(T x) {
 /** Third derivative of stepDown(): d^3/dx^3 stepDown(x). 
 @param[in] x    Control parameter in range [0,1]. 
 @return Third derivative of stepDown() at x. **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T d3stepDown(T x) {return -d3stepUp(x);}
 
 /** Third derivative of stepAny(): d^3/dx^3 stepAny(x).
 See stepAny() for parameter documentation. 
 @return Third derivative of stepAny() at x. **/
-template <typename T>
+template <typename T, typename = enable_if_floating_point<T>>
 T d3stepAny(T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj

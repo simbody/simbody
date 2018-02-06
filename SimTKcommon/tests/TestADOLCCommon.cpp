@@ -387,6 +387,8 @@ void testScalar() {
     myfree(J); // clean memory
     // The following tests ensure a consistent behavior between double and
     // adouble
+    int ai = 2;
+    int bi = -2;
     // clampInPlace()
     {   double h = 4;
         adouble hd = 4;
@@ -396,13 +398,13 @@ void testScalar() {
         SimTK_TEST(clampInPlace(b,h,a)==clampInPlace(bd,hd,ad) && hd==a); }
     {   double h = 4;
         adouble hd = 4;
-        SimTK_TEST(clampInPlace(-2,h,2)==clampInPlace(-2,hd,2) && hd==2); }
+        SimTK_TEST(clampInPlace(bi,h,ai)==clampInPlace(bi,hd,ai) && hd==ai); }
     {   double h = 4;
         adouble hd = 4;
-        SimTK_TEST(clampInPlace(-2,h,a)==clampInPlace(-2,hd,a) && hd==a); }
+        SimTK_TEST(clampInPlace(bi,h,a)==clampInPlace(bi,hd,a) && hd==a); }
     {   double h = 4;
         adouble hd = 4;
-        SimTK_TEST(clampInPlace(b,h,2)==clampInPlace(b,hd,2) && hd==2); }
+        SimTK_TEST(clampInPlace(b,h,ai)==clampInPlace(b,hd,ai) && hd==ai); }
     {   double nh = -4;
         adouble nhd = -4;
         SimTK_TEST(clampInPlace(b,nh,a)==clampInPlace(b,nhd,a) && nhd==b); }
@@ -411,13 +413,13 @@ void testScalar() {
         SimTK_TEST(clampInPlace(b,nh,a)==clampInPlace(bd,nhd,ad) && nhd==b); }
     {   double nh = -4;
         adouble nhd = -4;
-        SimTK_TEST(clampInPlace(-2,nh,2)==clampInPlace(-2,nhd,2) && nhd==-2); }
+        SimTK_TEST(clampInPlace(bi,nh,ai)==clampInPlace(bi,nhd,ai)&&nhd==bi); }
     {   double nh = -4;
         adouble nhd = -4;
-        SimTK_TEST(clampInPlace(-2,nh,a)==clampInPlace(-2,nhd,a) && nhd==b); }
+        SimTK_TEST(clampInPlace(bi,nh,a)==clampInPlace(bi,nhd,a) && nhd==b); }
     {   double nh = -4;
         adouble nhd = -4;
-        SimTK_TEST(clampInPlace(b,nh,2) == clampInPlace(b,nhd,2) && nhd==-2); }
+        SimTK_TEST(clampInPlace(b,nh,ai)==clampInPlace(b,nhd,ai) && nhd==bi); }
     {   double h = 4;
         adouble hd = 4;
         auto nh = reinterpret_cast<const negator<double>&>(h);
@@ -437,13 +439,13 @@ void testScalar() {
         SimTK_TEST(clamp(b,h,a) == clamp(bd,hd,ad) && hd==4); }
     {   double h = 4;
         adouble hd = 4;
-        SimTK_TEST(clamp(-2,h,2) == clamp(-2,hd,2) && hd==4); }
+        SimTK_TEST(clamp(bi,h,ai) == clamp(bi,hd,ai) && hd==4); }
     {   double h = 4;
         adouble hd = 4;
-        SimTK_TEST(clamp(-2,h,a) == clamp(-2,hd,a) && hd==4); }
+        SimTK_TEST(clamp(bi,h,a) == clamp(bi,hd,a) && hd==4); }
     {   double h = 4;
         adouble hd = 4;
-        SimTK_TEST(clamp(b,h,2) == clamp(b,hd,2) && hd==4); }
+        SimTK_TEST(clamp(b,h,ai) == clamp(b,hd,ai) && hd==4); }
     {   double nh = -4;
         adouble nhd = -4;
         SimTK_TEST(clamp(b,nh,a) == clamp(b,nhd,a) && nhd==-4); }
@@ -452,13 +454,13 @@ void testScalar() {
         SimTK_TEST(clamp(b,nh,a) == clamp(bd,nhd,ad) && nhd==-4); }
     {   double nh = -4;
         adouble nhd = -4;
-        SimTK_TEST(clamp(-2,nh,2) == clamp(-2,nhd,2) && nhd==-4); }
+        SimTK_TEST(clamp(bi,nh,ai) == clamp(bi,nhd,ai) && nhd==-4); }
     {   double nh = -4;
         adouble nhd = -4;
-        SimTK_TEST(clamp(-2,nh,a) == clamp(-2,nhd,a) && nhd==-4); }
+        SimTK_TEST(clamp(bi,nh,a) == clamp(bi,nhd,a) && nhd==-4); }
     {   double nh = -4;
         adouble nhd = -4;
-        SimTK_TEST(clamp(b,nh,2) == clamp(b,nhd,2) && nhd==-4); }
+        SimTK_TEST(clamp(b,nh,ai) == clamp(b,nhd,ai) && nhd==-4); }
     {   double h = 4;
         adouble hd = 4;
         auto nh = reinterpret_cast<const negator<double>&>(h);
