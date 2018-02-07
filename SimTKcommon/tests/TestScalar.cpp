@@ -689,12 +689,12 @@ void testStep() {
 
     // y = stepAny(y0,yrange,x0,1/xrange, x)
     // y goes from -1 to 1 as x goes from 0 to 1, exact arithmetic.
-    SimTK_TEST(stepAny(-1,2,0,1,0.) == -1);
-    SimTK_TEST(stepAny(-1,2,0,1,.5) == 0);
-    SimTK_TEST(stepAny(-1,2,0,1,1.) == 1);
-    SimTK_TEST(stepAny(-1,2,0,1,0.f) == -1);
-    SimTK_TEST(stepAny(-1,2,0,1,.5f) == 0);
-    SimTK_TEST(stepAny(-1,2,0,1,1.f) == 1);
+    SimTK_TEST(stepAny(-1.,2.,0.,1.,0.) == -1);
+    SimTK_TEST(stepAny(-1.,2.,0.,1.,.5) == 0);
+    SimTK_TEST(stepAny(-1.,2.,0.,1.,1.) == 1);
+    SimTK_TEST(stepAny(-1.f,2.f,0.f,1.f,0.f) == -1);
+    SimTK_TEST(stepAny(-1.f,2.f,0.f,1.f,.5f) == 0);
+    SimTK_TEST(stepAny(-1.f,2.f,0.f,1.f,1.f) == 1);
 
     // y goes from -7 down to -14 as x goes from -3.1 up to +429.3.
     const double x0=-3.1, x1=429.3, y0=-7., y1=-14.;

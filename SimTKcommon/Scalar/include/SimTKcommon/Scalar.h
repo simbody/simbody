@@ -911,7 +911,7 @@ interval.
 See the documentation for stepAny() for a discussion about how to shift and
 scale this function to produce arbitrary steps.
 
-This function is overloaded for all the floating point precisions.
+This function template works for float, double, and adouble (if using ADOL-C).
 Cost is 7 flops.
 @see stepDown(), stepAny() **/
 template <typename T, typename = enable_if_floating_point<T>>
@@ -930,11 +930,11 @@ interval.
 See the documentation for stepAny() for a discussion about how to shift and
 scale this function to produce arbitrary steps.
 
-This function is overloaded for all the floating point precisions.
+This function template works for float, double, and adouble (if using ADOL-C).
 Cost is 8 flops.
 @see stepUp(), stepAny() **/
 template <typename T, typename = enable_if_floating_point<T>>
-T stepDown(T x) {return 1.0 -stepUp(x);}
+T stepDown(T x) {return (T)1.0 -stepUp(x);}
 
 /** Interpolate smoothly from y0 to y1 as the input argument goes from x0 to x1,
 with first and second derivatives zero at either end of the interval.
@@ -1015,7 +1015,7 @@ T stepAny(T y0, T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj
            && xadj <= 1 + NTraits<T>::getSignificant());
-    clampInPlace(0.0,xadj,1.0);
+    clampInPlace((T)0.0,xadj,(T)1.0);
     return y0 + yRange*stepUp(xadj); }
 
 /** First derivative of stepUp(): d/dx stepUp(x). 
@@ -1042,7 +1042,7 @@ T dstepAny(T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj
            && xadj <= 1 + NTraits<T>::getSignificant());
-    clampInPlace(0.0,xadj,1.0);
+    clampInPlace((T)0.0,xadj,(T)1.0);
     return yRange*oneOverXRange*dstepUp(xadj); }
 
 /** Second derivative of stepUp(): d^2/dx^2 stepUp(x). 
@@ -1068,7 +1068,7 @@ T d2stepAny(T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj
            && xadj <= 1 + NTraits<T>::getSignificant());
-    clampInPlace(0.0,xadj,1.0);
+    clampInPlace((T)0.0,xadj,(T)1.0);
     return yRange*square(oneOverXRange)*d2stepUp(xadj); }
 
 /** Third derivative of stepUp(): d^3/dx^3 stepUp(x). 
@@ -1094,7 +1094,7 @@ T d3stepAny(T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj
            && xadj <= 1 + NTraits<T>::getSignificant());
-    clampInPlace(0.0,xadj,1.0);
+    clampInPlace((T)0.0,xadj,(T)1.0);
     return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
 
         // int converts to double; only supplied for stepUp(), stepDown()
