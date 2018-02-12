@@ -1530,11 +1530,7 @@ operator-(const double& l, const Mat<M,N,E,CS,RS>& r)
     typename Mat<M,N,E,CS,RS>::template Result<adouble>::Sub
     operator-(const Mat<M,N,E,CS,RS>& l, const adouble& r)
     { return Mat<M,N,E,CS,RS>::template Result<adouble>::SubOp::perform(l,r); }
-    template <int M, int N, class E, int CS, int RS> inline
-    typename CNT<adouble>::template Result<Mat<M,N,E,CS,RS> >::Sub
-    operator-(const adouble& l, const Mat<M,N,E,CS,RS>& r)
-    { return CNT<adouble>::template
-        Result<Mat<M,N,E,CS,RS> >::SubOp::perform(l,r); }
+    // The operation a-m where a is an adouble and m is a Mat is not supported.
 #endif
 
 // m = m-int, int-m // just convert int to m's precision float

@@ -1193,10 +1193,7 @@ operator/(const double& l, const Vec<M,E,S>& r)
     typename Vec<M,E,S>::template Result<adouble>::Dvd
     operator/(const Vec<M,E,S>& l, const adouble& r)
     { return Vec<M,E,S>::template Result<adouble>::DvdOp::perform(l,r); }
-    template <int M, class E, int S> inline
-    typename CNT<adouble>::template Result<Vec<M,E,S> >::Dvd
-    operator/(const adouble& l, const Vec<M,E,S>& r)
-    { return CNT<adouble>::template Result<Vec<M,E,S> >::DvdOp::perform(l,r); }
+    // The operation a/v where a is an adouble and v is a Vec is not supported.
 #endif
 
 // v = v/int, int/v -- just convert int to v's precision float
@@ -1331,10 +1328,7 @@ operator-(const double& l, const Vec<M,E,S>& r)
     typename Vec<M,E,S>::template Result<adouble>::Sub
     operator-(const Vec<M,E,S>& l, const adouble& r)
     { return Vec<M,E,S>::template Result<adouble>::SubOp::perform(l,r); }
-    template <int M, class E, int S> inline
-    typename CNT<adouble>::template Result<Vec<M,E,S> >::Sub
-    operator-(const adouble& l, const Vec<M,E,S>& r)
-    { return CNT<adouble>::template Result<Vec<M,E,S> >::SubOp::perform(l,r); }
+    // The operation a-v where a is an adouble and v is a Vec is not supported.
 #endif
 
 // v = v-int, int-v // just convert int to v's precision float
