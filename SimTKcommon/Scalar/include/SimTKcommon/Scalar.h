@@ -687,6 +687,7 @@ inline negator<double>& clampInPlace(double low, negator<double>& v, double high
                                           double high)
     {   assert(low<=high); if (NTraits<adouble>::value(v)<low) v=low;
         else if (NTraits<adouble>::value(v)>high) v=high; return v; }
+    //{ return clampInPlace(low, (adouble)v, high);}
     /** @copydoc SimTK::clampInPlace(double,double&,double)
 
     ADOL-C: the user will not be able to tape when using this function. */
@@ -694,6 +695,7 @@ inline negator<double>& clampInPlace(double low, negator<double>& v, double high
                                           adouble high)
     {   assert(low<=high); if (NTraits<adouble>::value(v)<low) v=low;
         else if (NTraits<adouble>::value(v)>high) v=high; return v; }
+    //{ return clampInPlace(low, (adouble)v, high);}
 #endif
 
 
