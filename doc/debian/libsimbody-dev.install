@@ -2,3 +2,4 @@ usr/include/*
 usr/lib/*/*.so
 usr/lib/*/cmake/*
 usr/lib/*/pkgconfig/*
+usr/share/doc/simbody/examples/*
