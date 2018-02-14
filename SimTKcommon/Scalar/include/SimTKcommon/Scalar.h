@@ -559,18 +559,16 @@ just two flops. **/
 inline double& clampInPlace(double low, double& v, double high) 
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 #ifdef SimTK_REAL_IS_ADOUBLE
-    /** @copydoc SimTK::clampInPlace(double,double&,double)
-
-    ADOL-C: the clamping is not done in-place for adoubles to avoid using if
-    statements and allow taping. */
+    // Memory is allocated when using ADOL-C to avoid using if statements and
+    // allow taping.
+    /** @copydoc SimTK::clampInPlace(double,double&,double) */
     inline adouble& clampInPlace(double low, adouble& v, double high)
     {   assert(low<=high);
         v = NTraits<adouble>::min(NTraits<adouble>::max(v,low),high);
         return v; }
-    /** @copydoc SimTK::clampInPlace(double,double&,double)
-
-    ADOL-C: the clamping is not done in-place for adoubles to avoid using if
-    statements and allow taping. */
+    // Memory is allocated when using ADOL-C to avoid using if statements and
+    // allow taping.
+    /** @copydoc SimTK::clampInPlace(double,double&,double) */
     inline adouble& clampInPlace(adouble low, adouble& v, adouble high)
     {   assert(low<=high);
         v = NTraits<adouble>::min(NTraits<adouble>::max(v,low),high);
@@ -589,10 +587,7 @@ inline double& clampInPlace(int low, double& v, int high)
 {   return clampInPlace((double)low,v,(double)high); }
 #ifdef SimTK_REAL_IS_ADOUBLE
     /** @copydoc SimTK::clampInPlace(double,double&,double)
-    Takes integer bounds to avoid need for explicit casts.
-
-    ADOL-C: the clamping is not done in-place for adoubles to avoid using if
-    statements and allow taping. */
+    Takes integer bounds to avoid need for explicit casts. */
     inline adouble& clampInPlace(int low, adouble& v, int high)
     {   return clampInPlace((double)low,v,(double)high); }
 #endif
@@ -607,10 +602,7 @@ inline double& clampInPlace(int low, double& v, double high)
 {   return clampInPlace((double)low,v,high); }
 #ifdef SimTK_REAL_IS_ADOUBLE
     /** @copydoc SimTK::clampInPlace(double,double&,double)
-    Takes an integer bound to avoid need for explicit casts.
-
-    ADOL-C: the clamping is not done in-place for adoubles to avoid using if
-    statements and allow taping. */
+    Takes an integer bound to avoid need for explicit casts. */
     inline adouble& clampInPlace(int low, adouble& v, double high)
     {   return clampInPlace((double)low,v,high); }
 #endif
@@ -625,10 +617,7 @@ inline double& clampInPlace(double low, double& v, int high)
 {   return clampInPlace(low,v,(double)high); }
 #ifdef SimTK_REAL_IS_ADOUBLE
     /** @copydoc SimTK::clampInPlace(double,double&,double)
-    Takes an integer bound to avoid need for explicit casts.
-
-    ADOL-C: the clamping is not done in-place for adoubles to avoid using if
-    statements and allow taping. */
+    Takes an integer bound to avoid need for explicit casts. */
     inline adouble& clampInPlace(double low, adouble& v, int high)
     {   return clampInPlace(low,v,(double)high); }
 #endif
@@ -680,24 +669,23 @@ inline negator<float>& clampInPlace(float low, negator<float>& v, float high)
 inline negator<double>& clampInPlace(double low, negator<double>& v, double high) 
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 #ifdef SimTK_REAL_IS_ADOUBLE
-    /** @copydoc SimTK::clampInPlace(double,double&,double)
-
-    ADOL-C: the user will not be able to tape when using this function. */
+    // Memory is allocated when using ADOL-C to avoid using if statements and
+    // allow taping.
+    /** @copydoc SimTK::clampInPlace(double,double&,double) */
     inline negator<adouble>& clampInPlace(double low, negator<adouble>& v,
                                           double high)
-    {   assert(low<=high); if (NTraits<adouble>::value(v)<low) v=low;
-        else if (NTraits<adouble>::value(v)>high) v=high; return v; }
-    //{ return clampInPlace(low, (adouble)v, high);}
-    /** @copydoc SimTK::clampInPlace(double,double&,double)
-
-    ADOL-C: the user will not be able to tape when using this function. */
+    {   adouble vad = v;
+        v = clampInPlace(low,vad,high);
+        return v; }
+    // Memory is allocated when using ADOL-C to avoid using if statements and
+    // allow taping.
+    /** @copydoc SimTK::clampInPlace(double,double&,double) */
     inline negator<adouble>& clampInPlace(adouble low, negator<adouble>& v,
                                           adouble high)
-    {   assert(low<=high); if (NTraits<adouble>::value(v)<low) v=low;
-        else if (NTraits<adouble>::value(v)>high) v=high; return v; }
-    //{ return clampInPlace(low, (adouble)v, high);}
+    {   adouble vad = v;
+        v = clampInPlace(low,vad,high);
+        return v; }
 #endif
-
 
 
 /** If v is in range low <= v <= high then return v, otherwise return
@@ -938,6 +926,19 @@ Cost is 8 flops.
 template <typename T, typename = enable_if_floating_point<T>>
 T stepDown(T x) {return (T)1.0 -stepUp(x);}
 
+// We use the templated function stepAnyImpl() to share the implementations of
+// stepAny() with floating point types (double, float, and adouble (if using
+// ADOL-C). This allows maintaining the ability to use integers as bounds.
+// See stepAny() for documentation.
+template <typename T, typename = enable_if_floating_point<T>>
+T stepAnyImpl(T y0, T yRange, T x0, T oneOverXRange, T x)
+{
+    T xadj = (x - x0)*oneOverXRange;
+    assert(-NTraits<T>::getSignificant() <= xadj
+        && xadj <= 1 + NTraits<T>::getSignificant());
+    clampInPlace((T)0.0, xadj, (T)1.0);
+    return y0 + yRange*stepUp(xadj);
+}
 /** Interpolate smoothly from y0 to y1 as the input argument goes from x0 to x1,
 with first and second derivatives zero at either end of the interval.
 
@@ -1012,13 +1013,25 @@ from 0 to 1:
 It would be extremely rare for these few flops to matter at all; you should
 almost always choose based on what looks better and/or is less error prone
 instead. **/
-template <typename T, typename = enable_if_floating_point<T>>
-T stepAny(T y0, T yRange, T x0, T oneOverXRange, T x)
-{   T xadj = (x-x0)*oneOverXRange;
-    assert(-NTraits<T>::getSignificant() <= xadj
-           && xadj <= 1 + NTraits<T>::getSignificant());
-    clampInPlace((T)0.0,xadj,(T)1.0);
-    return y0 + yRange*stepUp(xadj); }
+inline double stepAny(double y0, double yRange,
+                      double x0, double oneOverXRange,
+                      double x) {
+    return stepAnyImpl<double>(y0, yRange, x0, oneOverXRange, x);
+}
+/** @copydoc SimTK::stepAny(double,double,double,double,double) **/
+inline float stepAny(float y0, float yRange,
+                     float x0, float oneOverXRange,
+                     float x) {
+    return stepAnyImpl<float>(y0, yRange, x0, oneOverXRange, x);
+}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    /** @copydoc SimTK::stepAny(double,double,double,double,double) **/
+    inline adouble stepAny(adouble y0, adouble yRange,
+                           adouble x0, adouble oneOverXRange,
+                           adouble x) {
+        return stepAnyImpl<adouble>(y0, yRange, x0, oneOverXRange, x);
+    }
+#endif
 
 /** First derivative of stepUp(): d/dx stepUp(x). 
 @param[in] x    Control parameter in range [0,1]. 
@@ -1036,16 +1049,39 @@ T dstepUp(T x) {
 template <typename T, typename = enable_if_floating_point<T>>
 T dstepDown(T x) {return -dstepUp(x);}
 
-/** First derivative of stepAny(): d/dx stepAny(x). 
-See stepAny() for parameter documentation. 
-@return First derivative of stepAny() at x. **/
+// We use the templated function dstepAnyImpl() to share the implementations of
+// dstepAny() with floating point types (double, float, and adouble (if using
+// ADOL-C). This allows maintaining the ability to use integers as bounds.
+// See dstepAny() for documentation.
 template <typename T, typename = enable_if_floating_point<T>>
-T dstepAny(T yRange, T x0, T oneOverXRange, T x)
+T dstepAnyImpl(T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj
            && xadj <= 1 + NTraits<T>::getSignificant());
     clampInPlace((T)0.0,xadj,(T)1.0);
     return yRange*oneOverXRange*dstepUp(xadj); }
+/** First derivative of stepAny(): d/dx stepAny(x).
+See stepAny() for parameter documentation.
+@return First derivative of stepAny() at x. **/
+inline double dstepAny(double yRange,
+                       double x0, double oneOverXRange,
+                       double x) {
+    return dstepAnyImpl<double>(yRange, x0, oneOverXRange, x);
+}
+/** @copydoc SimTK::dstepAny(double,double,double,double) **/
+inline float dstepAny(float yRange,
+                      float x0, float oneOverXRange,
+                      float x) {
+    return dstepAnyImpl<float>(yRange, x0, oneOverXRange, x);
+}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    /** @copydoc SimTK::dstepAny(double,double,double,double) **/
+    inline adouble dstepAny(adouble yRange,
+                            adouble x0, adouble oneOverXRange,
+                            adouble x) {
+        return dstepAnyImpl<adouble>(yRange, x0, oneOverXRange, x);
+    }
+#endif
 
 /** Second derivative of stepUp(): d^2/dx^2 stepUp(x). 
 @param[in] x    Control parameter in range [0,1]. 
@@ -1062,16 +1098,40 @@ T d2stepUp(T x) {
 template <typename T, typename = enable_if_floating_point<T>>
 T d2stepDown(T x) {return -d2stepUp(x);}
 
-/** Second derivative of stepAny(): d^2/dx^2 stepAny(x). 
-See stepAny() for parameter documentation. 
-@return Second derivative of stepAny() at x. **/
+// We use the templated function d2stepAnyImpl() to share the implementations
+// of d2stepAny() with floating point types (double, float, and adouble (if
+// using ADOL-C). This allows maintaining the ability to use integers as
+// bounds.
+// See d2stepAny() for documentation.
 template <typename T, typename = enable_if_floating_point<T>>
-T d2stepAny(T yRange, T x0, T oneOverXRange, T x)
+T d2stepAnyImpl(T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj
            && xadj <= 1 + NTraits<T>::getSignificant());
     clampInPlace((T)0.0,xadj,(T)1.0);
     return yRange*square(oneOverXRange)*d2stepUp(xadj); }
+/** Second derivative of stepAny(): d^2/dx^2 stepAny(x).
+See stepAny() for parameter documentation.
+@return Second derivative of stepAny() at x. **/
+inline double d2stepAny(double yRange,
+                        double x0, double oneOverXRange,
+                        double x) {
+    return d2stepAnyImpl<double>(yRange, x0, oneOverXRange, x);
+}
+/** @copydoc SimTK::d2stepAny(double,double,double,double) **/
+inline float d2stepAny(float yRange,
+                       float x0, float oneOverXRange,
+                       float x) {
+    return d2stepAnyImpl<float>(yRange, x0, oneOverXRange, x);
+}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    /** @copydoc SimTK::d2stepAny(double,double,double,double) **/
+    inline adouble d2stepAny(adouble yRange,
+                             adouble x0, adouble oneOverXRange,
+                             adouble x) {
+        return d2stepAnyImpl<adouble>(yRange, x0, oneOverXRange, x);
+    }
+#endif
 
 /** Third derivative of stepUp(): d^3/dx^3 stepUp(x). 
 @param[in] x    Control parameter in range [0,1]. 
@@ -1088,16 +1148,40 @@ T d3stepUp(T x) {
 template <typename T, typename = enable_if_floating_point<T>>
 T d3stepDown(T x) {return -d3stepUp(x);}
 
-/** Third derivative of stepAny(): d^3/dx^3 stepAny(x).
-See stepAny() for parameter documentation. 
-@return Third derivative of stepAny() at x. **/
+// We use the templated function d3stepAnyImpl() to share the implementations
+// of d3stepAny() with floating point types (double, float, and adouble (if
+// using ADOL-C). This allows maintaining the ability to use integers as
+// bounds.
+// See d3stepAny() for documentation.
 template <typename T, typename = enable_if_floating_point<T>>
-T d3stepAny(T yRange, T x0, T oneOverXRange, T x)
+T d3stepAnyImpl(T yRange, T x0, T oneOverXRange, T x)
 {   T xadj = (x-x0)*oneOverXRange;
     assert(-NTraits<T>::getSignificant() <= xadj
            && xadj <= 1 + NTraits<T>::getSignificant());
     clampInPlace((T)0.0,xadj,(T)1.0);
     return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
+/** Third derivative of stepAny(): d^3/dx^3 stepAny(x).
+See stepAny() for parameter documentation.
+@return Third derivative of stepAny() at x. **/
+inline double d3stepAny(double yRange,
+                        double x0, double oneOverXRange,
+                        double x) {
+    return d3stepAnyImpl<double>(yRange, x0, oneOverXRange, x);
+}
+/** @copydoc SimTK::d3stepAny(double,double,double,double) **/
+inline float d3stepAny(float yRange,
+                       float x0, float oneOverXRange,
+                       float x) {
+    return d3stepAnyImpl<float>(yRange, x0, oneOverXRange, x);
+}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    /** @copydoc SimTK::d3stepAny(double,double,double,double) **/
+    inline adouble d3stepAny(adouble yRange,
+                             adouble x0, adouble oneOverXRange,
+                             adouble x) {
+        return d3stepAnyImpl<adouble>(yRange, x0, oneOverXRange, x);
+    }
+#endif
 
         // int converts to double; only supplied for stepUp(), stepDown()
 /** @copydoc SimTK::stepUp(double)

@@ -392,7 +392,7 @@ public:
         if ((x-m_x0)*m_sign <= 0) return m_y0;
         if ((x-m_x1)*m_sign >= 0) return m_y1;
         // f goes from 0 to 1 as x goes from x0 to x1.
-        const Real f = stepAny((Real)0,(Real)1,m_x0,m_ooxr, x);
+        const Real f = stepAny(0,1,m_x0,m_ooxr, x);
         return m_y0 + f*m_yr;
     }
 
@@ -411,9 +411,9 @@ public:
         if ((x-m_x0)*m_sign <= 0) return m_zero;
         if ((x-m_x1)*m_sign >= 0) return m_zero;
         switch(derivOrder) {
-          case 1: return dstepAny ((Real)1,m_x0,m_ooxr, x) * m_yr;
-          case 2: return d2stepAny((Real)1,m_x0,m_ooxr, x) * m_yr;
-          case 3: return d3stepAny((Real)1,m_x0,m_ooxr, x) * m_yr;
+          case 1: return dstepAny (1,m_x0,m_ooxr, x) * m_yr;
+          case 2: return d2stepAny(1,m_x0,m_ooxr, x) * m_yr;
+          case 3: return d3stepAny(1,m_x0,m_ooxr, x) * m_yr;
           default: assert(!"impossible derivOrder");
         }
         return NaN*m_yr; /*NOTREACHED*/
