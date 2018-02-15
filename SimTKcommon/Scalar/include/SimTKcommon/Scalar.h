@@ -928,7 +928,7 @@ T stepDown(T x) {return (T)1.0 -stepUp(x);}
 
 // We use the templated function stepAnyImpl() to share the implementations of
 // stepAny() with floating point types (double, float, and adouble (if using
-// ADOL-C). This allows maintaining the ability to use integers as bounds.
+// ADOL-C)). This allows maintaining the ability to use integers as bounds.
 // See stepAny() for documentation.
 template <typename T, typename = enable_if_floating_point<T>>
 T stepAnyImpl(T y0, T yRange, T x0, T oneOverXRange, T x)
@@ -1051,7 +1051,7 @@ T dstepDown(T x) {return -dstepUp(x);}
 
 // We use the templated function dstepAnyImpl() to share the implementations of
 // dstepAny() with floating point types (double, float, and adouble (if using
-// ADOL-C). This allows maintaining the ability to use integers as bounds.
+// ADOL-C)). This allows maintaining the ability to use integers as bounds.
 // See dstepAny() for documentation.
 template <typename T, typename = enable_if_floating_point<T>>
 T dstepAnyImpl(T yRange, T x0, T oneOverXRange, T x)
@@ -1100,7 +1100,7 @@ T d2stepDown(T x) {return -d2stepUp(x);}
 
 // We use the templated function d2stepAnyImpl() to share the implementations
 // of d2stepAny() with floating point types (double, float, and adouble (if
-// using ADOL-C). This allows maintaining the ability to use integers as
+// using ADOL-C)). This allows maintaining the ability to use integers as
 // bounds.
 // See d2stepAny() for documentation.
 template <typename T, typename = enable_if_floating_point<T>>
@@ -1150,7 +1150,7 @@ T d3stepDown(T x) {return -d3stepUp(x);}
 
 // We use the templated function d3stepAnyImpl() to share the implementations
 // of d3stepAny() with floating point types (double, float, and adouble (if
-// using ADOL-C). This allows maintaining the ability to use integers as
+// using ADOL-C)). This allows maintaining the ability to use integers as
 // bounds.
 // See d3stepAny() for documentation.
 template <typename T, typename = enable_if_floating_point<T>>
