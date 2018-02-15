@@ -1311,6 +1311,16 @@ template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<double>::Mul
 operator*(const double& l, const Mat<M,N,E,CS,RS>& r) {return r*l;}
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int M, int N, class E, int CS, int RS> inline
+    typename Mat<M,N,E,CS,RS>::template Result<adouble>::Mul
+    operator*(const Mat<M,N,E,CS,RS>& l, const adouble& r)
+    { return Mat<M,N,E,CS,RS>::template Result<adouble>::MulOp::perform(l,r); }
+    template <int M, int N, class E, int CS, int RS> inline
+    typename Mat<M,N,E,CS,RS>::template Result<adouble>::Mul
+    operator*(const adouble& l, const Mat<M,N,E,CS,RS>& r) {return r*l;}
+#endif
+
 // m = m*int, int*m -- just convert int to m's precision float
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<typename CNT<E>::Precision>::Mul
@@ -1373,6 +1383,17 @@ template <int M, int N, class E, int CS, int RS> inline
 typename CNT<double>::template Result<Mat<M,N,E,CS,RS> >::Dvd
 operator/(const double& l, const Mat<M,N,E,CS,RS>& r)
 {   return l * r.invert(); }
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int M, int N, class E, int CS, int RS> inline
+    typename Mat<M,N,E,CS,RS>::template Result<adouble>::Dvd
+    operator/(const Mat<M,N,E,CS,RS>& l, const adouble& r)
+    { return Mat<M,N,E,CS,RS>::template Result<adouble>::DvdOp::perform(l,r); }
+    template <int M, int N, class E, int CS, int RS> inline
+    typename CNT<adouble>::template Result<Mat<M,N,E,CS,RS> >::Dvd
+    operator/(const adouble& l, const Mat<M,N,E,CS,RS>& r)
+    { return l * r.invert(); }
+#endif
 
 // m = m/int, int/m -- just convert int to m's precision float
 template <int M, int N, class E, int CS, int RS> inline
@@ -1438,6 +1459,16 @@ template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<double>::Add
 operator+(const double& l, const Mat<M,N,E,CS,RS>& r) {return r+l;}
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int M, int N, class E, int CS, int RS> inline
+    typename Mat<M,N,E,CS,RS>::template Result<adouble>::Add
+    operator+(const Mat<M,N,E,CS,RS>& l, const adouble& r)
+    { return Mat<M,N,E,CS,RS>::template Result<adouble>::AddOp::perform(l,r); }
+    template <int M, int N, class E, int CS, int RS> inline
+    typename Mat<M,N,E,CS,RS>::template Result<adouble>::Add
+    operator+(const adouble& l, const Mat<M,N,E,CS,RS>& r) {return r+l;}
+#endif
+
 // m = m+int, int+m -- just convert int to m's precision float
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<typename CNT<E>::Precision>::Add
@@ -1493,6 +1524,14 @@ template <int M, int N, class E, int CS, int RS> inline
 typename CNT<double>::template Result<Mat<M,N,E,CS,RS> >::Sub
 operator-(const double& l, const Mat<M,N,E,CS,RS>& r)
   { return CNT<double>::template Result<Mat<M,N,E,CS,RS> >::SubOp::perform(l,r); }
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int M, int N, class E, int CS, int RS> inline
+    typename Mat<M,N,E,CS,RS>::template Result<adouble>::Sub
+    operator-(const Mat<M,N,E,CS,RS>& l, const adouble& r)
+    { return Mat<M,N,E,CS,RS>::template Result<adouble>::SubOp::perform(l,r); }
+    // The operation a-m where a is an adouble and m is a Mat is not supported.
+#endif
 
 // m = m-int, int-m // just convert int to m's precision float
 template <int M, int N, class E, int CS, int RS> inline

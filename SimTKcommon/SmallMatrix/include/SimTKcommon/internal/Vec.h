@@ -1119,6 +1119,16 @@ template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<double>::Mul
 operator*(const double& l, const Vec<M,E,S>& r) {return r*l;}
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int M, class E, int S> inline
+    typename Vec<M,E,S>::template Result<adouble>::Mul
+    operator*(const Vec<M,E,S>& l, const adouble& r)
+    { return Vec<M,E,S>::template Result<adouble>::MulOp::perform(l,r); }
+    template <int M, class E, int S> inline
+    typename Vec<M,E,S>::template Result<adouble>::Mul
+    operator*(const adouble& l, const Vec<M,E,S>& r) {return r*l;}
+#endif
+
 // v = v*int, int*v -- just convert int to v's precision float
 template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<typename CNT<E>::Precision>::Mul
@@ -1177,6 +1187,14 @@ template <int M, class E, int S> inline
 typename CNT<double>::template Result<Vec<M,E,S> >::Dvd
 operator/(const double& l, const Vec<M,E,S>& r)
   { return CNT<double>::template Result<Vec<M,E,S> >::DvdOp::perform(l,r); }
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int M, class E, int S> inline
+    typename Vec<M,E,S>::template Result<adouble>::Dvd
+    operator/(const Vec<M,E,S>& l, const adouble& r)
+    { return Vec<M,E,S>::template Result<adouble>::DvdOp::perform(l,r); }
+    // The operation a/v where a is an adouble and v is a Vec is not supported.
+#endif
 
 // v = v/int, int/v -- just convert int to v's precision float
 template <int M, class E, int S> inline
@@ -1239,6 +1257,16 @@ template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<double>::Add
 operator+(const double& l, const Vec<M,E,S>& r) {return r+l;}
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int M, class E, int S> inline
+    typename Vec<M,E,S>::template Result<adouble>::Add
+    operator+(const Vec<M,E,S>& l, const adouble& r)
+    { return Vec<M,E,S>::template Result<adouble>::AddOp::perform(l,r); }
+    template <int M, class E, int S> inline
+    typename Vec<M,E,S>::template Result<adouble>::Add
+    operator+(const adouble& l, const Vec<M,E,S>& r) {return r+l;}
+#endif
+
 // v = v+int, int+v -- just convert int to v's precision float
 template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<typename CNT<E>::Precision>::Add
@@ -1294,6 +1322,14 @@ template <int M, class E, int S> inline
 typename CNT<double>::template Result<Vec<M,E,S> >::Sub
 operator-(const double& l, const Vec<M,E,S>& r)
   { return CNT<double>::template Result<Vec<M,E,S> >::SubOp::perform(l,r); }
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int M, class E, int S> inline
+    typename Vec<M,E,S>::template Result<adouble>::Sub
+    operator-(const Vec<M,E,S>& l, const adouble& r)
+    { return Vec<M,E,S>::template Result<adouble>::SubOp::perform(l,r); }
+    // The operation a-v where a is an adouble and v is a Vec is not supported.
+#endif
 
 // v = v-int, int-v // just convert int to v's precision float
 template <int M, class E, int S> inline
