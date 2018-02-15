@@ -436,24 +436,6 @@ void testScalar() {
         auto nh = reinterpret_cast<const negator<double>&>(h);
         auto nhd = reinterpret_cast<const negator<adouble>&>(hd);
         SimTK_TEST(clampInPlace(b,nh,a)==clampInPlace(bd,nhd,ad) && nhd==b); }
-    {   double h = 4;
-        adouble hd = 4;
-        auto nha = reinterpret_cast<const negator<double>&>(h);
-        double hb = nha;
-        nha = clampInPlace(b,hb,a);
-        auto nhb = reinterpret_cast<const negator<double>&>(h);
-        auto nhd = reinterpret_cast<const negator<adouble>&>(hd);
-        SimTK_TEST(clampInPlace(b,nhb,a)==nha &&
-            clampInPlace(b,nhb,a)==clampInPlace(b,nhd,a) && nhd==b); }
-    {   double h = 4;
-        adouble hd = 4;
-        auto nha = reinterpret_cast<const negator<double>&>(h);
-        double hb = nha;
-        nha = clampInPlace(b,hb,a);
-        auto nhb = reinterpret_cast<const negator<double>&>(h);
-        auto nhd = reinterpret_cast<const negator<adouble>&>(hd);
-        SimTK_TEST(clampInPlace(b,nhb,a)==nha &&
-            clampInPlace(b,nhb,a)==clampInPlace(bd,nhd,ad) && nhd==b); }
     // clamp()
     {   double h = 4;
         adouble hd = 4;
