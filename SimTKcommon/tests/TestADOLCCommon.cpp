@@ -251,7 +251,7 @@ void testVec() {
     SimTK_TEST(vresal[0] == a+b);
     SimTK_TEST(vresal[1] == a+c);
     SimTK_TEST(vresal[2] == a+d);
-    // substraction
+    // subtraction
     Vec<3,adouble,1> vressr = v-a;
     SimTK_TEST(vressr[0] == b-a);
     SimTK_TEST(vressr[1] == c-a);
@@ -289,11 +289,17 @@ void testMat() {
     SimTK_TEST(mresdr[0][1] == d/a);
     SimTK_TEST(mresdr[1][1] == e/a);
     Mat<2,2,adouble,2,1> mresdl = a/m;
+    // When the scalar is on the left, this operation means
+    // scalar * pseudoInverse(mat), which is a matrix whose type is like the
+    // matrix's Hermitian transpose.
     Mat<2,2,adouble,2,1> minv = a*m.invert();
     SimTK_TEST(mresdl[0][0] == minv[0][0]);
     SimTK_TEST(mresdl[1][0] == minv[1][0]);
     SimTK_TEST(mresdl[0][1] == minv[0][1]);
     SimTK_TEST(mresdl[1][1] == minv[1][1]);
+    // Addition and subtraction behave as though the scalar stands for a
+    // conforming matrix whose diagonal elements are that scalar and then a
+    // normal matrix addition or subtraction is done.
     // addition
     Mat<2,2,adouble,2,1> mresar = m+a;
     SimTK_TEST(mresar[0][0] == b+a);
@@ -305,7 +311,7 @@ void testMat() {
     SimTK_TEST(mresal[1][0] == m[1][0]);
     SimTK_TEST(mresal[0][1] == m[0][1]);
     SimTK_TEST(mresal[1][1] == a+e);
-    // substraction
+    // subtraction
     Mat<2,2,adouble,2,1> mressr = m-a;
     SimTK_TEST(mressr[0][0] == b-a);
     SimTK_TEST(mressr[1][0] == m[1][0]);
