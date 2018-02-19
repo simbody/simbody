@@ -25,7 +25,7 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/internal/Random.h"
 #include "SimTKcommon/internal/AtomicInteger.h"
-#include <SimTKcommon/internal/NTraits.h>
+#include "SimTKcommon/internal/NTraits.h"
 #include "SFMT.h"
 
 #include <cassert>
