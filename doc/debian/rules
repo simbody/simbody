@@ -1,17 +1,18 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
+export DEB_BUILD_MAINT_OPTIONS = hardening=+bindnow
+
 .PHONY: override_dh_auto_configure   \
         override_dh_auto_build-indep \
         override_dh_auto_install     \
-        override_dh_auto_test        \
-        override_dh_strip
+        override_dh_compress
 
 override_dh_auto_configure:
 	dh_auto_configure --  \
 	    -DCMAKE_INSTALL_PREFIX:PATH=/usr \
 	    -DBUILD_EXAMPLES:BOOL=True \
-	    -DMAKE_BUILD_TYPE:STRING=RelWithDebInfo
+	    -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
 
 override_dh_auto_build-indep:
 	dh_auto_build -- doxygen
@@ -19,11 +20,13 @@ override_dh_auto_build-indep:
 override_dh_auto_install:
 	dh_auto_install --buildsystem=cmake 
 	
-	# Remove extra LICENSE file
+	# Remove extra LICENSE and CHANGELOG file
 	rm debian/tmp/usr/share/doc/simbody/LICENSE.txt
+	rm debian/tmp/usr/share/doc/simbody/CHANGELOG.md
 
-override_dh_strip:
-	dh_strip -a --dbg-package=libsimbody3.5-dbg
+override_dh_compress:
+	# Don't compress the .pdf
+	dh_compress -X.pdf
 
 %:
 	dh $@ --parallel --buildsystem=cmake

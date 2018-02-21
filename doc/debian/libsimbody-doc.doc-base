@@ -7,3 +7,6 @@ Section: Programming/C++
 Format: HTML
 Index: /usr/share/doc/simbody/SimbodyAPI.html
 Files: /usr/share/doc/simbody/api/*
+
+Format: PDF
+Files: /usr/share/doc/simbody/*.pdf

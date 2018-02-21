@@ -1,9 +1,9 @@
 Source: simbody
-Maintainer: Michael Sherman <msherman@stanford.edu>
+Maintainer: Michael Sherman <sherm1@gmail.com>
 Standards-Version: 3.9.5
 Section: science
 Priority: extra
-Build-Depends: debhelper (>= 9), 
+Build-Depends: debhelper (>= 9),
                cmake,
                doxygen,
                freeglut3-dev,
@@ -15,7 +15,7 @@ Vcs-Browser: https://github.com/simbody/simbody
 Vcs-Git: git://github.com/simbody/simbody.git
 Homepage: https://simtk.org/home/simbody
 
-Package: libsimbody3.5
+Package: libsimbody3.6
 Section: libs
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
@@ -35,7 +35,7 @@ Depends: freeglut3-dev,
          libxi-dev,
          libxmu-dev,
          liblapack-dev,
-	 libsimbody3.5 (= ${binary:Version}),
+	 libsimbody3.6 (= ${binary:Version}),
 	 ${misc:Depends}
 Multi-Arch: same
 Description: SimTK multibody dynamics API - development files
@@ -47,21 +47,6 @@ Description: SimTK multibody dynamics API - development files
  .
  This package contains development files (headers, shared library
  symbolic link and pkg-config file).
-
-Package: libsimbody3.5-dbg
-Architecture: any
-Section: debug
-Depends: libsimbody3.5 (= ${binary:Version}),
-         ${misc:Depends}
-Multi-Arch: foreign
-Description: SimTK multibody dynamics API - Debugging Symbols
- Simbody is a SimTK toolset providing general multibody dynamics capability,
- that is, the ability to solve Newton's 2nd law F=ma in any set of generalized
- coordinates subject to arbitrary constraints. Simbody is provided as an open
- source, object-oriented C++ API and delivers high-performance,
- accuracy-controlled science/engineering-quality results.
- .
- This package contains the debugging symbols.
 
 Package: libsimbody-doc
 Architecture: all
