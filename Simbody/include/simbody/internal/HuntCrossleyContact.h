@@ -41,11 +41,11 @@ namespace SimTK {
 class MultibodySystem;
 
 /**
- * This is a concrete subsystem that handles simple, frictionless contact situations
- * with a model due to Hunt & Crossley. See K. H. Hunt and F. R. E. Crossley, 
- * "Coefficient of Restitution Interpreted as Damping in Vibroimpact,"
- * ASME Journal of Applied Mechanics, pp. 440-445, June 1975. This is
- * a continuous model based on Hertz elastic contact theory,
+ * This is a concrete subsystem that handles simple, frictionless contact
+ * situations with a model due to Hunt & Crossley: K.\ H.\ Hunt and
+ * F.\ R.\ E.\ Crossley, "Coefficient of Restitution Interpreted as Damping in
+ * Vibroimpact," ASME Journal of Applied Mechanics, pp.\ 440-445, June 1975.
+ * This is a continuous model based on Hertz elastic contact theory,
  * which correctly reproduces the empirically observed dependence
  * on velocity of coefficient of restitution, where e=(1-cv) for 
  * (small) impact velocity v and a material property c with units 1/v. Note that
