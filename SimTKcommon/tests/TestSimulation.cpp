@@ -780,6 +780,26 @@ void testOne() {
             cout << "cossin=" << cossin.getValue(state) << "\n";
             cout << "vcossin=" << vcossin.getValue(state) << "\n";
             cout << "vcossin delay .1=" << vcossin_delaypt1.getValue(state) << "\n";
+
+            const auto& t = state.getTime();
+            SimTK_TEST_EQ(tMeasure.getValue(state), t);
+            SimTK_TEST_EQ(tMeasure.getValue(state,1), 1);
+            SimTK_TEST_EQ(tMeasure.getValue(state,2), 0);
+            SimTK_TEST_EQ(t1000.getValue(state), 1000.0*t);
+            if (t >= 0.01) {
+                SimTK_TEST_EQ(tDelayed.getValue(state), t - 0.01);
+            }
+            SimTK_TEST_EQ(three.getValue(state), 3);
+            SimTK_TEST_EQ(v3const.getValue(state), Vec3(1,2,3));
+            SimTK_TEST_EQ(cos2pit.getValue(state), std::cos(2*Pi*t));
+            const Real expectedMinCos2pit = t < 0.5 ? std::cos(2*Pi*t) : -1;
+            SimTK_TEST_EQ(minCos2pit.getValue(state), expectedMinCos2pit);
+            SimTK_TEST_EQ(minCos2pit.getTimeOfExtremeValue(state),
+                          std::min(t, 0.5));
+            SimTK_TEST_EQ(maxCos2pit.getValue(state), 1.0);
+            SimTK_TEST_EQ(maxCos2pit.getTimeOfExtremeValue(state), 0.0);
+
+            // TODO test the remaining measures.
         }
 
         if (i == nSteps)
