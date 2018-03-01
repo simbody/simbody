@@ -82,7 +82,8 @@ PeriodicEventHandler::~PeriodicEventHandler() {
 
 Real PeriodicEventHandler::getNextEventTime(const State& state, bool includeCurrentTime) const {
     Real currentTime = state.getTime();
-    long long count = (long long)std::floor(currentTime/impl->eventInterval);
+    long long count = NTraits<Real>::cast<long long>(NTraits<Real>::floor(
+        currentTime/impl->eventInterval));
     Real eventTime = count*impl->eventInterval;
     while (eventTime < currentTime || (eventTime == currentTime && !includeCurrentTime)) {
         count++;
