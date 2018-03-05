@@ -966,7 +966,7 @@ operator/(const double& l, const Row<N,E,S>& r)
     typename Row<N,E,S>::template Result<adouble>::Dvd
     operator/(const Row<N,E,S>& l, const adouble& r)
       { return Row<N,E,S>::template Result<adouble>::DvdOp::perform(l,r); }
-    // The operation a/r where a is an adouble and v is a Row is not supported.
+    // The operation a/r where a is an adouble and r is a Row is not supported.
 #endif
 
 // v = v/int, int/v -- just convert int to v's precision float
@@ -1101,7 +1101,7 @@ operator-(const double& l, const Row<N,E,S>& r)
     typename Row<N,E,S>::template Result<adouble>::Sub
     operator-(const Row<N,E,S>& l, const adouble& r)
       { return Row<N,E,S>::template Result<adouble>::SubOp::perform(l,r); }
-    // The operation a-r where a is an adouble and v is a Row is not supported.
+    // The operation a-r where a is an adouble and r is a Row is not supported.
 #endif
 
 // v = v-int, int-v // just convert int to v's precision float
