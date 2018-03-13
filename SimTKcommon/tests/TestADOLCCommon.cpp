@@ -499,7 +499,7 @@ void testScalar() {
     SimTK_TEST(d3stepAny(a,c,g,d) == d3stepAny(ad,cd,gd,dd));
 }
 
-// Various unit tests verifying that operators involving a Row and an adouble 
+// Various unit tests verifying that operators involving a Row and an adouble
 // work properly
 void testRow() {
     adouble a = -2;
@@ -581,7 +581,6 @@ void testSymMat() {
     SimTK_TEST(mressr[1][0] == sm[1][0]);
     SimTK_TEST(mressr[1][1] == d-a);
 }
-
 
 int main() {
     SimTK_START_TEST("TestADOLCCommon");
