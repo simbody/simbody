@@ -78,7 +78,7 @@ public:
     }
 
     int getInt(int max) {
-        return (int)NTraits<Real>::value(floor(getValue()*max));
+        return (int)NTraits<Real>::value(NTraits<Real>::floor(getValue()*max));
     }
 
     void fillArray(Real array[], int length) const {
