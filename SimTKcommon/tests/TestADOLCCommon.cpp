@@ -319,6 +319,186 @@ void testMat() {
     SimTK_TEST(mressr[1][1] == e-a);
 }
 
+// Various unit tests verifying that functions defined in Scalar work properly
+// with adouble
+void testScalar() {
+    double a = 2;
+    double b = -2;
+    double c = 0;
+    adouble ad = 2;
+    adouble bd = -2;
+    adouble cd = 0;
+    // Negate the result by reinterpretation rather than computation
+    auto& na = reinterpret_cast<const negator<double>&>(a);
+    auto& nb = reinterpret_cast<const negator<double>&>(b);
+    auto& nc = reinterpret_cast<const negator<double>&>(c);
+    auto& nad = reinterpret_cast<const negator<adouble>&>(ad);
+    auto& nbd = reinterpret_cast<const negator<adouble>&>(bd);
+    auto& ncd = reinterpret_cast<const negator<adouble>&>(cd);
+    // The following tests ensure a consistent behavior between double and
+    // adouble
+    // signBit()
+    SimTK_TEST(signBit(a) == signBit(ad));
+    SimTK_TEST(signBit(b) == signBit(bd));
+    SimTK_TEST(signBit(c) == signBit(cd));
+    SimTK_TEST(signBit(na) == signBit(nad));
+    SimTK_TEST(signBit(nb) == signBit(nbd));
+    SimTK_TEST(signBit(nc) == signBit(ncd));
+    // sign()
+    SimTK_TEST(sign(a) == sign(ad));
+    SimTK_TEST(sign(b) == sign(bd));
+    SimTK_TEST(sign(c) == sign(cd));
+    SimTK_TEST(sign(na) == sign(nad));
+    SimTK_TEST(sign(nb) == sign(nbd));
+    SimTK_TEST(sign(nc) == sign(ncd));
+    // square()
+    SimTK_TEST(square(a) == square(ad));
+    SimTK_TEST(square(na) == square(nad));
+    // cube()
+    SimTK_TEST(cube(a) == cube(ad));
+    SimTK_TEST(cube(na) == cube(nad));
+    // Ensure that recast(), used in cube(const negator<adouble>& x), is
+    // differentiable. Function and derivative evaluations should be the same
+    // when negating variables by reinterpretaion or by computation.
+    double xp[1];
+    xp[0] = 2;
+    adouble x, y[2];
+    const short int TraceTag = 5;
+    trace_on(TraceTag);
+    x <<= xp[0]; // select independent variables
+    y[0] = cube(-x); // negate variable by computation
+    // negate variable by reintepretation
+    y[1] = cube(reinterpret_cast<const negator<adouble>&>(x));
+    double y0[2];
+    y[0] >>= y0[0]; // select dependent variables
+    y[1] >>= y0[1]; // select dependent variables
+    trace_off();
+    // Function evaluation
+    double f[2];
+    function(TraceTag, 2, 1, xp, f);
+    SimTK_TEST(f[0] == cube(-xp[0]));
+    SimTK_TEST(f[1] == cube(-xp[0]));
+    // Derivative evaluation. jacobian(arg1,arg2,arg3,arg4,arg5) evaluates the
+    // the desired function derivatives. arg1 is the tape identification, arg2
+    // the number of dependent variables m, arg3 the number of independent
+    // variables n, arg4 the independent vector x, and arg5 the resulting
+    // jacobian of f(x). Please see ADOL-C manual for more details.
+    double** J = myalloc(2,1); // initialization and allocation of J, a column
+    // of row pointers that will contain the derivatives. J has dimensions
+    // m x n where m is the number of dependent variables and n the number of
+    // independent variables.
+    jacobian(TraceTag, 2, 1, xp, J);
+    SimTK_TEST(J[0][0] == -3*square(xp[0]));
+    SimTK_TEST(J[1][0] == -3*square(xp[0]));
+    myfree(J); // clean memory
+    // The following tests ensure a consistent behavior between double and
+    // adouble
+    int ai = 2;
+    int bi = -2;
+    // clampInPlace()
+    {   double h = 4;
+        adouble hd = 4;
+        SimTK_TEST(clampInPlace(b,h,a)==clampInPlace(b,hd,a) && hd==a); }
+    {   double h = 4;
+        adouble hd = 4;
+        SimTK_TEST(clampInPlace(b,h,a)==clampInPlace(bd,hd,ad) && hd==a); }
+    {   double h = 4;
+        adouble hd = 4;
+        SimTK_TEST(clampInPlace(bi,h,ai)==clampInPlace(bi,hd,ai) && hd==ai); }
+    {   double h = 4;
+        adouble hd = 4;
+        SimTK_TEST(clampInPlace(bi,h,a)==clampInPlace(bi,hd,a) && hd==a); }
+    {   double h = 4;
+        adouble hd = 4;
+        SimTK_TEST(clampInPlace(b,h,ai)==clampInPlace(b,hd,ai) && hd==ai); }
+    {   double nh = -4;
+        adouble nhd = -4;
+        SimTK_TEST(clampInPlace(b,nh,a)==clampInPlace(b,nhd,a) && nhd==b); }
+    {   double nh = -4;
+        adouble nhd = -4;
+        SimTK_TEST(clampInPlace(b,nh,a)==clampInPlace(bd,nhd,ad) && nhd==b); }
+    {   double nh = -4;
+        adouble nhd = -4;
+        SimTK_TEST(clampInPlace(bi,nh,ai)==clampInPlace(bi,nhd,ai)&&nhd==bi); }
+    {   double nh = -4;
+        adouble nhd = -4;
+        SimTK_TEST(clampInPlace(bi,nh,a)==clampInPlace(bi,nhd,a) && nhd==b); }
+    {   double nh = -4;
+        adouble nhd = -4;
+        SimTK_TEST(clampInPlace(b,nh,ai)==clampInPlace(b,nhd,ai) && nhd==bi); }
+    {   double h = 4;
+        adouble hd = 4;
+        auto nh = reinterpret_cast<const negator<double>&>(h);
+        auto nhd = reinterpret_cast<const negator<adouble>&>(hd);
+        SimTK_TEST(clampInPlace(b,nh,a)==clampInPlace(b,nhd,a) && nhd==b); }
+    {   double h = 4;
+        adouble hd = 4;
+        auto nh = reinterpret_cast<const negator<double>&>(h);
+        auto nhd = reinterpret_cast<const negator<adouble>&>(hd);
+        SimTK_TEST(clampInPlace(b,nh,a)==clampInPlace(bd,nhd,ad) && nhd==b); }
+    // clamp()
+    {   double h = 4;
+        adouble hd = 4;
+        SimTK_TEST(clamp(b,h,a) == clamp(b,hd,a) && hd==4); }
+    {   double h = 4;
+        adouble hd = 4;
+        SimTK_TEST(clamp(b,h,a) == clamp(bd,hd,ad) && hd==4); }
+    {   double h = 4;
+        adouble hd = 4;
+        SimTK_TEST(clamp(bi,h,ai) == clamp(bi,hd,ai) && hd==4); }
+    {   double h = 4;
+        adouble hd = 4;
+        SimTK_TEST(clamp(bi,h,a) == clamp(bi,hd,a) && hd==4); }
+    {   double h = 4;
+        adouble hd = 4;
+        SimTK_TEST(clamp(b,h,ai) == clamp(b,hd,ai) && hd==4); }
+    {   double nh = -4;
+        adouble nhd = -4;
+        SimTK_TEST(clamp(b,nh,a) == clamp(b,nhd,a) && nhd==-4); }
+    {   double nh = -4;
+        adouble nhd = -4;
+        SimTK_TEST(clamp(b,nh,a) == clamp(bd,nhd,ad) && nhd==-4); }
+    {   double nh = -4;
+        adouble nhd = -4;
+        SimTK_TEST(clamp(bi,nh,ai) == clamp(bi,nhd,ai) && nhd==-4); }
+    {   double nh = -4;
+        adouble nhd = -4;
+        SimTK_TEST(clamp(bi,nh,a) == clamp(bi,nhd,a) && nhd==-4); }
+    {   double nh = -4;
+        adouble nhd = -4;
+        SimTK_TEST(clamp(b,nh,ai) == clamp(b,nhd,ai) && nhd==-4); }
+    {   double h = 4;
+        adouble hd = 4;
+        auto nh = reinterpret_cast<const negator<double>&>(h);
+        auto nhd = reinterpret_cast<const negator<adouble>&>(hd);
+        SimTK_TEST(clamp(b,nh,a)==clamp(b,nhd,a) && nhd == -4); }
+    {   double h = 4;
+        adouble hd = 4;
+        auto nh = reinterpret_cast<const negator<double>&>(h);
+        auto nhd = reinterpret_cast<const negator<adouble>&>(hd);
+        SimTK_TEST(clamp(b,nh,a)==clamp(bd,nhd,ad) && nhd==-4); }
+    // stepUp(), stepDown(), dstepAny(), d2stepUp(), d2stepDown(), d2stepAny(),
+    // d3stepUp(), d3stepDown(), d3stepAny()
+    double d = 0.2;
+    adouble dd = 0.2;
+    SimTK_TEST(stepUp(d) == stepUp(dd));
+    SimTK_TEST(stepDown(d) == stepDown(dd));
+    double e = -1;
+    double g = 1;
+    adouble ed = -1;
+    adouble gd = 1;
+    SimTK_TEST(stepAny(e,a,c,g,d) == stepAny(ed,ad,cd,gd,dd));
+    SimTK_TEST(dstepUp(d) == dstepUp(dd));
+    SimTK_TEST(dstepDown(d) == dstepDown(dd));
+    SimTK_TEST(dstepAny(a,c,g,d) == dstepAny(ad,cd,gd,dd));
+    SimTK_TEST(d2stepUp(d) == d2stepUp(dd));
+    SimTK_TEST(d2stepDown(d) == d2stepDown(dd));
+    SimTK_TEST(d2stepAny(a,c,g,d) == d2stepAny(ad,cd,gd,dd));
+    SimTK_TEST(d3stepUp(d) == d3stepUp(dd));
+    SimTK_TEST(d3stepDown(d) == d3stepDown(dd));
+    SimTK_TEST(d3stepAny(a,c,g,d) == d3stepAny(ad,cd,gd,dd));
+}
+
 
 int main() {
     SimTK_START_TEST("TestADOLCCommon");
@@ -329,5 +509,6 @@ int main() {
         SimTK_SUBTEST(testCast);
         SimTK_SUBTEST(testVec);
         SimTK_SUBTEST(testMat);
+        SimTK_SUBTEST(testScalar);
     SimTK_END_TEST();
 }
