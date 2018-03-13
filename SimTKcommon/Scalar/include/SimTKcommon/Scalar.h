@@ -559,15 +559,17 @@ just two flops. **/
 inline double& clampInPlace(double low, double& v, double high) 
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 #ifdef SimTK_REAL_IS_ADOUBLE
-    // Memory is allocated when using ADOL-C to avoid using if statements and
-    // allow taping.
+    // We need to allocate an intermediate adouble expression when using ADOL-C
+    // to avoid using if statements and allow taping. This operation will
+    // therefore be slower when using ADOL-C.
     /** @copydoc SimTK::clampInPlace(double,double&,double) */
     inline adouble& clampInPlace(double low, adouble& v, double high)
     {   assert(low<=high);
         v = NTraits<adouble>::min(NTraits<adouble>::max(v,low),high);
         return v; }
-    // Memory is allocated when using ADOL-C to avoid using if statements and
-    // allow taping.
+    // We need to allocate an intermediate adouble expression when using ADOL-C
+    // to avoid using if statements and allow taping. This operation will
+    // therefore be slower when using ADOL-C.
     /** @copydoc SimTK::clampInPlace(double,double&,double) */
     inline adouble& clampInPlace(adouble low, adouble& v, adouble high)
     {   assert(low<=high);
@@ -669,16 +671,18 @@ inline negator<float>& clampInPlace(float low, negator<float>& v, float high)
 inline negator<double>& clampInPlace(double low, negator<double>& v, double high) 
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 #ifdef SimTK_REAL_IS_ADOUBLE
-    // Memory is allocated when using ADOL-C to avoid using if statements and
-    // allow taping.
+    // We need to allocate intermediate adouble expressions when using ADOL-C
+    // to avoid using if statements and allow taping. This operation will
+    // therefore be slower when using ADOL-C.
     /** @copydoc SimTK::clampInPlace(double,double&,double) */
     inline negator<adouble>& clampInPlace(double low, negator<adouble>& v,
                                           double high)
     {   adouble vad = v;
         v = clampInPlace(low,vad,high);
         return v; }
-    // Memory is allocated when using ADOL-C to avoid using if statements and
-    // allow taping.
+    // We need to allocate intermediate adouble expressions when using ADOL-C
+    // to avoid using if statements and allow taping. This operation will
+    // therefore be slower when using ADOL-C.
     /** @copydoc SimTK::clampInPlace(double,double&,double) */
     inline negator<adouble>& clampInPlace(adouble low, negator<adouble>& v,
                                           adouble high)
