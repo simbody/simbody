@@ -441,8 +441,10 @@ public:
     elementwiseAssign(const S& s);
 
     /// Overloaded to allow an integer argument, which is converted to Real.
-    MatrixBase& elementwiseAssign(int s)
-    {   return elementwiseAssign<Real>(Real(s)); }
+    MatrixBase& elementwiseAssign(int s) {
+        using Scalar = typename CNT<ELT>::Scalar;
+        return elementwiseAssign<Scalar>(Scalar(s));
+    }
 
     /// Set M(i,j) = M(i,j)^-1.
     MatrixBase& elementwiseInvertInPlace();
