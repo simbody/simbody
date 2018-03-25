@@ -874,7 +874,8 @@ createBrickMesh(const Vec3& halfDims, int resolution) {
     const Real edgeLengthTarget = longest/(resolution+1);
     int nv[3]; // number of vertices along each edge
     for (int i=0; i<3; ++i)
-        nv[i] = 1 + std::max((int)(dims[i]/edgeLengthTarget + 0.49), 1);
+        nv[i] = 1 + std::max((int)NTraits<Real>::value(dims[i]/edgeLengthTarget
+                + 0.49), 1);
     const Vec3 edgeLengths(dims[0]/(nv[0]-1), dims[1]/(nv[1]-1), 
                            dims[2]/(nv[2]-1)); 
 
@@ -979,11 +980,12 @@ createCylinderMesh(const UnitVec3& axis, Real radius, Real halfLength,
     int rezAround = 6*(resolution+1);
 
     Real angle = 2*Pi/rezAround;
-    Real chordLen = 2*radius*std::sin(angle/2);
-    int rezRadial = (int)(radius/chordLen+0.5);
+    Real chordLen = 2*radius*NTraits<Real>::sin(angle/2);
+    int rezRadial = (int)NTraits<Real>::value(radius/chordLen+0.5);
     Real edgeLenRad = radius/rezRadial;
 
-    int rezAlong  = 1 + std::max((int)(halfLength/edgeLenRad + 0.5), 1);
+    int rezAlong  = 1 + std::max((int)NTraits<Real>::value(
+                    halfLength/edgeLenRad + 0.5), 1);
     Real edgeLenAlong = 2*halfLength/(rezAlong-1);
 
     PolygonalMesh cyl;
@@ -996,8 +998,8 @@ createCylinderMesh(const UnitVec3& axis, Real radius, Real halfLength,
         bool isEndCap = (k==0 || k==rezAlong-1);
         Real z = -halfLength + k*edgeLenAlong;
         for (int a=0; a < rezAround; ++a) {
-            Real x = edgeLenRad*std::sin(a*angle);
-            Real y = edgeLenRad*std::cos(a*angle);
+            Real x = edgeLenRad*NTraits<Real>::sin(a*angle);
+            Real y = edgeLenRad*NTraits<Real>::cos(a*angle);
             for (int r=1; r <= rezRadial; ++r) {
                 if (r < rezRadial && !isEndCap)
                     continue; // skip interior vertices

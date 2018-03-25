@@ -28,15 +28,11 @@ namespace SimTK {
 
 template class Vec<3,Real>;
 template class Vec<2,Real>;
-template class Vec<3,Complex>;
-template class Vec<2,Complex>;
 template class Vec< 3,negator<Real> >;
 template class Vec< 3,conjugate<float>,2 >;
 
 template class Mat<3,3,Real>;
 template class Mat<2,2,Real>;
-template class Mat<3,3,Complex>;
-template class Mat<2,2,Complex>;
 template class Mat<5,5,negator< std::complex<double> > >;
 template class Mat< 3,3,negator<Real> >;
 template class Mat< 3,3,conjugate<float>,2 >;
@@ -46,12 +42,10 @@ template class SymMat< 4, std::complex<double>, 7>;
 
 template Real       det(const Mat<1,1,Real>&);
 template Real       det(const SymMat<1,Real>&);
-template Complex    det(const Mat<2,2,Complex>&);
 template Real       det(const SymMat<2,Real>&);
 template Real       det(const Mat<3,3,Real>&);
 template Real       det(const SymMat<3,Real>&);
 template Real       det(const Mat<5,5,Real>&);
-template Complex    det(const SymMat<5,Complex>&);
 
 template Mat<1,1,Real>::TInvert      lapackInverse(const Mat<1,1,Real>&);
 template Mat<2,2,Real>::TInvert      lapackInverse(const Mat<2,2,Real>&);
@@ -59,12 +53,23 @@ template Mat<3,3,Conjugate>::TInvert lapackInverse(const Mat<3,3,Conjugate>&);
 
 template Mat<1,1,Real>::TInvert     inverse(const Mat<1,1,Real>&);
 template SymMat<1,Real>::TInvert    inverse(const SymMat<1,Real>&);
-template Mat<2,2,Complex>::TInvert  inverse(const Mat<2,2,Complex>&);
 template SymMat<2,Real>::TInvert    inverse(const SymMat<2,Real>&);
 template Mat<3,3,Real>::TInvert     inverse(const Mat<3,3,Real>&);
 template SymMat<3,Real>::TInvert    inverse(const SymMat<3,Real>&);
 template Mat<5,5,Real>::TInvert     inverse(const Mat<5,5,Real>&);
 //template SymMat<5,Complex>::TInvert SimTK::inverse(const SymMat<5,Complex>&);
+
+// There is currently no support for complex<adouble> so these templates are
+// only defined when real is not adouble.
+#ifndef SimTK_REAL_IS_ADOUBLE
+    template class Vec<3,Complex>;
+    template class Vec<2,Complex>;
+    template class Mat<3,3,Complex>;
+    template class Mat<2,2,Complex>;
+    template Complex det(const Mat<2,2,Complex>&);
+    template Complex det(const SymMat<5,Complex>&);
+    template Mat<2,2,Complex>::TInvert inverse(const Mat<2,2,Complex>&);
+#endif
 
 } //namespace SimTK
 
