@@ -892,6 +892,16 @@ template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<double>::Mul
 operator*(const double& l, const Row<N,E,S>& r) {return r*l;}
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int N, class E, int S> inline
+    typename Row<N,E,S>::template Result<adouble>::Mul
+    operator*(const Row<N,E,S>& l, const adouble& r)
+      { return Row<N,E,S>::template Result<adouble>::MulOp::perform(l,r); }
+    template <int N, class E, int S> inline
+    typename Row<N,E,S>::template Result<adouble>::Mul
+    operator*(const adouble& l, const Row<N,E,S>& r) {return r*l;}
+#endif
+
 // v = v*int, int*v -- just convert int to v's precision float
 template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<typename CNT<E>::Precision>::Mul
@@ -950,6 +960,14 @@ template <int N, class E, int S> inline
 typename CNT<double>::template Result<Row<N,E,S> >::Dvd
 operator/(const double& l, const Row<N,E,S>& r)
   { return CNT<double>::template Result<Row<N,E,S> >::DvdOp::perform(l,r); }
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int N, class E, int S> inline
+    typename Row<N,E,S>::template Result<adouble>::Dvd
+    operator/(const Row<N,E,S>& l, const adouble& r)
+      { return Row<N,E,S>::template Result<adouble>::DvdOp::perform(l,r); }
+    // The operation a/r where a is an adouble and r is a Row is not supported.
+#endif
 
 // v = v/int, int/v -- just convert int to v's precision float
 template <int N, class E, int S> inline
@@ -1012,6 +1030,16 @@ template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<double>::Add
 operator+(const double& l, const Row<N,E,S>& r) {return r+l;}
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int N, class E, int S> inline
+    typename Row<N,E,S>::template Result<adouble>::Add
+    operator+(const Row<N,E,S>& l, const adouble& r)
+      { return Row<N,E,S>::template Result<adouble>::AddOp::perform(l,r); }
+    template <int N, class E, int S> inline
+    typename Row<N,E,S>::template Result<adouble>::Add
+    operator+(const adouble& l, const Row<N,E,S>& r) {return r+l;}
+#endif
+
 // v = v+int, int+v -- just convert int to v's precision float
 template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<typename CNT<E>::Precision>::Add
@@ -1067,6 +1095,14 @@ template <int N, class E, int S> inline
 typename CNT<double>::template Result<Row<N,E,S> >::Sub
 operator-(const double& l, const Row<N,E,S>& r)
   { return CNT<double>::template Result<Row<N,E,S> >::SubOp::perform(l,r); }
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <int N, class E, int S> inline
+    typename Row<N,E,S>::template Result<adouble>::Sub
+    operator-(const Row<N,E,S>& l, const adouble& r)
+      { return Row<N,E,S>::template Result<adouble>::SubOp::perform(l,r); }
+    // The operation a-r where a is an adouble and r is a Row is not supported.
+#endif
 
 // v = v-int, int-v // just convert int to v's precision float
 template <int N, class E, int S> inline
