@@ -27,7 +27,7 @@ matrix:
       env: BTYPE=Debug   COV=ON  DEPLOY=yes
     - os: osx
       compiler: clang
-      env: BTYPE=Release COV=OFF DEPLOY=yes
+      env: BTYPE=Release COV=OFF DEPLOY=yes OSX_TARGET=10.10
 
 addons:
   # To avoid an interactive prompt when uploading binaries to sourceforge.
@@ -67,7 +67,12 @@ before_install:
 install:
   - mkdir -p $TRAVIS_BUILD_DIR/simbody-build && cd $TRAVIS_BUILD_DIR/simbody-build
   # Configure.
-  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DSIMBODY_COVERAGE:BOOL=$COV -DCMAKE_INSTALL_PREFIX=~/simbody
+  - CMAKE_ARGS=($TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DSIMBODY_COVERAGE:BOOL=$COV -DCMAKE_INSTALL_PREFIX=~/simbody)
+  # The minimum supported OSX version is 10.10.
+  - if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then CMAKE_ARGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET=$OSX_TARGET); fi
+  
+  - printf '%s\n' "${CMAKE_ARGS[@]}"
+  - cmake "${CMAKE_ARGS[@]}" 
   # Build.
   - make -j8
 
