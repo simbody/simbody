@@ -262,12 +262,12 @@ public:
         if (worstOne) {
             *worstOne = 0;
             for (int i=0; i<n; ++i) {
-                const EAbs a = std::abs((*this)[i]);
+                const EAbs a = NTraits<Scalar>::abs((*this)[i]);
                 if (a > maxabs) maxabs=a, *worstOne=i;
             }
         } else { // don't track the worst element
             for (int i=0; i<n; ++i) {
-                const EAbs a = std::abs((*this)[i]);
+                const EAbs a = NTraits<Scalar>::abs((*this)[i]);
                 if (a > maxabs) maxabs=a;
             }
         }
@@ -297,12 +297,12 @@ public:
         if (worstOne) {
             *worstOne = 0;
             for (int i=0; i<n; ++i) {
-                const EAbs wv = std::abs(w[i]*(*this)[i]);
+                const EAbs wv = NTraits<Scalar>::abs(w[i]*(*this)[i]);
                 if (wv > maxabs) maxabs=wv, *worstOne=i;
             }
         } else { // don't track the worst element
             for (int i=0; i<n; ++i) {
-                const EAbs wv = std::abs(w[i]*(*this)[i]);
+                const EAbs wv = NTraits<Scalar>::abs(w[i]*(*this)[i]);
                 if (wv > maxabs) maxabs=wv;
             }
         }

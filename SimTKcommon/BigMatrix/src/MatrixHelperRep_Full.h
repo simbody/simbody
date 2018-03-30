@@ -186,7 +186,8 @@ protected:
         StdNumber workSz;
         Lapack::getri<StdNumber>(m,rawMem,this->m_leadingDim,&ipiv[0],
                                  &workSz,-1,info);
-        const int wsz = (int)CNT<StdNumber>::real(workSz);
+        const int wsz = (int)CNT<typename CNT<StdNumber>::TReal>::
+                        value(CNT<StdNumber>::real(workSz));
 
         Array_<StdNumber> work(wsz);
         Lapack::getri<StdNumber>(m,rawMem,this->m_leadingDim,&ipiv[0],
