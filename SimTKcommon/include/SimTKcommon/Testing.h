@@ -181,8 +181,21 @@ public:
         std::clog << fmt.str();
     }
 
-    template <class T>
-    static double defTol() {return (double)NTraits<typename CNT<T>::Precision>::getSignificant();}
+    #ifndef SimTK_REAL_IS_ADOUBLE
+        template <class T>
+        static double defTol() {
+        return (double)NTraits<typename CNT<T>::Precision>::getSignificant(); }
+    #else
+        template <class T>
+        static double defTol(typename std::enable_if<
+        std::is_same<typename CNT<T>::Precision, adouble>::value>::type* = 0)
+        { return NTraits<typename CNT<adouble>::Precision>::
+            getSignificant().value(); }
+        template <class T>
+        static double defTol(typename std::enable_if<
+        !std::is_same<typename CNT<T>::Precision, adouble>::value>::type* = 0)
+        { return NTraits<typename CNT<T>::Precision>::getSignificant(); }
+     #endif
 
     // For dissimilar types, the default tolerance is the narrowest of the two.
     template <class T1, class T2>
@@ -201,6 +214,26 @@ public:
         const double scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 1.0);
         return std::abs(v1-v2) < scale*(double)tol;
     }
+    #ifdef SimTK_REAL_IS_ADOUBLE
+        static bool numericallyEqual(adouble v1, adouble v2, int n,
+            double tol = defTol<adouble>()) {
+            const adouble scale = n*NTraits<Real>::max(NTraits<Real>::max(
+                NTraits<Real>::abs(v1), NTraits<Real>::abs(v2)), 1.0);
+            return NTraits<Real>::abs(v1 - v2) < scale*tol;
+        }
+        static bool numericallyEqual(double v1, adouble v2, int n,
+            double tol = defTol<adouble>()) {
+            const adouble scale = n*NTraits<Real>::max(NTraits<Real>::max(
+                NTraits<Real>::abs(v1), NTraits<Real>::abs(v2)), 1.0);
+            return NTraits<Real>::abs(v1 - v2) < scale*tol;
+        }
+        static bool numericallyEqual(adouble v1, double v2, int n,
+            double tol = defTol<adouble>()) {
+            const adouble scale = n*NTraits<Real>::max(NTraits<Real>::max(
+                NTraits<Real>::abs(v1), NTraits<Real>::abs(v2)), 1.0);
+            return NTraits<Real>::abs(v1 - v2) < scale*tol;
+        }
+    #endif
 
     // For integers we ignore tolerance.
     static bool numericallyEqual(int i1, int i2, int n, double tol=0) {return i1==i2;}
@@ -211,6 +244,14 @@ public:
     {   return numericallyEqual((double)v1, v2, n, tol); }
     static bool numericallyEqual(double v1, float v2, int n, double tol=defTol<float>())
     {   return numericallyEqual(v1, (double)v2, n, tol); }
+    #ifdef SimTK_REAL_IS_ADOUBLE
+        static bool numericallyEqual(float v1, adouble v2, int n,
+            double tol = defTol<float>())
+        {   return numericallyEqual((adouble)v1, v2, n, tol); }
+        static bool numericallyEqual(adouble v1, float v2, int n,
+            double tol = defTol<float>())
+        {   return numericallyEqual(v1, (adouble)v2, n, tol); }
+    #endif
 
     // Mixed int/floating just upgrades int to floating type.
     static bool numericallyEqual(int i1, float f2, int n, double tol=defTol<float>())
@@ -229,6 +270,20 @@ public:
     {   return numericallyEqual((double)i1,f2,n,tol); }
     static bool numericallyEqual(double f1, unsigned i2, int n, double tol=defTol<double>())
     {   return numericallyEqual(f1,(double)i2,n,tol); }
+    #ifdef SimTK_REAL_IS_ADOUBLE
+        static bool numericallyEqual(int i1, adouble f2, int n,
+            double tol = defTol<adouble>())
+        {   return numericallyEqual((adouble)i1, f2, n, tol); }
+        static bool numericallyEqual(adouble f1, int i2, int n,
+            double tol = defTol<adouble>())
+        {   return numericallyEqual(f1, (adouble)i2, n, tol); }
+        static bool numericallyEqual(unsigned i1, adouble f2, int n,
+            double tol = defTol<adouble>())
+        {   return numericallyEqual((adouble)i1, f2, n, tol); }
+        static bool numericallyEqual(adouble f1, unsigned i2, int n,
+            double tol = defTol<adouble>())
+        {   return numericallyEqual(f1, (adouble)i2, n, tol); }
+    #endif
 
     template <class P>
     static bool numericallyEqual(const std::complex<P>& v1, const std::complex<P>& v2, int n, double tol=defTol<P>()) {
@@ -374,10 +429,16 @@ public:
         static Random::Uniform rand(-1,1);
         return rand.getValue();
     }
-    static Complex randComplex() {return Complex(randReal(),randReal());}
-    static Conjugate randConjugate() {return Conjugate(randReal(),randReal());}
-    static float randFloat() {return (float)randReal();}
-    static double randDouble() {return (double)randReal();}
+    #ifndef SimTK_REAL_IS_ADOUBLE
+        static Complex randComplex() {return Complex(randReal(),randReal());}
+        static Conjugate randConjugate()
+        {return Conjugate(randReal(),randReal());}
+        static float randFloat() {return (float)randReal();}
+        static double randDouble() {return (double)randReal();}
+    #else
+        static float randFloat() {return (float)randReal().value();}
+        static double randDouble() {return (double)randReal().value();}
+    #endif
 
     template <int M> static Vec<M> randVec() 
     {   Vec<M> v; for (int i=0; i<M; ++i) v[i]=randReal(); return v;}
