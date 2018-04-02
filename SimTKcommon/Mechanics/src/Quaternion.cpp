@@ -60,7 +60,7 @@ Quaternion_<P>::convertQuaternionToAngleAxis() const {
 
     // Use atan2.  Do NOT just use acos(q[0]) to calculate the rotation angle!!!
     // Otherwise results are numerical garbage anywhere near zero (or less near).
-    RealP angle = 2 * std::atan2(sa2,ca2);
+    RealP angle = 2 * NTraits<RealP>::atan2(sa2,ca2);
 
     // Since sa2>=0, atan2 returns a value between 0 and pi, which is then
     // multiplied by 2 which means the angle is between 0 and 2pi.
@@ -83,7 +83,9 @@ Quaternion_<P>::setQuaternionFromAngleAxis( const Vec4P& av ) {
     // If |a| < machine precision,  we treat as a zero rotation which produces quaternion q=[1 0 0 0].
     const RealP eps = std::numeric_limits<RealP>::epsilon();
     const RealP& a = av[0];  // the angle
-    if( std::fabs(a) < eps ) { Vec4P::operator=( Vec4P(1,0,0,0) );  return; }
+    if( NTraits<RealP>::abs(a) < eps ) {
+        Vec4P::operator=( Vec4P(1,0,0,0) );
+        return; }
 
     // The vector v must have length at least machine precision (or return NaN).
     const Vec3P& vIn = av.template getSubVec<3>(1);
@@ -101,7 +103,7 @@ Quaternion_<P>::setQuaternionFromAngleAxis( const Vec4P& av ) {
 template <class P> void
 Quaternion_<P>::setQuaternionFromAngleAxis( const RealP& a, const UnitVec<P,1>& v ) {
     /// The cost of this method is approximately 80 flops (one sin and one cos).
-    RealP ca2 = std::cos(a/2), sa2 = std::sin(a/2);
+    RealP ca2 = NTraits<RealP>::cos(a/2), sa2 = NTraits<RealP>::sin(a/2);
 
     // Multiplying an entire quaternion by -1 produces the same Rotation matrix
     // (each element of the Rotation element involves the product of two quaternion elements).
@@ -114,6 +116,9 @@ Quaternion_<P>::setQuaternionFromAngleAxis( const RealP& a, const UnitVec<P,1>& 
 // Instantiate now to catch bugs.
 template class Quaternion_<float>;
 template class Quaternion_<double>;
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template class Quaternion_<adouble>;
+#endif
 
 //------------------------------------------------------------------------------
 }  // End of namespace SimTK

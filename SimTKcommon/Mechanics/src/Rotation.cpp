@@ -63,8 +63,10 @@ Rotation_<P>::setRotationFromTwoAnglesTwoAxes
 
     // Calculate the sines and cosines (some hardware can do this more 
     // efficiently as one Taylor series).
-    const RealP c1 = std::cos( angle1 ),  s1 = std::sin( angle1 );
-    const RealP c2 = std::cos( angle2 ),  s2 = std::sin( angle2 );
+    const RealP c1 = NTraits<RealP>::cos(angle1);
+    const RealP s1 = NTraits<RealP>::sin(angle1);
+    const RealP c2 = NTraits<RealP>::cos(angle2);
+    const RealP s2 = NTraits<RealP>::sin(angle2);
 
     // All calculations are based on a body-fixed forward-cyclical rotation 
     // sequence.
@@ -106,9 +108,12 @@ Rotation_<P>::setRotationFromThreeAnglesThreeAxes
 
     // Calculate the sines and cosines (some hardware can do this more 
     // efficiently as one Taylor series).
-    const RealP c1 = std::cos( angle1 ),  s1 = std::sin( angle1 );
-    const RealP c2 = std::cos( angle2 ),  s2 = std::sin( angle2 );
-    const RealP c3 = std::cos( angle3 ),  s3 = std::sin( angle3 );
+    const RealP c1 = NTraits<RealP>::cos(angle1);
+    const RealP s1 = NTraits<RealP>::sin(angle1);
+    const RealP c2 = NTraits<RealP>::cos(angle2);
+    const RealP s2 = NTraits<RealP>::sin(angle2);
+    const RealP c3 = NTraits<RealP>::cos(angle3);
+    const RealP s3 = NTraits<RealP>::sin(angle3);
 
     // All calculations are based on a body-fixed rotation sequence.
     // Determine whether this is a BodyXYX or BodyXYZ type of rotation sequence.
@@ -139,7 +144,7 @@ Rotation_<P>::convertOneAxisRotationToOneAngle(const CoordinateAxis& axis1) cons
     const RealP sinTheta = ( R[k][j] - R[j][k] ) / 2;
     const RealP cosTheta = ( R[j][j] + R[k][k] ) / 2;
 
-    return std::atan2( sinTheta, cosTheta );
+    return NTraits<RealP>::atan2( sinTheta, cosTheta );
 }
 
 
@@ -361,31 +366,31 @@ Rotation_<P>::convertTwoAxesBodyFixedRotationToTwoAngles
     const RealP sinTheta1Direct = R[k][j];
     const RealP signSinTheta1 = sinTheta1Direct > 0 ? RealP(1) : RealP(-1);
     const RealP sinTheta1Alternate = 
-        signSinTheta1 * std::sqrt( square(R[j][i]) + square(R[j][k]) );
+        signSinTheta1 * NTraits<RealP>::sqrt(square(R[j][i])+square(R[j][k]));
     const RealP sinTheta1 = ( sinTheta1Direct + sinTheta1Alternate ) / 2;
 
     const RealP cosTheta1Direct = R[j][j];
     const RealP signCosTheta1 = cosTheta1Direct > 0 ? RealP(1) : RealP(-1);
     const RealP cosTheta1Alternate = 
-        signCosTheta1 * std::sqrt( square(R[k][i]) + square(R[k][k]) );
+        signCosTheta1 * NTraits<RealP>::sqrt(square(R[k][i])+square(R[k][k]));
     const RealP cosTheta1 = ( cosTheta1Direct + cosTheta1Alternate ) / 2;
 
-    RealP theta1 = std::atan2( sinTheta1, cosTheta1 );
+    RealP theta1 = NTraits<RealP>::atan2( sinTheta1, cosTheta1 );
 
     // Repeat for theta2
     const RealP sinTheta2Direct = R[i][k];
     const RealP signSinTheta2 = sinTheta2Direct > 0 ? RealP(1) : RealP(-1);
     const RealP sinTheta2Alternate = 
-        signSinTheta2 * std::sqrt( square(R[j][i]) + square(R[k][i]) );
+        signSinTheta2 * NTraits<RealP>::sqrt(square(R[j][i])+square(R[k][i]));
     const RealP sinTheta2 = ( sinTheta2Direct + sinTheta2Alternate ) / 2;
 
     const RealP cosTheta2Direct = R[i][i];
     const RealP signCosTheta2 = cosTheta2Direct > 0 ? RealP(1) : RealP(-1);
     const RealP cosTheta2Alternate = 
-        signCosTheta2 * std::sqrt( square(R[j][k]) + square(R[k][k]) );
+        signCosTheta2 * NTraits<RealP>::sqrt(square(R[j][k])+square(R[k][k]));
     const RealP cosTheta2 = ( cosTheta2Direct + cosTheta2Alternate ) / 2;
 
-    RealP theta2 = std::atan2( sinTheta2, cosTheta2 );
+    RealP theta2 = NTraits<RealP>::atan2( sinTheta2, cosTheta2 );
 
     // If using a reverse cyclical, negate the signs of the angles
     if( axis1.isReverseCyclical(axis2) )  { theta1 = -theta1;  theta2 = -theta2; }
@@ -421,28 +426,28 @@ Rotation_<P>::convertTwoAxesBodyFixedRotationToThreeAngles
     const Mat33P& R = asMat33();
 
     // Calculate theta2 using lots of information in the rotation matrix.
-    const RealP Rsum   = std::sqrt( (  square(R[i][j]) + square(R[i][k]) 
+    const RealP Rsum   = NTraits<RealP>::sqrt((square(R[i][j])+square(R[i][k]) 
                                      + square(R[j][i]) + square(R[k][i])) / 2 );  
     // Rsum = abs(sin(theta2)) is inherently positive.
-    const RealP theta2 = std::atan2( Rsum, R[i][i] );  
+    const RealP theta2 = NTraits<RealP>::atan2( Rsum, R[i][i] );  
     RealP theta1, theta3;
 
     // There is a "singularity" when sin(theta2) == 0
     if( Rsum > 4*Eps ) {
-        theta1  =  std::atan2( R[j][i], minusPlus*R[k][i] );
-        theta3  =  std::atan2( R[i][j], plusMinus*R[i][k] );
+        theta1  =  NTraits<RealP>::atan2( R[j][i], minusPlus*R[k][i] );
+        theta3  =  NTraits<RealP>::atan2( R[i][j], plusMinus*R[i][k] );
     }
     else if( R[i][i] > 0 ) {
         const RealP spos = plusMinus*R[k][j] + minusPlus*R[j][k];  // 2*sin(theta1 + theta3)
         const RealP cpos = R[j][j] + R[k][k];                      // 2*cos(theta1 + theta3)
-        const RealP theta1PlusTheta3 = std::atan2( spos, cpos );
+        const RealP theta1PlusTheta3 = NTraits<RealP>::atan2( spos, cpos );
         theta1 = theta1PlusTheta3;  // Arbitrary split
         theta3 = 0;                 // Arbitrary split
     }
     else {
         const RealP sneg = plusMinus*R[k][j] + plusMinus*R[j][k];  // 2*sin(theta1 - theta3)
         const RealP cneg = R[j][j] - R[k][k];                      // 2*cos(theta1 - theta3)
-        const RealP theta1MinusTheta3 = std::atan2( sneg, cneg );
+        const RealP theta1MinusTheta3 = NTraits<RealP>::atan2( sneg, cneg );
         theta1 = theta1MinusTheta3;  // Arbitrary split
         theta3 = 0;                  // Arbitrary split
     }
@@ -479,28 +484,28 @@ Rotation_<P>::convertThreeAxesBodyFixedRotationToThreeAngles
     const Mat33P& R = asMat33();
 
     // Calculate theta2 using lots of information in the rotation matrix.
-    RealP Rsum   =  std::sqrt((  square(R[i][i]) + square(R[i][j]) 
+    RealP Rsum   =  NTraits<RealP>::sqrt((  square(R[i][i]) + square(R[i][j]) 
                                + square(R[j][k]) + square(R[k][k])) / 2);
     // Rsum = abs(cos(theta2)) is inherently positive.
-    RealP theta2 =  std::atan2( plusMinus*R[i][k], Rsum ); 
+    RealP theta2 =  NTraits<RealP>::atan2( plusMinus*R[i][k], Rsum ); 
     RealP theta1, theta3;
 
     // There is a "singularity" when cos(theta2) == 0
     if( Rsum > 4*Eps ) {
-        theta1 =  std::atan2( minusPlus*R[j][k], R[k][k] );
-        theta3 =  std::atan2( minusPlus*R[i][j], R[i][i] );
+        theta1 =  NTraits<RealP>::atan2( minusPlus*R[j][k], R[k][k] );
+        theta3 =  NTraits<RealP>::atan2( minusPlus*R[i][j], R[i][i] );
     }
     else if( plusMinus*R[i][k] > 0 ) {
         const RealP spos = R[j][i] + plusMinus*R[k][j];  // 2*sin(theta1 + plusMinus*theta3)
         const RealP cpos = R[j][j] + minusPlus*R[k][i];  // 2*cos(theta1 + plusMinus*theta3)
-        const RealP theta1PlusMinusTheta3 = std::atan2( spos, cpos );
+        const RealP theta1PlusMinusTheta3 = NTraits<RealP>::atan2( spos, cpos );
         theta1 = theta1PlusMinusTheta3;  // Arbitrary split
         theta3 = 0;                      // Arbitrary split
     }
     else {
         const RealP sneg = plusMinus*(R[k][j] + minusPlus*R[j][i]);  // 2*sin(theta1 + minusPlus*theta3)
         const RealP cneg = R[j][j] + plusMinus*R[k][i];              // 2*cos(theta1 + minusPlus*theta3)
-        const RealP theta1MinusPlusTheta3 = std::atan2( sneg, cneg );
+        const RealP theta1MinusPlusTheta3 = NTraits<RealP>::atan2( sneg, cneg );
         theta1 = theta1MinusPlusTheta3;  // Arbitrary split
         theta3 = 0;                      // Arbitrary split
     }
@@ -690,7 +695,7 @@ Rotation_<P>::isSameRotationToWithinAngle
     const Rotation_<P> closeToIdentityMatrix = ~(*this) * R;
     const Vec4P angleAxisEquivalent = 
         closeToIdentityMatrix.convertRotationToAngleAxis();
-    const RealP pointingError = std::abs( angleAxisEquivalent[0] );
+    const RealP pointingError = NTraits<RealP>::abs( angleAxisEquivalent[0] );
     return pointingError <= okPointingAngleErrorRads;
 }
 
@@ -843,6 +848,10 @@ template class Rotation_<float>;
 template class Rotation_<double>;
 template class InverseRotation_<float>;
 template class InverseRotation_<double>;
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template class Rotation_<adouble>;
+    template class InverseRotation_<adouble>;
+#endif
 
 //------------------------------------------------------------------------------
 template <class P> std::ostream&  
@@ -861,6 +870,14 @@ template SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream&, const InverseRotation_<float>&);
 template SimTK_SimTKCOMMON_EXPORT std::ostream& 
 operator<<(std::ostream&, const InverseRotation_<double>&);
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template SimTK_SimTKCOMMON_EXPORT std::ostream&
+    operator<<(std::ostream&, const Rotation_<adouble>&);
+    template SimTK_SimTKCOMMON_EXPORT std::ostream&
+    operator<<(std::ostream&, const InverseRotation_<adouble>&);
+#endif
+
 
 
 

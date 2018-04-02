@@ -59,6 +59,15 @@ operator<<(std::ostream& o, const InverseTransform_<float>& x );
 template SimTK_SimTKCOMMON_EXPORT std::ostream& 
 operator<<(std::ostream& o, const InverseTransform_<double>& x );
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template class Transform_<adouble>;
+    template class InverseTransform_<adouble>;
+    template SimTK_SimTKCOMMON_EXPORT std::ostream&
+    operator<<(std::ostream& o, const Transform_<adouble>& x);
+    template SimTK_SimTKCOMMON_EXPORT std::ostream&
+    operator<<(std::ostream& o, const InverseTransform_<adouble>& x);
+#endif
+
 //------------------------------------------------------------------------------
 }  // End of namespace SimTK
 

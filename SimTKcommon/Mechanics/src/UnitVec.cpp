@@ -39,6 +39,11 @@ template class UnitVec<double,1>;
 template class UnitRow<float,1>;
 template class UnitRow<double,1>;
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template class UnitVec<adouble,1>;
+    template class UnitRow<adouble,1>;
+#endif
+
 }  // End of namespace SimTK
 
 
