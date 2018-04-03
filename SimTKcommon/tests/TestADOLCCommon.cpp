@@ -366,7 +366,11 @@ void testScalar() {
     const short int TraceTag = 5;
     trace_on(TraceTag);
     x <<= xp[0]; // select independent variables
-    y[0] = cube(-x); // negate variable by computation
+    // negate variable by computation. The operation -x returns an adub, which
+    // is the class used for temporary results. adub can be implicitly
+    // converted to adouble and negator<adouble> and we therefore explicitly
+    // cast to adouble to avoid any ambiguity.
+    y[0] = cube((adouble)-x);
     // negate variable by reintepretation
     y[1] = cube(reinterpret_cast<const negator<adouble>&>(x));
     double y0[2];
