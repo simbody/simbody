@@ -35,18 +35,19 @@
 using namespace SimTK;
 using namespace std;
 
-const Real TOL = 1e-10;
+const double TOL = 1e-10;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
 void assertEqual(Real val1, Real val2, double tol=TOL) {
-    ASSERT(abs(val1-val2) < tol);
+    ASSERT(NTraits<Real>::abs(val1-val2) < tol);
 }
 
 template <int N>
-void assertEqual(Vec<N> val1, Vec<N> val2, double tol=TOL) {
+void assertEqual(Vec<N> val1, Vec<N> val2, double tol = TOL) {
     for (int i = 0; i < N; ++i)
-        ASSERT(abs(val1[i]-val2[i]) < tol);
+    {
+        ASSERT(NTraits<Real>::abs(val1[i]-val2[i]) < tol);}
 }
 
 template <class T>
@@ -125,28 +126,28 @@ void testSinusoid() {
     Real a=11.23, w=1.1, p=Pi/4;
     Vector t1(1,.23), t2(1,-3.2), t3(1,14.1);
     Function::Sinusoid s1(a,w,p);
-    SimTK_TEST_EQ(s1.calcValue(Vector(1,0.)), a*std::sin(p));
-    SimTK_TEST_EQ(s1.calcValue(t1), a*std::sin(w*t1[0]+p));
-    SimTK_TEST_EQ(s1.calcValue(t2), a*std::sin(w*t2[0]+p));
-    SimTK_TEST_EQ(s1.calcValue(t3), a*std::sin(w*t3[0]+p));
+    SimTK_TEST_EQ(s1.calcValue(Vector(1,0.)), a*NTraits<Real>::sin(p));
+    SimTK_TEST_EQ(s1.calcValue(t1), a*NTraits<Real>::sin(w*t1[0]+p));
+    SimTK_TEST_EQ(s1.calcValue(t2), a*NTraits<Real>::sin(w*t2[0]+p));
+    SimTK_TEST_EQ(s1.calcValue(t3), a*NTraits<Real>::sin(w*t3[0]+p));
 
     // Do enough of these to make sure we reach the general forumula.
     Array_<int> deriv; // 0th derivative is function
     SimTK_TEST_EQ(s1.calcDerivative(deriv, t1), s1.calcValue(t1)); // 0th
     deriv.push_back(0); // 1st deriv
-    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), a*w*std::cos(w*t2[0]+p));
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), a*w*NTraits<Real>::cos(w*t2[0]+p));
     deriv.push_back(0); // 2nd deriv
-    SimTK_TEST_EQ(s1.calcDerivative(deriv, t3), -a*w*w*std::sin(w*t3[0]+p));
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t3), -a*w*w*NTraits<Real>::sin(w*t3[0]+p));
     deriv.push_back(0); // 3rd deriv
-    SimTK_TEST_EQ(s1.calcDerivative(deriv, t1), -a*w*w*w*std::cos(w*t1[0]+p));
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t1), -a*w*w*w*NTraits<Real>::cos(w*t1[0]+p));
     deriv.push_back(0); // 4th deriv
-    SimTK_TEST_EQ(s1.calcDerivative(deriv, t1), a*w*w*w*w*std::sin(w*t1[0]+p));
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t1), a*w*w*w*w*NTraits<Real>::sin(w*t1[0]+p));
     deriv.push_back(0); // 5th deriv
-    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), a*w*w*w*w*w*std::cos(w*t2[0]+p));
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), a*w*w*w*w*w*NTraits<Real>::cos(w*t2[0]+p));
     deriv.push_back(0); // 6th deriv
-    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), -a*w*w*w*w*w*w*std::sin(w*t2[0]+p));
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), -a*w*w*w*w*w*w*NTraits<Real>::sin(w*t2[0]+p));
     deriv.push_back(0); // 7th deriv
-    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), -a*w*w*w*w*w*w*w*std::cos(w*t2[0]+p));
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), -a*w*w*w*w*w*w*w*NTraits<Real>::cos(w*t2[0]+p));
 }
 
 void testStep() {

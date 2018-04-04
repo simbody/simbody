@@ -48,7 +48,7 @@ VectorBase<ELEM> func(const VectorBase<ELEM>& v) {     \
     const int size = v.size();                         \
     Vector_<ELEM> temp(size);                          \
     for (int i = 0; i < size; ++i)                     \
-        temp[i] = std::func(v[i]);                     \
+        temp[i] = NTraits<Real>::func(v[i]);           \
     return temp;                                       \
 }                                                      \
 template <class ELEM>                                  \
@@ -56,7 +56,7 @@ RowVectorBase<ELEM> func(const RowVectorBase<ELEM>& v){\
     const int size = v.size();                         \
     RowVector_<ELEM> temp(size);                       \
     for (int i = 0; i < size; ++i)                     \
-        temp[i] = std::func(v[i]);                     \
+        temp[i] = NTraits<Real>::func(v[i]);           \
     return temp;                                       \
 }                                                      \
 template <class ELEM>                                  \
@@ -65,33 +65,33 @@ MatrixBase<ELEM> func(const MatrixBase<ELEM>& v) {     \
     Matrix_<ELEM> temp(rows, cols);                    \
     for (int i = 0; i < rows; ++i)                     \
         for (int j = 0; j < cols; ++j)                 \
-            temp(i, j) = std::func(v(i, j));           \
+            temp(i, j) = NTraits<Real>::func(v(i, j)); \
     return temp;                                       \
 }                                                      \
 template <int N, class ELEM>                           \
 Vec<N, ELEM> func(Vec<N, ELEM> v) {                    \
     for (int i = 0; i < N; ++i)                        \
-        v[i] = std::func(v[i]);                        \
+        v[i] = NTraits<Real>::func(v[i]);              \
     return v;                                          \
 }                                                      \
 template <int N, class ELEM>                           \
 Row<N, ELEM> func(Row<N, ELEM> v) {                    \
     for (int i = 0; i < N; ++i)                        \
-        v[i] = std::func(v[i]);                        \
+        v[i] = NTraits<Real>::func(v[i]);              \
     return v;                                          \
 }                                                      \
 template <int M, int N, class ELEM>                    \
 Mat<M, N, ELEM> func(Mat<M, N, ELEM> v) {              \
     for (int i = 0; i < M; ++i)                        \
         for (int j = 0; j < N; ++j)                    \
-            v(i, j) = std::func(v(i, j));              \
+            v(i, j) = NTraits<Real>::func(v(i, j));    \
     return v;                                          \
 }                                                      \
 template <int N, class ELEM>                           \
 SymMat<N, ELEM> func(SymMat<N, ELEM> v) {              \
     for (int i = 0; i < N; ++i)                        \
         for (int j = 0; j <= i; ++j)                   \
-            v(i, j) = std::func(v(i, j));              \
+            v(i, j) = NTraits<Real>::func(v(i, j));    \
     return v;                                          \
 }                                                      \
 
