@@ -190,7 +190,7 @@ public:
         static double defTol(typename std::enable_if<
         std::is_same<typename CNT<T>::Precision, adouble>::value>::type* = 0)
         { return NTraits<typename CNT<adouble>::Precision>::
-            getSignificant().value(); }
+            getSignificant(); }
         template <class T>
         static double defTol(typename std::enable_if<
         !std::is_same<typename CNT<T>::Precision, adouble>::value>::type* = 0)
