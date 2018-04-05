@@ -469,16 +469,35 @@ public:
         assert(nElt >= 0);
         if (nElt==0) 
             return 0;
-        assert(sizeof(S) % sizeof(Precision) == 0);
-        const ptrdiff_t nPrecPerElt = (sizeof(S)/sizeof(Precision))*m_eltSize;
-        const ptrdiff_t nPrec       = nElt * nPrecPerElt;
-        Precision* p = new Precision[nPrec];
-        #ifndef NDEBUG
-            const Precision nan = CNT<Precision>::getNaN();
-            for (ptrdiff_t i=0; i < nPrec; ++i)
-                p[i] = nan;
-        #endif
-        return reinterpret_cast<S*>(p);
+        // TODO big hack:
+#ifdef SimTK_REAL_IS_ADOUBLE
+        if (std::is_same<StdNumber, adouble>::value) {
+            assert(sizeof(S) % sizeof(adouble) == 0);
+            const ptrdiff_t nPrecPerElt = (sizeof(S)/sizeof(adouble))*m_eltSize;
+            const ptrdiff_t nPrec       = nElt * nPrecPerElt;
+            adouble* p = new adouble[nPrec];
+            #ifndef NDEBUG
+                const adouble nan = CNT<adouble>::getNaN();
+                for (ptrdiff_t i=0; i < nPrec; ++i)
+                    p[i] = nan;
+                #endif
+            return reinterpret_cast<S*>(p);
+        } else {
+#endif
+            static_assert(sizeof(S) % sizeof(Precision) == 0,
+                          "sizeof(S) must be a multiple of sizeof(Precision).");
+            const ptrdiff_t nPrecPerElt = (sizeof(S)/sizeof(Precision))*m_eltSize;
+            const ptrdiff_t nPrec       = nElt * nPrecPerElt;
+            Precision* p = new Precision[nPrec];
+            #ifndef NDEBUG
+                const Precision nan = CNT<Precision>::getNaN();
+                for (ptrdiff_t i=0; i < nPrec; ++i)
+                    p[i] = nan;
+            #endif
+            return reinterpret_cast<S*>(p);
+#ifdef SimTK_REAL_IS_ADOUBLE
+        }
+#endif
     }
     // Allocate enough memory to hold m*n elements. m and n are ints, but their
     // product may not fit in an int, so we use ptrdiff_t which will be a 64-bit
@@ -493,8 +512,18 @@ public:
     // prevent the calling of any element destructor that might be present for 
     // the fancier scalar types.
     static void deleteAllocatedMemory(S* mem) {
+        // TODO big hack
+#ifdef SimTK_REAL_IS_ADOUBLE
+        if (std::is_same<StdNumber, adouble>::value) {
+            adouble* p = reinterpret_cast<adouble*>(mem);
+            delete[] p;
+        } else {
+#endif
         Precision* p = reinterpret_cast<Precision*>(mem);
         delete[] p;
+#ifdef SimTK_REAL_IS_ADOUBLE
+        }
+#endif
     }
 
     // Use setData only when there isn't already data in this handle. If this
