@@ -56,7 +56,7 @@ void verifyUniformDistribution(Real min, Real max, Real value[], int length) {
     for (int i = 0; i < length; ++i) {
         ASSERT(value[i] >= min)
         ASSERT(value[i] < max)
-        int index = (int) ((value[i]-min)*10/(max-min));
+        int index = NTraits<Real>::cast<int>((value[i]-min)*10/(max-min));
         found[index]++;
     }
     verifyDistribution(expected, found, 10);

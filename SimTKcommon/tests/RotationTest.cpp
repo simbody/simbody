@@ -500,8 +500,8 @@ bool testSetRotationToBodyFixedXYZ() {
         BodyRotationSequence, q0, XAxis, q1, YAxis, q2, ZAxis);
     R1.setRotationToBodyFixedXYZ(Vec3(q0,q1,q2));
     R2.setRotationToBodyFixedXYZ(
-        Vec3(std::cos(q0),std::cos(q1),std::cos(q2)),
-        Vec3(std::sin(q0),std::sin(q1),std::sin(q2)));
+        Vec3(NTraits<Real>::cos(q0),NTraits<Real>::cos(q1),NTraits<Real>::cos(q2)),
+        Vec3(NTraits<Real>::sin(q0),NTraits<Real>::sin(q1),NTraits<Real>::sin(q2)));
 
     test = test && R0.areAllRotationElementsSameToMachinePrecision(R1);
     test = test && R0.areAllRotationElementsSameToMachinePrecision(R2);
@@ -686,7 +686,7 @@ bool testRotationFromTwoGivenAxes( const Vec3& vi, const CoordinateAxis& ai, con
     // This makes a Rotation with vi as axis i, but axis j will only be in the general direction of vj.
     const Rotation testRotation(UnitVec3(vi), ai, vj, aj);
 
-    test = test && std::fabs(det(testRotation) - 1) <= SignificantReal;
+    test = test && fabs(det(testRotation) - 1) <= SignificantReal;
 
     test = test && dot(testRotation(ai), vi) > 0;
     test = test && dot(testRotation(aj), vj) > 0;
@@ -725,6 +725,7 @@ bool testReexpressSymMat33() {
     const Mat33 M(M1*M2);
     test = test && (S-M).norm() <= SignificantReal;
 
+    #ifndef SimTK_REAL_IS_ADOUBLE
     const SymMat<3,Complex> SC1(Test::randComplex(),
                                 Test::randComplex(), Test::randComplex(),
                                 Test::randComplex(), Test::randComplex(), Test::randComplex() );
@@ -740,6 +741,7 @@ bool testReexpressSymMat33() {
     const Mat<3,3,Complex> SC(SC1*SC2);
     const Mat<3,3,Complex> MC(MC1*MC2);
     SimTK_TEST_EQ(SC, MC);
+    #endif
 
     return test;
 }

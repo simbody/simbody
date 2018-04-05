@@ -586,14 +586,6 @@ void testSymMat() {
     SimTK_TEST(mressr[1][1] == d-a);
 }
 
-void testVector() {
-    Vector vector(2);
-    vector[0] = -1;
-    vector[1] = 2;
-    SimTK_TEST(vector[0] == -1);
-    SimTK_TEST(vector[1] == 2);
-}
-
 int main() {
     SimTK_START_TEST("TestADOLCCommon");
         SimTK_SUBTEST(testDerivativeADOLC);
@@ -606,6 +598,5 @@ int main() {
         SimTK_SUBTEST(testScalar);
         SimTK_SUBTEST(testRow);
         SimTK_SUBTEST(testSymMat);
-        SimTK_SUBTEST(testVector);
     SimTK_END_TEST();
 }

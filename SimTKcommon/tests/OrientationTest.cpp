@@ -82,7 +82,7 @@ void cosTest() {
 }
 
 void quatTest() {
-    const Real pi2 = std::acos(Real(0));
+    const Real pi2 = NTraits<Real>::acos(Real(0));
     Vec4 avOrig(-.1-1e-4, 7e1,-.2,.1);
     Quaternion q1,q2;
     q1.setQuaternionFromAngleAxis(avOrig);
@@ -100,7 +100,7 @@ void quatTest() {
     cout << "av3=" << av3 << " av3-av1=" << av3-av1 << endl;
     Quaternion q3;q3.setQuaternionFromAngleAxis(av3);
     Rotation r2(q3);
-    cout << "norm(r2*~r1)-sqrt(3)=" << (r2*~r1).norm()-std::sqrt(3.) << endl;
+    cout << "norm(r2*~r1)-sqrt(3)=" << (r2*~r1).norm()-NTraits<Real>::sqrt(3.) << endl;
 
 }
 
@@ -286,7 +286,7 @@ try {
     
     MassProperties mp(mtot, com000, I000);
     cout << mp;
-    Real scale = std::sqrt(I123.toMat33().diag().normSqr()/3); cout << "inertia scale=" << scale << endl;
+    Real scale = NTraits<Real>::sqrt(I123.toMat33().diag().normSqr()/3); cout << "inertia scale=" << scale << endl;
     cout << "norm(I000->123-I123)/rms(I123)=" 
         << (mp.calcTransformedInertia(X_01).toMat33()-I123.toMat33()).norm()/scale
         << endl;
@@ -308,7 +308,7 @@ try {
     Rotation R_GB, R_GX; Real backOut;
     R_GB.setRotationFromAngleAboutNonUnitVector( 0.17, Vec3(1,2,3) );
     backOut = R_GB.convertRotationToAngleAxis()[0];
-    cout << " in=0.17 radians, out=" << backOut << " err=" << std::abs(backOut-0.17) << endl;
+    cout << " in=0.17 radians, out=" << backOut << " err=" << NTraits<Real>::abs(backOut-0.17) << endl;
 
     R_GB.setRotationFromAngleAboutNonUnitVector( 0.17+1e-13, Vec3(1,2,3) );
     R_GX.setRotationFromAngleAboutNonUnitVector( 0.17,       Vec3(1,2,3) );
@@ -321,7 +321,7 @@ try {
 
     const Real pi2 = Pi/2;
     const Real pi2x = -pi2 + 1e-8;
-    cout << "pi2x=pi2-" << pi2-pi2x << " sin(pi2x)-1=" << std::sin(pi2x)-1 << endl;
+    cout << "pi2x=pi2-" << pi2-pi2x << " sin(pi2x)-1=" << NTraits<Real>::sin(pi2x)-1 << endl;
     const Vec3 vin(-3, pi2x, 0.1);
     Rotation b123( BodyRotationSequence, vin[0], XAxis, vin[1], YAxis, vin[2], ZAxis );  
     Mat33 m123=b123; m123[0][0] += 1e-14; m123[1][2] += 1e-14;
@@ -360,7 +360,7 @@ catch(const Exception::Base& e) {
 static Rotation rotate1(int i, Real a) {
     assert(0 <= i && i < 3);
     int j=(i+1)%3, k=(i+2)%3;
-    Real s=std::sin(a), c=std::cos(a);
+    Real s=NTraits<Real>::sin(a), c=NTraits<Real>::cos(a);
     Mat33 m;
     m(i,i)=1; m(i,j)=m(j,i)=m(i,k)=m(k,i)=0;
     m(j,j)=m(k,k)=c;
@@ -373,24 +373,24 @@ static Rotation rotate1(int i, Real a) {
 
 //0,1
 static Rotation aboutXThenOldY(const Real& xInRad, const Real& yInRad) {
-    const Real s0 = std::sin(xInRad), c0 = std::cos(xInRad);
-    const Real s1 = std::sin(yInRad), c1 = std::cos(yInRad);
+    const Real s0 = NTraits<Real>::sin(xInRad), c0 = NTraits<Real>::cos(xInRad);
+    const Real s1 = NTraits<Real>::sin(yInRad), c1 = NTraits<Real>::cos(yInRad);
     const Mat33 m( c1   ,  s0*s1 ,  c0*s1 ,
                     0   ,   c0   ,  -s0   ,
                   -s1   ,  s0*c1 ,  c0*c1 ); return Rotation(m,true);
 }
 //2,0
 static Rotation aboutZThenOldX(const Real& zInRad, const Real& xInRad) {
-    const Real s1 = std::sin(xInRad), c1 = std::cos(xInRad);
-    const Real s0 = std::sin(zInRad), c0 = std::cos(zInRad);
+    const Real s1 = NTraits<Real>::sin(xInRad), c1 = NTraits<Real>::cos(xInRad);
+    const Real s0 = NTraits<Real>::sin(zInRad), c0 = NTraits<Real>::cos(zInRad);
     const Mat33 m(  c0   ,  -s0   ,    0   ,
                    s0*c1 ,  c0*c1 ,  -s1   ,
                    s0*s1 ,  c0*s1 ,   c1   ); return Rotation(m,true);
 }
 //1,2
 static Rotation aboutYThenOldZ(const Real& yInRad, const Real& zInRad) {
-    const Real s0 = std::sin(yInRad), c0 = std::cos(yInRad);
-    const Real s1 = std::sin(zInRad), c1 = std::cos(zInRad);
+    const Real s0 = NTraits<Real>::sin(yInRad), c0 = NTraits<Real>::cos(yInRad);
+    const Real s1 = NTraits<Real>::sin(zInRad), c1 = NTraits<Real>::cos(zInRad);
     const Mat33 m( c0*c1 ,  -s1   ,  s0*c1 ,
                    c0*s1 ,   c1   ,  s0*s1 ,
                    -s0   ,    0   ,   c0   ); return Rotation(m,true);
@@ -398,16 +398,16 @@ static Rotation aboutYThenOldZ(const Real& yInRad, const Real& zInRad) {
 
 //1,0
 static Rotation aboutYThenOldX(const Real& yInRad, const Real& xInRad) {
-    const Real s1 = std::sin(xInRad), c1 = std::cos(xInRad);
-    const Real s0 = std::sin(yInRad), c0 = std::cos(yInRad);
+    const Real s1 = NTraits<Real>::sin(xInRad), c1 = NTraits<Real>::cos(xInRad);
+    const Real s0 = NTraits<Real>::sin(yInRad), c0 = NTraits<Real>::cos(yInRad);
     const Mat33 m(  c0   ,    0   ,   s0   ,
                    s0*s1 ,   c1   , -c0*s1 ,
                   -s0*c1 ,   s1   ,  c0*c1 ); return Rotation(m,true);
 }
 //0,2
 static Rotation aboutXThenOldZ(const Real& xInRad, const Real& zInRad) {
-    const Real s0 = std::sin(xInRad), c0 = std::cos(xInRad);
-    const Real s1 = std::sin(zInRad), c1 = std::cos(zInRad);
+    const Real s0 = NTraits<Real>::sin(xInRad), c0 = NTraits<Real>::cos(xInRad);
+    const Real s1 = NTraits<Real>::sin(zInRad), c1 = NTraits<Real>::cos(zInRad);
     const Mat33 m(  c1   , -c0*s1 ,  s0*s1 ,
                     s1   ,  c0*c1 , -s0*c1 ,
                      0   ,   s0   ,   c0   ); return Rotation(m,true);
@@ -415,8 +415,8 @@ static Rotation aboutXThenOldZ(const Real& xInRad, const Real& zInRad) {
 
 //2,1
 static Rotation aboutZThenOldY(const Real& zInRad, const Real& yInRad) {
-    const Real s1 = std::sin(yInRad), c1 = std::cos(yInRad);
-    const Real s0 = std::sin(zInRad), c0 = std::cos(zInRad);
+    const Real s1 = NTraits<Real>::sin(yInRad), c1 = NTraits<Real>::cos(yInRad);
+    const Real s0 = NTraits<Real>::sin(zInRad), c0 = NTraits<Real>::cos(zInRad);
     const Mat33 m( c0*c1 , -s0*c1 ,   s1   ,
                     s0   ,   c0   ,    0   ,
                   -c0*s1 ,  s0*s1 ,   c1   ); return Rotation(m,true);

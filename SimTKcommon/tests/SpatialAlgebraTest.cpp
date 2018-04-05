@@ -103,6 +103,7 @@ void testMiscSpatialAlgebra() {
     cout << endl << "TEST: 3.f*v=" << 3.f*v;
     cout << endl << "TEST: 3*v*2=" << 3*v*2;
     cout << endl << "TEST: v/negator<Real>(3.)=" << v/negator<Real>(3.);
+    #ifndef SimTK_REAL_IS_ADOUBLE
     cout << endl << "TEST: v/complex<Real>(2.,3.)=" << v/complex<Real>(2.,3.);
     cout << endl << "TEST: v/conjugate<Real>(2.,3.)=" << v/conjugate<Real>(2.,3.);
     const conjugate<Real> cr23(2.,3.);
@@ -110,6 +111,7 @@ void testMiscSpatialAlgebra() {
          << v*negator<conjugate<Real> >::recast(cr23);
     cout << endl << "TEST: v/negator<conjugate<Real>(2.,3.)>=" 
          << v/negator<conjugate<Real> >::recast(cr23);
+    #endif
     //cout << endl << "TEST: v-v=" << v-v;
     //cout << endl << "TEST: r+r=" << r+r;
     //cout << endl << "TEST: r-r=" << r-r;
