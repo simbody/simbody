@@ -431,7 +431,7 @@ static bool isValidInertiaMatrix(const SymMat<3,P>& m) {
     const Vec<3,P>& d = m.diag();
     if (!(d >= 0)) return false;    // diagonals must be nonnegative
 
-    const P Slop = std::max(d.sum(),P(1))
+    const P Slop = NTraits<P>::max(d.sum(),P(1))
                        * NTraits<P>::getSignificant();
 
     if (!(d[0]+d[1]+Slop>=d[2] && d[0]+d[2]+Slop>=d[1] && d[1]+d[2]+Slop>=d[0]))
@@ -439,9 +439,9 @@ static bool isValidInertiaMatrix(const SymMat<3,P>& m) {
 
     // Thanks to Paul Mitiguy for this condition on products of inertia.
     const Vec<3,P>& p = m.getLower();
-    if (!( d[0]+Slop>=std::abs(2*p[2])
-        && d[1]+Slop>=std::abs(2*p[1])
-        && d[2]+Slop>=std::abs(2*p[0])))
+    if (!( d[0]+Slop>=NTraits<P>::abs(2*p[2])
+        && d[1]+Slop>=NTraits<P>::abs(2*p[1])
+        && d[2]+Slop>=NTraits<P>::abs(2*p[0])))
         return false;               // max products are limited by moments
 
     return true;
@@ -531,26 +531,25 @@ void errChk(const char* methodName) const {
 
     SimTK_ERRCHK3(d >= -SignificantReal, methodName,
         "Diagonals of an Inertia matrix must be nonnegative; got %g,%g,%g.",
-        (double)Ixx,(double)Iyy,(double)Izz);
+        Ixx,Iyy,Izz);
 
     // TODO: This is looser than it should be as a workaround for distorted
     // rotation matrices that were produced by an 11,000 body chain that
     // Sam Flores encountered. 
-    const P Slop = std::max(d.sum(),P(1))
-                       * std::sqrt(NTraits<P>::getEps());
+    const P Slop = NTraits<P>::max(d.sum(),P(1))
+                       * NTraits<P>::sqrt(NTraits<P>::getEps());
 
     SimTK_ERRCHK3(   Ixx+Iyy+Slop>=Izz 
                   && Ixx+Izz+Slop>=Iyy 
                   && Iyy+Izz+Slop>=Ixx,
         methodName,
         "Diagonals of an Inertia matrix must satisfy the triangle "
-        "inequality; got %g,%g,%g.",
-        (double)Ixx,(double)Iyy,(double)Izz);
+        "inequality; got %g,%g,%g.",Ixx,Iyy,Izz);
 
     // Thanks to Paul Mitiguy for this condition on products of inertia.
-    SimTK_ERRCHK(   Ixx+Slop>=std::abs(2*Iyz) 
-                 && Iyy+Slop>=std::abs(2*Ixz)
-                 && Izz+Slop>=std::abs(2*Ixy),
+    SimTK_ERRCHK(   Ixx+Slop>=NTraits<P>::abs(2*Iyz) 
+                 && Iyy+Slop>=NTraits<P>::abs(2*Ixz)
+                 && Izz+Slop>=NTraits<P>::abs(2*Ixy),
         methodName,
         "The magnitude of a product of inertia was too large to be physical.");
 #endif
@@ -1011,7 +1010,7 @@ SpatialInertia_(RealP mass, const Vec3P& com, const UnitInertiaP& gyration)
 
 SpatialInertia_& setMass(RealP mass)
 {   SimTK_ERRCHK1(mass >= 0, "SpatialInertia::setMass()",
-        "Negative mass %g is illegal.", (double)mass);
+        "Negative mass %g is illegal.", mass);
     m=mass; return *this; }
 SpatialInertia_& setMassCenter(const Vec3P& com)
 {   p=com; return *this;} 
@@ -1386,7 +1385,7 @@ MassProperties_& setMassProperties(const P& m, const Vec<3,P>& com, const Inerti
         unitInertia_OB_B = UnitInertia_<P>(0);
     }
     else {
-        unitInertia_OB_B = UnitInertia_<P>(inertia*(1/m));
+        unitInertia_OB_B = UnitInertia_<P>(inertia/m);
     }
     return *this;
 }

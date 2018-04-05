@@ -108,6 +108,13 @@ template class CNT< conjugate<double> >;
 template class CNT< negator< conjugate<float> > >;
 template class CNT< negator< conjugate<double> > >;
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+#define INSTANTIATE_ALL_LEFT_ADOLC(T)   \
+    template bool isNumericallyEqual(const T&, const adouble&, double tol)
+#else
+#define INSTANTIATE_ALL_LEFT_ADOLC(T)
+#endif
+
 
 #define INSTANTIATE_ALL_LEFT(T) \
 template bool isNumericallyEqual(const T&, const complex<float>&,           double tol); \
@@ -116,7 +123,8 @@ template bool isNumericallyEqual(const T&, const conjugate<float>&,         doub
 template bool isNumericallyEqual(const T&, const conjugate<double>&,        double tol); \
 template bool isNumericallyEqual(const T&, const float&,                    double tol); \
 template bool isNumericallyEqual(const T&, const double&,                   double tol); \
-template bool isNumericallyEqual(const T&, int,                             double tol)
+template bool isNumericallyEqual(const T&, int,                             double tol); \
+INSTANTIATE_ALL_LEFT_ADOLC(T);
 
 INSTANTIATE_ALL_LEFT(complex<float>);
 INSTANTIATE_ALL_LEFT(complex<double>);
@@ -124,14 +132,27 @@ INSTANTIATE_ALL_LEFT(conjugate<float>);
 INSTANTIATE_ALL_LEFT(conjugate<double>);
 
 // Don't duplicate anything instantiated with the previous macro.
+#ifdef SimTK_REAL_IS_ADOUBLE
+#define INSTANTIATE_ALL_RIGHT_ADOLC(T)   \
+    template bool isNumericallyEqual(const adouble&, const T&, double tol)
+#else
+#define INSTANTIATE_ALL_RIGHT_ADOLC(T)
+#endif
+
 #define INSTANTIATE_ALL_RIGHT(T) \
 template bool isNumericallyEqual(const float&,                  const T&, double tol); \
 template bool isNumericallyEqual(const double&,                 const T&, double tol); \
-template bool isNumericallyEqual(int,                           const T&, double tol)
+template bool isNumericallyEqual(int,                           const T&, double tol); \
+INSTANTIATE_ALL_RIGHT_ADOLC(T);
 
 INSTANTIATE_ALL_RIGHT(complex<float>);
 INSTANTIATE_ALL_RIGHT(complex<double>);
 INSTANTIATE_ALL_RIGHT(conjugate<float>);
 INSTANTIATE_ALL_RIGHT(conjugate<double>);
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template class negator<adouble>;
+    template class CNT< negator<adouble> >;
+#endif
 
 }

@@ -123,7 +123,7 @@ void testCrossProduct() {
 }
 
 void testInertia() {
-    const Real mass = std::abs(Test::randReal());
+    const Real mass = NTraits<Real>::abs(Test::randReal());
     const UnitInertia_<Real> G( Vec3(1,2,2.5),       // moments
                                 Vec3(0.1,0.2,0.3) ); // products
     const Real Gtrace = 1+2+2.5;
@@ -145,7 +145,7 @@ void testInertia() {
     SimTK_TEST_EQ( I.trace(), mass*Gtrace );
 
     // Test Inertia*scalar
-    const Real s = std::abs(Test::randReal()) + 1;
+    const Real s = NTraits<Real>::abs(Test::randReal()) + 1;
     SimTK_TEST_EQ( (I*s).toMat33(), I.toMat33()*s );
     SimTK_TEST_EQ( (s*I).toMat33(), I.toMat33()*s );
     SimTK_TEST_EQ( (G*s).toMat33(), G.toMat33()*s );

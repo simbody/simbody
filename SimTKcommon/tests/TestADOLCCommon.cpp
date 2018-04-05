@@ -366,7 +366,11 @@ void testScalar() {
     const short int TraceTag = 5;
     trace_on(TraceTag);
     x <<= xp[0]; // select independent variables
-    y[0] = cube(-x); // negate variable by computation
+    // negate variable by computation. The operation -x returns an adub, which
+    // is the class used for temporary results. adub can be implicitly
+    // converted to adouble and negator<adouble> and we therefore explicitly
+    // cast to adouble to avoid any ambiguity.
+    y[0] = cube((adouble)-x);
     // negate variable by reintepretation
     y[1] = cube(reinterpret_cast<const negator<adouble>&>(x));
     double y0[2];
@@ -499,6 +503,88 @@ void testScalar() {
     SimTK_TEST(d3stepAny(a,c,g,d) == d3stepAny(ad,cd,gd,dd));
 }
 
+// Various unit tests verifying that operators involving a Row and an adouble
+// work properly
+void testRow() {
+    adouble a = -2;
+    adouble b = 2;
+    adouble c = -1.5;
+    adouble d = -2.8;
+    Row<3,adouble,1> r;
+    r[0] = b;
+    r[1] = c;
+    r[2] = d;
+    // multiplication
+    Row<3,adouble,1> rresmr = r*a;
+    SimTK_TEST(rresmr[0] == b*a);
+    SimTK_TEST(rresmr[1] == c*a);
+    SimTK_TEST(rresmr[2] == d*a);
+    Row<3,adouble,1> rresml = a*r;
+    SimTK_TEST(rresml[0] == a*b);
+    SimTK_TEST(rresml[1] == a*c);
+    SimTK_TEST(rresml[2] == a*d);
+    // division
+    Row<3,adouble,1> rresdr = r/a;
+    SimTK_TEST(rresdr[0] == b/a);
+    SimTK_TEST(rresdr[1] == c/a);
+    SimTK_TEST(rresdr[2] == d/a);
+    // addition
+    Row<3,adouble,1> rresar = r+a;
+    SimTK_TEST(rresar[0] == b+a);
+    SimTK_TEST(rresar[1] == c+a);
+    SimTK_TEST(rresar[2] == d+a);
+    Row<3,adouble,1> rresal = a+r;
+    SimTK_TEST(rresal[0] == a+b);
+    SimTK_TEST(rresal[1] == a+c);
+    SimTK_TEST(rresal[2] == a+d);
+    // subtraction
+    Row<3,adouble,1> rressr = r-a;
+    SimTK_TEST(rressr[0] == b-a);
+    SimTK_TEST(rressr[1] == c-a);
+    SimTK_TEST(rressr[2] == d-a);
+}
+
+// Various unit tests verifying that operators involving a SymMat and an
+// adouble work properly
+void testSymMat() {
+    adouble a = -2;
+    adouble b = 2;
+    adouble c = -1.5;
+    adouble d = -2.8;
+    SymMat<2,adouble,1> sm(b,
+                           c,d);
+    // multiplication
+    SymMat<2,adouble,1> mresmr = sm*a;
+    SimTK_TEST(mresmr[0][0] == b*a);
+    SimTK_TEST(mresmr[1][0] == c*a);
+    SimTK_TEST(mresmr[1][1] == d*a);
+    SymMat<2,adouble,1> mresml = a*sm;
+    SimTK_TEST(mresml[0][0] == a*b);
+    SimTK_TEST(mresml[1][0] == a*c);
+    SimTK_TEST(mresml[1][1] == a*d);
+    // division
+    SymMat<2,adouble,1> mresdr = sm/a;
+    SimTK_TEST(mresdr[0][0] == b/a);
+    SimTK_TEST(mresdr[1][0] == c/a);
+    SimTK_TEST(mresdr[1][1] == d/a);
+    // Addition and subtraction behave as though the scalar stands for a
+    // conforming matrix whose diagonal elements are that scalar and then a
+    // normal matrix addition or subtraction is done.
+    // addition
+    SymMat<2,adouble,1> mresar = sm+a;
+    SimTK_TEST(mresar[0][0] == b+a);
+    SimTK_TEST(mresar[1][0] == sm[1][0]);
+    SimTK_TEST(mresar[1][1] == d+a);
+    SymMat<2,adouble,1> mresal = a+sm;
+    SimTK_TEST(mresal[0][0] == a+b);
+    SimTK_TEST(mresal[1][0] == sm[1][0]);
+    SimTK_TEST(mresal[1][1] == a+d);
+    // subtraction
+    SymMat<2,adouble,1> mressr = sm-a;
+    SimTK_TEST(mressr[0][0] == b-a);
+    SimTK_TEST(mressr[1][0] == sm[1][0]);
+    SimTK_TEST(mressr[1][1] == d-a);
+}
 
 int main() {
     SimTK_START_TEST("TestADOLCCommon");
@@ -510,5 +596,7 @@ int main() {
         SimTK_SUBTEST(testVec);
         SimTK_SUBTEST(testMat);
         SimTK_SUBTEST(testScalar);
+        SimTK_SUBTEST(testRow);
+        SimTK_SUBTEST(testSymMat);
     SimTK_END_TEST();
 }

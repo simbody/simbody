@@ -304,7 +304,7 @@ public:
 
     virtual Real calcValue(const Vector& x) const override {
         const Real t = x[0]; // we expect just one argument
-        return a*std::sin(w*t + p);
+        return a*NTraits<Real>::sin(w*t + p);
     }
 
     virtual Real calcDerivative(const Array_<int>& derivComponents,
@@ -316,14 +316,15 @@ public:
         // where sign is -1 if floor(order/2) is odd, else 1
         // and   sc is cos(w*t+p) if order is odd, else sin(w*t+p)
         switch(order) {
-        case 0: return  a*      std::sin(w*t + p);
-        case 1: return  a*w*    std::cos(w*t + p);
-        case 2: return -a*w*w*  std::sin(w*t + p);
-        case 3: return -a*w*w*w*std::cos(w*t + p);
+        case 0: return  a*      NTraits<Real>::sin(w*t + p);
+        case 1: return  a*w*    NTraits<Real>::cos(w*t + p);
+        case 2: return -a*w*w*  NTraits<Real>::sin(w*t + p);
+        case 3: return -a*w*w*w*NTraits<Real>::cos(w*t + p);
         default:
             const Real sign = Real(((order/2) & 0x1) ? -1 : 1);
-            const Real sc   = (order & 0x1) ? std::cos(w*t+p) : std::sin(w*t+p);
-            const Real wn   = std::pow(w, order);
+            const Real sc   = (order & 0x1) ? NTraits<Real>::cos(w*t+p) :
+                NTraits<Real>::sin(w*t+p);
+            const Real wn   = NTraits<Real>::pow(w, order);
             return sign*a*wn*sc;
         }
     }

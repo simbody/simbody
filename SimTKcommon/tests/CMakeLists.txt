@@ -60,8 +60,11 @@ endforeach(TEST_PROG ${REGR_TESTS})
 if(BUILD_ADOLC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_SHARED)
     set(ADOLC_REGR_TESTS ${ALL_REGR_TESTS})
     # The use of xml is not yet supported with the ADOL-C libraries and
-    # TestXml is therefore excluded from the tests of the ADOL-C libraries.            
-    file(GLOB ADOLC_TESTS_TO_EXCLUDE "*TestXml*")
+    # TestXml is therefore excluded from the tests of the ADOL-C libraries. 
+    # PolynomialTest is made almost entirely of expressions involving
+    # complex numbers that are not yet supported with ADOL-C. The test is thus
+    # excluded from the tests of the ADOL-C libraries.
+    file(GLOB ADOLC_TESTS_TO_EXCLUDE "*TestXml*" "*PolynomialTest*")
     list(REMOVE_ITEM ADOLC_REGR_TESTS ${ADOLC_TESTS_TO_EXCLUDE})
     
     foreach(TEST_PROG ${ADOLC_REGR_TESTS})

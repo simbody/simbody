@@ -170,11 +170,12 @@ Rotation_& setRotationFromAngleAboutAxis(RealP angle, const CoordinateAxis& axis
 /** Constructor for right-handed rotation by an angle (in radians) about the 
 X-axis. **/
 Rotation_( RealP angle, const CoordinateAxis::XCoordinateAxis )  
-{ setRotationFromAngleAboutX( std::cos(angle), std::sin(angle) ); }
+{ setRotationFromAngleAboutX( NTraits<RealP>::cos(angle), NTraits<RealP>::sin(angle) ); }
 /** Set this Rotation_ object to a right-handed rotation by an angle (in 
 radians) about the X-axis. **/
 Rotation_&  setRotationFromAngleAboutX( RealP angle )  
-{ return setRotationFromAngleAboutX( std::cos(angle), std::sin(angle) ); }
+{ return setRotationFromAngleAboutX( NTraits<RealP>::cos(angle),
+    NTraits<RealP>::sin(angle) ); }
 /** Set this Rotation_ object to a right-handed rotation by an angle about the
 X-axis, where the cosine and sine of the angle are specified. **/
 Rotation_&  setRotationFromAngleAboutX( RealP cosAngle, RealP sinAngle )  
@@ -185,11 +186,13 @@ Rotation_&  setRotationFromAngleAboutX( RealP cosAngle, RealP sinAngle )
 /** Constructor for right-handed rotation by an angle (in radians) about the 
 Y-axis. **/
 Rotation_( RealP angle, const CoordinateAxis::YCoordinateAxis )  
-{ setRotationFromAngleAboutY( std::cos(angle), std::sin(angle) ); }
+{ setRotationFromAngleAboutY( NTraits<RealP>::cos(angle),
+    NTraits<RealP>::sin(angle) ); }
 /** Set this Rotation_ object to a right-handed rotation by an angle (in 
 radians) about the Y-axis. **/
 Rotation_&  setRotationFromAngleAboutY( RealP angle )  
-{ return setRotationFromAngleAboutY( std::cos(angle), std::sin(angle) ); }
+{ return setRotationFromAngleAboutY( NTraits<RealP>::cos(angle),
+    NTraits<RealP>::sin(angle) ); }
 /** Set this Rotation_ object to a right-handed rotation by an angle about the
 Y-axis, where the cosine and sine of the angle are specified. **/
 Rotation_&  setRotationFromAngleAboutY( RealP cosAngle, RealP sinAngle )  
@@ -200,11 +203,13 @@ Rotation_&  setRotationFromAngleAboutY( RealP cosAngle, RealP sinAngle )
 /** Constructor for right-handed rotation by an angle (in radians) about the 
 Z-axis. **/
 Rotation_( RealP angle, const CoordinateAxis::ZCoordinateAxis )  
-{ setRotationFromAngleAboutZ( std::cos(angle), std::sin(angle) ); }
+{ setRotationFromAngleAboutZ( NTraits<RealP>::cos(angle),
+    NTraits<RealP>::sin(angle) ); }
 /** Set this Rotation_ object to a right-handed rotation by an angle (in 
 radians) about the Z-axis. **/
 Rotation_&  setRotationFromAngleAboutZ( RealP angle )  
-{ return setRotationFromAngleAboutZ( std::cos(angle), std::sin(angle) ); }
+{ return setRotationFromAngleAboutZ( NTraits<RealP>::cos(angle),
+    NTraits<RealP>::sin(angle) ); }
 /** Set this Rotation_ object to a right-handed rotation by an angle about the
 Z-axis, where the cosine and sine of the angle are specified. **/
 Rotation_&  setRotationFromAngleAboutZ( RealP cosAngle, RealP sinAngle )  
@@ -512,8 +517,8 @@ static Mat33P calcNForBodyXYZInBodyFrame(const Vec3P& q) {
     // Note: q[0] is not referenced so we won't waste time calculating
     // its cosine and sine here.
     return calcNForBodyXYZInBodyFrame
-        (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
-        Vec3P(0, std::sin(q[1]), std::sin(q[2])));
+        (Vec3P(0, NTraits<RealP>::cos(q[1]), NTraits<RealP>::cos(q[2])),
+        Vec3P(0, NTraits<RealP>::sin(q[1]), NTraits<RealP>::sin(q[2])));
 }
 
 /** This faster version of calcNForBodyXYZInBodyFrame() assumes you have 
@@ -546,8 +551,8 @@ static Mat33P calcNForBodyXYZInParentFrame(const Vec3P& q) {
     // Note: q[2] is not referenced so we won't waste time calculating
     // its cosine and sine here.
     return calcNForBodyXYZInParentFrame
-        (Vec3P(std::cos(q[0]), std::cos(q[1]), 0),
-        Vec3P(std::sin(q[0]), std::sin(q[1]), 0));
+        (Vec3P(NTraits<RealP>::cos(q[0]), NTraits<RealP>::cos(q[1]), 0),
+        Vec3P(NTraits<RealP>::sin(q[0]), NTraits<RealP>::sin(q[1]), 0));
 }
 
 /** This faster version of calcNForBodyXYZInParentFrame() assumes you have 
@@ -581,8 +586,8 @@ static Mat33P calcNDotForBodyXYZInBodyFrame
     // Note: q[0] is not referenced so we won't waste time calculating
     // its cosine and sine here.
     return calcNDotForBodyXYZInBodyFrame
-        (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
-        Vec3P(0, std::sin(q[1]), std::sin(q[2])),
+        (Vec3P(0, NTraits<RealP>::cos(q[1]), NTraits<RealP>::cos(q[2])),
+        Vec3P(0, NTraits<RealP>::sin(q[1]), NTraits<RealP>::sin(q[2])),
         qdot);
 }
 
@@ -621,10 +626,10 @@ static Mat33P calcNDotForBodyXYZInParentFrame
    (const Vec3P& q, const Vec3P& qdot) {
     // Note: q[2] is not referenced so we won't waste time calculating
     // its cosine and sine here.
-    const RealP cy = std::cos(q[1]); // cos(y)
+    const RealP cy = NTraits<RealP>::cos(q[1]); // cos(y)
     return calcNDotForBodyXYZInParentFrame
-        (Vec2P(std::cos(q[0]), cy), 
-        Vec2P(std::sin(q[0]), std::sin(q[1])),
+        (Vec2P(NTraits<RealP>::cos(q[0]), cy), 
+        Vec2P(NTraits<RealP>::sin(q[0]), NTraits<RealP>::sin(q[1])),
         1/cy, qdot);
 }
 
@@ -658,8 +663,8 @@ static Mat33P calcNInvForBodyXYZInBodyFrame(const Vec3P& q) {
     // Note: q[0] is not referenced so we won't waste time calculating
     // its cosine and sine here.
     return calcNInvForBodyXYZInBodyFrame
-       (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
-        Vec3P(0, std::sin(q[1]), std::sin(q[2])));
+       (Vec3P(0, NTraits<RealP>::cos(q[1]), NTraits<RealP>::cos(q[2])),
+        Vec3P(0, NTraits<RealP>::sin(q[1]), NTraits<RealP>::sin(q[2])));
 }
 
 /** This faster version of calcNInvForBodyXYZInBodyFrame() assumes you have
@@ -687,8 +692,8 @@ static Mat33P calcNInvForBodyXYZInParentFrame(const Vec3P& q) {
     // Note: q[0] is not referenced so we won't waste time calculating
     // its cosine and sine here.
     return calcNInvForBodyXYZInParentFrame
-       (Vec3P(std::cos(q[0]), std::cos(q[1]), 0),
-        Vec3P(std::sin(q[0]), std::sin(q[1]), 0));
+       (Vec3P(NTraits<RealP>::cos(q[0]), NTraits<RealP>::cos(q[1]), 0),
+        Vec3P(NTraits<RealP>::sin(q[0]), NTraits<RealP>::sin(q[1]), 0));
 }
 
 /** This faster version of calcNInvForBodyXYZInParentFrame() assumes you have 
@@ -849,8 +854,8 @@ angular velocity vector of B in the parent frame, *BUT EXPRESSED IN THE BODY
 FRAME*, return the Euler angle derivatives. You are dead if q[1] gets near 
 90 degrees! See Kane's Spacecraft Dynamics, page 428, body-three: 3-2-1. **/
 static Vec3P convertAngVelToBodyFixed321Dot(const Vec3P& q, const Vec3P& w_PB_B) {
-    const RealP s1 = std::sin(q[1]), c1 = std::cos(q[1]);
-    const RealP s2 = std::sin(q[2]), c2 = std::cos(q[2]);
+    const RealP s1 = NTraits<RealP>::sin(q[1]), c1 = NTraits<RealP>::cos(q[1]);
+    const RealP s2 = NTraits<RealP>::sin(q[2]), c2 = NTraits<RealP>::cos(q[2]);
     const RealP ooc1 = RealP(1)/c1;
     const RealP s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
 
@@ -863,8 +868,8 @@ static Vec3P convertAngVelToBodyFixed321Dot(const Vec3P& q, const Vec3P& w_PB_B)
 /** Inverse of convertAngVelToBodyFixed321Dot. Returned angular velocity is B in
 P, expressed in *B*: w_PB_B. **/
 static Vec3P convertBodyFixed321DotToAngVel(const Vec3P& q, const Vec3P& qd) {
-    const RealP s1 = std::sin(q[1]), c1 = std::cos(q[1]);
-    const RealP s2 = std::sin(q[2]), c2 = std::cos(q[2]);
+    const RealP s1 = NTraits<RealP>::sin(q[1]), c1 = NTraits<RealP>::cos(q[1]);
+    const RealP s2 = NTraits<RealP>::sin(q[2]), c2 = NTraits<RealP>::cos(q[2]);
 
     const Mat33P Einv(  -s1  ,  0  ,  1 ,
                         c1*s2 ,  c2 ,  0 ,
@@ -880,8 +885,8 @@ static Vec3P convertBodyFixed321DotToAngVel(const Vec3P& q, const Vec3P& qd) {
 static Vec3P convertAngVelDotToBodyFixed321DotDot
     (const Vec3P& q, const Vec3P& w_PB_B, const Vec3P& wdot_PB_B)
 {
-    const RealP s1 = std::sin(q[1]), c1 = std::cos(q[1]);
-    const RealP s2 = std::sin(q[2]), c2 = std::cos(q[2]);
+    const RealP s1 = NTraits<RealP>::sin(q[1]), c1 = NTraits<RealP>::cos(q[1]);
+    const RealP s2 = NTraits<RealP>::sin(q[2]), c2 = NTraits<RealP>::cos(q[2]);
     const RealP ooc1  = 1/c1;
     const RealP s2oc1 = s2*ooc1, c2oc1 = c2*ooc1, s1oc1 = s1*ooc1;
 
@@ -912,8 +917,8 @@ derivatives. You are dead if q[1] gets near 90 degrees!
 static Vec3P convertAngVelInBodyFrameToBodyXYZDot
     (const Vec3P& q, const Vec3P& w_PB_B) {  
     return convertAngVelInBodyFrameToBodyXYZDot
-        (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
-        Vec3P(0, std::sin(q[1]), std::sin(q[2])),
+        (Vec3P(0, NTraits<RealP>::cos(q[1]), NTraits<RealP>::cos(q[2])),
+        Vec3P(0, NTraits<RealP>::sin(q[1]), NTraits<RealP>::sin(q[2])),
         w_PB_B); 
 }
 
@@ -935,8 +940,10 @@ expressed in *B*: w_PB_B.
 static Vec3P convertBodyXYZDotToAngVelInBodyFrame
    (const Vec3P& q, const Vec3P& qdot) {   
         return convertBodyXYZDotToAngVelInBodyFrame
-                   (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
-                    Vec3P(0, std::sin(q[1]), std::sin(q[2])),
+                   (Vec3P(0, NTraits<RealP>::cos(q[1]),
+                       NTraits<RealP>::cos(q[2])),
+                    Vec3P(0, NTraits<RealP>::sin(q[1]),
+                        NTraits<RealP>::sin(q[2])),
                     qdot); 
 }
 
@@ -962,8 +969,8 @@ static Vec3P convertAngVelDotInBodyFrameToBodyXYZDotDot
     // Note: q[0] is not referenced so we won't waste time calculating
     // its cosine and sine here.
     return convertAngVelDotInBodyFrameToBodyXYZDotDot
-               (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
-                Vec3P(0, std::sin(q[1]), std::sin(q[2])),
+               (Vec3P(0, NTraits<RealP>::cos(q[1]), NTraits<RealP>::cos(q[2])),
+                Vec3P(0, NTraits<RealP>::sin(q[1]), NTraits<RealP>::sin(q[2])),
                 w_PB_B, wdot_PB_B);
 }
 
@@ -1079,7 +1086,7 @@ elements in "R". **/
 RealP getMaxAbsDifferenceInRotationElements( const Rotation_& R ) const {            
     const Mat33P& A=asMat33(); const Mat33P& B=R.asMat33(); RealP maxDiff=0;  
     for( int i=0;  i<=2; i++ ) for( int j=0; j<=2; j++ ) {
-        const RealP absDiff = std::abs(A[i][j] - B[i][j]);  
+        const RealP absDiff = NTraits<RealP>::abs(A[i][j] - B[i][j]);  
         if( absDiff > maxDiff ) maxDiff = absDiff; 
     }
     return maxDiff; 

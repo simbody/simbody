@@ -36,10 +36,10 @@ using namespace SimTK;
  */
 
 bool equal(Complex expected, Complex found, Real tol) {
-    Real diffr = std::abs(expected.real()-found.real());
-    Real diffi = std::abs(expected.imag()-found.imag());
-    Real scaler = std::max(std::abs(expected.real()), std::abs(found.real()));
-    Real scalei = std::max(std::abs(expected.imag()), std::abs(found.imag()));
+    Real diffr = NTraits<Real>::abs(expected.real()-found.real());
+    Real diffi = NTraits<Real>::abs(expected.imag()-found.imag());
+    Real scaler = NTraits<Real>::max(NTraits<Real>::abs(expected.real()), NTraits<Real>::abs(found.real()));
+    Real scalei = NTraits<Real>::max(NTraits<Real>::abs(expected.imag()), NTraits<Real>::abs(found.imag()));
     if (expected.real() == 0.0)
         scaler = 1.0;
     if (expected.imag() == 0.0)
@@ -55,7 +55,7 @@ bool equal(Complex expected, Complex found, Real tol) {
 bool equal2(Complex expected, Complex found) {
     if (expected.imag() == 0.0 && found.imag() != 0.0)
         return false; // If we expect a real number, require the number found to be precisely real as well.
-    return equal(expected, found, std::sqrt(NTraits<Real>::getEps()));
+    return equal(expected, found, NTraits<Real>::sqrt(NTraits<Real>::getEps()));
 }
 
 /**

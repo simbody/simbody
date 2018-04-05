@@ -40,6 +40,10 @@ template<> bool isNaN(const double& v) {return SimTK::isNaN(v);}
 template<> bool isNaN(const float& v) {return SimTK::isNaN(v);}
 template<> bool isNaN(const negator<double>& v) {return SimTK::isNaN(v);}
 template<> bool isNaN(const negator<float>& v) {return SimTK::isNaN(v);}
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template<> bool isNaN(const adouble& v) {return SimTK::isNaN(v);}
+    template<> bool isNaN(const negator<adouble>& v) {return SimTK::isNaN(v);}
+#endif
 
 template <class T, int N>
 void testVector(const T& value, const Vec<N>& expected) {
@@ -125,6 +129,28 @@ template class RowVectorView_<negator<double> >;
 template class Matrix_<negator<double> >;
 template class Vector_<negator<double> >;
 template class RowVector_<negator<double> >;
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template class MatrixBase<adouble>;
+    template class VectorBase<adouble>;
+    template class RowVectorBase<adouble>;
+    template class MatrixView_<adouble>;
+    template class VectorView_<adouble>;
+    template class RowVectorView_<adouble>;
+    template class Matrix_<adouble>;
+    template class Vector_<adouble>;
+    template class RowVector_<adouble>;
+
+    template class MatrixBase<negator<adouble> >;
+    template class VectorBase<negator<adouble> >;
+    template class RowVectorBase<negator<adouble> >;
+    template class MatrixView_<negator<adouble> >;
+    template class VectorView_<negator<adouble> >;
+    template class RowVectorView_<negator<adouble> >;
+    template class Matrix_<negator<adouble> >;
+    template class Vector_<negator<adouble> >;
+    template class RowVector_<negator<adouble> >;
+#endif
 }
 
 int main() {

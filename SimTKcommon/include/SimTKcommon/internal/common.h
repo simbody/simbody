@@ -125,7 +125,7 @@ or any other Index type to an argument expecting a certain Index type. **/
             #pragma warning(disable: 4267)
         #endif
         #include <adolc/adolc.h>
-        typedef double SimTK_Real;
+        typedef adouble SimTK_Real;
         #ifdef _MSC_VER
             #pragma warning(pop)
         #endif

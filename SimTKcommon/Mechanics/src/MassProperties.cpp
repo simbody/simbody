@@ -140,6 +140,15 @@ ArticulatedInertia_<P>::shiftInPlace(const Vec3P& s) {
 template class ArticulatedInertia_<float>;
 template class ArticulatedInertia_<double>;
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template class Inertia_<adouble>;
+    template class UnitInertia_<adouble>;
+    template class MassProperties_<adouble>;
+    template class SpatialInertia_<adouble>;
+    template class ArticulatedInertia_<adouble>;
+#endif
+
+
 
 
 } // namespace SimTK

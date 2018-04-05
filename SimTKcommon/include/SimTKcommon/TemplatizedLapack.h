@@ -29,7 +29,7 @@
  * Each method must be explicitly specialized for the supported precisions.
  */
 
-
+#include <cctype>
 #include "SimTKcommon/internal/common.h"
 #include "SimTKlapack.h"
 
@@ -97,6 +97,50 @@ template <> inline void Lapack::gemm<double>
         m,n,k,alpha,a,lda,b,ldb,beta,c,ldc
     );
 }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> inline void Lapack::gemm<adouble>
+       (char transa, char transb,
+        int m, int n, int k,
+        const adouble& alpha, const adouble a[], int lda,
+        const adouble b[], int ldb,
+        const adouble& beta, adouble c[], int ldc)
+    {
+        int ka = m;
+        if (std::tolower(transa) == 'n') ka = k;
+  
+        std::vector<double> a_d(lda*ka);
+        for (int i = 0; i < lda*ka; ++i) {
+            a_d[i] = a[i].value();
+        }
+
+        int kb = k;
+        if (std::tolower(transb) == 'n') kb = n;
+  
+        std::vector<double> b_d(ldb*kb);
+        for (int i = 0; i < ldb*kb; ++i) {
+            b_d[i] = b[i].value();
+        }
+                
+        std::vector<double> c_d(ldc*n);
+        for (int i = 0; i < ldc*n; ++i) {
+            c_d[i] = c[i].value();
+        }
+        
+        const double alpha_d = alpha.value();
+        const double& alpha_dp = alpha_d;
+        const double beta_d = beta.value();    
+        const double& beta_dp = beta_d;
+
+        Lapack::gemm<double>(
+            transa,transb,m,n,k,alpha_dp,a_d.data(),lda,b_d.data(),ldb,beta_dp,c_d.data(),ldc);
+
+        for (int i = 0; i < ldc*n; ++i) {
+            c[i] = c_d[i];
+        }
+
+        SimTK_ADOLC_NO_TAPING_ALLOWED_ALWAYS;
+    }
+#endif
 template <> inline void Lapack::gemm< complex<float> >
    (char transa, char transb,
     int m, int n, int k,
@@ -121,6 +165,17 @@ template <> inline void Lapack::gemm< complex<double> >
         m,n,k,alpha,a,lda,b,ldb,beta,c,ldc
     );
 }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> inline void Lapack::gemm< complex<adouble> >
+       (char transa, char transb,
+        int m, int n, int k,
+        const complex<adouble>& alpha, const complex<adouble> a[], int lda,
+        const complex<adouble> b[], int ldb,
+        const complex<adouble>& beta, complex<adouble> c[], int ldc)
+    {
+        throw std::runtime_error("Complex not supported with adouble (Lapack)");
+    }
+#endif
 
     // xGETRI //
 
@@ -147,6 +202,36 @@ template <> inline void Lapack::getri<double>
 {
     dgetri_(n,a,lda,ipiv,work,lwork,info);
 }
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> inline void Lapack::getri<adouble>
+       (int          n,
+        adouble      a[],
+        int          lda, 
+        const int    ipiv[], 
+        adouble      work[],
+        int          lwork, 
+        int&         info )
+    {
+        std::vector<double> a_d(lda*n);
+        for (int i=0; i<lda*n; ++i) {
+            a_d[i] = a[i].value();
+        }
+
+        std::vector<double> work_d(lwork == -1 ? 1 : lwork);
+
+        Lapack::getri<double>(n,a_d.data(),lda,ipiv,work_d.data(),lwork,info);
+
+        for (int i=0; i<lda*n; ++i) {
+            a[i] = a_d[i];
+        }
+
+        for (int i =0; i<work_d.size(); ++i) {
+            work[i] = work_d[i];
+        }
+
+        SimTK_ADOLC_NO_TAPING_ALLOWED_ALWAYS;
+    }
+#endif
 
 template <> inline void Lapack::getri< complex<float> >
    (int             n,
@@ -171,6 +256,21 @@ template <> inline void Lapack::getri< complex<double> >
 {
     zgetri_(n,a,lda,ipiv,work,lwork,info);
 }
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> inline void Lapack::getri< complex<adouble> >
+       (int               n,
+        complex<adouble>  a[],
+        int               lda,
+        const int         ipiv[], 
+        complex<adouble>  work[],
+        int               lwork, 
+        int&              info )
+    {
+        throw std::runtime_error("Complex not supported with adouble (Lapack)");
+    }
+#endif
+
     // xGETRF //
 
 template <> inline void Lapack::getrf<float>
@@ -195,6 +295,30 @@ template <> inline void Lapack::getrf<double>
     dgetrf_(m,n,a,lda,ipiv,info);
 }
 
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> inline void Lapack::getrf<adouble>
+       (int          m,
+        int          n, 
+        adouble      a[],
+        int          lda, 
+        int          ipiv[], 
+        int&         info )
+    {
+        std::vector<double> a_d(lda*n);
+        for (int i = 0; i < lda*n; ++i) {
+            a_d[i] = a[i].value();
+        }
+
+        getrf<double>(m,n,a_d.data(),lda,ipiv,info);
+
+        for (int i = 0; i < lda*n; ++i) {
+            a[i] = a_d[i];
+        }
+
+        SimTK_ADOLC_NO_TAPING_ALLOWED_ALWAYS;
+    }
+#endif
+
 template <> inline void Lapack::getrf< complex<float> >
    (int             m,
     int             n, 
@@ -216,6 +340,19 @@ template <> inline void Lapack::getrf< complex<double> >
 {
     zgetrf_(m,n,a,lda,ipiv,info);
 }
+
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> inline void Lapack::getrf< complex<adouble> >
+       (int              m,
+        int              n, 
+        complex<adouble> a[],
+        int              lda, 
+        int              ipiv[], 
+        int&             info )
+    {
+        throw std::runtime_error("Complex not supported with adouble (Lapack)");
+    }
+#endif
 
 
 /*

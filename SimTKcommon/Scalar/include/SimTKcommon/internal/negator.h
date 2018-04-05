@@ -228,7 +228,8 @@ public:
         // If N is adouble, then simply negate the adouble.
         template <typename NN,
             typename std::enable_if<
-                std::is_same<NN, adouble>::value &&
+                (std::is_same<NN, adouble>::value ||
+                std::is_same<NN, adub>::value) &&
                 std::is_same<N, adouble>::value, int>::type = 0>
         negator(const NN& t)
         {   v = -N(t); }

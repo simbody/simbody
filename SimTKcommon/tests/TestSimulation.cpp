@@ -518,8 +518,8 @@ public:
             "MySinCos::Implementation::calcCachedValueVirtual():"
             " derivOrder %d seen but only 0 allowed.", derivOrder);
 
-        value[0] = std::sin(s.getTime());
-        value[1] = std::cos(s.getTime());
+        value[0] = NTraits<Real>::sin(s.getTime());
+        value[1] = NTraits<Real>::cos(s.getTime());
     }
 };
 
@@ -762,7 +762,7 @@ void testOne() {
             cout << "qSum=" << subsys.getQSum(state) << " uSum=" << subsys.getUSum(state) << endl;
             cout << "three=" << three.getValue(state) << " v3const=" << v3const.getValue(state) << endl;
             cout << "cos2pit=" << cos2pit.getValue(state) 
-                 << " cos(2pi*t)=" << std::cos(2*Pi*state.getTime()) << endl;
+                 << " cos(2pi*t)=" << NTraits<Real>::cos(2*Pi*state.getTime()) << endl;
             cout << "Min(cos2pit)=" << minCos2pit.getValue(state) 
                  << " @t=" << minCos2pit.getTimeOfExtremeValue(state) << endl;
             cout << "Max(cos2pit)=" << maxCos2pit.getValue(state) 
@@ -772,7 +772,7 @@ void testOne() {
             cout << "MaxAbs(cos2pit)=" << maxAbsCos2pit.getValue(state) 
                  << " @t=" << maxAbsCos2pit.getTimeOfExtremeValue(state) << endl;
             cout << "sin2pitOver2pi=" << sin2pitOver2pi.getValue(state) 
-                 << " sin(2pi*t)/2pi=" << std::sin(2*Pi*state.getTime())/(2*Pi) << endl;
+                 << " sin(2pi*t)/2pi=" << NTraits<Real>::sin(2*Pi*state.getTime())/(2*Pi) << endl;
             cout << "d/dt sin2pitOver2pi=" 
                  << sin2pitOver2pi.getValue(state,1) << endl;
             cout << "dInteg=" 
@@ -780,6 +780,26 @@ void testOne() {
             cout << "cossin=" << cossin.getValue(state) << "\n";
             cout << "vcossin=" << vcossin.getValue(state) << "\n";
             cout << "vcossin delay .1=" << vcossin_delaypt1.getValue(state) << "\n";
+
+            const auto& t = state.getTime();
+            SimTK_TEST_EQ(tMeasure.getValue(state), t);
+            SimTK_TEST_EQ(tMeasure.getValue(state,1), 1);
+            SimTK_TEST_EQ(tMeasure.getValue(state,2), 0);
+            SimTK_TEST_EQ(t1000.getValue(state), 1000.0*t);
+            if (t >= 0.01) {
+                SimTK_TEST_EQ(tDelayed.getValue(state), t - 0.01);
+            }
+            SimTK_TEST_EQ(three.getValue(state), 3);
+            SimTK_TEST_EQ(v3const.getValue(state), Vec3(1,2,3));
+            SimTK_TEST_EQ(cos2pit.getValue(state), NTraits<Real>::cos(2*Pi*t));
+            const Real expectedMinCos2pit = t < 0.5 ? NTraits<Real>::cos(2*Pi*t) : -1;
+            SimTK_TEST_EQ(minCos2pit.getValue(state), expectedMinCos2pit);
+            SimTK_TEST_EQ(minCos2pit.getTimeOfExtremeValue(state),
+                          NTraits<Real>::min(t, 0.5));
+            SimTK_TEST_EQ(maxCos2pit.getValue(state), 1.0);
+            SimTK_TEST_EQ(maxCos2pit.getTimeOfExtremeValue(state), 0.0);
+
+            // TODO test the remaining measures.
         }
 
         if (i == nSteps)

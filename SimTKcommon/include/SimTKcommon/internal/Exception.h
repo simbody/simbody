@@ -31,6 +31,7 @@
 #include <exception>
 #include <cstdarg>
 #include <cstdio>
+#include <memory>
 
 namespace SimTK {
 
@@ -58,6 +59,36 @@ protected:
         text = msgin;
         msg = "SimTK Exception thrown at " + where() + ":\n  " + msgin;
     }
+    
+    /// @name Support use of ADOL-C's adouble type with sprintf.
+    /// These templates are specialized for adouble (and perhaps other types).
+    /// @{
+    /// The return type for convertToPrintable()
+    template <typename T>
+    struct ReturnConvertToPrintable { typedef T type; };
+    /// Generic template that simply returns the passed-in argument.
+    template <typename T>
+    static typename ReturnConvertToPrintable<T>::type
+    convertToPrintable(const T& v) { return v; }
+    /// @}
+    
+    /// Format a string in the style of sprintf.
+    static std::string format(const char* format, ...) {
+        // Compute buffer size.
+        va_list args;
+        va_start(args, format);
+        int bufsize = vsnprintf(nullptr, 0, format, args) + 1; // +1 for '\0'
+        va_end(args);
+        
+        // Create formatted string.
+        std::unique_ptr<char[]> buf(new char[bufsize]);
+        va_start(args, format);
+        // Use the safe version of vsprintf.
+        vsnprintf(buf.get(), bufsize, format, args);
+        va_end(args);
+        return std::string(buf.get());
+    }
+
 private:
     std::string    fileName;    // where the exception was thrown
     int            lineNo;    
@@ -74,8 +105,26 @@ private:
         char buf[32];
         sprintf(buf,"%d",lineNo);
         return shortenFileName(fileName) + ":" + std::string(buf); 
-    } 
+    }
 };
+
+/// Specialization for std::string.
+template <> struct Base::ReturnConvertToPrintable<std::string>
+{   typedef const char* type; };
+template <>
+inline typename Base::ReturnConvertToPrintable<std::string>::type
+Base::convertToPrintable(const std::string& v) { return v.c_str(); }
+
+/// Specialization for ADOL-C's adouble.
+#ifdef SimTK_REAL_IS_ADOUBLE
+    template <> struct Base::ReturnConvertToPrintable<adouble>
+    { typedef double type; };
+    /// This function is not safe to use when taping, but because the function
+    /// is protected, the value is not likely to be used in any computations.
+    template <> inline Base::ReturnConvertToPrintable<adouble>::type
+    Base::convertToPrintable(const adouble& v)
+    { return v.value(); }
+#endif
 
 /// This is for reporting internally-detected bugs only, not problems induced by 
 /// confused users (that is, it is for confused developers instead). The exception
@@ -85,19 +134,16 @@ private:
 /// SimTK_ASSERT_ALWAYS macros.
 class Assert : public Base {
 public:
+    template <typename ...Types>
     Assert(const char* fn, int ln, const char* assertion, 
-             const char* fmt ...) : Base(fn,ln)
+             const char* fmt, Types... args) : Base(fn,ln)
     {
-        char buf[1024];
-        va_list args;
-        va_start(args, fmt);
-        vsprintf(buf, fmt, args);
+        std::string msg = format(fmt, convertToPrintable(args)...);
 
-        setMessage("Internal bug detected: " + std::string(buf)
+        setMessage("Internal bug detected: " + msg
                    + "\n  (Assertion '" + std::string(assertion) + "' failed).\n"
             "  Please file an Issue at https://github.com/simbody/simbody/issues.\n"
             "  Include the above information and anything else needed to reproduce the problem.");
-        va_end(args);
     }
     virtual ~Assert() throw() { }
 };
@@ -112,20 +158,16 @@ public:
 /// directly; use one of the family SimTK_ERRCHK and SimTK_ERRCHK_ALWAYS macros.
 class ErrorCheck : public Base {
 public:
+    template <typename ...Types>
     ErrorCheck(const char* fn, int ln, const char* assertion, 
            const char* whereChecked,    // e.g., ClassName::methodName()
-           const char* fmt ...) : Base(fn,ln)
+           const char* fmt, Types... args) : Base(fn,ln)
     {
-        char buf[1024];
-        va_list args;
-        va_start(args, fmt);
-        vsprintf(buf, fmt, args);
-
+        std::string msg = format(fmt, convertToPrintable(args)...);
         setMessage("Error detected by Simbody method " 
             + std::string(whereChecked) + ": "
-            + std::string(buf)
+            + msg
             + "\n  (Required condition '" + std::string(assertion) + "' was not met.)\n");
-        va_end(args);
     }
     virtual ~ErrorCheck() throw() { }
 };
@@ -139,19 +181,16 @@ public:
 /// SimTK_APIARGCHECK_ALWAYS macros.
 class APIArgcheckFailed : public Base {
 public:
+    template <typename ...Types>
     APIArgcheckFailed(const char* fn, int ln, const char* assertion,
                       const char* className, const char* methodName,
-                      const char* fmt ...) : Base(fn,ln)
+                      const char* fmt, Types... args) : Base(fn,ln)
     {
-        char buf[1024];
-        va_list args;
-        va_start(args, fmt);
-        vsprintf(buf, fmt, args);
+        std::string msg = format(fmt, convertToPrintable(args)...);
         setMessage("Bad call to Simbody API method " 
                    + std::string(className) + "::" + std::string(methodName) + "(): "
-                   + std::string(buf)
+                   + msg
                    + "\n  (Required condition '" + std::string(assertion) + "' was not met.)");
-        va_end(args);
     }
     virtual ~APIArgcheckFailed() throw() { }
 };
