@@ -833,6 +833,7 @@ template <class E> RowVector_<E>
 operator/(const RowVectorBase<E>& l, int r) 
   { return RowVector_<E>(l)/= typename CNT<E>::StdNumber(r); }
 
+
 // These are fancier "scalars"; whether they are allowed depends on
 // whether the element type and the CNT are compatible.
 

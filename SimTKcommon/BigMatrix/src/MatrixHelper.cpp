@@ -981,7 +981,7 @@ template class Helper< negator< double > >;     \
 template class Helper< negator< std::complex<float> > >;    \
 template class Helper< negator< std::complex<double> > >;   \
 template class Helper< negator< conjugate<float> > >;       \
-template class Helper< negator< conjugate<double> > >; \
+template class Helper< negator< conjugate<double> > >;		\
 INSTANTIATE_ADOLC(Helper);
 
 
