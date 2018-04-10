@@ -56,8 +56,10 @@ static Real getRealZero();
 int main() {
   try
   { const Real zero = 0., one = 1., two = 2.;
+	#ifndef SimTK_REAL_IS_ADOUBLE
     const Complex oneTwo(1.,2.);
     const Complex threeFour(3.,4.); 
+	#endif
     const complex<float> fcinf = CNT< complex<float> >::getInfinity();
 
         // nan tests
@@ -74,6 +76,7 @@ int main() {
     const negator< std::complex<float> >& ncfnan = reinterpret_cast<const negator<std::complex<float> >&>(cfnan);
 
     writeUnformatted(std::cout, fcinf);
+	#ifndef SimTK_REAL_IS_ADOUBLE
     Array_< negator<Complex> > arrc;
     arrc.push_back(oneTwo); 
     arrc.push_back(threeFour);
@@ -124,15 +127,16 @@ int main() {
     writeUnformatted(cout << "u ayy=",ayy); cout<<endl;
     writeFormatted(cout << "f axx=",axx); cout<<endl;
     writeFormatted(cout << "f ayy=",ayy); cout<<endl;
+	#endif
 
     ASSERT(isNaN(nan));
-    ASSERT(isNaN(-nan));
+    ASSERT(isNaN((Real)-nan));
     ASSERT(isNaN(NaN)); // SimTK::NaN
-    ASSERT(isNaN(-NaN)); // SimTK::NaN
+    ASSERT(isNaN((Real)-NaN)); // SimTK::NaN
     ASSERT(!isNaN(one));
     ASSERT(!isNaN(Infinity));
-    ASSERT(isNaN(0./getRealZero()));
-    ASSERT(!isNaN(1./getRealZero())); // Infinity
+    ASSERT(isNaN((Real)(0./getRealZero())));
+    ASSERT(!isNaN((Real)(1./getRealZero()))); // Infinity
 
     ASSERT(isNaN(fnan)); ASSERT(isNaN(dnan)); // float,double
     ASSERT(isNaN(cfnan)); ASSERT(isNaN(cdnan)); // complex<float,double>
@@ -148,7 +152,9 @@ int main() {
 
     
     cout << "one=" << one << " two=" << two << endl;
+	#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "oneTwo=" << oneTwo << " threeFour=" << threeFour << endl; 
+	#endif
     
     cout << "negator(one)=" << negator<Real>(one) << endl; 
     cout << "reinterp<negator>(one)=" << reinterpret_cast<const negator<Real>&>(one) << endl; 
@@ -160,6 +166,7 @@ int main() {
     cout << "negator<Real>::nan=" << CNT<negator<Real> >::getNaN() << endl;
     //cout << "conj(one)=" << SimTK::conj(one) << " conj(oneTwo)=" << SimTK::conj(oneTwo) << endl;
     
+	#ifndef SimTK_REAL_IS_ADOUBLE
     const conjugate<Real> conj34(threeFour);
     cout << "conj34=" << conj34 << endl;
     cout << "complex(conj34)=" << 
@@ -261,6 +268,7 @@ int main() {
     cout << "negator<Real>: sign(27)=" 
          <<  sign(negator<Real>::recast(pp)) << " sign(-14)=" << sign(negator<Real>::recast(nn)) 
          << " sign(0)=" << sign(negator<Real>::recast(zzz)) << endl;
+	#endif
 
 
     // Check mixed-mode complex & conjugate operators
@@ -281,7 +289,9 @@ int main() {
 
     printf("\nCONSTANTS IN DEFAULT REAL PRECISION\n");
     printf("NumDigits=%d, LosslessNumDigits=%d\n", NumDigitsReal, LosslessNumDigitsReal);
+	#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "e^(i*pi)+1=" << std::pow(E, I*Pi)+1 << endl;
+	#endif
     cout << "NaN=" << setprecision(LosslessNumDigitsReal) << NaN << endl;
     cout << "Infinity=" << setprecision(LosslessNumDigitsReal) << Infinity << endl;
 
@@ -357,5 +367,5 @@ int main() {
 
 // Try to prevent a smart optimizer from noticing this zero.
 static Real getRealZero() {
-    return std::sin(Real(0));
+    return NTraits<Real>::sin(Real(0));
 }
