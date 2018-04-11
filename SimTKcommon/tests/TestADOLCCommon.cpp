@@ -587,7 +587,6 @@ void testSymMat() {
 }
 
 void testBigMatrix() {
-
     double xp[1] = { 3.5 };
     double yp;
     const short int TraceTag = 6;
@@ -607,7 +606,6 @@ void testBigMatrix() {
     jacobian(TraceTag, 1, 1, xp, J);
     SimTK_TEST(J[0][0] == 0);
     myfree(J);
-
     double xp2[1] = { 3.5 };
     double yp2;
     const short int TraceTag2 = 7;
@@ -626,10 +624,8 @@ void testBigMatrix() {
     jacobian(TraceTag2, 1, 1, xp2, J2);
     SimTK_TEST(J2[0][0] == 0);
     myfree(J2);
-
     SimTK_TEST(f[0] == f2[0]);
     SimTK_TEST(J[0][0] == J2[0][0]);
-
 }
 
 int main() {
