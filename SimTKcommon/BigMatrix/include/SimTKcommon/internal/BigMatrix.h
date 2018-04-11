@@ -626,21 +626,6 @@ template <class E> Matrix_<E>
 operator/(const MatrixBase<E>& l, int r) 
   { return Matrix_<E>(l)/= typename CNT<E>::StdNumber(r); }
 
-// Handle doubles explicitly.
-#ifdef SimTK_REAL_IS_ADOUBLE
-    template <class E> Matrix_<E>
-    operator*(const MatrixBase<E>& l, double r)
-      { return Matrix_<E>(l) *= typename CNT<E>::StdNumber(r); }
-
-    template <class E> Matrix_<E>
-    operator*(double l, const MatrixBase<E>& r)
-      { return Matrix_<E>(r) *= typename CNT<E>::StdNumber(l); }
-
-    template <class E> Matrix_<E>
-    operator/(const MatrixBase<E>& l, double r)
-      { return Matrix_<E>(l) /= typename CNT<E>::StdNumber(r); }
-#endif
-
 /// @}
 
 /// @name Global operators involving Vector objects
@@ -702,21 +687,6 @@ operator*(int l, const VectorBase<E>& r)
 template <class E> Vector_<E>
 operator/(const VectorBase<E>& l, int r) 
   { return Vector_<E>(l)/= typename CNT<E>::StdNumber(r); }
-
-// Handle doubles explicitly
-#ifdef SimTK_REAL_IS_ADOUBLE
-    template <class E> Vector_<E>
-    operator*(const VectorBase<E>& l, double r)
-      { return Vector_<E>(l)*= typename CNT<E>::StdNumber(r); }
-
-    template <class E> Vector_<E>
-    operator*(double l, const VectorBase<E>& r)
-      { return Vector_<E>(r)*= typename CNT<E>::StdNumber(l); }
-
-    template <class E> Vector_<E>
-    operator/(const VectorBase<E>& l, double r)
-      { return Vector_<E>(l)/= typename CNT<E>::StdNumber(r); }
-#endif
 
 // These are fancier "scalars"; whether they are allowed depends on
 // whether the element type and the CNT are compatible.
@@ -862,21 +832,6 @@ operator*(int l, const RowVectorBase<E>& r)
 template <class E> RowVector_<E>
 operator/(const RowVectorBase<E>& l, int r) 
   { return RowVector_<E>(l)/= typename CNT<E>::StdNumber(r); }
-
-// Handle doubles explicitly.
-#ifdef SimTK_REAL_IS_ADOUBLE
-    template <class E> RowVector_<E>
-    operator*(const RowVectorBase<E>& l, double r)
-      { return RowVector_<E>(l) *= typename CNT<E>::StdNumber(r); }
-
-    template <class E> RowVector_<E>
-    operator*(double l, const RowVectorBase<E>& r)
-      { return RowVector_<E>(r) *= typename CNT<E>::StdNumber(l); }
-
-    template <class E> RowVector_<E>
-    operator/(const RowVectorBase<E>& l, double r)
-      { return RowVector_<E>(l) /= typename CNT<E>::StdNumber(r); }
-#endif
 
 
 // These are fancier "scalars"; whether they are allowed depends on

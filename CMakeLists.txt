@@ -638,15 +638,15 @@ add_subdirectory( Platform )
 # PLATFORM_INCLUDE_DIRECTORIES now set
 add_subdirectory( SimTKcommon )
 # SimTKCOMMON_INCLUDE_DIRECTORIES now set
-add_subdirectory( SimTKmath )
-# SimTKMATH_INCLUDE_DIRECTORIES now set
-add_subdirectory( Simbody )
-# SimTKSIMBODY_INCLUDE_DIRECTORIES now set(but not used)
-# GUI_NAME now set
+# add_subdirectory( SimTKmath )
+# # SimTKMATH_INCLUDE_DIRECTORIES now set
+# add_subdirectory( Simbody )
+# # SimTKSIMBODY_INCLUDE_DIRECTORIES now set(but not used)
+# # GUI_NAME now set
 
-if( BUILD_EXAMPLES )
-    add_subdirectory( examples )
-endif()
+# if( BUILD_EXAMPLES )
+    # add_subdirectory( examples )
+# endif()
 
 file(GLOB TOPLEVEL_DOCS LICENSE.txt *.md doc/*.pdf doc/*.txt doc/*.md)
 install(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})

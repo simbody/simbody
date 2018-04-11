@@ -51,7 +51,9 @@ namespace NR {
 // Some explicit instantiations just to make sure everything's there.
 namespace SimTK {
 template class Matrix_<Real>;
+#ifndef SimTK_REAL_IS_ADOUBLE
 template class Vector_<Complex>;
+#endif
 template class RowVector_< conjugate<float> >;
 //template class MatrixBase< Mat<3,4,Vec2> >;
 
@@ -86,6 +88,7 @@ void testSums() {
     SimTK_TEST_EQ(m.rowSum(), Vector(Vec2(3,7)));
     SimTK_TEST_EQ(m.sum(), m.colSum()); // should be exact
 
+    #ifndef SimTK_REAL_IS_ADOUBLE
     Matrix_<Complex> mc(Mat<2,2,Complex>(1+2*I, 3+4*I,
                                          5+6*I, 7+8*I));
     typedef Row<2,Complex> CRow2;
@@ -95,6 +98,7 @@ void testSums() {
     SimTK_TEST_EQ(mc.colSum(), CRowVector(CRow2(6+8*I, 10+12*I)));
     SimTK_TEST_EQ(mc.rowSum(), CVector(CVec2(4+6*I, 12+14*I)));
     SimTK_TEST_EQ(mc.sum(), mc.colSum()); // should be exact
+    #endif
 }
 
 void testCharacter() {
@@ -149,8 +153,10 @@ void testCharacter() {
     Vector w1(10, Real(1));
     cout << "weights w1=" << w1 << endl;
     int worst;
+#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "|w1*v|_rms=" << v.weightedNormRMS(w1,&worst) << "\n";
     cout << "(worst=" << worst << ")\n";
+#endif
     cout << "|w1*v|_inf=" << v.weightedNormInf(w1,&worst) << "\n";
     cout << "(worst=" << worst << ")\n";
     cout << "|v|_rms=" << v.normRMS(&worst) << "\n";
@@ -162,11 +168,15 @@ void testCharacter() {
 
     w1(9) = 100;
     cout << "weights w1=" << w1 << endl;
+#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "|w1*v|_rms=" << v.weightedNormRMS(w1,&worst) << "\n";
+#endif
     cout << "(worst=" << worst << ")\n";
     cout << "|w1*v|_inf=" << v.weightedNormInf(w1,&worst) << "\n";
     cout << "(worst=" << worst << ")\n";
+#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "2nd sig: |w1*v|_rms=" << v.weightedNormRMS(w1) << "\n";
+#endif
     cout << "2nd sig: |w1*v|_inf=" << v.weightedNormInf(w1) << "\n";
 
     cout << "rms(zero length)=" << Vector().normRMS(&worst) << "\n";
@@ -183,6 +193,7 @@ void testCharacter() {
     cout << "vxx=" << vxx << endl;
     cout << "vxx(1,2)=" << vxx(1,2) << endl;
 
+#ifndef SimTK_REAL_IS_ADOUBLE
     Complex cmplx[] = {Complex(1,2), Complex(3,4), Complex(-.2,.3),
                        Complex(-100,200), Complex(20,40), Complex(-.001,.002)};
 
@@ -202,6 +213,7 @@ void testCharacter() {
     cout << "cm3(0,1)=99 ->" << cm3;
     cout << "cm (should have changed too) ->" << cm;
     cout << "cm2 (should not have changed) ->" << cm2;
+#endif
 }
 
 // Test "scalar" multiply for Vectors and RowVectors that have CNT types
@@ -293,7 +305,7 @@ int main()
     Vector vb;
     vvv00 = vb;
     cout << "after vvv00=vb [null], vvv00(" << vvv00.nrow() << "," << vvv00.ncol() << ")=" << vvv00 << endl;
-
+#ifndef SimTK_REAL_IS_ADOUBLE
     const Complex mdc[] = { Complex(1.,2.),  
                             Complex(3.,4.),
                             Complex(5.,6.),
@@ -312,10 +324,12 @@ int main()
     Mat<2,2,Complex> md_mat(mdc);
     cout << "2x2 complex Mat md_mat=" << md_mat;
     cout << "  sizeof(Complex)=" << sizeof(Complex) << " sizeof(md_mat)=" << sizeof(md_mat) << endl;
+
     Matrix_<Mat<2,2,Complex> > mm22c;
     Mat<2,2, Mat<2,2,Complex> > mm22c_mat;
     cout << "  sizeof(mm22c_mat)=" << sizeof(mm22c_mat) << " should be " << 16*sizeof(Complex) << endl;
     mm22c.resize(2,2); cout << "  sizeof(mm22c(2,2))=" <<  ((char*)(&mm22c(1,1)(1,1)+1)) - ((char*)&mm22c(0,0)(0,0)) << endl;
+    
 
     cout << "scalar md.normRMS: " << md.normRMS() << endl;
     try {
@@ -329,13 +343,11 @@ int main()
     mm22c.setToNaN(); cout << "mm22c after setToNaN():" << mm22c;
 
     mm22c.dump("**** mm22c ****");
-
     cout << "~md=" << ~md;
     cout << "~md(1)=" << ~md(1) << endl;
     cout << "(~md)(1)=" << (~md)(1) << endl;
     cout << "~md[1]=" << ~md[1] << endl;
     cout << "(~md)[1]=" << (~md)[1] << endl;
-
     dump("2x2 complex md",md);
     dump("md(0,1,2,1)",md(0,1,2,1));
     const ComplexMatrixView& mvc = md(0,1,2,1);
@@ -444,6 +456,7 @@ int main()
     cout << "(rrAssign.viewAssign(rr(0,1,2,2))) *= 100; rrAssign=" << rrAssign;
     cout << "rr=" << rr;
     cout << "-------- END ASSIGN TEST --------\n\n";
+    #endif
 
     cout << "\n-------- RESIZE KEEP TEST --------\n";
     Vector resizeMe(5); for (int i=0; i<5; ++i) resizeMe[i]=i;
@@ -464,6 +477,7 @@ int main()
     cout << "after resize(3,4), resizeMem=" << resizeMem << endl;
     cout << "-------- END RESIZE KEEP TEST --------\n\n";
 
+    #ifndef SimTK_REAL_IS_ADOUBLE
     Mat<3,4,Complex> cm34;
     for (int i=0; i<3; ++i)
         for (int j=0; j<4; ++j)
@@ -473,6 +487,7 @@ int main()
     cout << "Vec<4,Complex>=" << cv4 << endl;
     cout << "Mat<3,4>*Vec<4>=" << cm34*cv4 << endl;
     cout << "Mat<3,4>*Mat<4,3>=" << cm34*~cm34;
+    #endif
 
     complex<float> zzzz(1.,2.);
     conjugate<float> jjjj(0.3f,0.4f);
@@ -480,6 +495,7 @@ int main()
     cout << "zzzz=" << zzzz << " jjjj=" << jjjj << " nnnn=" << nnnn << endl;
     cout << "zzzz*jjjj=" << zzzz*jjjj << endl;
 
+    #ifndef SimTK_REAL_IS_ADOUBLE
     Matrix_<Complex> cMatrix34(3,4);
     Vector_<Complex> cVector4(4);
     for (int i=0; i<3; ++i) for (int j=0; j<4; ++j) cMatrix34(i,j)=cm34(i,j);
@@ -490,6 +506,7 @@ int main()
     cout << "cMatrix34*cMatrix43=" << cMatrix34*~cMatrix34;
 
     Matrix_<Complex> cMatrix34N = -cMatrix34;
+    #endif
 
     //TODO: not allowed yet
     //Matrix_<Complex> cMatrix34H = ~cMatrix34;
@@ -559,14 +576,17 @@ int main()
     nnnr = smallNegA(0,1)-smallNegA(1,0);
     cout << "negator nnn=" << nnn << " real nnnr=" << nnnr << endl;
 
+#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "det(smallNegA)=" << det(smallNegA) 
          << " det(inv(smallNegA))=" << det(smallNegAI) << endl;
+#endif
 
     const Real cjdata[]={1,1,  2,2,   3,3, 4,4,
                          9,9, .1,.1, 14,14, 22,22,
                          2,2,  6,6,   9,9,  11,11,
                          .2,.2, .7,.7, 5,5, 10,10};
 
+    #ifndef SimTK_REAL_IS_ADOUBLE
     // General Lapack inverse.
     Mat<4,4,conjugate<Real> > smallConjA4((conjugate<Real>*)cjdata);
     Mat<4,4,conjugate<Real> >::TInvert smallConjAI4(smallConjA4.invert());
@@ -605,6 +625,7 @@ int main()
         smallConjA3.getSubMat<2,2>(0,0).invert();
     cout << "Mat22*inv(Mat22)=" << 
         smallConjA3.getSubMat<2,2>(0,0)*smallConjA3.getSubMat<2,2>(0,0).invert();
+    #endif
 
     try {
     const double ddd[] = { 11, 12, 13, 14, 15, 16 }; 

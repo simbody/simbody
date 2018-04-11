@@ -586,6 +586,48 @@ void testSymMat() {
     SimTK_TEST(mressr[1][1] == d-a);
 }
 
+void testBigMatrix() {
+    double xp[1] = { 3.5 };
+    double yp;
+    const short int TraceTag = 6;
+    trace_on(TraceTag);
+    adouble y;
+    Matrix m(1, 1);
+    m(0,0) <<= xp[0];
+    int a = 23;
+    m.elementwiseAssign(a);
+    y = square(m(0,0));
+    y >>= yp;
+    trace_off();
+    double f[1];
+    function(TraceTag, 1, 1, xp, f);
+    SimTK_TEST(f[0] == a*a);
+    double** J = myalloc(1, 1);
+    jacobian(TraceTag, 1, 1, xp, J);
+    SimTK_TEST(J[0][0] == 0);
+    myfree(J);
+    double xp2[1] = { 3.5 };
+    double yp2;
+    const short int TraceTag2 = 7;
+    trace_on(TraceTag2);
+    adouble x2, y2;
+    x2 <<= xp2[0];
+    int a2 = 23;
+    x2 = a2;
+    y2 = square(x2);
+    y2 >>= yp2;
+    trace_off();
+    double f2[1];
+    function(TraceTag2, 1, 1, xp2, f2);
+    SimTK_TEST(f2[0] == a2*a2);
+    double** J2 = myalloc(1,1);
+    jacobian(TraceTag2, 1, 1, xp2, J2);
+    SimTK_TEST(J2[0][0] == 0);
+    myfree(J2);
+    SimTK_TEST(f[0] == f2[0]);
+    SimTK_TEST(J[0][0] == J2[0][0]);
+}
+
 int main() {
     SimTK_START_TEST("TestADOLCCommon");
         SimTK_SUBTEST(testDerivativeADOLC);
@@ -598,5 +640,6 @@ int main() {
         SimTK_SUBTEST(testScalar);
         SimTK_SUBTEST(testRow);
         SimTK_SUBTEST(testSymMat);
+        //SimTK_SUBTEST(testBigMatrix);
     SimTK_END_TEST();
 }
