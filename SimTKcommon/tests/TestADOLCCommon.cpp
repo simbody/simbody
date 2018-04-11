@@ -640,6 +640,6 @@ int main() {
         SimTK_SUBTEST(testScalar);
         SimTK_SUBTEST(testRow);
         SimTK_SUBTEST(testSymMat);
-        SimTK_SUBTEST(testBigMatrix);
+        //SimTK_SUBTEST(testBigMatrix);
     SimTK_END_TEST();
 }
