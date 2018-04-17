@@ -230,13 +230,13 @@ public:
             *worstOne = 0;
             ScalarNormSq maxsq = 0; 
             for (int i=0; i<n; ++i) {
-                const ScalarNormSq wv2 = square(w[i]*(*this)[i]);
+                const ScalarNormSq wv2 = square(ScalarNormSq(w[i]*(*this)[i]));
                 if (wv2 > maxsq) maxsq=wv2, *worstOne=i;
                 sumsq += wv2;
             }
         } else { // don't track the worst element
             for (int i=0; i<n; ++i) {
-                const ScalarNormSq wv2 = square(w[i]*(*this)[i]);
+                const ScalarNormSq wv2 = square(ScalarNormSq(w[i]*(*this)[i]));
                 sumsq += wv2;
             }
         }

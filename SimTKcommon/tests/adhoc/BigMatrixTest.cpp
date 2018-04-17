@@ -153,10 +153,8 @@ void testCharacter() {
     Vector w1(10, Real(1));
     cout << "weights w1=" << w1 << endl;
     int worst;
-//#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "|w1*v|_rms=" << v.weightedNormRMS(w1,&worst) << "\n";
     cout << "(worst=" << worst << ")\n";
-//#endif
     cout << "|w1*v|_inf=" << v.weightedNormInf(w1,&worst) << "\n";
     cout << "(worst=" << worst << ")\n";
     cout << "|v|_rms=" << v.normRMS(&worst) << "\n";
@@ -168,15 +166,11 @@ void testCharacter() {
 
     w1(9) = 100;
     cout << "weights w1=" << w1 << endl;
-//#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "|w1*v|_rms=" << v.weightedNormRMS(w1,&worst) << "\n";
-//#endif
     cout << "(worst=" << worst << ")\n";
     cout << "|w1*v|_inf=" << v.weightedNormInf(w1,&worst) << "\n";
     cout << "(worst=" << worst << ")\n";
-//#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "2nd sig: |w1*v|_rms=" << v.weightedNormRMS(w1) << "\n";
-//#endif
     cout << "2nd sig: |w1*v|_inf=" << v.weightedNormInf(w1) << "\n";
 
     cout << "rms(zero length)=" << Vector().normRMS(&worst) << "\n";
@@ -227,8 +221,8 @@ void testScalarMultiply() {
                .07, .10, .11 );
     Vector_< SpatialVec > vs(3, SpatialVec(Vec3(1,2,3), Vec3(4,5,6)));
     cout << "vs=" << vs << endl;
-    cout << "vs*SpatialRow=" << vs*SpatialRow(Row3(.1)) << endl;
-    cout << "SpatialRow*vs=" << SpatialRow(Row3(.1))*vs << endl;
+    cout << "vs*SpatialRow=" << vs*SpatialRow(Row3((Real).1)) << endl;
+    cout << "SpatialRow*vs=" << SpatialRow(Row3((Real).1))*vs << endl;
     cout << "m33 * SpatialVec=" << m33 * SpatialVec(Vec3(1,2,3), Vec3(4,5,6)) << endl;
     cout << "m33 * vs=" << SpatialMat(m33) * vs << endl; // note cast to conforming diagonal matrix
     cout << "SpatialRow * m33=" << ~SpatialVec(Vec3(1,2,3), Vec3(4,5,6)) * m33 << endl;
@@ -527,7 +521,7 @@ int main()
     Matrix mnm(4,2), nn;
     cout << "mnm(4,2)=" << mnm;
     mnm(0) = vv; 
-    mnm(1) = -0.01 * vv;
+    mnm(1) = (Real)-0.01 * vv;
     cout << "mnm(vv,-.01*vv)=" << mnm;
     cout << "===> mnm.abs()=" << mnm.abs();
     cout << "mnm(1)=" << mnm(1) << endl;
@@ -576,10 +570,10 @@ int main()
     nnnr = smallNegA(0,1)-smallNegA(1,0);
     cout << "negator nnn=" << nnn << " real nnnr=" << nnnr << endl;
 
-//#ifndef SimTK_REAL_IS_ADOUBLE
+#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "det(smallNegA)=" << det(smallNegA) 
          << " det(inv(smallNegA))=" << det(smallNegAI) << endl;
-//#endif
+#endif
 
     const Real cjdata[]={1,1,  2,2,   3,3, 4,4,
                          9,9, .1,.1, 14,14, 22,22,

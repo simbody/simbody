@@ -737,7 +737,7 @@ public:
             SimTK_THROW1(Exception::Cant, "normRMS() only defined for scalar elements");
         if (nelt() == 0)
             return typename CNT<ScalarNormSq>::TSqrt(0);
-        return CNT<ScalarNormSq>::sqrt(scalarNormSqr()/nelt());
+        return CNT<ScalarNormSq>::sqrt(scalarNormSqr()/(double)nelt());
     }
 
     /// Form the column sums of this matrix, returned as a RowVector.
