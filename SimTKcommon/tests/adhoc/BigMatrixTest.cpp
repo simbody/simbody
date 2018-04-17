@@ -570,10 +570,8 @@ int main()
     nnnr = smallNegA(0,1)-smallNegA(1,0);
     cout << "negator nnn=" << nnn << " real nnnr=" << nnnr << endl;
 
-#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "det(smallNegA)=" << det(smallNegA) 
          << " det(inv(smallNegA))=" << det(smallNegAI) << endl;
-#endif
 
     const Real cjdata[]={1,1,  2,2,   3,3, 4,4,
                          9,9, .1,.1, 14,14, 22,22,
