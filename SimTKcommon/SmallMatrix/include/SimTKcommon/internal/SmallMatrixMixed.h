@@ -30,6 +30,8 @@
  * defined. Some of them may depend on Lapack also.
  */
 
+#include <fstream>
+
 namespace SimTK {
 
     // COMPARISON

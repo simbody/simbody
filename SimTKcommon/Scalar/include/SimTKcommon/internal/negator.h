@@ -224,7 +224,7 @@ public:
     negator(const float&       t) {v = -N((typename NTraits<N>::Precision)t);}
     negator(const double&      t) {v = -N((typename NTraits<N>::Precision)t);}
     #ifdef SimTK_REAL_IS_ADOUBLE
-        negator(const adouble& t) {v = -N((typename NTraits<N>::Precision)t.getValue());}
+        negator(const adouble& t) {v = -N((typename NTraits<N>::Precision)NTraits<adouble>::value(t));}
     #endif
     //#ifdef SimTK_REAL_IS_ADOUBLE
     //    // Allow converting an adouble to negator<N>.

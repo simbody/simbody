@@ -573,6 +573,7 @@ int main()
     cout << "det(smallNegA)=" << det(smallNegA) 
          << " det(inv(smallNegA))=" << det(smallNegAI) << endl;
 
+
     const Real cjdata[]={1,1,  2,2,   3,3, 4,4,
                          9,9, .1,.1, 14,14, 22,22,
                          2,2,  6,6,   9,9,  11,11,
