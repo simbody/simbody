@@ -631,6 +631,127 @@ void testBigMatrix() {
         gradient(TraceTag, 1, xp, g);
         SimTK_TEST(g[0] == 0); // derivative is nul
     }
+    // This unit test verifies that normSqr() works properly
+    {
+        double xp[4] = { 3.5,2,-0.5,3 };
+        double yp;
+        const short int TraceTag = 8;
+        trace_on(TraceTag);
+        adouble y;
+        Matrix_<adouble> M(2,2);
+        M(0,0) <<= xp[0];
+        M(1,0) <<= xp[1];
+        M(0,1) <<= xp[2];
+        M(1,1) <<= xp[3];
+        y = M.normSqr();
+        y >>= yp;
+        trace_off();
+        double f[1];
+        function(TraceTag,1,4,xp,f);
+        SimTK_TEST(f[0] == xp[0]*xp[0]+xp[1]*xp[1]+xp[2]*xp[2]+xp[3]*xp[3]);
+        double** J;
+        J = myalloc(1,4);
+        jacobian(TraceTag,1,4,xp,J);
+        SimTK_TEST(J[0][0] == 2*xp[0]);
+        SimTK_TEST(J[0][1] == 2*xp[1]);
+        SimTK_TEST(J[0][2] == 2*xp[2]);
+        SimTK_TEST(J[0][3] == 2*xp[3]);
+        myfree(J);
+    }
+    // This unit test verifies that colScale() works properly
+    {
+        double xp[4] = { 3.5,2,-0.5,3 };
+        double yp[4];
+        const short int TraceTag = 9;
+        trace_on(TraceTag);
+        Matrix_<adouble> y;
+        Matrix_<adouble> M(2,2);
+        Vector mmColScale(2);
+        mmColScale[0]=1; mmColScale[1]=10;
+        M(0,0) <<= xp[0];
+        M(1,0) <<= xp[1];
+        M(0,1) <<= xp[2];
+        M(1,1) <<= xp[3];
+        y = M.colScale(mmColScale);
+        y[0][0] >>= yp[0];
+        y[1][0] >>= yp[0];
+        y[0][1] >>= yp[0];
+        y[1][1] >>= yp[0];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == xp[0]*mmColScale[0]);
+        SimTK_TEST(f[1] == xp[1]*mmColScale[0]);
+        SimTK_TEST(f[2] == xp[2]*mmColScale[1]);
+        SimTK_TEST(f[3] == xp[3]*mmColScale[1]);
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == 1);
+        SimTK_TEST(J[0][1] == 0);
+        SimTK_TEST(J[0][2] == 0);
+        SimTK_TEST(J[0][3] == 0);
+        SimTK_TEST(J[1][0] == 0);
+        SimTK_TEST(J[1][1] == 1);
+        SimTK_TEST(J[1][2] == 0);
+        SimTK_TEST(J[1][3] == 0);
+        SimTK_TEST(J[2][0] == 0);
+        SimTK_TEST(J[2][1] == 0);
+        SimTK_TEST(J[2][2] == 10);
+        SimTK_TEST(J[2][3] == 0);
+        SimTK_TEST(J[3][0] == 0);
+        SimTK_TEST(J[3][1] == 0);
+        SimTK_TEST(J[3][2] == 0);
+        SimTK_TEST(J[3][3] == 10);
+        myfree(J);
+    }
+    // This unit test verifies that rowScale() works properly
+    {
+        double xp[4] = { 3.5,2,-0.5,3 };
+        double yp[4];
+        const short int TraceTag = 10;
+        trace_on(TraceTag);
+        Matrix_<adouble> y;
+        Matrix_<adouble> M(2,2);
+        Vector mmRowScale(2);
+        mmRowScale[0]=1; mmRowScale[1]=10;
+        M(0,0) <<= xp[0];
+        M(1,0) <<= xp[1];
+        M(0,1) <<= xp[2];
+        M(1,1) <<= xp[3];
+        y = M.rowScale(mmRowScale);
+        y[0][0] >>= yp[0];
+        y[1][0] >>= yp[0];
+        y[0][1] >>= yp[0];
+        y[1][1] >>= yp[0];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == xp[0]*mmRowScale[0]);
+        SimTK_TEST(f[1] == xp[1]*mmRowScale[1]);
+        SimTK_TEST(f[2] == xp[2]*mmRowScale[0]);
+        SimTK_TEST(f[3] == xp[3]*mmRowScale[1]);
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == 1);
+        SimTK_TEST(J[0][1] == 0);
+        SimTK_TEST(J[0][2] == 0);
+        SimTK_TEST(J[0][3] == 0);
+        SimTK_TEST(J[1][0] == 0);
+        SimTK_TEST(J[1][1] == 10);
+        SimTK_TEST(J[1][2] == 0);
+        SimTK_TEST(J[1][3] == 0);
+        SimTK_TEST(J[2][0] == 0);
+        SimTK_TEST(J[2][1] == 0);
+        SimTK_TEST(J[2][2] == 1);
+        SimTK_TEST(J[2][3] == 0);
+        SimTK_TEST(J[3][0] == 0);
+        SimTK_TEST(J[3][1] == 0);
+        SimTK_TEST(J[3][2] == 0);
+        SimTK_TEST(J[3][3] == 10);
+        myfree(J);
+    }
 }
 
 int main() {
