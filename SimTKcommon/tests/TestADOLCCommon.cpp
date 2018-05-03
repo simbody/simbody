@@ -674,9 +674,9 @@ void testBigMatrix() {
         M(1,1) <<= xp[3];
         y = M.colScale(mmColScale);
         y[0][0] >>= yp[0];
-        y[1][0] >>= yp[0];
-        y[0][1] >>= yp[0];
-        y[1][1] >>= yp[0];
+        y[1][0] >>= yp[1];
+        y[0][1] >>= yp[2];
+        y[1][1] >>= yp[3];
         trace_off();
         double f[4];
         function(TraceTag,4,4,xp,f);
@@ -721,9 +721,9 @@ void testBigMatrix() {
         M(1,1) <<= xp[3];
         y = M.rowScale(mmRowScale);
         y[0][0] >>= yp[0];
-        y[1][0] >>= yp[0];
-        y[0][1] >>= yp[0];
-        y[1][1] >>= yp[0];
+        y[1][0] >>= yp[1];
+        y[0][1] >>= yp[2];
+        y[1][1] >>= yp[3];
         trace_off();
         double f[4];
         function(TraceTag,4,4,xp,f);
@@ -750,6 +750,184 @@ void testBigMatrix() {
         SimTK_TEST(J[3][1] == 0);
         SimTK_TEST(J[3][2] == 0);
         SimTK_TEST(J[3][3] == 10);
+        myfree(J);
+    }
+    // This unit test verifies that colScaleInPlace() works properly
+    {
+        double xp[4] = { 3.5,2,-0.5,3 };
+        double yp[4];
+        const short int TraceTag = 11;
+        trace_on(TraceTag);
+        Matrix_<adouble> M(2,2);
+        Vector mmColScale(2);
+        mmColScale[0]=1; mmColScale[1]=10;
+        M(0,0) <<= xp[0];
+        M(1,0) <<= xp[1];
+        M(0,1) <<= xp[2];
+        M(1,1) <<= xp[3];
+        M.colScaleInPlace(mmColScale);
+        M[0][0] >>= yp[0];
+        M[1][0] >>= yp[1];
+        M[0][1] >>= yp[2];
+        M[1][1] >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == xp[0]*mmColScale[0]);
+        SimTK_TEST(f[1] == xp[1]*mmColScale[0]);
+        SimTK_TEST(f[2] == xp[2]*mmColScale[1]);
+        SimTK_TEST(f[3] == xp[3]*mmColScale[1]);
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == 1);
+        SimTK_TEST(J[0][1] == 0);
+        SimTK_TEST(J[0][2] == 0);
+        SimTK_TEST(J[0][3] == 0);
+        SimTK_TEST(J[1][0] == 0);
+        SimTK_TEST(J[1][1] == 1);
+        SimTK_TEST(J[1][2] == 0);
+        SimTK_TEST(J[1][3] == 0);
+        SimTK_TEST(J[2][0] == 0);
+        SimTK_TEST(J[2][1] == 0);
+        SimTK_TEST(J[2][2] == 10);
+        SimTK_TEST(J[2][3] == 0);
+        SimTK_TEST(J[3][0] == 0);
+        SimTK_TEST(J[3][1] == 0);
+        SimTK_TEST(J[3][2] == 0);
+        SimTK_TEST(J[3][3] == 10);
+        myfree(J);
+    }
+    // This unit test verifies that abs() works properly for Vector_<adouble>
+    {
+        double xp[2] = { 3.5,-2 };
+        double yp[2];
+        const short int TraceTag = 12;
+        trace_on(TraceTag);
+        Vector_<adouble> y;
+        Vector_<adouble> V(2);
+        V(0) <<= xp[0];
+        V(1) <<= xp[1];
+        y = V.abs();
+        y[0] >>= yp[0];
+        y[1] >>= yp[1];
+        trace_off();
+        double f[2];
+        function(TraceTag,2,2,xp,f);
+        SimTK_TEST(f[0] == std::abs(xp[0]));
+        SimTK_TEST(f[1] == std::abs(xp[1]));
+        double** J;
+        J = myalloc(2,2);
+        jacobian(TraceTag,2,2,xp,J);
+        SimTK_TEST(J[0][0] == 1);
+        SimTK_TEST(J[0][1] == 0);
+        SimTK_TEST(J[1][0] == 0);
+        SimTK_TEST(J[1][1] == -1);
+        myfree(J);
+    }
+    // This unit test verifies that abs() works properly for Matrix_<adouble>
+    {
+        double xp[4] = { 3.5,-2,-0.5,1 };
+        double yp[4];
+        const short int TraceTag = 13;
+        trace_on(TraceTag);
+        Matrix_<adouble> y;
+        Matrix_<adouble> M(2,2);
+        M[0][0] <<= xp[0];
+        M[1][0] <<= xp[1];
+        M[0][1] <<= xp[2];
+        M[1][1] <<= xp[3];
+        y = M.abs();
+        y[0][0] >>= yp[0];
+        y[1][0] >>= yp[1];
+        y[0][1] >>= yp[2];
+        y[1][1] >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == std::abs(xp[0]));
+        SimTK_TEST(f[1] == std::abs(xp[1]))
+        SimTK_TEST(f[2] == std::abs(xp[2]));
+        SimTK_TEST(f[3] == std::abs(xp[3]));
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == 1 && J[1][1] == -1 && J[2][2] == -1
+            && J[3][3] == 1);
+        SimTK_TEST(J[0][1] == 0 && J[0][2] == 0 && J[0][3] == 0
+            && J[1][0] == 0  && J[1][2] == 0  && J[1][3] == 0
+            && J[2][0] == 0  && J[2][1] == 0  && J[2][3] == 0
+            && J[3][0] == 0  && J[3][1] == 0  && J[3][2] == 0);
+        myfree(J);
+    }
+    // This unit test verifies that negateInPlace() works properly
+    {
+        double xp[4] = { 3.5,-2,-0.5,1 };
+        double yp[4];
+        const short int TraceTag = 14;
+        trace_on(TraceTag);
+        Matrix_<adouble> M(2,2);
+        M[0][0] <<= xp[0];
+        M[1][0] <<= xp[1];
+        M[0][1] <<= xp[2];
+        M[1][1] <<= xp[3];
+        M.negateInPlace();
+        M[0][0] >>= yp[0];
+        M[1][0] >>= yp[1];
+        M[0][1] >>= yp[2];
+        M[1][1] >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == -(xp[0]));
+        SimTK_TEST(f[1] == -(xp[1]))
+        SimTK_TEST(f[2] == -(xp[2]));
+        SimTK_TEST(f[3] == -(xp[3]));
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == -1 && J[1][1] == -1 && J[2][2] == -1
+            && J[3][3] == -1);
+        SimTK_TEST(J[0][1] == 0 && J[0][2] == 0 && J[0][3] == 0
+            && J[1][0] == 0  && J[1][2] == 0  && J[1][3] == 0
+            && J[2][0] == 0  && J[2][1] == 0  && J[2][3] == 0
+            && J[3][0] == 0  && J[3][1] == 0  && J[3][2] == 0);
+        myfree(J);
+    }
+    // This unit test verifies that negate() works properly
+    {
+        double xp[4] = { 3.5,-2,-0.5,1 };
+        double yp[4];
+        const short int TraceTag = 15;
+        trace_on(TraceTag);
+        Matrix_<negator<adouble>> y;
+        Matrix_<adouble> M(2,2);
+        M[0][0] <<= xp[0];
+        M[1][0] <<= xp[1];
+        M[0][1] <<= xp[2];
+        M[1][1] <<= xp[3];
+        y = M.updNegate();
+        adouble(y[0][0]) >>= yp[0];
+        adouble(y[1][0]) >>= yp[1];
+        adouble(y[0][1]) >>= yp[2];
+        adouble(y[1][1]) >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == -(xp[0]));
+        SimTK_TEST(f[1] == -(xp[1]))
+        SimTK_TEST(f[2] == -(xp[2]));
+        SimTK_TEST(f[3] == -(xp[3]));
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == -1 && J[1][1] == -1 && J[2][2] == -1
+            && J[3][3] == -1);
+        SimTK_TEST(J[0][1] == 0 && J[0][2] == 0 && J[0][3] == 0
+            && J[1][0] == 0  && J[1][2] == 0  && J[1][3] == 0
+            && J[2][0] == 0  && J[2][1] == 0  && J[2][3] == 0
+            && J[3][0] == 0  && J[3][1] == 0  && J[3][2] == 0
+        );
         myfree(J);
     }
 }
