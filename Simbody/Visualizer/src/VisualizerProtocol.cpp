@@ -435,7 +435,7 @@ void VisualizerProtocol::stopListeningIfNecessary() {
         // finished (though is still joinable), so we can ignore the exception.
         try {
             WRITE(outPipe, &StopCommunication, 1);
-        } catch (const SimTK::Exception::ErrorCheck&) {}
+        } catch (...) {}
         eventListenerThread.join();
     }
 }
