@@ -429,8 +429,13 @@ void VisualizerProtocol::stopListeningIfNecessary() {
     if (eventListenerThread.joinable()) {
         // Shut down the listener thread cleanly. Tell the GUI to tell the
         // simulator's listener thread to stop listening, which will allow the
-        // the (simulator's) listener thread to die.
-        WRITE(outPipe, &StopCommunication, 1);
+        // the (simulator's) listener thread to die. WRITE throws an exception
+        // if it can't write to the pipe, which most likely means the GUI has
+        // been closed. If the GUI is closed, the listener thread has
+        // finished (though is still joinable), so we can ignore the exception.
+        try {
+            WRITE(outPipe, &StopCommunication, 1);
+        } catch (...) {}
         eventListenerThread.join();
     }
 }
