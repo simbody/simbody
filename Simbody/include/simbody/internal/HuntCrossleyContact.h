@@ -42,7 +42,7 @@ class MultibodySystem;
 
 /**
  * This is a concrete subsystem that handles simple, frictionless contact situations
- * with a model due to Hunt & Crossley: K. H. Hunt and F. R. E. Crossley, 
+ * with a model due to Hunt & Crossley. See K. H. Hunt and F. R. E. Crossley, 
  * "Coefficient of Restitution Interpreted as Damping in Vibroimpact,"
  * ASME Journal of Applied Mechanics, pp. 440-445, June 1975. This is
  * a continuous model based on Hertz elastic contact theory,
