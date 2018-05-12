@@ -586,46 +586,375 @@ void testSymMat() {
     SimTK_TEST(mressr[1][1] == d-a);
 }
 
+// Various unit tests verifying that methods of Big Matrix work properly
 void testBigMatrix() {
-    double xp[1] = { 3.5 };
-    double yp;
-    const short int TraceTag = 6;
-    trace_on(TraceTag);
-    adouble y;
-    Matrix m(1, 1);
-    m(0,0) <<= xp[0];
-    int a = 23;
-    m.elementwiseAssign(a);
-    y = square(m(0,0));
-    y >>= yp;
-    trace_off();
-    double f[1];
-    function(TraceTag, 1, 1, xp, f);
-    SimTK_TEST(f[0] == a*a);
-    double** J = myalloc(1, 1);
-    jacobian(TraceTag, 1, 1, xp, J);
-    SimTK_TEST(J[0][0] == 0);
-    myfree(J);
-    double xp2[1] = { 3.5 };
-    double yp2;
-    const short int TraceTag2 = 7;
-    trace_on(TraceTag2);
-    adouble x2, y2;
-    x2 <<= xp2[0];
-    int a2 = 23;
-    x2 = a2;
-    y2 = square(x2);
-    y2 >>= yp2;
-    trace_off();
-    double f2[1];
-    function(TraceTag2, 1, 1, xp2, f2);
-    SimTK_TEST(f2[0] == a2*a2);
-    double** J2 = myalloc(1,1);
-    jacobian(TraceTag2, 1, 1, xp2, J2);
-    SimTK_TEST(J2[0][0] == 0);
-    myfree(J2);
-    SimTK_TEST(f[0] == f2[0]);
-    SimTK_TEST(J[0][0] == J2[0][0]);
+    // This unit test ensures that elementwiseAssign() works as expected.
+    // When assigning an int to an adouble, we lose the derivative, ie is 0.
+    {
+        double xp[1] = { 3.5 };
+        double yp;
+        const short int TraceTag = 6;
+        trace_on(TraceTag);
+        adouble y;
+        Matrix_<adouble> m(1,1);
+        m(0,0) <<= xp[0];
+        int a = 23;
+        m.elementwiseAssign(a);
+        y = square(m(0,0));
+        y >>= yp;
+        trace_off();
+        double f[1];
+        function(TraceTag, 1, 1, xp, f);
+        SimTK_TEST(f[0] == a*a); // function evaluation is non-nul
+        double g[1];
+        gradient(TraceTag, 1, xp, g);
+        SimTK_TEST(g[0] == 0); // derivative is nul
+    }
+    // This unit test should produce the same behavior as when using
+    // elementwiseAssign().
+    {
+        double xp[1] = { 3.5 };
+        double yp;
+        const short int TraceTag = 7;
+        trace_on(TraceTag);
+        adouble x, y;
+        x <<= xp[0];
+        int a = 23;
+        x = a;
+        y = square(x);
+        y >>= yp;
+        trace_off();
+        double f[1];
+        function(TraceTag, 1, 1, xp, f);
+        SimTK_TEST(f[0] == a*a); // function evaluation is non-nul
+        double g[1];
+        gradient(TraceTag, 1, xp, g);
+        SimTK_TEST(g[0] == 0); // derivative is nul
+    }
+    // This unit test verifies that normSqr() works properly, also when taping
+    {
+        double xp[4] = { 3.5, 2, -0.5, 3 };
+        double yp;
+        const short int TraceTag = 8;
+        trace_on(TraceTag);
+        adouble y;
+        Matrix_<adouble> M(2,2);
+        M(0,0) <<= xp[0];
+        M(1,0) <<= xp[1];
+        M(0,1) <<= xp[2];
+        M(1,1) <<= xp[3];
+        y = M.normSqr();
+        y >>= yp;
+        trace_off();
+        double f[1];
+        function(TraceTag,1,4,xp,f);
+        SimTK_TEST(f[0] == xp[0]*xp[0]+xp[1]*xp[1]+xp[2]*xp[2]+xp[3]*xp[3]);
+        double** J;
+        J = myalloc(1,4);
+        jacobian(TraceTag,1,4,xp,J);
+        SimTK_TEST(J[0][0] == 2*xp[0]);
+        SimTK_TEST(J[0][1] == 2*xp[1]);
+        SimTK_TEST(J[0][2] == 2*xp[2]);
+        SimTK_TEST(J[0][3] == 2*xp[3]);
+        myfree(J);
+    }
+    // This unit test verifies that colScale() works properly, also when taping
+    {
+        double xp[4] = { 3.5, 2, -0.5, 3 };
+        double yp[4];
+        const short int TraceTag = 9;
+        trace_on(TraceTag);
+        Matrix_<adouble> y;
+        Matrix_<adouble> M(2,2);
+        Vector mmColScale(2);
+        mmColScale[0]=1; mmColScale[1]=10;
+        M(0,0) <<= xp[0];
+        M(1,0) <<= xp[1];
+        M(0,1) <<= xp[2];
+        M(1,1) <<= xp[3];
+        y = M.colScale(mmColScale);
+        y[0][0] >>= yp[0];
+        y[1][0] >>= yp[1];
+        y[0][1] >>= yp[2];
+        y[1][1] >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == xp[0]*mmColScale[0]);
+        SimTK_TEST(f[1] == xp[1]*mmColScale[0]);
+        SimTK_TEST(f[2] == xp[2]*mmColScale[1]);
+        SimTK_TEST(f[3] == xp[3]*mmColScale[1]);
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == 1 && J[1][1] == 1 && J[2][2] == 10
+            && J[3][3] == 10);
+        SimTK_TEST(J[0][1] == 0 && J[0][2] == 0 && J[0][3] == 0
+            && J[1][0] == 0  && J[1][2] == 0  && J[1][3] == 0
+            && J[2][0] == 0  && J[2][1] == 0  && J[2][3] == 0
+            && J[3][0] == 0  && J[3][1] == 0  && J[3][2] == 0);
+        myfree(J);
+    }
+    // This unit test verifies that rowScale() works properly, also when taping
+    {
+        double xp[4] = { 3.5, 2, -0.5, 3 };
+        double yp[4];
+        const short int TraceTag = 10;
+        trace_on(TraceTag);
+        Matrix_<adouble> y;
+        Matrix_<adouble> M(2,2);
+        Vector mmRowScale(2);
+        mmRowScale[0]=1; mmRowScale[1]=10;
+        M(0,0) <<= xp[0];
+        M(1,0) <<= xp[1];
+        M(0,1) <<= xp[2];
+        M(1,1) <<= xp[3];
+        y = M.rowScale(mmRowScale);
+        y[0][0] >>= yp[0];
+        y[1][0] >>= yp[1];
+        y[0][1] >>= yp[2];
+        y[1][1] >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == xp[0]*mmRowScale[0]);
+        SimTK_TEST(f[1] == xp[1]*mmRowScale[1]);
+        SimTK_TEST(f[2] == xp[2]*mmRowScale[0]);
+        SimTK_TEST(f[3] == xp[3]*mmRowScale[1]);
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == 1 && J[1][1] == 10 && J[2][2] == 1
+            && J[3][3] == 10);
+        SimTK_TEST(J[0][1] == 0 && J[0][2] == 0 && J[0][3] == 0
+            && J[1][0] == 0  && J[1][2] == 0  && J[1][3] == 0
+            && J[2][0] == 0  && J[2][1] == 0  && J[2][3] == 0
+            && J[3][0] == 0  && J[3][1] == 0  && J[3][2] == 0);
+        myfree(J);
+    }
+    // This unit test verifies that colScaleInPlace() works properly, also when
+    // taping
+    {
+        double xp[4] = { 3.5, 2, -0.5, 3 };
+        double yp[4];
+        const short int TraceTag = 11;
+        trace_on(TraceTag);
+        Matrix_<adouble> M(2,2);
+        Vector mmColScale(2);
+        mmColScale[0]=1; mmColScale[1]=10;
+        M(0,0) <<= xp[0];
+        M(1,0) <<= xp[1];
+        M(0,1) <<= xp[2];
+        M(1,1) <<= xp[3];
+        M.colScaleInPlace(mmColScale);
+        M[0][0] >>= yp[0];
+        M[1][0] >>= yp[1];
+        M[0][1] >>= yp[2];
+        M[1][1] >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == xp[0]*mmColScale[0]);
+        SimTK_TEST(f[1] == xp[1]*mmColScale[0]);
+        SimTK_TEST(f[2] == xp[2]*mmColScale[1]);
+        SimTK_TEST(f[3] == xp[3]*mmColScale[1]);
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == 1 && J[1][1] == 1 && J[2][2] == 10
+            && J[3][3] == 10);
+        SimTK_TEST(J[0][1] == 0 && J[0][2] == 0 && J[0][3] == 0
+            && J[1][0] == 0  && J[1][2] == 0  && J[1][3] == 0
+            && J[2][0] == 0  && J[2][1] == 0  && J[2][3] == 0
+            && J[3][0] == 0  && J[3][1] == 0  && J[3][2] == 0);
+        myfree(J);
+    }
+    // This unit test verifies that abs() works properly for Vector_<adouble>,
+    // also when taping
+    {
+        double xp[2] = { 3.5, -2 };
+        double yp[2];
+        const short int TraceTag = 12;
+        trace_on(TraceTag);
+        Vector_<adouble> y;
+        Vector_<adouble> V(2);
+        V(0) <<= xp[0];
+        V(1) <<= xp[1];
+        y = V.abs();
+        y[0] >>= yp[0];
+        y[1] >>= yp[1];
+        trace_off();
+        double f[2];
+        function(TraceTag,2,2,xp,f);
+        SimTK_TEST(f[0] == std::abs(xp[0]));
+        SimTK_TEST(f[1] == std::abs(xp[1]));
+        double** J;
+        J = myalloc(2,2);
+        jacobian(TraceTag,2,2,xp,J);
+        SimTK_TEST(J[0][0] == 1);
+        SimTK_TEST(J[0][1] == 0);
+        SimTK_TEST(J[1][0] == 0);
+        SimTK_TEST(J[1][1] == -1);
+        myfree(J);
+    }
+    // This unit test verifies that abs() works properly for Matrix_<adouble>,
+    // also when taping
+    {
+        double xp[4] = { 3.5,-2,-0.5,1 };
+        double yp[4];
+        const short int TraceTag = 13;
+        trace_on(TraceTag);
+        Matrix_<adouble> y;
+        Matrix_<adouble> M(2,2);
+        M[0][0] <<= xp[0];
+        M[1][0] <<= xp[1];
+        M[0][1] <<= xp[2];
+        M[1][1] <<= xp[3];
+        y = M.abs();
+        y[0][0] >>= yp[0];
+        y[1][0] >>= yp[1];
+        y[0][1] >>= yp[2];
+        y[1][1] >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == std::abs(xp[0]));
+        SimTK_TEST(f[1] == std::abs(xp[1]))
+        SimTK_TEST(f[2] == std::abs(xp[2]));
+        SimTK_TEST(f[3] == std::abs(xp[3]));
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == 1 && J[1][1] == -1 && J[2][2] == -1
+            && J[3][3] == 1);
+        SimTK_TEST(J[0][1] == 0 && J[0][2] == 0 && J[0][3] == 0
+            && J[1][0] == 0  && J[1][2] == 0  && J[1][3] == 0
+            && J[2][0] == 0  && J[2][1] == 0  && J[2][3] == 0
+            && J[3][0] == 0  && J[3][1] == 0  && J[3][2] == 0);
+        myfree(J);
+    }
+    // This unit test verifies that negateInPlace() works properly, also when
+    // taping
+    {
+        double xp[4] = { 3.5, -2, -0.5, 1 };
+        double yp[4];
+        const short int TraceTag = 14;
+        trace_on(TraceTag);
+        Matrix_<adouble> M(2,2);
+        M[0][0] <<= xp[0];
+        M[1][0] <<= xp[1];
+        M[0][1] <<= xp[2];
+        M[1][1] <<= xp[3];
+        M.negateInPlace();
+        M[0][0] >>= yp[0];
+        M[1][0] >>= yp[1];
+        M[0][1] >>= yp[2];
+        M[1][1] >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == -(xp[0]));
+        SimTK_TEST(f[1] == -(xp[1]))
+        SimTK_TEST(f[2] == -(xp[2]));
+        SimTK_TEST(f[3] == -(xp[3]));
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == -1 && J[1][1] == -1 && J[2][2] == -1
+            && J[3][3] == -1);
+        SimTK_TEST(J[0][1] == 0 && J[0][2] == 0 && J[0][3] == 0
+            && J[1][0] == 0  && J[1][2] == 0  && J[1][3] == 0
+            && J[2][0] == 0  && J[2][1] == 0  && J[2][3] == 0
+            && J[3][0] == 0  && J[3][1] == 0  && J[3][2] == 0);
+        myfree(J);
+    }
+    // This unit test verifies that negate() works properly, also when
+    // taping
+    {
+        double xp[4] = { 3.5, -2, -0.5, 1 };
+        double yp[4];
+        const short int TraceTag = 15;
+        trace_on(TraceTag);
+        Matrix_<negator<adouble>> y;
+        Matrix_<adouble> M(2,2);
+        M[0][0] <<= xp[0];
+        M[1][0] <<= xp[1];
+        M[0][1] <<= xp[2];
+        M[1][1] <<= xp[3];
+        y = M.negate();
+        adouble(y[0][0]) >>= yp[0];
+        adouble(y[1][0]) >>= yp[1];
+        adouble(y[0][1]) >>= yp[2];
+        adouble(y[1][1]) >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == -(xp[0]));
+        SimTK_TEST(f[1] == -(xp[1]))
+        SimTK_TEST(f[2] == -(xp[2]));
+        SimTK_TEST(f[3] == -(xp[3]));
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == -1 && J[1][1] == -1 && J[2][2] == -1
+            && J[3][3] == -1);
+        SimTK_TEST(J[0][1] == 0 && J[0][2] == 0 && J[0][3] == 0
+            && J[1][0] == 0  && J[1][2] == 0  && J[1][3] == 0
+            && J[2][0] == 0  && J[2][1] == 0  && J[2][3] == 0
+            && J[3][0] == 0  && J[3][1] == 0  && J[3][2] == 0
+        );
+        myfree(J);
+    }
+    // This unit test verifies that the heap allocation used in SimTK::Vector
+    // works properly.
+    {
+        Vector vec(3);
+        vec[0] = 2;
+        vec[1] = -1;
+        vec[2] = 1.5;
+        SimTK_TEST(vec[0] == 2 && vec[1] == -1 && vec[2] == 1.5);
+    }
+    // This unit test verifies that elementwiseMultiply() works properly, also
+    // when taping
+    {
+        double xp[4] = { 3.5, 2, -0.5, 3 };
+        double yp[4];
+        const short int TraceTag = 16;
+        trace_on(TraceTag);
+        Matrix_<adouble> y;
+        Matrix_<adouble> M(2,2);
+        Matrix R(2,2);
+        R(0,0) = 3;
+        R(1,0) = -1;
+        R(0,1) = 1.5;
+        R(1,1) = 2;
+        M(0,0) <<= xp[0];
+        M(1,0) <<= xp[1];
+        M(0,1) <<= xp[2];
+        M(1,1) <<= xp[3];
+        y = M.elementwiseMultiply(R);
+        y[0][0] >>= yp[0];
+        y[1][0] >>= yp[1];
+        y[0][1] >>= yp[2];
+        y[1][1] >>= yp[3];
+        trace_off();
+        double f[4];
+        function(TraceTag,4,4,xp,f);
+        SimTK_TEST(f[0] == xp[0]*3);
+        SimTK_TEST(f[1] == xp[1]*-1);
+        SimTK_TEST(f[2] == xp[2]*1.5);
+        SimTK_TEST(f[3] == xp[3]*2);
+        double** J;
+        J = myalloc(4,4);
+        jacobian(TraceTag,4,4,xp,J);
+        SimTK_TEST(J[0][0] == 3 && J[1][1] == -1 && J[2][2] == 1.5
+            && J[3][3] == 2);
+        SimTK_TEST(J[0][1] == 0 && J[0][2] == 0 && J[0][3] == 0
+            && J[1][0] == 0  && J[1][2] == 0  && J[1][3] == 0
+            && J[2][0] == 0  && J[2][1] == 0  && J[2][3] == 0
+            && J[3][0] == 0  && J[3][1] == 0  && J[3][2] == 0);
+        myfree(J);
+    }
 }
 
 int main() {
@@ -640,6 +969,6 @@ int main() {
         SimTK_SUBTEST(testScalar);
         SimTK_SUBTEST(testRow);
         SimTK_SUBTEST(testSymMat);
-        //SimTK_SUBTEST(testBigMatrix);
+        SimTK_SUBTEST(testBigMatrix);
     SimTK_END_TEST();
 }

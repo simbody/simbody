@@ -52,7 +52,7 @@ namespace NR {
 namespace SimTK {
 template class Matrix_<Real>;
 #ifndef SimTK_REAL_IS_ADOUBLE
-template class Vector_<Complex>;
+    template class Vector_<Complex>;
 #endif
 template class RowVector_< conjugate<float> >;
 //template class MatrixBase< Mat<3,4,Vec2> >;
@@ -88,7 +88,7 @@ void testSums() {
     SimTK_TEST_EQ(m.rowSum(), Vector(Vec2(3,7)));
     SimTK_TEST_EQ(m.sum(), m.colSum()); // should be exact
 
-    #ifndef SimTK_REAL_IS_ADOUBLE
+#ifndef SimTK_REAL_IS_ADOUBLE
     Matrix_<Complex> mc(Mat<2,2,Complex>(1+2*I, 3+4*I,
                                          5+6*I, 7+8*I));
     typedef Row<2,Complex> CRow2;
@@ -98,7 +98,7 @@ void testSums() {
     SimTK_TEST_EQ(mc.colSum(), CRowVector(CRow2(6+8*I, 10+12*I)));
     SimTK_TEST_EQ(mc.rowSum(), CVector(CVec2(4+6*I, 12+14*I)));
     SimTK_TEST_EQ(mc.sum(), mc.colSum()); // should be exact
-    #endif
+#endif
 }
 
 void testCharacter() {
@@ -153,10 +153,8 @@ void testCharacter() {
     Vector w1(10, Real(1));
     cout << "weights w1=" << w1 << endl;
     int worst;
-#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "|w1*v|_rms=" << v.weightedNormRMS(w1,&worst) << "\n";
     cout << "(worst=" << worst << ")\n";
-#endif
     cout << "|w1*v|_inf=" << v.weightedNormInf(w1,&worst) << "\n";
     cout << "(worst=" << worst << ")\n";
     cout << "|v|_rms=" << v.normRMS(&worst) << "\n";
@@ -168,15 +166,11 @@ void testCharacter() {
 
     w1(9) = 100;
     cout << "weights w1=" << w1 << endl;
-#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "|w1*v|_rms=" << v.weightedNormRMS(w1,&worst) << "\n";
-#endif
     cout << "(worst=" << worst << ")\n";
     cout << "|w1*v|_inf=" << v.weightedNormInf(w1,&worst) << "\n";
     cout << "(worst=" << worst << ")\n";
-#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "2nd sig: |w1*v|_rms=" << v.weightedNormRMS(w1) << "\n";
-#endif
     cout << "2nd sig: |w1*v|_inf=" << v.weightedNormInf(w1) << "\n";
 
     cout << "rms(zero length)=" << Vector().normRMS(&worst) << "\n";
@@ -227,8 +221,8 @@ void testScalarMultiply() {
                .07, .10, .11 );
     Vector_< SpatialVec > vs(3, SpatialVec(Vec3(1,2,3), Vec3(4,5,6)));
     cout << "vs=" << vs << endl;
-    cout << "vs*SpatialRow=" << vs*SpatialRow(Row3(.1)) << endl;
-    cout << "SpatialRow*vs=" << SpatialRow(Row3(.1))*vs << endl;
+    cout << "vs*SpatialRow=" << vs*SpatialRow(Row3((Real).1)) << endl;
+    cout << "SpatialRow*vs=" << SpatialRow(Row3((Real).1))*vs << endl;
     cout << "m33 * SpatialVec=" << m33 * SpatialVec(Vec3(1,2,3), Vec3(4,5,6)) << endl;
     cout << "m33 * vs=" << SpatialMat(m33) * vs << endl; // note cast to conforming diagonal matrix
     cout << "SpatialRow * m33=" << ~SpatialVec(Vec3(1,2,3), Vec3(4,5,6)) * m33 << endl;
@@ -456,7 +450,7 @@ int main()
     cout << "(rrAssign.viewAssign(rr(0,1,2,2))) *= 100; rrAssign=" << rrAssign;
     cout << "rr=" << rr;
     cout << "-------- END ASSIGN TEST --------\n\n";
-    #endif
+#endif
 
     cout << "\n-------- RESIZE KEEP TEST --------\n";
     Vector resizeMe(5); for (int i=0; i<5; ++i) resizeMe[i]=i;
@@ -477,7 +471,7 @@ int main()
     cout << "after resize(3,4), resizeMem=" << resizeMem << endl;
     cout << "-------- END RESIZE KEEP TEST --------\n\n";
 
-    #ifndef SimTK_REAL_IS_ADOUBLE
+#ifndef SimTK_REAL_IS_ADOUBLE
     Mat<3,4,Complex> cm34;
     for (int i=0; i<3; ++i)
         for (int j=0; j<4; ++j)
@@ -487,7 +481,7 @@ int main()
     cout << "Vec<4,Complex>=" << cv4 << endl;
     cout << "Mat<3,4>*Vec<4>=" << cm34*cv4 << endl;
     cout << "Mat<3,4>*Mat<4,3>=" << cm34*~cm34;
-    #endif
+#endif
 
     complex<float> zzzz(1.,2.);
     conjugate<float> jjjj(0.3f,0.4f);
@@ -495,7 +489,7 @@ int main()
     cout << "zzzz=" << zzzz << " jjjj=" << jjjj << " nnnn=" << nnnn << endl;
     cout << "zzzz*jjjj=" << zzzz*jjjj << endl;
 
-    #ifndef SimTK_REAL_IS_ADOUBLE
+#ifndef SimTK_REAL_IS_ADOUBLE
     Matrix_<Complex> cMatrix34(3,4);
     Vector_<Complex> cVector4(4);
     for (int i=0; i<3; ++i) for (int j=0; j<4; ++j) cMatrix34(i,j)=cm34(i,j);
@@ -506,7 +500,7 @@ int main()
     cout << "cMatrix34*cMatrix43=" << cMatrix34*~cMatrix34;
 
     Matrix_<Complex> cMatrix34N = -cMatrix34;
-    #endif
+#endif
 
     //TODO: not allowed yet
     //Matrix_<Complex> cMatrix34H = ~cMatrix34;
@@ -527,7 +521,7 @@ int main()
     Matrix mnm(4,2), nn;
     cout << "mnm(4,2)=" << mnm;
     mnm(0) = vv; 
-    mnm(1) = -0.01 * vv;
+    mnm(1) = (Real)-0.01 * vv;
     cout << "mnm(vv,-.01*vv)=" << mnm;
     cout << "===> mnm.abs()=" << mnm.abs();
     cout << "mnm(1)=" << mnm(1) << endl;
@@ -576,17 +570,16 @@ int main()
     nnnr = smallNegA(0,1)-smallNegA(1,0);
     cout << "negator nnn=" << nnn << " real nnnr=" << nnnr << endl;
 
-#ifndef SimTK_REAL_IS_ADOUBLE
     cout << "det(smallNegA)=" << det(smallNegA) 
          << " det(inv(smallNegA))=" << det(smallNegAI) << endl;
-#endif
+
 
     const Real cjdata[]={1,1,  2,2,   3,3, 4,4,
                          9,9, .1,.1, 14,14, 22,22,
                          2,2,  6,6,   9,9,  11,11,
                          .2,.2, .7,.7, 5,5, 10,10};
 
-    #ifndef SimTK_REAL_IS_ADOUBLE
+#ifndef SimTK_REAL_IS_ADOUBLE
     // General Lapack inverse.
     Mat<4,4,conjugate<Real> > smallConjA4((conjugate<Real>*)cjdata);
     Mat<4,4,conjugate<Real> >::TInvert smallConjAI4(smallConjA4.invert());
@@ -625,7 +618,7 @@ int main()
         smallConjA3.getSubMat<2,2>(0,0).invert();
     cout << "Mat22*inv(Mat22)=" << 
         smallConjA3.getSubMat<2,2>(0,0)*smallConjA3.getSubMat<2,2>(0,0).invert();
-    #endif
+#endif
 
     try {
     const double ddd[] = { 11, 12, 13, 14, 15, 16 }; 

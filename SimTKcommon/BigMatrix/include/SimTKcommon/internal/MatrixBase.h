@@ -441,6 +441,8 @@ public:
     elementwiseAssign(const S& s);
 
     /// Overloaded to allow an integer argument, which is converted to Scalar.
+    /// The user should be careful when using this function with ADOL-C since
+    /// assigning an int to an adouble results in a null derivative.
     MatrixBase& elementwiseAssign(int s) {
         using Scalar = typename CNT<ELT>::Scalar;
         return elementwiseAssign<Scalar>(Scalar(s));
@@ -735,7 +737,7 @@ public:
             SimTK_THROW1(Exception::Cant, "normRMS() only defined for scalar elements");
         if (nelt() == 0)
             return typename CNT<ScalarNormSq>::TSqrt(0);
-        return CNT<ScalarNormSq>::sqrt(scalarNormSqr()/nelt());
+        return CNT<ScalarNormSq>::sqrt(scalarNormSqr()/(double)nelt());
     }
 
     /// Form the column sums of this matrix, returned as a RowVector.
