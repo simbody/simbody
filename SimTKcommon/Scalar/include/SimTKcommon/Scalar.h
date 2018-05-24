@@ -383,7 +383,7 @@ inline double      square(const double&      x) {return x*x;}
 inline float       square(const negator<float>&       x) {return square(-x);}
 inline double      square(const negator<double>&      x) {return square(-x);}
 #ifdef SimTK_REAL_IS_ADOUBLE
-    inline adouble square(const negator<adouble>&     x) {return square(-x);}
+    //inline adouble square(const negator<adouble>&     x) {return square(-x);}
 #endif
 
 // It is safer to templatize using complex classes, and doesn't make

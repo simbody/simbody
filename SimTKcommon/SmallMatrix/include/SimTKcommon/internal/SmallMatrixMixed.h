@@ -782,13 +782,17 @@ E det(const SymMat<2,E,RS>& s) {
 /// Special case Mat 3x3 determinant. 14 flops (if elements are Real).
 template <class E, int CS, int RS> inline
 E det(const Mat<3,3,E,CS,RS>& m) {
-    /*return E(  m(0,0)*(m(1,1)*m(2,2)-m(1,2)*m(2,1))
+    return E(  m(0,0)*(m(1,1)*m(2,2)-m(1,2)*m(2,1))
              - m(0,1)*(m(1,0)*m(2,2)-m(1,2)*m(2,0))
-             + m(0,2)*(m(1,0)*m(2,1)-m(1,1)*m(2,0)));*/
+             + m(0,2)*(m(1,0)*m(2,1)-m(1,1)*m(2,0)));
 
-    return E(  m(0,0)*E((m(1,1)*m(2,2)-m(1,2)*m(2,1)))
+    /*return E(m(0,0)*m(1,1)*m(2,2)-m(0,0)*m(1,2)*m(2,1)
+        - m(0,1)*m(1,0)*m(2,2)+m(0,1)*m(1,2)*m(2,0)
+        + m(0,2)*m(1,0)*m(2,1)-m(0,2)*m(1,1)*m(2,0));*/
+
+    /*return E(  m(0,0)*E((m(1,1)*m(2,2)-m(1,2)*m(2,1)))
              - m(0,1)*E((m(1,0)*m(2,2)-m(1,2)*m(2,0)))
-             + m(0,2)*E((m(1,0)*m(2,1)-m(1,1)*m(2,0))));
+             + m(0,2)*E((m(1,0)*m(2,1)-m(1,1)*m(2,0))));*/
 }
 
 /// Special case SymMat 3x3 determinant. 14 flops (if elements are Real).
@@ -939,6 +943,9 @@ typename Mat<3,3,E,CS,RS>::TInvert inverse(const Mat<3,3,E,CS,RS>& m) {
     // Calculate determinants for each 2x2 submatrix with first row removed.
     // (See the specialized 3x3 determinant routine above.) We're calculating
     // this explicitly here because we can re-use the intermediate terms.
+    //const E d00 (E(m(1,1)*m(2,2))-E(m(1,2)*m(2,1))),
+    //        nd01(E(m(1,2)*m(2,0))-E(m(1,0)*m(2,2))),   // -d01
+    //        d02 (E(m(1,0)*m(2,1))-E(m(1,1)*m(2,0)));
     const E d00 (m(1,1)*m(2,2)-m(1,2)*m(2,1)),
             nd01(m(1,2)*m(2,0)-m(1,0)*m(2,2)),   // -d01
             d02 (m(1,0)*m(2,1)-m(1,1)*m(2,0));
