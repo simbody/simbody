@@ -236,9 +236,7 @@ public:
             }
         } else { // don't track the worst element
             for (int i=0; i<n; ++i) {
-                /*auto temp = w[i]*(*this)[i];*/
                 const ScalarNormSq wv2 = square(w[i]*(*this)[i]);
-                /*    const ScalarNormSq wv2 = square(temp);*/
                 sumsq += wv2;
             }
         }
