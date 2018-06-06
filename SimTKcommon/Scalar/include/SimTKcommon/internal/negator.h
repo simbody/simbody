@@ -223,9 +223,6 @@ public:
     negator(int                t) {v = -N((typename NTraits<N>::Precision)t);}
     negator(const float&       t) {v = -N((typename NTraits<N>::Precision)t);}
     negator(const double&      t) {v = -N((typename NTraits<N>::Precision)t);}
-    /*#ifdef SimTK_REAL_IS_ADOUBLE
-        negator(const adouble& t) {v = -N((typename NTraits<N>::Precision)NTraits<adouble>::value(t));}
-    #endif*/
     #ifdef SimTK_REAL_IS_ADOUBLE
         // Allow converting an adouble to negator<N>.
         // If N is adouble, then simply negate the adouble.
@@ -244,23 +241,6 @@ public:
         negator(const NN& t)
         {v = -N((typename NTraits<N>::Precision)NTraits<adouble>::value(t));}
     #endif
-    //#ifdef SimTK_REAL_IS_ADOUBLE
-    //    // Allow converting an adouble to negator<N>.
-    //    // If N is adouble, then simply negate the adouble.
-    //    template <typename NN,
-    //        typename std::enable_if<
-    //            (std::is_same<NN, adouble>::value) &&
-    //            std::is_same<N, adouble>::value, int>::type = 0>
-    //    negator(const NN& t)
-    //    {   v = -N(t); }
-    //    // If N is not adouble, we must call value() (this prevents taping).
-    //    template <typename NN,
-    //        typename std::enable_if<
-    //            std::is_same<NN, adouble>::value &&
-    //            !std::is_same<N, adouble>::value, int>::type = 0>
-    //    negator(const NN& t)
-    //    {v = -N((typename NTraits<N>::Precision)NTraits<adouble>::value(t));}
-    //#endif
 
     // Some of these may not compile if instantiated -- you can't cast a complex
     // to a float, for example.

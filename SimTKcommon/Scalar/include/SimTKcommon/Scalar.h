@@ -383,6 +383,7 @@ inline double      square(const double&      x) {return x*x;}
 inline float       square(const negator<float>&       x) {return square(-x);}
 inline double      square(const negator<double>&      x) {return square(-x);}
 #ifdef SimTK_REAL_IS_ADOUBLE
+    // TODO commented to avoid crash due to implicit conversion
     //inline adouble square(const negator<adouble>&     x) {return square(-x);}
 #endif
 

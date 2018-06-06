@@ -111,101 +111,101 @@ void testSums() {
     SimTK_TEST_EQ(sm.rowSum(), y.rowSum());
     SimTK_TEST_EQ(sm.colSum(), y.colSum());
 
-    #ifndef SimTK_REAL_IS_ADOUBLE
-        Mat<2,2,Complex> mc(1+2*I, 3+4*I,
-                            5+6*I, 7+8*I);
-        typedef Row<2,Complex> CRow2;
-        typedef Vec<2,Complex> CVec2;
-        SimTK_TEST_EQ(mc.colSum(), CRow2(6+8*I, 10+12*I));
-        SimTK_TEST_EQ(mc.rowSum(), CVec2(4+6*I, 12+14*I));
-        SimTK_TEST(mc.sum() == mc.colSum()); // should be exact
+#ifndef SimTK_REAL_IS_ADOUBLE
+    Mat<2,2,Complex> mc(1+2*I, 3+4*I,
+                        5+6*I, 7+8*I);
+    typedef Row<2,Complex> CRow2;
+    typedef Vec<2,Complex> CVec2;
+    SimTK_TEST_EQ(mc.colSum(), CRow2(6+8*I, 10+12*I));
+    SimTK_TEST_EQ(mc.rowSum(), CVec2(4+6*I, 12+14*I));
+    SimTK_TEST(mc.sum() == mc.colSum()); // should be exact
 
-        // Row sum and col sum for Hermitian are conjugates; not the same.
-        SymMat<2,Complex> yc( 1, /*3+6*I*/
-                             3-6*I, 4);
-        SimTK_TEST_EQ(yc.colSum(), CRow2(4-6*I, 7+6*I));
-        SimTK_TEST_EQ(yc.rowSum(), CVec2(4+6*I, 7-6*I));
-        SimTK_TEST(yc.sum() == yc.colSum()); // should be exact
+    // Row sum and col sum for Hermitian are conjugates; not the same.
+    SymMat<2,Complex> yc( 1, /*3+6*I*/
+                            3-6*I, 4);
+    SimTK_TEST_EQ(yc.colSum(), CRow2(4-6*I, 7+6*I));
+    SimTK_TEST_EQ(yc.rowSum(), CVec2(4+6*I, 7-6*I));
+    SimTK_TEST(yc.sum() == yc.colSum()); // should be exact
 
-        Mat<2,2,Complex> smc(yc); // create fully populated symmetric matrix
-        SimTK_TEST_EQ(smc.rowSum(), yc.rowSum());
-        SimTK_TEST_EQ(smc.colSum(), yc.colSum());
-    #endif
+    Mat<2,2,Complex> smc(yc); // create fully populated symmetric matrix
+    SimTK_TEST_EQ(smc.rowSum(), yc.rowSum());
+    SimTK_TEST_EQ(smc.colSum(), yc.colSum());
+#endif
 }
 
 void testMiscellaneous()
 {
-    #ifndef SimTK_REAL_IS_ADOUBLE
-        cout << std::setprecision(16);
-        cout << "f(.3)=" << f(Complex(0.3)) << endl;
-        Real h = 1e-20;
-        cout << "f(.3 + i*h)/h=" << f(Complex(0.3,h)) / h << endl;
+#ifndef SimTK_REAL_IS_ADOUBLE
+    cout << std::setprecision(16);
+    cout << "f(.3)=" << f(Complex(0.3)) << endl;
+    Real h = 1e-20;
+    cout << "f(.3 + i*h)/h=" << f(Complex(0.3,h)) / h << endl;
 
-        cout << CNT< Mat<2,3, Vec<2> > >::getNaN() << endl;
+    cout << CNT< Mat<2,3, Vec<2> > >::getNaN() << endl;
 
-        Mat<2,3, Vec<2, Mat<2,2,Complex> > > isThisNaN;
-        cout << "isThisNan? " << isThisNaN << endl;
+    Mat<2,3, Vec<2, Mat<2,2,Complex> > > isThisNaN;
+    cout << "isThisNan? " << isThisNaN << endl;
 
-        const Complex mdc[] = {
-            Complex(1.,2.),  Complex(3.,4.),   Complex(5.,6.),   Complex(7.,8.),
-            Complex(9.,10.), Complex(10.,11.), Complex(.1,.26),  Complex(.3,.45),
-            Complex(.5,.64), Complex(.7,.83),  Complex(.9,.102), Complex(.10,.111)   
-        }; 
+    const Complex mdc[] = {
+        Complex(1.,2.),  Complex(3.,4.),   Complex(5.,6.),   Complex(7.,8.),
+        Complex(9.,10.), Complex(10.,11.), Complex(.1,.26),  Complex(.3,.45),
+        Complex(.5,.64), Complex(.7,.83),  Complex(.9,.102), Complex(.10,.111)   
+    }; 
 
-        cout << "*** TEST COMPLEX DOT PRODUCT ***" << endl;
-        Vec<3,Complex> vdot(mdc), wdot(&mdc[3]);
-        Row<3,Complex> rdot(mdc), sdot(&mdc[3]);
-        cout << "v=" << vdot << " w=" << wdot << endl;
-        cout << "r=" << rdot << " s=" << sdot << endl;
-        cout << "v.normalize()=" << vdot.normalize() << endl;
-        cout << "r.normalize()=" << rdot.normalize() << endl;
-
-
-        cout << "--- dot() global function:dot(v,w), rw, vs, rs should be the same" << endl;
-        cout << "vw=" << dot(vdot,wdot) << " rw" << dot(rdot,wdot) 
-             << " vs" << dot(vdot,sdot) << " rs" << dot(rdot,sdot) << endl;
-        cout << "--- dot operator* requires row*col meaning Hermitian transpose with sign changes" << endl;
-        cout << "vw=" << ~vdot*wdot << " rw" << rdot*wdot
-             << " vs" << ~vdot*~sdot << " rs" << rdot*~sdot << endl;
-
-        cout << endl << "*** TEST COMPLEX OUTER PRODUCT ***" << endl;
-        cout << "--- outer() global function:dot(v,w), rw, vs, rs should be the same" << endl;
-        cout << "vw=" << outer(vdot,wdot) << " rw" << outer(rdot,wdot) 
-             << " vs" << outer(vdot,sdot) << " rs" << outer(rdot,sdot) << endl;
-        cout << "--- outer operator* requires col*row meaning Hermitian transpose with sign changes" << endl;
-        cout << "vw=" << vdot*~wdot << " rw" << ~rdot*~wdot
-             << " vs" << vdot*sdot << " rs" << ~rdot*sdot << endl;
-
-        cout << "*** TEST COMPLEX CROSS PRODUCT ***" << endl;
-        cout << "--- cross() global function:dot(v,w), rw, vs, rs should be the same" << endl;
-        cout << "vw=" << cross(vdot,wdot) << " rw" << cross(rdot,wdot) 
-             << " vs" << cross(vdot,sdot) << " rs" << cross(rdot,sdot) << endl;
-        cout << "--- cross operator% involves NO sign changes, but returns row if either arg is a row" << endl;
-        cout << "vw=" << vdot%wdot << " rw" << rdot%wdot
-             << " vs" << vdot%sdot << " rs" << rdot%sdot << endl;
-
-        cout << "*** TEST crossMat() ***" << endl;
-        Mat<3,3,Complex> vcross(crossMat(vdot));
-        Mat<3,3,Complex> rcross(crossMat(rdot));
-        cout << "--- crossMat 3d should be same whether made from row or vec" << endl;
-        cout << "vdot%wdot=" << vdot%wdot << endl;
-        cout << "crossMat(v)=" << vcross << "crossMat(r)=" << rcross;
-        cout << "crossMat(v)*w=" << crossMat(vdot)*wdot << " vcross*w=" << vcross*wdot << endl;
+    cout << "*** TEST COMPLEX DOT PRODUCT ***" << endl;
+    Vec<3,Complex> vdot(mdc), wdot(&mdc[3]);
+    Row<3,Complex> rdot(mdc), sdot(&mdc[3]);
+    cout << "v=" << vdot << " w=" << wdot << endl;
+    cout << "r=" << rdot << " s=" << sdot << endl;
+    cout << "v.normalize()=" << vdot.normalize() << endl;
+    cout << "r.normalize()=" << rdot.normalize() << endl;
 
 
-        Vec<2,Complex> vdot2 = vdot.getSubVec<2>(0);
-        Vec<2,Complex> wdot2 = wdot.getSubVec<2>(0);
-        Row<2,Complex> rdot2 = rdot.getSubRow<2>(0);
-        Row<2,Complex> vcross2(crossMat(vdot2));
-        Row<2,Complex> rcross2(crossMat(rdot2));
+    cout << "--- dot() global function:dot(v,w), rw, vs, rs should be the same" << endl;
+    cout << "vw=" << dot(vdot,wdot) << " rw" << dot(rdot,wdot) 
+            << " vs" << dot(vdot,sdot) << " rs" << dot(rdot,sdot) << endl;
+    cout << "--- dot operator* requires row*col meaning Hermitian transpose with sign changes" << endl;
+    cout << "vw=" << ~vdot*wdot << " rw" << rdot*wdot
+            << " vs" << ~vdot*~sdot << " rs" << rdot*~sdot << endl;
 
-        cout << "--- crossMat 2d should be same whether made from row or vec" << endl;
-        cout << "vdot2, wdot2=" << vdot2 << ", " << wdot2 << " vdot2%wdot2=" << vdot2%wdot2 << endl;
-        cout << "crossMat(v2)=" << vcross2 << "crossMat(r2)=" << rcross2;
-        cout << "crossMat(v2)*w2=" << crossMat(vdot2)*wdot2 << " vcross2*w2=" << vcross2*wdot2 << endl;
+    cout << endl << "*** TEST COMPLEX OUTER PRODUCT ***" << endl;
+    cout << "--- outer() global function:dot(v,w), rw, vs, rs should be the same" << endl;
+    cout << "vw=" << outer(vdot,wdot) << " rw" << outer(rdot,wdot) 
+            << " vs" << outer(vdot,sdot) << " rs" << outer(rdot,sdot) << endl;
+    cout << "--- outer operator* requires col*row meaning Hermitian transpose with sign changes" << endl;
+    cout << "vw=" << vdot*~wdot << " rw" << ~rdot*~wdot
+            << " vs" << vdot*sdot << " rs" << ~rdot*sdot << endl;
 
-        cout << "*********\n";
-    #endif
+    cout << "*** TEST COMPLEX CROSS PRODUCT ***" << endl;
+    cout << "--- cross() global function:dot(v,w), rw, vs, rs should be the same" << endl;
+    cout << "vw=" << cross(vdot,wdot) << " rw" << cross(rdot,wdot) 
+            << " vs" << cross(vdot,sdot) << " rs" << cross(rdot,sdot) << endl;
+    cout << "--- cross operator% involves NO sign changes, but returns row if either arg is a row" << endl;
+    cout << "vw=" << vdot%wdot << " rw" << rdot%wdot
+            << " vs" << vdot%sdot << " rs" << rdot%sdot << endl;
+
+    cout << "*** TEST crossMat() ***" << endl;
+    Mat<3,3,Complex> vcross(crossMat(vdot));
+    Mat<3,3,Complex> rcross(crossMat(rdot));
+    cout << "--- crossMat 3d should be same whether made from row or vec" << endl;
+    cout << "vdot%wdot=" << vdot%wdot << endl;
+    cout << "crossMat(v)=" << vcross << "crossMat(r)=" << rcross;
+    cout << "crossMat(v)*w=" << crossMat(vdot)*wdot << " vcross*w=" << vcross*wdot << endl;
+
+
+    Vec<2,Complex> vdot2 = vdot.getSubVec<2>(0);
+    Vec<2,Complex> wdot2 = wdot.getSubVec<2>(0);
+    Row<2,Complex> rdot2 = rdot.getSubRow<2>(0);
+    Row<2,Complex> vcross2(crossMat(vdot2));
+    Row<2,Complex> rcross2(crossMat(rdot2));
+
+    cout << "--- crossMat 2d should be same whether made from row or vec" << endl;
+    cout << "vdot2, wdot2=" << vdot2 << ", " << wdot2 << " vdot2%wdot2=" << vdot2%wdot2 << endl;
+    cout << "crossMat(v2)=" << vcross2 << "crossMat(r2)=" << rcross2;
+    cout << "crossMat(v2)*w2=" << crossMat(vdot2)*wdot2 << " vcross2*w2=" << vcross2*wdot2 << endl;
+
+    cout << "*********\n";
+#endif
 
 
     Mat<2,5,float> m25f( 1, 2, 3, 4, 5,
@@ -241,165 +241,165 @@ void testMiscellaneous()
     cout << "sm3+=100:" << (sm3+=100.);
     cout << "m33sm3+=100:" << (m33sm3+=100.);
 
-    #ifndef SimTK_REAL_IS_ADOUBLE
-        Mat<3,3,Complex> whole(mdc);
-        SymMat<3,Complex,9> sym = SymMat<3,Complex,9>().setFromLower(whole);
-        cout << "whole=" << whole << endl;
-        cout << "sym  =" << sym << "(pos~)sym  =" << sym.positionalTranspose() << endl;
+#ifndef SimTK_REAL_IS_ADOUBLE
+    Mat<3,3,Complex> whole(mdc);
+    SymMat<3,Complex,9> sym = SymMat<3,Complex,9>().setFromLower(whole);
+    cout << "whole=" << whole << endl;
+    cout << "sym  =" << sym << "(pos~)sym  =" << sym.positionalTranspose() << endl;
 
-        cout << "whole.real()=" << whole.real();
-        cout << "whole.imag()=" << whole.imag();
-        cout << "sym.real()=" << sym.real();
-        cout << "sym.imag()=" << sym.imag();
-
-
-
-        Mat<3,4,Complex>  mdcp(mdc);  cout << "*** Data looks like this: " << mdcp;
-        SymMat<4,negator<Complex> > symp(reinterpret_cast<const negator<conjugate<double> >*>(mdc));
-        cout << "    4x4 Sym<Neg<cmplx>> from (negator<conj>)pointer to data gives this:" << symp;
-        cout << "    sym.real()=" << symp.real();
-        cout << "    sym.imag()=" << symp.imag();
-        cout << "   ~sym.imag()=" << ~symp.imag();
-        cout << "pos~(sym.imag())=" << symp.imag().positionalTranspose();
-        cout << "(pos~sym).imag()=" << symp.positionalTranspose().imag();
-        cout << "   -sym.imag()=" << -symp.imag();
-
-        symp(2,1).real() = 99.;
-        cout << "after sym(2,1).real=99, sym=" << symp;
-
-        symp.updPositionalTranspose().imag()(3,1)=123.;
-        cout << "after (pos~sym).imag()(3,1)=123, (pos~sym).imag()=" << symp.positionalTranspose().imag();
-        cout << "    ... sym=" << symp;
-
-        Mat<2,3, SymMat<3,Complex> > weird(Row<3,SymMat<3,Complex> >( sym, -sym, sym ),
-                                           Row<3,SymMat<3,Complex> >( sym, sym, sym ));
-        cout << "weird=" << weird;
-        weird *= 2.;
-        cout << " weird*=2: " << weird;
-        cout << " weird(1)=" << weird(1) << endl;
-        cout << " weird(0,1)=" << weird(0,1) << " [0][1]=" << weird[0][1] << endl;
-
-        cout << " typename(weird)=" << typeid(weird).name() << endl;
-        cout << " typename(weird.real)=" << typeid(weird.real()).name() << endl;
-        cout << " typename(weird.imag)=" << typeid(weird.imag()).name() << endl;
-
-        cout << " weird.real()=" << weird.real();
-        cout << " weird.imag()=" << weird.imag();
-
-        cout << "sizeof(sym<3,cplx>)=" << sizeof(sym) << " sizeof(mat<2,3,sym>=" << sizeof(weird) << endl;
-
-        Mat<2,3> m23(twoXthree);
-        Mat<3,1> m31(threeXone);
-        cout << "m23=" << m23 << endl;
-        cout << "m31=" << m31 << endl;
-        cout << "m23*-m31=" << m23*-m31 << endl;
-        cout << "~ ~m31 * ~-m23=" << ~((~m31)*(~-m23)) << endl;
-
-        Mat<2,3,Complex> c23(m23);
-        Mat<3,1,Complex> c31(m31);
-        cout << "c23=" << c23 << endl;
-        cout << "c31=" << c31 << endl;
-        cout << "c23*c31=" << c23*-c31 << endl;
-        cout << "  ~c31 * ~-c23=" << (~c31)*(~-c23) << endl;
-        cout << "~ ~-c31 * ~c23=" << ~((~-c31)*(~c23)) << endl;
+    cout << "whole.real()=" << whole.real();
+    cout << "whole.imag()=" << whole.imag();
+    cout << "sym.real()=" << sym.real();
+    cout << "sym.imag()=" << sym.imag();
 
 
-        Mat<3,4> m34;
-        Mat<3,4,Complex> cm34;
+
+    Mat<3,4,Complex>  mdcp(mdc);  cout << "*** Data looks like this: " << mdcp;
+    SymMat<4,negator<Complex> > symp(reinterpret_cast<const negator<conjugate<double> >*>(mdc));
+    cout << "    4x4 Sym<Neg<cmplx>> from (negator<conj>)pointer to data gives this:" << symp;
+    cout << "    sym.real()=" << symp.real();
+    cout << "    sym.imag()=" << symp.imag();
+    cout << "   ~sym.imag()=" << ~symp.imag();
+    cout << "pos~(sym.imag())=" << symp.imag().positionalTranspose();
+    cout << "(pos~sym).imag()=" << symp.positionalTranspose().imag();
+    cout << "   -sym.imag()=" << -symp.imag();
+
+    symp(2,1).real() = 99.;
+    cout << "after sym(2,1).real=99, sym=" << symp;
+
+    symp.updPositionalTranspose().imag()(3,1)=123.;
+    cout << "after (pos~sym).imag()(3,1)=123, (pos~sym).imag()=" << symp.positionalTranspose().imag();
+    cout << "    ... sym=" << symp;
+
+    Mat<2,3, SymMat<3,Complex> > weird(Row<3,SymMat<3,Complex> >( sym, -sym, sym ),
+                                        Row<3,SymMat<3,Complex> >( sym, sym, sym ));
+    cout << "weird=" << weird;
+    weird *= 2.;
+    cout << " weird*=2: " << weird;
+    cout << " weird(1)=" << weird(1) << endl;
+    cout << " weird(0,1)=" << weird(0,1) << " [0][1]=" << weird[0][1] << endl;
+
+    cout << " typename(weird)=" << typeid(weird).name() << endl;
+    cout << " typename(weird.real)=" << typeid(weird.real()).name() << endl;
+    cout << " typename(weird.imag)=" << typeid(weird.imag()).name() << endl;
+
+    cout << " weird.real()=" << weird.real();
+    cout << " weird.imag()=" << weird.imag();
+
+    cout << "sizeof(sym<3,cplx>)=" << sizeof(sym) << " sizeof(mat<2,3,sym>=" << sizeof(weird) << endl;
+
+    Mat<2,3> m23(twoXthree);
+    Mat<3,1> m31(threeXone);
+    cout << "m23=" << m23 << endl;
+    cout << "m31=" << m31 << endl;
+    cout << "m23*-m31=" << m23*-m31 << endl;
+    cout << "~ ~m31 * ~-m23=" << ~((~m31)*(~-m23)) << endl;
+
+    Mat<2,3,Complex> c23(m23);
+    Mat<3,1,Complex> c31(m31);
+    cout << "c23=" << c23 << endl;
+    cout << "c31=" << c31 << endl;
+    cout << "c23*c31=" << c23*-c31 << endl;
+    cout << "  ~c31 * ~-c23=" << (~c31)*(~-c23) << endl;
+    cout << "~ ~-c31 * ~c23=" << ~((~-c31)*(~c23)) << endl;
 
 
-        cm34 = mdc;
-        m34 = cm34.real();
+    Mat<3,4> m34;
+    Mat<3,4,Complex> cm34;
 
-        cout << "Mat<3,4,Complex> cm34=" << cm34 << endl;
-        cout << "cm34.diag()=" << cm34.diag() << endl;
 
-        cout << "cm34 + cm34=" << cm34+cm34 << endl; //INTERNAL COMPILER ERROR IN Release MODE
-        cout << "~cm34 * 1000=" << ~cm34 * 1000. << endl;
+    cm34 = mdc;
+    m34 = cm34.real();
 
-        cout << "m34=" << m34 << endl;
-        m34 =19.123;
-        cout << "after m34=19.123, m34=" << m34 << endl;
+    cout << "Mat<3,4,Complex> cm34=" << cm34 << endl;
+    cout << "cm34.diag()=" << cm34.diag() << endl;
+
+    cout << "cm34 + cm34=" << cm34+cm34 << endl; //INTERNAL COMPILER ERROR IN Release MODE
+    cout << "~cm34 * 1000=" << ~cm34 * 1000. << endl;
+
+    cout << "m34=" << m34 << endl;
+    m34 =19.123;
+    cout << "after m34=19.123, m34=" << m34 << endl;
  
-        const double ddd[] = { 11, 12, 13, 14, 15, 16 }; 
-        const complex<float> ccc[] = {  complex<float>(1.,2.),  
-                                        complex<float>(3.,4.),
-                                        complex<float>(5.,6.),
-                                        complex<float>(7.,8.) };
-        Vec<2,complex<float>,1> cv2(ccc);
-        cout << "cv2 from array=" << cv2 << endl;
-        cv2 = Vec<2,complex<float> >(complex<float>(1.,2.), complex<float>(3.,4.));
-        cout << "cv2 after assignment=" << cv2 << endl;
+    const double ddd[] = { 11, 12, 13, 14, 15, 16 }; 
+    const complex<float> ccc[] = {  complex<float>(1.,2.),  
+                                    complex<float>(3.,4.),
+                                    complex<float>(5.,6.),
+                                    complex<float>(7.,8.) };
+    Vec<2,complex<float>,1> cv2(ccc);
+    cout << "cv2 from array=" << cv2 << endl;
+    cv2 = Vec<2,complex<float> >(complex<float>(1.,2.), complex<float>(3.,4.));
+    cout << "cv2 after assignment=" << cv2 << endl;
 
-        cout << "cv2.real()=" << cv2.real() << " cv2.imag()=" << cv2.imag() << endl;
+    cout << "cv2.real()=" << cv2.real() << " cv2.imag()=" << cv2.imag() << endl;
 
-        Vec<2,negator<complex<float> >,1>& negCv2 = (Vec<2,negator<complex<float> >,1>&)cv2;
-        Vec<2,conjugate<float>,1>& conjCv2 = (Vec<2,conjugate<float>,1>&)cv2;
-        Vec<2,negator<conjugate<float> >,1>& negConjCv2 = (Vec<2,negator<conjugate<float> >,1>&)cv2;
+    Vec<2,negator<complex<float> >,1>& negCv2 = (Vec<2,negator<complex<float> >,1>&)cv2;
+    Vec<2,conjugate<float>,1>& conjCv2 = (Vec<2,conjugate<float>,1>&)cv2;
+    Vec<2,negator<conjugate<float> >,1>& negConjCv2 = (Vec<2,negator<conjugate<float> >,1>&)cv2;
 
     
 
-        Vec<2,complex<float> > testMe = cv2;
-        cout << "testMe=cv2 (init)=" << testMe << endl;
-        testMe = cv2;
-        cout << "testMe=cv2 (assign)=" << testMe << endl;
+    Vec<2,complex<float> > testMe = cv2;
+    cout << "testMe=cv2 (init)=" << testMe << endl;
+    testMe = cv2;
+    cout << "testMe=cv2 (assign)=" << testMe << endl;
 
 
-        cout << "(cv2+cv2)/complex<float>(1000,0):" << (cv2 + cv2) / complex<float>(1000,0) << endl; 
-        cout << "(cv2+cv2)/1000.f:" << (cv2 + cv2) / 1000.f << endl;
-        cout << "(cv2+cv2)/1000.:" << (cv2 + cv2) / 1000. << endl;
-        cout << "(cv2+cv2)/1000:" << (cv2 + cv2) / 1000 << endl;
+    cout << "(cv2+cv2)/complex<float>(1000,0):" << (cv2 + cv2) / complex<float>(1000,0) << endl; 
+    cout << "(cv2+cv2)/1000.f:" << (cv2 + cv2) / 1000.f << endl;
+    cout << "(cv2+cv2)/1000.:" << (cv2 + cv2) / 1000. << endl;
+    cout << "(cv2+cv2)/1000:" << (cv2 + cv2) / 1000 << endl;
 
-        cout << "negCv2=" << negCv2 << endl;
-        cout << "conjCv2=" << conjCv2 << endl;
-        cout << "negConjCv2=" << negConjCv2 << endl;
-        cout << "cv2+negCv2=" << cv2+negCv2 << endl;
+    cout << "negCv2=" << negCv2 << endl;
+    cout << "conjCv2=" << conjCv2 << endl;
+    cout << "negConjCv2=" << negConjCv2 << endl;
+    cout << "cv2+negCv2=" << cv2+negCv2 << endl;
 
-        negConjCv2 = complex<float>(8,9);
-        cout << "AFTER negConjCv2 = (8,9):" << endl;
-        cout << "  cv2=" << cv2 << endl;
-        cout << "  negCv2=" << negCv2 << endl;
-        cout << "  conjCv2=" << conjCv2 << endl;
-        cout << "  negConjCv2=" << negConjCv2 << endl;
+    negConjCv2 = complex<float>(8,9);
+    cout << "AFTER negConjCv2 = (8,9):" << endl;
+    cout << "  cv2=" << cv2 << endl;
+    cout << "  negCv2=" << negCv2 << endl;
+    cout << "  conjCv2=" << conjCv2 << endl;
+    cout << "  negConjCv2=" << negConjCv2 << endl;
 
-        cout << "cv2:  " << cv2 << endl;
-        cout << "cv2T: " << cv2.transpose() << endl; 
-        cout << "-cv2: " << -cv2 << endl;
-        cout << "~cv2: " << ~cv2 << endl;
-        cout << "-~cv2: " << -(~cv2) << endl;
-        cout << "~-cv2: " << ~(-cv2) << endl; 
-        cout << "~-cv2*10000: " << (~(-cv2))*10000.f << endl;  
+    cout << "cv2:  " << cv2 << endl;
+    cout << "cv2T: " << cv2.transpose() << endl; 
+    cout << "-cv2: " << -cv2 << endl;
+    cout << "~cv2: " << ~cv2 << endl;
+    cout << "-~cv2: " << -(~cv2) << endl;
+    cout << "~-cv2: " << ~(-cv2) << endl; 
+    cout << "~-cv2*10000: " << (~(-cv2))*10000.f << endl;  
         
-       (~cv2)[1]=complex<float>(101.1f,202.3f);
-        cout << "after ~cv2[1]=(101.1f,202.3f), cv2= " << cv2 << endl;    
-        (-(~cv2))[1]=complex<float>(11.1f,22.3f);
-        cout << "after -~cv2[1]=(11.1f,22.3f), cv2= " << cv2 << endl; 
+    (~cv2)[1]=complex<float>(101.1f,202.3f);
+    cout << "after ~cv2[1]=(101.1f,202.3f), cv2= " << cv2 << endl;    
+    (-(~cv2))[1]=complex<float>(11.1f,22.3f);
+    cout << "after -~cv2[1]=(11.1f,22.3f), cv2= " << cv2 << endl; 
         
-        Vec<3> dv3(ddd), ddv3(ddd+3);
-        dv3[2] = 1000;
-        cout << "dv3=" << dv3 << " ddv3=" << ddv3 << endl;
-        cout << "100(ddv3-dv3)/1000=" << 100.* (ddv3 - dv3) / 1000. << endl; 
+    Vec<3> dv3(ddd), ddv3(ddd+3);
+    dv3[2] = 1000;
+    cout << "dv3=" << dv3 << " ddv3=" << ddv3 << endl;
+    cout << "100(ddv3-dv3)/1000=" << 100.* (ddv3 - dv3) / 1000. << endl; 
 
-        Vec<3> xxx(dv3); cout << "copy of dv3 xxx=" << xxx << endl;
-        Vec<3> yyy(*ddd);cout << "copy of *ddd yyy=" << yyy << endl;
+    Vec<3> xxx(dv3); cout << "copy of dv3 xxx=" << xxx << endl;
+    Vec<3> yyy(*ddd);cout << "copy of *ddd yyy=" << yyy << endl;
     
-        cout << "dv3.norm()=" << dv3.norm() << endl;
-        cout << "cv2=" << cv2 << " cv2.norm()=" << cv2.norm() << endl; 
+    cout << "dv3.norm()=" << dv3.norm() << endl;
+    cout << "cv2=" << cv2 << " cv2.norm()=" << cv2.norm() << endl; 
        
-        const Vec<2> v2c[] = {Vec<2>(ddd),Vec<2>(ddd+1)};
-        Vec<2, Vec<2> > vflt(v2c);
-        cout << "vflt 2xvec2=" << vflt << endl;
-        cout << "10.*vflt=" << 10.*vflt << endl;
-        cout << "vflt*10.=" << vflt*10. << endl;
+    const Vec<2> v2c[] = {Vec<2>(ddd),Vec<2>(ddd+1)};
+    Vec<2, Vec<2> > vflt(v2c);
+    cout << "vflt 2xvec2=" << vflt << endl;
+    cout << "10.*vflt=" << 10.*vflt << endl;
+    cout << "vflt*10.=" << vflt*10. << endl;
 
-        int ivals[] = {0x10, 0x20, 0x30, 0x40};
-        Vec<4> iv(ivals);
-        cout << "iv=" << iv << endl;
+    int ivals[] = {0x10, 0x20, 0x30, 0x40};
+    Vec<4> iv(ivals);
+    cout << "iv=" << iv << endl;
     
-        Vec<2, Vec<2> > v22;
-        v22 = Vec<2>(&ivals[2]);
-        cout << "v22=" << v22 << endl;
-    #endif
+    Vec<2, Vec<2> > v22;
+    v22 = Vec<2>(&ivals[2]);
+    cout << "v22=" << v22 << endl;
+#endif
 
     // Test dot product
     {

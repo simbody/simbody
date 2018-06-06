@@ -725,7 +725,7 @@ bool testReexpressSymMat33() {
     const Mat33 M(M1*M2);
     test = test && (S-M).norm() <= SignificantReal;
 
-    #ifndef SimTK_REAL_IS_ADOUBLE
+#ifndef SimTK_REAL_IS_ADOUBLE
     const SymMat<3,Complex> SC1(Test::randComplex(),
                                 Test::randComplex(), Test::randComplex(),
                                 Test::randComplex(), Test::randComplex(), Test::randComplex() );
@@ -741,7 +741,7 @@ bool testReexpressSymMat33() {
     const Mat<3,3,Complex> SC(SC1*SC2);
     const Mat<3,3,Complex> MC(MC1*MC2);
     SimTK_TEST_EQ(SC, MC);
-    #endif
+#endif
 
     return test;
 }

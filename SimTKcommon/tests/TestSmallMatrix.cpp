@@ -164,7 +164,7 @@ void testSymMat() {
     SimTK_TEST_EQ( ~v4*sm4, ~v4*m4 );
 
 
-    #ifndef SimTK_REAL_IS_ADOUBLE
+#ifndef SimTK_REAL_IS_ADOUBLE
     // Complex is tricky for symmetric (really Hermitian) matrices because
     // the diagonals must be real and the corresponding off-diagonals are
     // complex conjugate pairs, NOT the same value even though the off
@@ -187,7 +187,7 @@ void testSymMat() {
 
     SimTK_TEST_EQ( ~smc*vc, ~mc*vc );
     SimTK_TEST_EQ( ~smc*vc, smc*vc );    
-    #endif
+#endif
 }
 
 void testNumericallyEqual() {
