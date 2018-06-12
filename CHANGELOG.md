@@ -5,6 +5,10 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 **Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
 
+3.6.1 (11 June 2018)
+--------------------
+* Fixed bug wherein a program may crash when using the visualizer if the
+  visualizer window was closed manually (PR #633).
 
 3.6 (21 February 2018)
 ----------------------
