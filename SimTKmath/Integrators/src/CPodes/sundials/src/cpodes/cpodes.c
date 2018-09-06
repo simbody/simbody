@@ -1615,7 +1615,7 @@ void CPodeFree(void **cpode_mem)
 
   cp_mem = (CPodeMem) (*cpode_mem);
   
-  cpFreeVectors(cp_mem);
+  if (cp_mem->cp_MallocDone) cpFreeVectors(cp_mem);
 
   CPodeQuadFree(cp_mem);
 
