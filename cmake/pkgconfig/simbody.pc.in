@@ -7,4 +7,4 @@ Description: Simbody Libraries
 Version: @SIMBODY_VERSION@
 Requires:
 Libs: -L${libdir} -lSimTKsimbody -lSimTKmath -lSimTKcommon @PKGCONFIG_PLATFORM_LIBS@
-CFlags: -I${includedir}
+CFlags: -I${includedir} -std=c++11
