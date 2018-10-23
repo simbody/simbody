@@ -111,7 +111,7 @@ try { // If anything goes wrong, an exception will be thrown.
 
     //--------------------------------------------------------------------------
     // Experimental data points (x,y) of tibia origin (tibial plateau) measured 
-    // w.r.t. to origin of the femur (hip joint center) in the femur frame as a 
+    // w.r.t. the origin of the femur (hip joint center) in the femur frame as a 
     // function of knee joint angle. From Yamaguchi and Zajac, 1989.
     //--------------------------------------------------------------------------
     // Tibia X:
@@ -150,7 +150,7 @@ try { // If anything goes wrong, an exception will be thrown.
 
     //--------------------------------------------------------------------------
        // Define the 6-spatial functions that specify the motion of the tibia as a 
-    // a FunctionBased MobilizedBody (shank) w.r.t. to its parent (the thigh). 
+    // a FunctionBased MobilizedBody (shank) w.r.t. its parent (the thigh). 
     //--------------------------------------------------------------------------
     // Each function has to return 1 Real value
     std::vector<const Function*> functions(6);
