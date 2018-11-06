@@ -4134,42 +4134,42 @@ actorization in formt;\002,/,\002   refresh the lbfgs memory and restart the\
  /*   int f_open(), s_wsfe(), do_fio(), e_wsfe(); */
 
     /* Local variables */
-    int head;
-    Real fold;
-    int nact;
-    Real ddum;
-    int info;
-    Real time;
-    int nfgv, ifun, iter, nint;
-    char word[5];
-    Real time1, time2;
-    int i__, iback, k;
-    Real gdold;
-    int nfree;
-    bool boxed;
-    int itail;
-    Real theta;
-    Real dnorm;
-    int nskip, iword;
-    Real xstep, stpmx;
-    Real gd, dr, rr;
-    int ileave;
-    int itfile;
-    Real cachyt, epsmch;
-    bool updatd;
-    Real sbtime;
-    bool prjctd;
-    int iupdat;
-    bool cnstnd;
-    Real sbgnrm;
-    int nenter;
-    Real lnscht;
-    int nintol;
-    Real dtd;
-    int col;
-    Real tol;
-    bool wrk;
-    Real stp, cpu1, cpu2;
+    int head{0};
+    Real fold{0};
+    int nact{0};
+    Real ddum{0};
+    int info{0};
+    Real time{0};
+    int nfgv{0}, ifun{0}, iter{0}, nint{0};
+    char word[5]{0, 0, 0, 0, 0};
+    Real time1{0}, time2{0};
+    int i__{0}, iback{0}, k{0};
+    Real gdold{0};
+    int nfree{0};
+    bool boxed{0};
+    int itail{0};
+    Real theta{0};
+    Real dnorm{0};
+    int nskip{0}, iword{0};
+    Real xstep{0}, stpmx{0};
+    Real gd{0}, dr{0}, rr{0};
+    int ileave{0};
+    int itfile{0};
+    Real cachyt{0}, epsmch{0};
+    bool updatd{0};
+    Real sbtime{0};
+    bool prjctd{0};
+    int iupdat{0};
+    bool cnstnd{0};
+    Real sbgnrm{0};
+    int nenter{0};
+    Real lnscht{0};
+    int nintol{0};
+    Real dtd{0};
+    int col{0};
+    Real tol{0};
+    bool wrk{0};
+    Real stp{0}, cpu1{0}, cpu2{0};
 
     /* Fortran I/O blocks */
 /*
