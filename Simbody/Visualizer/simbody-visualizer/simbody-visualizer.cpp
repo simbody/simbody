@@ -1524,6 +1524,12 @@ static void renderScene(std::vector<std::string>* screenText = NULL) {
                                                   //----- UNLOCK SCENE ---------
 }
 
+// On macOS 10.14 Mojave, the visualizer first appears as black. A workaround
+// is to resize the window (manually or programmatically).
+// https://github.com/simbody/simbody/issues/650
+#if defined(__APPLE__)
+    bool macOSMojaveWorkaround = true;
+#endif
 
 // Redraw everything currently being displayed. That means:
 //  - the "front" scene
@@ -1534,6 +1540,7 @@ static void renderScene(std::vector<std::string>* screenText = NULL) {
 // We also update the frame number and FPS counter. Note that numerous
 // frames may be produced from the same scene, so you can expect the frame
 // numbers to be higher than the number of scenes sent by the simulator.
+
 static void redrawDisplay() {
     // If a movie is being generated, save frames.
     // ------------------------------------------------------------
@@ -1546,6 +1553,15 @@ static void redrawDisplay() {
         filename << ".png";
         writeImage(filename.str());
     }
+
+    #if defined(__APPLE__)
+    if (macOSMojaveWorkaround) {
+        glutReshapeWindow(viewWidth + 1, viewHeight + 1);
+        macOSMojaveWorkaround = false;
+    }
+    #endif
+    std::cout << "DEBUG " << glutGet(GLUT_WINDOW_HEIGHT) << std::endl;
+    std::cout << "DEBUG " << glutGet(GLUT_WINDOW_WIDTH) << std::endl;
 
     // Render the scene and extract the screen text.
     // ------------------------------------------------------------
@@ -2643,8 +2659,13 @@ void viewMenuSelected(int option) {
     requestPassiveRedisplay();                  //----- PASSIVE REDISPLAY ----
 }
 
-static const int DefaultWindowWidth  = 800;
-static const int DefaultWindowHeight = 600;
+#if defined(__APPLE__)
+    static const int DefaultWindowWidth  = 799;
+    static const int DefaultWindowHeight = 599;
+#else
+    static const int DefaultWindowWidth  = 800;
+    static const int DefaultWindowHeight = 600;
+#endif
 
 
 // The glut callback for chaning window size.
