@@ -1560,8 +1560,6 @@ static void redrawDisplay() {
         macOSMojaveWorkaround = false;
     }
     #endif
-    std::cout << "DEBUG " << glutGet(GLUT_WINDOW_HEIGHT) << std::endl;
-    std::cout << "DEBUG " << glutGet(GLUT_WINDOW_WIDTH) << std::endl;
 
     // Render the scene and extract the screen text.
     // ------------------------------------------------------------
