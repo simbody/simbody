@@ -228,6 +228,8 @@ public:
     /// throw an exception if the Measure is not currently owned by any
     /// Subsystem.
     const Subsystem& getSubsystem()  const;
+    /// Is getSubsystem() the same as the passed-in Subsystem?
+    bool isSameSubsystem(const Subsystem&) const;
     /// Return the MeasureIndex by which this Measure is known to the Subsystem 
     /// that owns it. Will throw an exception if the Measure is not currently 
     /// owned by any Subsystem.
@@ -600,8 +602,8 @@ public:
     :   Measure_<T>(sub, new Implementation(left, right), 
                     AbstractMeasure::SetHandle())
     {   SimTK_ERRCHK_ALWAYS
-           (   this->getSubsystem().isSameSubsystem(left.getSubsystem())
-            && this->getSubsystem().isSameSubsystem(right.getSubsystem()),
+           (   this->isSameSubsystem(left.getSubsystem())
+            && this->isSameSubsystem(right.getSubsystem()),
             "Measure_<T>::Plus::ctor()",
             "Arguments must be in the same Subsystem as this Measure.");
     }
@@ -625,8 +627,8 @@ public:
     :   Measure_<T>(sub, new Implementation(left, right), 
                     AbstractMeasure::SetHandle())
     {   SimTK_ERRCHK_ALWAYS
-           (   this->getSubsystem().isSameSubsystem(left.getSubsystem())
-            && this->getSubsystem().isSameSubsystem(right.getSubsystem()),
+           (   this->isSameSubsystem(left.getSubsystem())
+            && this->isSameSubsystem(right.getSubsystem()),
             "Measure_<T>::Minus::ctor()",
             "Arguments must be in the same Subsystem as this Measure.");
     }
@@ -650,7 +652,7 @@ public:
     :   Measure_<T>(sub, new Implementation(factor, operand), 
                     AbstractMeasure::SetHandle())
     {   SimTK_ERRCHK_ALWAYS
-           (this->getSubsystem().isSameSubsystem(operand.getSubsystem()),
+           (this->isSameSubsystem(operand.getSubsystem()),
             "Measure_<T>::Scale::ctor()",
             "Argument must be in the same Subsystem as this Measure.");
     }

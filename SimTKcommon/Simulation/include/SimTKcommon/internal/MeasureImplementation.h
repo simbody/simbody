@@ -229,6 +229,10 @@ inline const Subsystem& AbstractMeasure::
 getSubsystem() const
 {   return getImpl().getSubsystem(); }
 
+inline bool AbstractMeasure::
+isSameSubsystem(const Subsystem& other) const
+{   return getSubsystem().isSameSubsystem(other); }
+
 inline MeasureIndex AbstractMeasure::
 getSubsystemMeasureIndex() const
 {   return getImpl().getSubsystemMeasureIndex();}
