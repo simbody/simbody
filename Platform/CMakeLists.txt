@@ -159,15 +159,9 @@ foreach(LIBF ${LIB_FILES})
 
     if(isFileADll)
         install(FILES ${LIBF}
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                GROUP_READ GROUP_WRITE GROUP_EXECUTE
-                    WORLD_READ WORLD_EXECUTE
         DESTINATION ${CMAKE_INSTALL_BINDIR})
     else()
         install(FILES ${LIBF}
-        PERMISSIONS OWNER_READ OWNER_WRITE
-                GROUP_READ GROUP_WRITE
-                    WORLD_READ
         DESTINATION ${CMAKE_INSTALL_LIBDIR})
     endif()
 endforeach()
@@ -209,9 +203,6 @@ file(GLOB INCL_FILES "${PLATFORM_INCLUDE_DIRECTORIES}/*.h")
 foreach(INCLF ${INCL_FILES})
     get_filename_component(INCLF_ROOT ${INCLF} NAME)
     install(FILES ${INCLF}
-    PERMISSIONS OWNER_READ OWNER_WRITE
-            GROUP_READ GROUP_WRITE
-                WORLD_READ
         DESTINATION include )
 endforeach()
 

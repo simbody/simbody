@@ -21,9 +21,6 @@ if(BUILD_UNVERSIONED_LIBRARIES)
     # install library
     
     install(TARGETS ${STATIC_TARGET} EXPORT SimbodyTargets
-                     PERMISSIONS OWNER_READ OWNER_WRITE 
-                     GROUP_READ GROUP_WRITE 
-                     WORLD_READ 
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -58,9 +55,6 @@ if(BUILD_VERSIONED_LIBRARIES)
     # install library
     
     install(TARGETS ${STATIC_TARGET_VN} EXPORT SimbodyTargets
-                     PERMISSIONS OWNER_READ OWNER_WRITE 
-                     GROUP_READ GROUP_WRITE 
-                     WORLD_READ 
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

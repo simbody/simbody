@@ -80,9 +80,6 @@ target_link_libraries(${GUI_NAME} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
 
 # SIMBODY_VISUALIZER_INSTALL_DIR is set in the root CMakeLists.txt
 install(TARGETS ${GUI_NAME}
-         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                             GROUP_READ GROUP_WRITE GROUP_EXECUTE
-                             WORLD_READ WORLD_EXECUTE
          DESTINATION ${SIMBODY_VISUALIZER_INSTALL_DIR})
 
 # on Windows we also have to copy and later install the glut32.dll
