@@ -55,11 +55,16 @@ public:
 
 class Integrator::StepSizeTooSmall : public Exception::Base {
 public:
-    StepSizeTooSmall(const char* fn, int ln, Real t, Real h, Real hmin) : Base(fn,ln) {
-        setMessage("At time=" + String(t) + 
-                   " the integrator failed to take a step with step size "
-                  + String(h) + " which was already at or below the minimum allowed size " 
-                  + String(hmin));
+    StepSizeTooSmall(const char* fn, int ln, Real t, Real h, Real hmin) : 
+        Base(fn,ln) {
+        setMessage("At time=" + String(t) + " the integrator failed to take a "
+            + "step with step size " + String(h) + " which was already at or "
+            + "below the minimum allowed size " + String(hmin) + ".  "
+            + "Sometimes, this is caused by requesting very loose "
+            + "(e.g., > 0.1) or very tight (e.g., < 1e-15) accuracies.  "
+            + "If so, you can try a tighter or looser accuracy, respectively.  "
+            + "Alternatively, you can try setting a max/min step size, or "
+            + "using another integrator.");
     }
 };
 
@@ -948,6 +953,19 @@ protected:
     int getNumRealizationFailures() const {return statsRealizationFailures;} 
     int getNumQProjectionFailures() const {return statsQProjectionFailures;} 
     int getNumUProjectionFailures() const {return statsUProjectionFailures;} 
+
+    // This function ensures that step size h does not become too small for 
+    // time computation.  It throws an exception when the size of factor*h
+    // relative to t in the general expression t+factor*h falls below the 
+    // Real type's precision.  The 2.0 multiplier is a safety margin.
+    void checkStepSizePrecision(const Real& t, const Real& h, 
+        const Real factor, const char* fileName, int lineNumber) const {
+        const Real minStepSize = (2.0 * t / factor) * 
+            std::numeric_limits<Real>::epsilon();
+        if (std::abs(h) < std::abs(minStepSize))
+            throw Integrator::StepSizeTooSmall(fileName, lineNumber, t, h, 
+                minStepSize);
+    }
 
 private:
     class EventSorter {

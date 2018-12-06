@@ -494,6 +494,18 @@ bool AbstractIntegratorRep::adjustStepSize
     if (userMaxStepSize != -1)
         newStepSize = std::min(newStepSize, userMaxStepSize);
 
+    Real factor;
+    if (methodName == "RungeKutta3")
+        factor = 0.5;        // for h/2
+    else if (methodName == "RungeKuttaMerson")
+        factor = 0.166;      // for h*(1/2-1/3)
+    else if (methodName == "RungeKuttaFeldberg")
+        factor = 0.0769;     // for h*(1-12/13)
+    else                     // all other integrators
+        factor = 0.95;       // for 0.95*currentStepSize in takeOneStep() 
+    checkStepSizePrecision(getPreviousTime(), newStepSize, factor, __FILE__, 
+        __LINE__);
+
     //TODO: this is an odd definition of success. It only works because we're
     //refusing the shrink the step size above if accuracy was achieved.
     bool success = (newStepSize >= currentStepSize);
@@ -543,7 +555,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         else
             t1 = tMax; // tMax is roughly t0+currentStepSize; try for it
 
-        SimTK_ERRCHK1_ALWAYS(t1 > t0, "AbstractIntegrator::takeOneStep()",
+        SimTK_ASSERT2_ALWAYS(t1 > t0, "AbstractIntegrator::takeOneStep()",
             "Unable to advance time past %g.", t0);
 
         int errOrder;
