@@ -60,11 +60,10 @@ public:
         setMessage("At time=" + String(t) + " the integrator failed to take a "
             + "step with step size " + String(h) + " which was already at or "
             + "below the minimum allowed size " + String(hmin) + ".  "
-            + "Sometimes, this is caused by requesting very loose "
-            + "(e.g., > 0.1) or very tight (e.g., < 1e-15) accuracies.  "
-            + "If so, you can try a tighter or looser accuracy, respectively.  "
-            + "Alternatively, you can try setting a max/min step size, or "
-            + "using another integrator.");
+            + "Sometimes, this is caused by requesting very loose or very "
+            + "tight accuracies.  If so, you can try a tighter or looser "
+            + "accuracy, respectively.  Alternatively, you can try setting "
+            + "a max/min step size, or using another integrator.");
     }
 };
 

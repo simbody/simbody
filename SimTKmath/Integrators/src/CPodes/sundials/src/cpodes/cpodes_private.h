@@ -310,7 +310,9 @@ void cpRootFree(CPodeMem cp_mem);
 #define MSGCP_TOO_CLOSE "tout too close to t0 to start integration."
 #define MSGCP_MAX_STEPS "At " MSG_TIME ", mxstep steps taken before reaching tout."
 #define MSGCP_TOO_MUCH_ACC "At " MSG_TIME ", too much accuracy requested."
-#define MSGCP_HNIL "Internal " MSG_TIME_H " are such that t + h = t on the next step. The solver will continue anyway."
+#define MSGCP_HNIL "Internal " MSG_TIME_H " are such that t + h = t on the \
+next step. The solver will continue anyway.  Sometimes, this is caused by \
+requesting a very tight accuracy.  If so, you can try a looser one."
 #define MSGCP_ERR_FAILS "At " MSG_TIME_H ", the error test failed repeatedly or with |h| = hmin."
 #define MSGCP_CONV_FAILS "At " MSG_TIME_H ", the corrector convergence test failed repeatedly or with |h| = hmin."
 #define MSGCP_SETUP_FAILED "At " MSG_TIME ", the setup routine failed in an unrecoverable manner."

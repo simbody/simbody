@@ -320,7 +320,9 @@ GeodesicIntegrator<Eqn>::takeOneStep(Real tStop) {
             SimTK_ERRCHK4_ALWAYS(h > hMin,
                 "GeodesicIntegrator::takeOneStep()", 
                 "Accuracy %g worse than required %g at t=%g with step size"
-                " h=%g; can't go any smaller.", errNorm, m_accuracy, m_t, h);
+                " h=%g; can't go any smaller.  Sometimes, this is caused by " 
+                "requesting a very tight accuracy.  If so, you can try a "
+                "looser one.", errNorm, m_accuracy, m_t, h);
 
             // Shrink step by (acc/err)^(1/4) for 4th order.
             Real hNew = Safety * h * std::sqrt(std::sqrt(m_accuracy/errNorm));
@@ -339,8 +341,9 @@ GeodesicIntegrator<Eqn>::takeOneStep(Real tStop) {
         SimTK_ERRCHK3_ALWAYS(h > hMin,
             "GeodesicIntegrator::takeOneStep()", 
             "Projection failed to reach constraint tolerance %g at t=%g "
-            "with step size h=%g; can't shrink step further.", 
-            m_consTol, m_t, h);
+            "with step size h=%g; can't shrink step further.  Sometimes, this "
+            "is caused by requesting a very tight tolerance.  If so, you can "
+            "try a looser one.", m_consTol, m_t, h);
 
         const Real hNew = MinShrink*h;
         t1 = m_t + hNew;
