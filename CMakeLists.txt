@@ -18,11 +18,6 @@ else()
 endif()
 cmake_minimum_required(VERSION ${SIMBODY_REQUIRED_CMAKE_VERSION})
 
-if(COMMAND cmake_policy)
-    cmake_policy(SET CMP0003 NEW)
-    cmake_policy(SET CMP0005 NEW)
-endif()
-
 project(Simbody)
 
 # At this point CMake will have set CMAKE_INSTALL_PREFIX to /usr/local on Linux
