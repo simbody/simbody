@@ -234,7 +234,7 @@ void HuntCrossleyForceImpl_smooth::calcForce(const State& state,
     const Real ud = parameters.dynamicFriction;
     const Real uv = parameters.viscousFriction;
     // Set the parameters for the smooth approximations.
-    double eps = 1e-5;
+    double eps = 1e-16;
     double bv = 50;
     double bd = 300;
     // Calculate the Hertz force.
