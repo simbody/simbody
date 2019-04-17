@@ -55,7 +55,7 @@ void testForces() {
     const Real ud1 = 0.5;
     const Real uv1 = 0.1;
     const Real vt = 0.001;
-    double eps = 1e-16;
+    double eps = 1e-5;
     double bd = 300;
     double bv = 50;
     Random::Uniform random(0.0, 1.0);
@@ -83,7 +83,8 @@ void testForces() {
             [sphere.getMobilizedBodyIndex()][1], gravity+Vec3(0, f_smooth, 0));
     }
 
-    // Now do it with a vertical velocity and see if the dissipation force is correct.
+    // Now do it with a vertical velocity and see if the dissipation force is
+	// correct.
 
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
@@ -104,7 +105,8 @@ void testForces() {
         }
     }
 
-    // Do it with a horizontal velocity and see if the friction force is correct.
+    // Do it with a horizontal velocity and see if the friction force is 
+	// correct.
 
     Vector_<SpatialVec> expectedForce(matter.getNumBodies());
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
@@ -124,15 +126,21 @@ void testForces() {
                 pow(vtangent[2],2) + eps;
             Real vslip = pow(aux,1./2.);
             Real vrel = vslip / vt;
-            Real ff_smooth_scalar = fh_smooth*(std::min(vrel,Real(1))*(ud1+2*(us1-ud1)/(1+vrel*vrel))+uv1*vslip);
+            Real ff_smooth_scalar = fh_smooth*(std::min(vrel,Real(1))*
+				(ud1+2*(us1-ud1)/(1+vrel*vrel))+uv1*vslip);
 			Vec3 ff_smooth = ff_smooth_scalar*(-vtangent) / vslip;
 			const Vec3 totalForce = gravity + ff_smooth + fh_smooth*normal;
             expectedForce = SpatialVec(Vec3(0), Vec3(0));
-            Vec3 contactPointInSphere = sphere.findStationAtGroundPoint(state, Vec3(0, -stiffness1*depth/(stiffness1+stiffness1), 0));
-            sphere.applyForceToBodyPoint(state, contactPointInSphere, totalForce, expectedForce);
-            SpatialVec actualForce = system.getRigidBodyForces(state, Stage::Dynamics)[sphere.getMobilizedBodyIndex()];
-            assertEqual(actualForce[0], expectedForce[sphere.getMobilizedBodyIndex()][0]);
-            assertEqual(actualForce[1], expectedForce[sphere.getMobilizedBodyIndex()][1]);
+            Vec3 contactPointInSphere = sphere.findStationAtGroundPoint(state, 
+				Vec3(0, -stiffness1*depth/(stiffness1+stiffness1), 0));
+            sphere.applyForceToBodyPoint(state, contactPointInSphere, 
+				totalForce, expectedForce);
+            SpatialVec actualForce = system.getRigidBodyForces(state, 
+				Stage::Dynamics)[sphere.getMobilizedBodyIndex()];
+            assertEqual(actualForce[0], 
+				expectedForce[sphere.getMobilizedBodyIndex()][0]);
+            assertEqual(actualForce[1], 
+				expectedForce[sphere.getMobilizedBodyIndex()][1]);
         }
     }
 }
