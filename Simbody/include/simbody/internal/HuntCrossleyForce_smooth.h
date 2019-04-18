@@ -60,6 +60,15 @@ class HuntCrossleyForceImpl_smooth;
  * components for the normal restoring force, dissipation in the material,
  * and surface friction. This force is only applied to point contacts.
  *
+ * To use it, do the following:
+ *
+ * <ol>
+ * <li>Add a GeneralForceSubsystem to a MultibodySystem.</li>
+ * <li>Add a HuntCrossleyForce_smooth to the GeneralForceSubsystem, call
+ * setParameters(), setContactSphere(), setRadiusContactSphere(),
+ * setLocContactSphere(), and setContactPlane(). </li>
+ * </ol>
+ *
  * <h1>Normal Force Components</h1>
  *
  * The force in the normal direction is based on a model due to Hunt & Crossley
@@ -78,10 +87,10 @@ class HuntCrossleyForceImpl_smooth;
  * modulus, which is assumed identic for both contacting materials (i.e.,
  * sphere and plane), x is penetration depth, and R is sphere radius.
  * In the smooth approximation, we use the expression:
- *      fh_pos = 4/3*k*(R*k*)^(1/2)*((x^2+eps)^(1/2)^(3/2))
+ *      fh_pos = 4/3*k*(R*k*)^(1/2)*((x^2+eps)^(1/2))^(3/2)
  *      fh_smooth = fh_pos*(1./2.+(1./2.)*tanh(bd*x));
  * where eps=1e-5 enforces a small force even when there is no contact between
- * the sphere and the plane and bd=300 determines the smoothness of the tanh
+ * the sphere and the plane, and bd=300 determines the smoothness of the tanh
  * transition.
  *
  * The original Hunt-Crossley force is given by:
@@ -126,9 +135,9 @@ public:
      */
     HuntCrossleyForce_smooth(GeneralForceSubsystem& forces);
     /**
-     * Set the material parameters
+     * Set the contact material parameters
      *
-     * @param stiffness       the stiffness constant (k)
+     * @param stiffness       the stiffness constant
      * @param dissipation     the dissipation coefficient (c)
      * @param staticFriction  the coefficient of static friction (us)
      * @param dynamicFriction the coefficient of dynamic friction (ud)
@@ -136,34 +145,39 @@ public:
      */
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
        Real dynamicFriction, Real viscousFriction, Real transitionVelocity);
-	/** Set stiffness */
-	void setStiffness(Real stiffness);
-	/** Set dissipation */
-	void setDissipation(Real dissipation);
-	/** Set static friction */
-	void setStaticFriction(Real staticFriction);
-	/** Set dynamic friction */
-	void setDynamicFriction(Real dynamicFriction);
-	/** Set viscous friction */
-	void setViscousFriction(Real viscousFriction);
-	/** Set transition velocity */
-	void setTransitionVelocity(Real transitionVelocity);
-	/** Set ground plane */
-	void setGroundPlane(Vec3 normal, Real offset);
-	/** Get location of the contact point in the body frame */
-	Vec3 getContactPointInBody(const State& state);
-	/** Set Mobilized Body the sphere is attached to */
-	void setBodySphere(MobilizedBody bodyInput);
-	/** Set location of the sphere in the body frame */
-	void setLocSphere(Vec3 locSphere);
-	/** Set radius of the sphere */
-	void setRadiusSphere(Real radius);
-	/** Get Mobilized Body the sphere is attached to */
-	MobilizedBody getBodySphere();
-	/** Get location of the sphere in the body frame */
-	Vec3 getLocSphere();
-	/** Set radius of the sphere */
-	Real setRadiusSphere();
+    /** Set the stiffness constant */
+    void setStiffness(Real stiffness);
+    /** Set the dissipation coefficient */
+    void setDissipation(Real dissipation);
+    /** Set the coefficient of static friction */
+    void setStaticFriction(Real staticFriction);
+    /** Set the coefficient of dynamic friction */
+    void setDynamicFriction(Real dynamicFriction);
+    /** Set the coefficient of viscous friction */
+    void setViscousFriction(Real viscousFriction);
+    /** Set the transition velocity */
+    void setTransitionVelocity(Real transitionVelocity);
+    /**
+    * Set contact plane
+    *
+    * @param normal     direction of the normal to the plane of contact
+    * @param offset     distance to the ground origin along the normal
+    */
+    void setContactPlane(Vec3 normal, Real offset);
+    /** Get the location of the contact point in the body frame */
+    Vec3 getContactPointInBody(const State& state);
+    /** Set the Mobilized Body to which the contact sphere is attached */
+    void setContactSphere(MobilizedBody bodyInput);
+    /** Set the location of the contact sphere in the body frame */
+    void setLocContactSphere(Vec3 locSphere);
+    /** Set the radius of the contact sphere */
+    void setRadiusContactSphere(Real radius);
+    /** Get the Mobilized Body to which the contact sphere is attached */
+    MobilizedBody getBodySphere();
+    /** Get the location of the contact sphere in the body frame */
+    Vec3 getLocContactSphere();
+    /** Set the radius of the sphere */
+    Real setRadiusContactSphere();
 
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(HuntCrossleyForce_smooth,
         HuntCrossleyForceImpl_smooth, Force);
