@@ -73,7 +73,7 @@ void testForces() {
 
 
     // Position the sphere at a variety of positions and check the normal force 
-    // (with an horizontal ground plane)
+    // (with horizontal ground plane)
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
         system.realize(state, Stage::Dynamics);
@@ -86,7 +86,7 @@ void testForces() {
     }
 
     // Now do it with a vertical velocity and see if the dissipation force is
-	// correct (with an horizontal ground plane)
+	// correct (with horizontal ground plane)
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
         const Real depth = radius-height;
@@ -108,7 +108,7 @@ void testForces() {
 
 
     // Do it with a horizontal velocity and see if the friction force is 
-	// correct (with an horizontal ground plane)
+    // correct (with horizontal ground plane)
     Vector_<SpatialVec> expectedForce(matter.getNumBodies());
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
@@ -146,13 +146,13 @@ void testForces() {
     }
 
     // Do it with different ground directions and offsets
-    Vector_<SpatialVec> expectedForce2(matter.getNumBodies());
-    
+    Vector_<SpatialVec> expectedForce_contact(matter.getNumBodies());
+    Vector_<SpatialVec> expectedForce_gravity(matter.getNumBodies());
     for (int i = 0; i < 20; i++) {
         for (Real offset = -0.1; offset <= 0.1; offset += 0.01) {
-            Vec3 normal_rand((double)(rand() % 100 - 50)  / RAND_MAX, 
-                (double)(rand() % 100 - 50) / RAND_MAX, 
-                (double)(rand() % 100 - 50) / RAND_MAX);
+            Vec3 normal_rand((Real)(rand() % 100 - 50)  / RAND_MAX, 
+                (Real)(rand() % 100 - 50) / RAND_MAX, 
+                (Real)(rand() % 100 - 50) / RAND_MAX);
             normal_rand = normal_rand / normal_rand.norm();
             hc_smooth.setGroundPlane(normal_rand, offset);
             Vec3 loc_inG(0.23, 0.10, 0.42); // random location of the sphere in 
@@ -185,19 +185,19 @@ void testForces() {
                 (ud1 + 2 * (us1 - ud1) / (1 + vrel*vrel)) + uv1*vslip);
             Vec3 ff_smooth = ff_smooth_scalar*(-vtangent) / vslip;
             const Vec3 totalForce = ff_smooth + fh_smooth*normal_rand;
+            expectedForce_contact = SpatialVec(Vec3(0), Vec3(0));
+            expectedForce_gravity = SpatialVec(Vec3(0), Vec3(0));
             expectedForce = SpatialVec(Vec3(0), Vec3(0));
-            expectedForce2 = SpatialVec(Vec3(0), Vec3(0));
 
             Vec3 contactPointInSphere = -normal_rand*radius +
                 normal_rand*depth*(stiffness1 / (stiffness1 + stiffness1));
             sphere.applyForceToBodyPoint(state, contactPointInSphere,
-                totalForce, expectedForce);
+                totalForce, expectedForce_contact);
             sphere.applyForceToBodyPoint(state, Vec3(0,0,0),
-                gravity, expectedForce2);
-            expectedForce = expectedForce + expectedForce2;
+                gravity, expectedForce_gravity);
+            expectedForce = expectedForce_contact + expectedForce_gravity;
             
-            SpatialVec actualForce(0);
-            actualForce = system.getRigidBodyForces(state,
+            SpatialVec actualForce = system.getRigidBodyForces(state,
                 Stage::Dynamics)[sphere.getMobilizedBodyIndex()];
             assertEqual(actualForce[0],
                 expectedForce[sphere.getMobilizedBodyIndex()][0]);
