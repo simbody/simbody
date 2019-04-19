@@ -68,7 +68,7 @@ public:
 
     HuntCrossleyForceImpl_smooth(GeneralForceSubsystem& subsystem);
 
-    HuntCrossleyForceImpl_smooth* clone() const {
+    HuntCrossleyForceImpl_smooth* clone() const override {
         return new HuntCrossleyForceImpl_smooth(*this);
     }
     /**
@@ -125,8 +125,8 @@ public:
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
         Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;
     /** TODO */
-    Real calcPotentialEnergy(const State& state) const;
-    void realizeTopology(State& state) const;
+    Real calcPotentialEnergy(const State& state) const override;
+    void realizeTopology(State& state) const override;
 private:
     const GeneralForceSubsystem&          subsystem;
     mutable CacheEntryIndex               energyCacheIndex;
