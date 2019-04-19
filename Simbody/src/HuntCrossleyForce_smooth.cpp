@@ -48,7 +48,6 @@ HuntCrossleyForceImpl_smooth::HuntCrossleyForceImpl_smooth
 void HuntCrossleyForceImpl_smooth::realizeTopology(State& state) const {
     energyCacheIndex=state.allocateCacheEntry(subsystem.getMySubsystemIndex(),
         Stage::Dynamics, new Value<Real>());
-    //Stage st = state.getSubsystemStage(subsystem.getMySubsystemIndex()); TODO
 }
 
 void HuntCrossleyForce_smooth::setParameters
@@ -59,7 +58,7 @@ void HuntCrossleyForce_smooth::setParameters
 }
 
 void HuntCrossleyForceImpl_smooth::setParameters
-    (Real stiffness, Real dissipation, 	Real staticFriction,
+    (Real stiffness, Real dissipation,  Real staticFriction,
     Real dynamicFriction, Real viscousFriction, Real transitionVelocity) {
     updParameters() = Parameters(stiffness, dissipation, staticFriction,
         dynamicFriction, viscousFriction, transitionVelocity);
@@ -114,36 +113,36 @@ void HuntCrossleyForceImpl_smooth::setTransitionVelocity
     parameters.transitionVelocity = transitionVelocity;
 }
 
-void HuntCrossleyForce_smooth::setGroundPlane(Vec3 normal, Real offset) {
-    updImpl().setGroundPlane(normal, offset);
+void HuntCrossleyForce_smooth::setContactPlane(Vec3 normal, Real offset) {
+    updImpl().setContactPlane(normal, offset);
 }
 
-void HuntCrossleyForceImpl_smooth::setGroundPlane(Vec3 normal, Real offset) {
-    GroundPlane = Plane(normal, offset);
+void HuntCrossleyForceImpl_smooth::setContactPlane(Vec3 normal, Real offset) {
+    ContactPlane = Plane(normal, offset);
 }
 
-void HuntCrossleyForce_smooth::setBodySphere(MobilizedBody bodyInput) {
+void HuntCrossleyForce_smooth::setContactSphere(MobilizedBody bodyInput) {
     updImpl().BodySphere = bodyInput;
 }
 
-void HuntCrossleyForceImpl_smooth::setBodySphere(MobilizedBody bodyInput) {
+void HuntCrossleyForceImpl_smooth::setContactSphere(MobilizedBody bodyInput) {
     BodySphere = bodyInput;
 }
 
-void HuntCrossleyForce_smooth::setLocSphere(Vec3 locSphere) {
-    updImpl().LocSphere = locSphere;
+void HuntCrossleyForce_smooth::setLocContactSphere(Vec3 LocContactSphere) {
+    updImpl().LocContactSphere = LocContactSphere;
 }
 
-void HuntCrossleyForceImpl_smooth::setLocSphere(Vec3 locSphere) {
-    LocSphere = locSphere;
+void HuntCrossleyForceImpl_smooth::setLocContactSphere(Vec3 LocContactSphere) {
+    LocContactSphere = LocContactSphere;
 }
 
-void HuntCrossleyForce_smooth::setRadiusSphere(Real radius) {
-    updImpl().RadiusSphere = radius;
+void HuntCrossleyForce_smooth::setRadiusContactSphere(Real radius) {
+    updImpl().RadiusContactSphere = radius;
 }
 
-void HuntCrossleyForceImpl_smooth::setRadiusSphere(Real radius) {
-    RadiusSphere = radius;
+void HuntCrossleyForceImpl_smooth::setRadiusContactSphere(Real radius) {
+    RadiusContactSphere = radius;
 }
 
 MobilizedBody HuntCrossleyForce_smooth::getBodySphere() {
@@ -154,20 +153,20 @@ MobilizedBody HuntCrossleyForceImpl_smooth::getBodySphere() {
     return BodySphere;
 }
 
-Vec3 HuntCrossleyForce_smooth::getLocSphere() {
-    return updImpl().LocSphere;
+Vec3 HuntCrossleyForce_smooth::getLocContactSphere() {
+    return updImpl().LocContactSphere;
 }
 
-Vec3 HuntCrossleyForceImpl_smooth::getLocSphere() {
-    return LocSphere;
+Vec3 HuntCrossleyForceImpl_smooth::getLocContactSphere() {
+    return LocContactSphere;
 }
 
-Real HuntCrossleyForce_smooth::setRadiusSphere() {
-    return updImpl().RadiusSphere;
+Real HuntCrossleyForce_smooth::setRadiusContactSphere() {
+    return updImpl().RadiusContactSphere;
 }
 
-Real HuntCrossleyForceImpl_smooth::getRadiusSphere() {
-    return RadiusSphere;
+Real HuntCrossleyForceImpl_smooth::getRadiusContactSphere() {
+    return RadiusContactSphere;
 }
 
 const HuntCrossleyForceImpl_smooth::Parameters& HuntCrossleyForceImpl_smooth::
@@ -183,8 +182,9 @@ HuntCrossleyForceImpl_smooth::Parameters& HuntCrossleyForceImpl_smooth::
 void HuntCrossleyForceImpl_smooth::getContactPointSphere(const State& state,
     Vec3& contactPointPos) const {
     Vec3 posSphereInGround =
-        BodySphere.findStationLocationInGround(state, LocSphere);
-    contactPointPos = posSphereInGround - RadiusSphere*GroundPlane.getNormal();
+        BodySphere.findStationLocationInGround(state, LocContactSphere);
+    contactPointPos = posSphereInGround -
+        RadiusContactSphere*ContactPlane.getNormal();
 }
 
 Vec3 HuntCrossleyForce_smooth::getContactPointInBody(const State& state) {
@@ -193,8 +193,8 @@ Vec3 HuntCrossleyForce_smooth::getContactPointInBody(const State& state) {
 
 Vec3 HuntCrossleyForceImpl_smooth::getContactPointInBody(const State& state) {
     Vec3 posSphereInGround =
-        BodySphere.findStationLocationInGround(state, LocSphere);
-    Vec3 contactPointPos = posSphereInGround - RadiusSphere*GroundPlane.getNormal();
+        BodySphere.findStationLocationInGround(state, LocContactSphere);
+    Vec3 contactPointPos = posSphereInGround - RadiusContactSphere*ContactPlane.getNormal();
     return BodySphere.findStationAtGroundPoint(state, contactPointPos);
 }
 
@@ -204,7 +204,7 @@ void HuntCrossleyForceImpl_smooth::calcForce(const State& state,
     // Calculate the indentation based on the contact point location.
     Vec3 contactPointPos;
     getContactPointSphere(state, contactPointPos);
-    const Real Indentation = - GroundPlane.getDistance(contactPointPos);
+    const Real Indentation = - ContactPlane.getDistance(contactPointPos);
     // Adjust the contact location based on the relative stiffness of the two
     // materials. Here we assume, as in the original Simbody Hunt-Crossley
     // contact model, that both materials have the same relative stiffness.
@@ -212,7 +212,7 @@ void HuntCrossleyForceImpl_smooth::calcForce(const State& state,
     // located midway between the two surfaces. We therefore need to add half
     // the indentation to the contact location that was determined as the
     // location of the contact sphere center minus its radius.
-    const Vec3 normal = GroundPlane.getNormal();
+    const Vec3 normal = ContactPlane.getNormal();
     const Vec3 contactPointPosAdj =
         contactPointPos+Real(1./2.)*Indentation*normal;
     const Vec3 contactPointPosAdjInB =
@@ -239,7 +239,7 @@ void HuntCrossleyForceImpl_smooth::calcForce(const State& state,
     double bd = 300;
     // Calculate the Hertz force.
     const Real k = (1./2.)*std::pow(stiffness, (2./3.));
-    const Real fH = (4./3.)*k*std::sqrt(RadiusSphere*k)*
+    const Real fH = (4./3.)*k*std::sqrt(RadiusContactSphere*k)*
         std::pow(std::sqrt(Indentation*Indentation+eps),(3./2.));
     // Calculate the Hunt-Crossley force.
     const Real c = dissipation;

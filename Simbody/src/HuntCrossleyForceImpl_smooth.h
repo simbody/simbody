@@ -45,79 +45,91 @@ public:
             dynamicFriction(dynamicFriction), viscousFriction(viscousFriction),
             transitionVelocity(transitionVelocity) {
         }
-		Real stiffness, dissipation, staticFriction, dynamicFriction,
+        Real stiffness, dissipation, staticFriction, dynamicFriction,
             viscousFriction, transitionVelocity;
     };
-	struct InstanceVars {
-		InstanceVars(const MobilizedBody defbody, const Real defradius,
-            const Vec3 deflocSphere, const Parameters defparameters)
-			: BodySphere(defbody), RadiusSphere(defradius),
-            LocSphere(deflocSphere), parameters(defparameters) {
+    struct InstanceVars {
+        InstanceVars(const MobilizedBody defbody, const Real defradius,
+            const Vec3 defLocContactSphere, const Parameters defparameters)
+            : BodySphere(defbody), RadiusContactSphere(defradius),
+            LocContactSphere(defLocContactSphere), parameters(defparameters) {
         }
-		MobilizedBody BodySphere;
-		Real RadiusSphere;
-		Vec3 LocSphere;
-		Parameters parameters;
-	};
+        MobilizedBody BodySphere;
+        Real RadiusContactSphere;
+        Vec3 LocContactSphere;
+        Parameters parameters;
+    };
 
-	Real            RadiusSphere;
-	Vec3            LocSphere;
-	MobilizedBody   BodySphere;
-	Parameters		parameters;
-	Plane			GroundPlane;
+    Real            RadiusContactSphere;
+    Vec3            LocContactSphere;
+    MobilizedBody   BodySphere;
+    Parameters      parameters;
+    Plane           ContactPlane;
 
-	HuntCrossleyForceImpl_smooth(GeneralForceSubsystem& subsystem);
+    HuntCrossleyForceImpl_smooth(GeneralForceSubsystem& subsystem);
 
-	HuntCrossleyForceImpl_smooth* clone() const {
-		return new HuntCrossleyForceImpl_smooth(*this);
-	}
-
-    /** Set parameters */
+    HuntCrossleyForceImpl_smooth* clone() const {
+        return new HuntCrossleyForceImpl_smooth(*this);
+    }
+    /**
+     * Set the contact material parameters
+     *
+     * @param stiffness       the stiffness constant
+     * @param dissipation     the dissipation coefficient (c)
+     * @param staticFriction  the coefficient of static friction (us)
+     * @param dynamicFriction the coefficient of dynamic friction (ud)
+     * @param viscousFriction the coefficient of viscous friction (uv)
+     */
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
         Real dynamicFriction, Real viscousFriction, Real transitionVelocity);
     /** Get parameters */
     const Parameters& getParameters() const;
     /** Update parameters */
     Parameters& updParameters();
-    /** Set stiffness */
+    /** Set the stiffness constant */
     void setStiffness(Real stiffness);
-    /** Set dissipation */
+    /** Set the dissipation coefficient */
     void setDissipation(Real dissipation);
-    /** Set static friction */
+    /** Set the coefficient of static friction */
     void setStaticFriction(Real staticFriction);
-    /** Set dynamic friction */
+    /** Set the coefficient of dynamic friction */
     void setDynamicFriction(Real dynamicFriction);
-    /** Set viscous friction */
+    /** Set the coefficient of viscous friction */
     void setViscousFriction(Real viscousFriction);
-    /** Set transition velocity */
+    /** Set the transition velocity */
     void setTransitionVelocity(Real transitionVelocity);
-	/** Set ground plane */
-	void setGroundPlane(Vec3 normal, Real offset);
-    /** Set Mobilized Body the sphere is attached to */
-	void setBodySphere(MobilizedBody bodyInput);
-	/** Set location of the sphere in the body frame */
-	void setLocSphere(Vec3 locSphere);
-	/** Set radius of the sphere */
-	void setRadiusSphere(Real radius);
-	/** Get Mobilized Body the sphere is attached to */
+    /**
+    * Set contact plane
+    *
+    * @param normal     direction of the normal to the plane of contact
+    * @param offset     distance to the ground origin along the normal
+    */
+    void setContactPlane(Vec3 normal, Real offset);
+    /** Set the Mobilized Body to which the contact sphere is attached */
+    void setContactSphere(MobilizedBody bodyInput);
+    /** Set the location of the contact sphere in the body frame */
+    void setLocContactSphere(Vec3 LocContactSphere);
+    /** Set the radius of the contact sphere */
+    void setRadiusContactSphere(Real radius);
+    /** Get the Mobilized Body to which the contact sphere is attached */
     MobilizedBody getBodySphere();
-	/** Get location of the sphere in the body frame*/
-	Vec3 getLocSphere();
-	/** Get radius of the sphere */
-	Real getRadiusSphere();
-    /** Get location of the contact point in the body frame */
-	Vec3 getContactPointInBody(const State& state);
-    /** Get location of the contact point in the ground frane */
+    /** Get the location of the contact sphere in the body frame */
+    Vec3 getLocContactSphere();
+    /** Set the radius of the sphere */
+    Real getRadiusContactSphere();
+    /** Get the location of the contact point in the body frame */
+    Vec3 getContactPointInBody(const State& state);
+    /** Get the location of the contact point in the ground frane */
     void getContactPointSphere(const State& state,Vec3& contactPointPos) const;
-	/** Calculate contact force */
-	void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
-		Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;
+    /** Calculate contact force */
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+        Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;
     /** TODO */
-	Real calcPotentialEnergy(const State& state) const;
+    Real calcPotentialEnergy(const State& state) const;
     void realizeTopology(State& state) const;
 private:
-	const GeneralForceSubsystem&          subsystem;
-	mutable CacheEntryIndex               energyCacheIndex;
+    const GeneralForceSubsystem&          subsystem;
+    mutable CacheEntryIndex               energyCacheIndex;
 };
 
 } // namespace SimTK
