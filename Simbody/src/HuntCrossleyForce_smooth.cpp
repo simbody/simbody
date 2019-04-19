@@ -194,7 +194,7 @@ Vec3 HuntCrossleyForce_smooth::getContactPointInBody(const State& state) {
 Vec3 HuntCrossleyForceImpl_smooth::getContactPointInBody(const State& state) {
     Vec3 posSphereInGround =
         BodySphere.findStationLocationInGround(state, LocSphere);
-    Vec3 contactPointPos = posSphereInGround - Vec3(0,RadiusSphere,0);
+    Vec3 contactPointPos = posSphereInGround - RadiusSphere*GroundPlane.getNormal();
     return BodySphere.findStationAtGroundPoint(state, contactPointPos);
 }
 
