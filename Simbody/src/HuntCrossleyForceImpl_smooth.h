@@ -117,9 +117,7 @@ public:
     Vec3 getLocContactSphere();
     /** Set the radius of the sphere */
     Real getRadiusContactSphere();
-    /** Get the location of the contact point in the body frame */
-    Vec3 getContactPointInBody(const State& state);
-    /** Get the location of the contact point in the ground frane */
+    /** Get the location of the contact point in the ground frame */
     void getContactPointSphere(const State& state,Vec3& contactPointPos) const;
     /** Calculate contact force */
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,

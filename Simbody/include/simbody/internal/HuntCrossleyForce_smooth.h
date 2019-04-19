@@ -164,8 +164,6 @@ public:
     * @param offset     distance to the ground origin along the normal
     */
     void setContactPlane(Vec3 normal, Real offset);
-    /** Get the location of the contact point in the body frame */
-    Vec3 getContactPointInBody(const State& state);
     /** Set the Mobilized Body to which the contact sphere is attached */
     void setContactSphere(MobilizedBody bodyInput);
     /** Set the location of the contact sphere in the body frame */
