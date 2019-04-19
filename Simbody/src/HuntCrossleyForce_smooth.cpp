@@ -187,17 +187,6 @@ void HuntCrossleyForceImpl_smooth::getContactPointSphere(const State& state,
         RadiusContactSphere*ContactPlane.getNormal();
 }
 
-Vec3 HuntCrossleyForce_smooth::getContactPointInBody(const State& state) {
-    return updImpl().getContactPointInBody(state);
-}
-
-Vec3 HuntCrossleyForceImpl_smooth::getContactPointInBody(const State& state) {
-    Vec3 posSphereInGround =
-        BodySphere.findStationLocationInGround(state, LocContactSphere);
-    Vec3 contactPointPos = posSphereInGround - Vec3(0,RadiusContactSphere,0);
-    return BodySphere.findStationAtGroundPoint(state, contactPointPos);
-}
-
 void HuntCrossleyForceImpl_smooth::calcForce(const State& state,
     Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces,
     Vector& mobilityForces) const {
