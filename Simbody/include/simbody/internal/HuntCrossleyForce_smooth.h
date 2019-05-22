@@ -98,7 +98,7 @@ class HuntCrossleyForceImpl_smooth;
  * where c is dissipation and v is penetration rate.
  * In the smooth approximation, we use the expression:
  *      f_pos = fh_smooth*(1.+(3./2.)*c*v);
- *      f_smooth = f_pos*(1./2.+(1./2.)*tanh(bv*(v+(2./(3.*v)))));
+ *      f_smooth = f_pos*(1./2.+(1./2.)*tanh(bv*(v+(2./(3.*c)))));
  * where bv=50 determines the smoothness of the tanh transition.
  *
  * <h1>Friction Force</h1>
