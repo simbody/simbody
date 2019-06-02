@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
- * Authors: Peter Eastman                                                     *
- * Contributors: Antoine Falisse, Gil Serrancoli                              *
+ * Portions copyright (c) 2008-19 Stanford University and the Authors.        *
+ * Authors: Antoine Falisse, Gil Serrancoli                                   *
+ * Contributors: Peter Eastman                                                *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -62,12 +62,12 @@ void testForces() {
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Translation sphere(matter.updGround(),
         Transform(), body, Transform());
-    HuntCrossleyForce_smooth hc_smooth(forces);
+    SmoothSphereHalfplaneContact hc_smooth(forces);
     hc_smooth.setParameters(k,dissipation,us,ud,uv,vt);
     Vec3 normal(0,1,0);
     hc_smooth.setContactPlane(normal,.0);
     hc_smooth.setContactSphere(sphere);
-    hc_smooth.setLocContactSphere(Vec3(0));
+    hc_smooth.setLocationContactSphere(Vec3(0));
     hc_smooth.setRadiusContactSphere(radius);
     State state = system.realizeTopology();
 

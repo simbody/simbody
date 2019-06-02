@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
- * Authors: Peter Eastman                                                     *
- * Contributors: Antoine Falisse, Gil Serrancoli                              *
+ * Portions copyright (c) 2008-19 Stanford University and the Authors.        *
+ * Authors: Antoine Falisse, Gil Serrancoli                                   *
+ * Contributors: Peter Eastman                                                *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -24,176 +24,176 @@
 #include "SimTKmath.h"
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/GeneralContactSubsystem.h"
 #include "simbody/internal/MobilizedBody.h"
 
-#include "HuntCrossleyForceImpl_smooth.h"
+#include "SmoothSphereHalfplaneContactImpl.h"
 
 namespace SimTK {
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(HuntCrossleyForce_smooth,
-    HuntCrossleyForceImpl_smooth, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(SmoothSphereHalfplaneContact,
+    SmoothSphereHalfplaneContactImpl, Force);
 
-HuntCrossleyForce_smooth::HuntCrossleyForce_smooth
+SmoothSphereHalfplaneContact::SmoothSphereHalfplaneContact
     (GeneralForceSubsystem& forces) :
-    Force(new HuntCrossleyForceImpl_smooth(forces)) {
+    Force(new SmoothSphereHalfplaneContactImpl(forces)) {
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
-HuntCrossleyForceImpl_smooth::HuntCrossleyForceImpl_smooth
+SmoothSphereHalfplaneContactImpl::SmoothSphereHalfplaneContactImpl
     (GeneralForceSubsystem& subsystem) :
     subsystem(subsystem){
 }
 
-void HuntCrossleyForceImpl_smooth::realizeTopology(State& state) const {
+void SmoothSphereHalfplaneContactImpl::realizeTopology(State& state) const {
     energyCacheIndex=state.allocateCacheEntry(subsystem.getMySubsystemIndex(),
         Stage::Dynamics, new Value<Real>());
 }
 
-void HuntCrossleyForce_smooth::setParameters
+void SmoothSphereHalfplaneContact::setParameters
     (Real stiffness, Real dissipation, Real staticFriction,
     Real dynamicFriction, Real viscousFriction, Real transitionVelocity) {
     updImpl().setParameters(stiffness, dissipation, staticFriction,
         dynamicFriction, viscousFriction, transitionVelocity);
 }
 
-void HuntCrossleyForceImpl_smooth::setParameters
+void SmoothSphereHalfplaneContactImpl::setParameters
     (Real stiffness, Real dissipation,  Real staticFriction,
     Real dynamicFriction, Real viscousFriction, Real transitionVelocity) {
     updParameters() = Parameters(stiffness, dissipation, staticFriction,
         dynamicFriction, viscousFriction, transitionVelocity);
 }
 
-void HuntCrossleyForce_smooth::setStiffness(Real stiffness) {
+void SmoothSphereHalfplaneContact::setStiffness(Real stiffness) {
     updImpl().parameters.stiffness = stiffness;
 }
 
-void HuntCrossleyForceImpl_smooth::setStiffness(Real stiffness) {
+void SmoothSphereHalfplaneContactImpl::setStiffness(Real stiffness) {
     parameters.stiffness = stiffness;
 }
 
-void HuntCrossleyForce_smooth::setDissipation(Real dissipation) {
+void SmoothSphereHalfplaneContact::setDissipation(Real dissipation) {
     updImpl().parameters.dissipation = dissipation;
 }
 
-void HuntCrossleyForceImpl_smooth::setDissipation(Real dissipation) {
+void SmoothSphereHalfplaneContactImpl::setDissipation(Real dissipation) {
     parameters.dissipation = dissipation;
 }
 
-void HuntCrossleyForce_smooth::setStaticFriction(Real staticFriction) {
+void SmoothSphereHalfplaneContact::setStaticFriction(Real staticFriction) {
     updImpl().parameters.staticFriction = staticFriction;
 }
 
-void HuntCrossleyForceImpl_smooth::setStaticFriction(Real staticFriction) {
+void SmoothSphereHalfplaneContactImpl::setStaticFriction(Real staticFriction) {
     parameters.staticFriction = staticFriction;
 }
 
-void HuntCrossleyForce_smooth::setDynamicFriction(Real dynamicFriction) {
+void SmoothSphereHalfplaneContact::setDynamicFriction(Real dynamicFriction) {
     updImpl().parameters.dynamicFriction = dynamicFriction;
 }
 
-void HuntCrossleyForceImpl_smooth::setDynamicFriction(Real dynamicFriction) {
+void SmoothSphereHalfplaneContactImpl::setDynamicFriction(Real dynamicFriction) {
     parameters.dynamicFriction = dynamicFriction;
 }
 
-void HuntCrossleyForce_smooth::setViscousFriction(Real viscousFriction) {
+void SmoothSphereHalfplaneContact::setViscousFriction(Real viscousFriction) {
     updImpl().parameters.viscousFriction = viscousFriction;
 }
 
-void HuntCrossleyForceImpl_smooth::setViscousFriction(Real viscousFriction) {
+void SmoothSphereHalfplaneContactImpl::setViscousFriction(Real viscousFriction) {
     parameters.viscousFriction = viscousFriction;
 }
 
-void HuntCrossleyForce_smooth::setTransitionVelocity(Real transitionVelocity) {
+void SmoothSphereHalfplaneContact::setTransitionVelocity(Real transitionVelocity) {
     updImpl().parameters.transitionVelocity = transitionVelocity;
 }
 
-void HuntCrossleyForceImpl_smooth::setTransitionVelocity
+void SmoothSphereHalfplaneContactImpl::setTransitionVelocity
     (Real transitionVelocity) {
     parameters.transitionVelocity = transitionVelocity;
 }
 
-void HuntCrossleyForce_smooth::setContactPlane(Vec3 normal, Real offset) {
+void SmoothSphereHalfplaneContact::setContactPlane(Vec3 normal, Real offset) {
     updImpl().setContactPlane(normal, offset);
 }
 
-void HuntCrossleyForceImpl_smooth::setContactPlane(Vec3 normal, Real offset) {
-    ContactPlane = Plane(normal, offset);
+void SmoothSphereHalfplaneContactImpl::setContactPlane(Vec3 normal, Real offset) {
+    contactPlane = Plane(normal, offset);
 }
 
-void HuntCrossleyForce_smooth::setContactSphere(MobilizedBody bodyInput) {
-    updImpl().BodySphere = bodyInput;
+void SmoothSphereHalfplaneContact::setContactSphere(MobilizedBody bodyInput) {
+    updImpl().bodySphere = bodyInput;
 }
 
-void HuntCrossleyForceImpl_smooth::setContactSphere(MobilizedBody bodyInput) {
-    BodySphere = bodyInput;
+void SmoothSphereHalfplaneContactImpl::setContactSphere(MobilizedBody bodyInput) {
+    bodySphere = bodyInput;
 }
 
-void HuntCrossleyForce_smooth::setLocContactSphere(Vec3 LocContactSphere) {
-    updImpl().LocContactSphere = LocContactSphere;
+void SmoothSphereHalfplaneContact::setLocationContactSphere(Vec3 LocContactSphere){
+    updImpl().locationContactSphere = LocContactSphere;
 }
 
-void HuntCrossleyForceImpl_smooth::setLocContactSphere(Vec3 LocContactSphere) {
-    LocContactSphere = LocContactSphere;
+void SmoothSphereHalfplaneContactImpl::setLocationContactSphere
+    (Vec3 locationContactSphere) {
+    locationContactSphere = locationContactSphere;
 }
 
-void HuntCrossleyForce_smooth::setRadiusContactSphere(Real radius) {
-    updImpl().RadiusContactSphere = radius;
+void SmoothSphereHalfplaneContact::setRadiusContactSphere(Real radius) {
+    updImpl().radiusContactSphere = radius;
 }
 
-void HuntCrossleyForceImpl_smooth::setRadiusContactSphere(Real radius) {
-    RadiusContactSphere = radius;
+void SmoothSphereHalfplaneContactImpl::setRadiusContactSphere(Real radius) {
+    radiusContactSphere = radius;
 }
 
-MobilizedBody HuntCrossleyForce_smooth::getBodySphere() {
-    return updImpl().BodySphere;
+MobilizedBody SmoothSphereHalfplaneContact::getBodySphere() {
+    return updImpl().bodySphere;
 }
 
-MobilizedBody HuntCrossleyForceImpl_smooth::getBodySphere() {
-    return BodySphere;
+MobilizedBody SmoothSphereHalfplaneContactImpl::getBodySphere() {
+    return bodySphere;
 }
 
-Vec3 HuntCrossleyForce_smooth::getLocContactSphere() {
-    return updImpl().LocContactSphere;
+Vec3 SmoothSphereHalfplaneContact::getLocationContactSphere() {
+    return updImpl().locationContactSphere;
 }
 
-Vec3 HuntCrossleyForceImpl_smooth::getLocContactSphere() {
-    return LocContactSphere;
+Vec3 SmoothSphereHalfplaneContactImpl::getLocationContactSphere() {
+    return locationContactSphere;
 }
 
-Real HuntCrossleyForce_smooth::setRadiusContactSphere() {
-    return updImpl().RadiusContactSphere;
+Real SmoothSphereHalfplaneContact::setRadiusContactSphere() {
+    return updImpl().radiusContactSphere;
 }
 
-Real HuntCrossleyForceImpl_smooth::getRadiusContactSphere() {
-    return RadiusContactSphere;
+Real SmoothSphereHalfplaneContactImpl::getRadiusContactSphere() {
+    return radiusContactSphere;
 }
 
-const HuntCrossleyForceImpl_smooth::Parameters& HuntCrossleyForceImpl_smooth::
+const SmoothSphereHalfplaneContactImpl::Parameters& SmoothSphereHalfplaneContactImpl::
     getParameters() const {
     return parameters;
 }
 
-HuntCrossleyForceImpl_smooth::Parameters& HuntCrossleyForceImpl_smooth::
+SmoothSphereHalfplaneContactImpl::Parameters& SmoothSphereHalfplaneContactImpl::
     updParameters() {
     return parameters;
 }
 
-void HuntCrossleyForceImpl_smooth::getContactPointSphere(const State& state,
+void SmoothSphereHalfplaneContactImpl::getContactPointSphere(const State& state,
     Vec3& contactPointPos) const {
     Vec3 posSphereInGround =
-        BodySphere.findStationLocationInGround(state, LocContactSphere);
+        bodySphere.findStationLocationInGround(state, locationContactSphere);
     contactPointPos = posSphereInGround -
-        RadiusContactSphere*ContactPlane.getNormal();
+        radiusContactSphere*contactPlane.getNormal();
 }
 
-void HuntCrossleyForceImpl_smooth::calcForce(const State& state,
+void SmoothSphereHalfplaneContactImpl::calcForce(const State& state,
     Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces,
     Vector& mobilityForces) const {
     // Calculate the indentation based on the contact point location.
     Vec3 contactPointPos;
     getContactPointSphere(state, contactPointPos);
-    const Real Indentation = - ContactPlane.getDistance(contactPointPos);
+    const Real indentation = - contactPlane.getDistance(contactPointPos);
     // Adjust the contact location based on the relative stiffness of the two
     // materials. Here we assume, as in the original Simbody Hunt-Crossley
     // contact model, that both materials have the same relative stiffness.
@@ -201,19 +201,19 @@ void HuntCrossleyForceImpl_smooth::calcForce(const State& state,
     // located midway between the two surfaces. We therefore need to add half
     // the indentation to the contact location that was determined as the
     // location of the contact sphere center minus its radius.
-    const Vec3 normal = ContactPlane.getNormal();
+    const Vec3 normal = contactPlane.getNormal();
     const Vec3 contactPointPosAdj =
-        contactPointPos+Real(1./2.)*Indentation*normal;
+        contactPointPos+Real(1./2.)*indentation*normal;
     const Vec3 contactPointPosAdjInB =
-        BodySphere.findStationAtGroundPoint(state, contactPointPosAdj);
+        bodySphere.findStationAtGroundPoint(state, contactPointPosAdj);
     // Calculate the contact point velocity.
     const Vec3 contactPointVel =
-        BodySphere.findStationVelocityInGround(state, contactPointPosAdjInB);
+        bodySphere.findStationVelocityInGround(state, contactPointPosAdjInB);
     // Calculate the tangential and indentation velocities.
     const Vec3 v = contactPointVel;
     const Real vnormal = dot(v, normal);
     const Vec3 vtangent = v - vnormal*normal;
-    const Real IndentationVel = -vnormal;
+    const Real indentationVel = -vnormal;
     // Get the contact model parameters.
     const Parameters parameters = getParameters();
     const Real stiffness = parameters.stiffness;
@@ -228,13 +228,13 @@ void HuntCrossleyForceImpl_smooth::calcForce(const State& state,
     double bd = 300;
     // Calculate the Hertz force.
     const Real k = (1./2.)*std::pow(stiffness, (2./3.));
-    const Real fH = (4./3.)*k*std::sqrt(RadiusContactSphere*k)*
-        std::pow(std::sqrt(Indentation*Indentation+eps),(3./2.));
+    const Real fH = (4./3.)*k*std::sqrt(radiusContactSphere*k)*
+        std::pow(std::sqrt(indentation*indentation+eps),(3./2.));
     // Calculate the Hunt-Crossley force.
     const Real c = dissipation;
-    const Real fHd = fH*(1.+(3./2.)*c*IndentationVel);
-    const Real fn = fHd*(1./2.+(1./2.)*std::tanh(bd*Indentation))*
-        (1./2.+(1./2.)*std::tanh(bv*(IndentationVel+(2./(3.*c)))));
+    const Real fHd = fH*(1.+(3./2.)*c*indentationVel);
+    const Real fn = fHd*(1./2.+(1./2.)*std::tanh(bd*indentation))*
+        (1./2.+(1./2.)*std::tanh(bv*(indentationVel+(2./(3.*c)))));
     Vec3 force = fn*normal;
     // Calculate the friction force.
     const Real aux = pow(vtangent[0],2) +
@@ -245,12 +245,12 @@ void HuntCrossleyForceImpl_smooth::calcForce(const State& state,
         (ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
     force += ffriction*(-vtangent) / vslip;
     // Apply the force to the bodies.
-    BodySphere.applyForceToBodyPoint(state, contactPointPosAdjInB,
+    bodySphere.applyForceToBodyPoint(state, contactPointPosAdjInB,
         force, bodyForces);
 }
 
 // TODO
-Real HuntCrossleyForceImpl_smooth::calcPotentialEnergy(const State& state)
+Real SmoothSphereHalfplaneContactImpl::calcPotentialEnergy(const State& state)
     const {
     Real PotentialEnergy = 0;
     return PotentialEnergy;

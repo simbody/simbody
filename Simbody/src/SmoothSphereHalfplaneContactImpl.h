@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_HUNT_CROSSLEY_FORCE_IMPL_SMOOTH_H_
-#define SimTK_SIMBODY_HUNT_CROSSLEY_FORCE_IMPL_SMOOTH_H_
+#ifndef SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_CONTACT_IMPL_H_
+#define SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_CONTACT_IMPL_H_
 
 /* -------------------------------------------------------------------------- *
  *                               Simbody(tm)                                  *
@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
- * Authors: Peter Eastman                                                     *
- * Contributors: Antoine Falisse, Gil Serrancoli                              *
+ * Portions copyright (c) 2008-19 Stanford University and the Authors.        *
+ * Authors: Antoine Falisse, Gil Serrancoli                                   *
+ * Contributors: Peter Eastman                                                *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -26,12 +26,12 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/HuntCrossleyForce_smooth.h"
+#include "simbody/internal/SmoothSphereHalfplaneContact.h"
 #include "ForceImpl.h"
 
 namespace SimTK {
 
-class HuntCrossleyForceImpl_smooth : public ForceImpl {
+class SmoothSphereHalfplaneContactImpl : public ForceImpl {
 public:
     class Parameters {
     public:
@@ -48,37 +48,27 @@ public:
         Real stiffness, dissipation, staticFriction, dynamicFriction,
             viscousFriction, transitionVelocity;
     };
-    struct InstanceVars {
-        InstanceVars(const MobilizedBody defbody, const Real defradius,
-            const Vec3 defLocContactSphere, const Parameters defparameters)
-            : BodySphere(defbody), RadiusContactSphere(defradius),
-            LocContactSphere(defLocContactSphere), parameters(defparameters) {
-        }
-        MobilizedBody BodySphere;
-        Real RadiusContactSphere;
-        Vec3 LocContactSphere;
-        Parameters parameters;
-    };
 
-    Real            RadiusContactSphere;
-    Vec3            LocContactSphere;
-    MobilizedBody   BodySphere;
+    Real            radiusContactSphere;
+    Vec3            locationContactSphere;
+    MobilizedBody   bodySphere;
     Parameters      parameters;
-    Plane           ContactPlane;
+    Plane           contactPlane;
 
-    HuntCrossleyForceImpl_smooth(GeneralForceSubsystem& subsystem);
+    SmoothSphereHalfplaneContactImpl(GeneralForceSubsystem& subsystem);
 
-    HuntCrossleyForceImpl_smooth* clone() const override {
-        return new HuntCrossleyForceImpl_smooth(*this);
+    SmoothSphereHalfplaneContactImpl* clone() const override {
+        return new SmoothSphereHalfplaneContactImpl(*this);
     }
     /**
      * Set the contact material parameters
      *
-     * @param stiffness       the stiffness constant
-     * @param dissipation     the dissipation coefficient (c)
-     * @param staticFriction  the coefficient of static friction (us)
-     * @param dynamicFriction the coefficient of dynamic friction (ud)
-     * @param viscousFriction the coefficient of viscous friction (uv)
+     * @param stiffness             the stiffness constant
+     * @param dissipation           the dissipation coefficient (c)
+     * @param staticFriction        the coefficient of static friction (us)
+     * @param dynamicFriction       the coefficient of dynamic friction (ud)
+     * @param viscousFriction       the coefficient of viscous friction (uv)
+     * @param transitionVelocity    the transition velocity (vt)
      */
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
         Real dynamicFriction, Real viscousFriction, Real transitionVelocity);
@@ -108,13 +98,13 @@ public:
     /** Set the Mobilized Body to which the contact sphere is attached */
     void setContactSphere(MobilizedBody bodyInput);
     /** Set the location of the contact sphere in the body frame */
-    void setLocContactSphere(Vec3 LocContactSphere);
+    void setLocationContactSphere(Vec3 locationContactSphere);
     /** Set the radius of the contact sphere */
     void setRadiusContactSphere(Real radius);
     /** Get the Mobilized Body to which the contact sphere is attached */
     MobilizedBody getBodySphere();
     /** Get the location of the contact sphere in the body frame */
-    Vec3 getLocContactSphere();
+    Vec3 getLocationContactSphere();
     /** Set the radius of the sphere */
     Real getRadiusContactSphere();
     /** Get the location of the contact point in the ground frame */
@@ -132,4 +122,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_HUNT_CROSSLEY_FORCE_IMPL_SMOOTH_H_
+#endif // SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_CONTACT_IMPL_H_
