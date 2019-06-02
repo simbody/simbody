@@ -52,8 +52,8 @@ class SmoothSphereHalfplaneContactImpl;
  * <pre>     y = 0, if x < d </pre>
  * <pre>     y = a, if x >= d </pre>
  * can be approximated by:
- * <pre>     f = 0.5 + 0.5*tanh(b(x-d)) </pre>
- * <pre>     y = a*f </pre>
+ * <pre>     f = 0.5 + 0.5 tanh(b(x-d)) </pre>
+ * <pre>     y = a f </pre>
  * where b is a parameter determining the smoothness of the transition.
  *
  * Similar to the original implementation, this contact model includes
@@ -82,30 +82,30 @@ class SmoothSphereHalfplaneContactImpl;
  * value of the slope at low velocities.
  *
  * The original Hertz force between a sphere and a plane is given by:
- * <pre>     fh = 4/3*k*x*(R*k*x)^(1/2) </pre>
- * where k = 0.5*stiffness^(2/3) where stiffness is the effective Young's
+ * <pre>     fh = (4/3) k x (R k x)^(1/2) </pre>
+ * where k = 0.5 stiffness^(2/3) where stiffness is the effective Young's
  * modulus, which is assumed identical for both contacting materials (i.e.,
  * sphere and plane), x is penetration depth, and R is sphere radius.
  * In the smooth approximation, we use the expression:
- * <pre>     fh_pos = 4/3*k*(R*k*)^(1/2)*((x^2+eps)^(1/2))^(3/2) </pre>
- * <pre>     fh_smooth = fh_pos*(1./2.+(1./2.)*tanh(bd*x)); </pre>
+ * <pre>     fh_pos = (4/3) k (R k)^(1/2) ((x^2+eps)^(1/2))^(3/2) </pre>
+ * <pre>     fh_smooth = fh_pos (1/2+(1/2)tanh(b d x)); </pre>
  * where eps=1e-5 enforces a small force even when there is no contact between
  * the sphere and the plane, and bd=300 determines the smoothness of the tanh
  * transition.
  *
  * The original Hunt-Crossley force is given by:
- * <pre>     f = fh*(1+3/2*c*v) </pre>
+ * <pre>     f = fh (1+(3/2) c v) </pre>
  * where c is dissipation and v is penetration rate.
  * In the smooth approximation, we use the expression:
- * <pre>     f_pos = fh_smooth*(1.+(3./2.)*c*v); </pre>
- * <pre>     f_smooth = f_pos*(1./2.+(1./2.)*tanh(bv*(v+(2./(3.*c))))); </pre>
+ * <pre>     f_pos = fh_smooth (1+(3/2) c v); </pre>
+ * <pre>     f_smooth = f_pos (1/2+(1/2) tanh(bv (v+(2/(3 c))))); </pre>
  * where bv=50 determines the smoothness of the tanh transition.
  *
  * <h1>Friction Force</h1>
  *
  * The friction force is based on a model by Michael Hollars:
  *
- * <pre>     f = f_smooth*[min(vs/vt,1)*(ud+2(us-ud)/(1+(vs/vt)^2))+uv*vs] </pre>
+ * <pre>     f = f_smooth [min(vs/vt,1) (ud+2(us-ud)/(1+(vs/vt)^2))+uv vs] </pre>
  *
  * where f_smooth is the smooth normal force at the contact point, vs is the
  * slip (tangential) velocity of the two bodies at the contact point, vt is a
@@ -113,7 +113,7 @@ class SmoothSphereHalfplaneContactImpl;
  * static, dynamic, and viscous friction respectively. Each of the three
  * friction coefficients is calculated based on the friction coefficients of
  * the two bodies in contact:
- * <pre>     u = 2*u1*u2/(u1+u2) </pre>
+ * <pre>     u = (2 u1 u2)/(u1+u2) </pre>
  * In the smooth approximation, we assume the same coefficients for both
  * contacting materials.
  *
