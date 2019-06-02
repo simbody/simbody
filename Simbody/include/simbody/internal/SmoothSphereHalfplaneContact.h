@@ -105,7 +105,7 @@ class SmoothSphereHalfplaneContactImpl;
  *
  * The friction force is based on a model by Michael Hollars:
  *
- * <pre> f = f_smooth*[min(vs/vt,1)*(ud+2(us-ud)/(1+(vs/vt)^2))+uv*vs] </pre>
+ * <pre>     f = f_smooth*[min(vs/vt,1)*(ud+2(us-ud)/(1+(vs/vt)^2))+uv*vs] </pre>
  *
  * where f_smooth is the smooth normal force at the contact point, vs is the
  * slip (tangential) velocity of the two bodies at the contact point, vt is a
