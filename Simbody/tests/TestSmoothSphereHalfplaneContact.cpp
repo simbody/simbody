@@ -70,7 +70,6 @@ void testForces() {
     hc_smooth.setLocationContactSphere(Vec3(0));
     hc_smooth.setRadiusContactSphere(radius);
     State state = system.realizeTopology();
-
     // Position the sphere at a variety of positions and see if the normal
     // force and potential energy are correct (with horizontal ground plane)
     for (Real height = radius+0.2; height > 0; height -= 0.1) {

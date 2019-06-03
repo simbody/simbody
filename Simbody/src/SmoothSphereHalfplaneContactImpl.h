@@ -35,8 +35,8 @@ class SmoothSphereHalfplaneContactImpl : public ForceImpl {
 public:
     class Parameters {
     public:
-        Parameters() : stiffness(0), dissipation(0), staticFriction(0),
-            dynamicFriction(0), viscousFriction(0), transitionVelocity(0) {
+        Parameters() : stiffness(1), dissipation(0), staticFriction(0),
+            dynamicFriction(0), viscousFriction(0), transitionVelocity(0,01) {
         }
         Parameters(Real stiffness, Real dissipation, Real staticFriction,
             Real dynamicFriction, Real viscousFriction,

@@ -23,6 +23,8 @@
 
 #include "SimTKmath.h"
 
+#include "simbody/internal/common.h"
+
 #include "simbody/internal/MobilizedBody.h"
 
 #include "SmoothSphereHalfplaneContactImpl.h"

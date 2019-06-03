@@ -123,8 +123,7 @@ class SmoothSphereHalfplaneContactImpl;
  * be a nonzero drift, no matter how small the force is. The transition
  * velocity vt acts as an upper limit on the drift velocity. By setting vt to a
  * sufficiently small value, the drift velocity can be made arbitrarily small,
- * at the cost of making the equations of motion very stiff. The default value
- * of vt is 0.01.
+ * at the cost of making the equations of motion very stiff. 
  */
 class SimTK_SIMBODY_EXPORT SmoothSphereHalfplaneContact : public Force {
 public:
@@ -143,6 +142,9 @@ public:
      * @param dynamicFriction       the coefficient of dynamic friction (ud)
      * @param viscousFriction       the coefficient of viscous friction (uv)
      * @param transitionVelocity    the transition velocity (vt)
+     * The default values are 1 for stiffness, 0 for dissipation, 
+     * staticFriction, dynamicFriction and viscousFriction and 0.01 for the
+     * transitionVelocity
      */
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
        Real dynamicFriction, Real viscousFriction, Real transitionVelocity);
