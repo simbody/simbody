@@ -62,7 +62,7 @@ void testForces() {
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Translation sphere(matter.updGround(),
         Transform(), body, Transform());
-    SmoothSphereHalfplaneContact hc_smooth(forces);
+    SmoothSphereHalfplaneForce hc_smooth(forces);
     hc_smooth.setParameters(k,dissipation,us,ud,uv,vt);
     Vec3 normal(0,1,0);
     hc_smooth.setContactPlane(normal,.0);

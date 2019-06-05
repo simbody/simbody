@@ -26,160 +26,162 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MobilizedBody.h"
 
-#include "SmoothSphereHalfplaneContactImpl.h"
+#include "SmoothSphereHalfplaneForceImpl.h"
 
 namespace SimTK {
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(SmoothSphereHalfplaneContact,
-    SmoothSphereHalfplaneContactImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(SmoothSphereHalfplaneForce,
+    SmoothSphereHalfplaneForceImpl, Force);
 
-SmoothSphereHalfplaneContact::SmoothSphereHalfplaneContact
+SmoothSphereHalfplaneForce::SmoothSphereHalfplaneForce
     (GeneralForceSubsystem& forces) :
-    Force(new SmoothSphereHalfplaneContactImpl(forces)) {
+    Force(new SmoothSphereHalfplaneForceImpl(forces)) {
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
-SmoothSphereHalfplaneContactImpl::SmoothSphereHalfplaneContactImpl
+SmoothSphereHalfplaneForceImpl::SmoothSphereHalfplaneForceImpl
     (GeneralForceSubsystem& subsystem) :
     subsystem(subsystem){
 }
 
-void SmoothSphereHalfplaneContactImpl::realizeTopology(State& state) const {
+void SmoothSphereHalfplaneForceImpl::realizeTopology(State& state) const {
     energyCacheIndex=state.allocateCacheEntry(subsystem.getMySubsystemIndex(),
         Stage::Dynamics, new Value<Real>());
 }
 
-void SmoothSphereHalfplaneContact::setParameters
+void SmoothSphereHalfplaneForce::setParameters
     (Real stiffness, Real dissipation, Real staticFriction,
     Real dynamicFriction, Real viscousFriction, Real transitionVelocity) {
     updImpl().setParameters(stiffness, dissipation, staticFriction,
         dynamicFriction, viscousFriction, transitionVelocity);
 }
 
-void SmoothSphereHalfplaneContactImpl::setParameters
+void SmoothSphereHalfplaneForceImpl::setParameters
     (Real stiffness, Real dissipation,  Real staticFriction,
     Real dynamicFriction, Real viscousFriction, Real transitionVelocity) {
     updParameters() = Parameters(stiffness, dissipation, staticFriction,
         dynamicFriction, viscousFriction, transitionVelocity);
 }
 
-void SmoothSphereHalfplaneContact::setStiffness(Real stiffness) {
+void SmoothSphereHalfplaneForce::setStiffness(Real stiffness) {
     updImpl().parameters.stiffness = stiffness;
 }
 
-void SmoothSphereHalfplaneContactImpl::setStiffness(Real stiffness) {
+void SmoothSphereHalfplaneForceImpl::setStiffness(Real stiffness) {
     parameters.stiffness = stiffness;
 }
 
-void SmoothSphereHalfplaneContact::setDissipation(Real dissipation) {
+void SmoothSphereHalfplaneForce::setDissipation(Real dissipation) {
     updImpl().parameters.dissipation = dissipation;
 }
 
-void SmoothSphereHalfplaneContactImpl::setDissipation(Real dissipation) {
+void SmoothSphereHalfplaneForceImpl::setDissipation(Real dissipation) {
     parameters.dissipation = dissipation;
 }
 
-void SmoothSphereHalfplaneContact::setStaticFriction(Real staticFriction) {
+void SmoothSphereHalfplaneForce::setStaticFriction(Real staticFriction) {
     updImpl().parameters.staticFriction = staticFriction;
 }
 
-void SmoothSphereHalfplaneContactImpl::setStaticFriction(Real staticFriction) {
+void SmoothSphereHalfplaneForceImpl::setStaticFriction(Real staticFriction) {
     parameters.staticFriction = staticFriction;
 }
 
-void SmoothSphereHalfplaneContact::setDynamicFriction(Real dynamicFriction) {
+void SmoothSphereHalfplaneForce::setDynamicFriction(Real dynamicFriction) {
     updImpl().parameters.dynamicFriction = dynamicFriction;
 }
 
-void SmoothSphereHalfplaneContactImpl::setDynamicFriction(Real dynamicFriction) {
+void SmoothSphereHalfplaneForceImpl::setDynamicFriction(Real dynamicFriction) {
     parameters.dynamicFriction = dynamicFriction;
 }
 
-void SmoothSphereHalfplaneContact::setViscousFriction(Real viscousFriction) {
+void SmoothSphereHalfplaneForce::setViscousFriction(Real viscousFriction) {
     updImpl().parameters.viscousFriction = viscousFriction;
 }
 
-void SmoothSphereHalfplaneContactImpl::setViscousFriction(Real viscousFriction) {
+void SmoothSphereHalfplaneForceImpl::setViscousFriction(Real viscousFriction) {
     parameters.viscousFriction = viscousFriction;
 }
 
-void SmoothSphereHalfplaneContact::setTransitionVelocity(Real transitionVelocity) {
+void SmoothSphereHalfplaneForce::setTransitionVelocity(
+    Real transitionVelocity) {
     updImpl().parameters.transitionVelocity = transitionVelocity;
 }
 
-void SmoothSphereHalfplaneContactImpl::setTransitionVelocity
+void SmoothSphereHalfplaneForceImpl::setTransitionVelocity
     (Real transitionVelocity) {
     parameters.transitionVelocity = transitionVelocity;
 }
 
-void SmoothSphereHalfplaneContact::setContactPlane(Vec3 normal, Real offset) {
+void SmoothSphereHalfplaneForce::setContactPlane(Vec3 normal, Real offset) {
     updImpl().setContactPlane(normal, offset);
 }
 
-void SmoothSphereHalfplaneContactImpl::setContactPlane(Vec3 normal, Real offset) {
+void SmoothSphereHalfplaneForceImpl::setContactPlane(Vec3 normal,Real offset) {
     contactPlane = Plane(normal, offset);
 }
 
-void SmoothSphereHalfplaneContact::setContactSphere(MobilizedBody bodyInput) {
+void SmoothSphereHalfplaneForce::setContactSphere(MobilizedBody bodyInput) {
     updImpl().bodySphere = bodyInput;
 }
 
-void SmoothSphereHalfplaneContactImpl::setContactSphere(MobilizedBody bodyInput) {
+void SmoothSphereHalfplaneForceImpl::setContactSphere(MobilizedBody bodyInput){
     bodySphere = bodyInput;
 }
 
-void SmoothSphereHalfplaneContact::setLocationContactSphere(Vec3 LocContactSphere){
+void SmoothSphereHalfplaneForce::setLocationContactSphere(
+    Vec3 LocContactSphere) {
     updImpl().locationContactSphere = LocContactSphere;
 }
 
-void SmoothSphereHalfplaneContactImpl::setLocationContactSphere
+void SmoothSphereHalfplaneForceImpl::setLocationContactSphere
     (Vec3 locationContactSphere) {
     locationContactSphere = locationContactSphere;
 }
 
-void SmoothSphereHalfplaneContact::setRadiusContactSphere(Real radius) {
+void SmoothSphereHalfplaneForce::setRadiusContactSphere(Real radius) {
     updImpl().radiusContactSphere = radius;
 }
 
-void SmoothSphereHalfplaneContactImpl::setRadiusContactSphere(Real radius) {
+void SmoothSphereHalfplaneForceImpl::setRadiusContactSphere(Real radius) {
     radiusContactSphere = radius;
 }
 
-MobilizedBody SmoothSphereHalfplaneContact::getBodySphere() {
+MobilizedBody SmoothSphereHalfplaneForce::getBodySphere() {
     return updImpl().bodySphere;
 }
 
-MobilizedBody SmoothSphereHalfplaneContactImpl::getBodySphere() {
+MobilizedBody SmoothSphereHalfplaneForceImpl::getBodySphere() {
     return bodySphere;
 }
 
-Vec3 SmoothSphereHalfplaneContact::getLocationContactSphere() {
+Vec3 SmoothSphereHalfplaneForce::getLocationContactSphere() {
     return updImpl().locationContactSphere;
 }
 
-Vec3 SmoothSphereHalfplaneContactImpl::getLocationContactSphere() {
+Vec3 SmoothSphereHalfplaneForceImpl::getLocationContactSphere() {
     return locationContactSphere;
 }
 
-Real SmoothSphereHalfplaneContact::setRadiusContactSphere() {
+Real SmoothSphereHalfplaneForce::setRadiusContactSphere() {
     return updImpl().radiusContactSphere;
 }
 
-Real SmoothSphereHalfplaneContactImpl::getRadiusContactSphere() {
+Real SmoothSphereHalfplaneForceImpl::getRadiusContactSphere() {
     return radiusContactSphere;
 }
 
-const SmoothSphereHalfplaneContactImpl::Parameters& SmoothSphereHalfplaneContactImpl::
-    getParameters() const {
+const SmoothSphereHalfplaneForceImpl::Parameters&
+    SmoothSphereHalfplaneForceImpl::getParameters() const {
     return parameters;
 }
 
-SmoothSphereHalfplaneContactImpl::Parameters& SmoothSphereHalfplaneContactImpl::
+SmoothSphereHalfplaneForceImpl::Parameters& SmoothSphereHalfplaneForceImpl::
     updParameters() {
     return parameters;
 }
 
-void SmoothSphereHalfplaneContactImpl::getContactPointSphere(const State& state,
+void SmoothSphereHalfplaneForceImpl::getContactPointSphere(const State& state,
     Vec3& contactPointPos) const {
     Vec3 posSphereInGround =
         bodySphere.findStationLocationInGround(state, locationContactSphere);
@@ -187,14 +189,14 @@ void SmoothSphereHalfplaneContactImpl::getContactPointSphere(const State& state,
         radiusContactSphere*contactPlane.getNormal();
 }
 
-void SmoothSphereHalfplaneContactImpl::calcForce(const State& state,
+void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces,
     Vector& mobilityForces) const {
     // Calculate the indentation based on the contact point location.
     Vec3 contactPointPos;
     getContactPointSphere(state, contactPointPos);
     const Real indentation = - contactPlane.getDistance(contactPointPos);
-    // Initialize the potential energy
+    // Initialize the potential energy.
     Real& pe = Value<Real>::updDowncast(state.updCacheEntry(
         subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
     pe = 0.0;
@@ -254,7 +256,7 @@ void SmoothSphereHalfplaneContactImpl::calcForce(const State& state,
         force, bodyForces);
 }
 
-Real SmoothSphereHalfplaneContactImpl::calcPotentialEnergy(const State& state)
+Real SmoothSphereHalfplaneForceImpl::calcPotentialEnergy(const State& state)
     const { return Value<Real>::downcast(state.getCacheEntry(
         subsystem.getMySubsystemIndex(), energyCacheIndex)).get();
 }

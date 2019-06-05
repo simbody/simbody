@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_CONTACT_IMPL_H_
-#define SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_CONTACT_IMPL_H_
+#ifndef SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_FORCE_IMPL_H_
+#define SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_FORCE_IMPL_H_
 
 /* -------------------------------------------------------------------------- *
  *                               Simbody(tm)                                  *
@@ -26,12 +26,12 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/SmoothSphereHalfplaneContact.h"
+#include "simbody/internal/SmoothSphereHalfplaneForce.h"
 #include "ForceImpl.h"
 
 namespace SimTK {
 
-class SmoothSphereHalfplaneContactImpl : public ForceImpl {
+class SmoothSphereHalfplaneForceImpl : public ForceImpl {
 public:
     class Parameters {
     public:
@@ -55,64 +55,64 @@ public:
     Parameters      parameters;
     Plane           contactPlane;
 
-    SmoothSphereHalfplaneContactImpl(GeneralForceSubsystem& subsystem);
+    SmoothSphereHalfplaneForceImpl(GeneralForceSubsystem& subsystem);
 
-    SmoothSphereHalfplaneContactImpl* clone() const override {
-        return new SmoothSphereHalfplaneContactImpl(*this);
+    SmoothSphereHalfplaneForceImpl* clone() const override {
+        return new SmoothSphereHalfplaneForceImpl(*this);
     }
     /**
-     * Set the contact material parameters
+     * Set the contact material parameters.
      *
-     * @param stiffness             the stiffness constant
-     * @param dissipation           the dissipation coefficient (c)
-     * @param staticFriction        the coefficient of static friction (us)
-     * @param dynamicFriction       the coefficient of dynamic friction (ud)
-     * @param viscousFriction       the coefficient of viscous friction (uv)
-     * @param transitionVelocity    the transition velocity (vt)
+     * @param stiffness the stiffness constant, default is 1
+     * @param dissipation the dissipation coefficient, default is 0
+     * @param staticFriction the coefficient of static friction, default is 0
+     * @param dynamicFriction the coefficient of dynamic friction, default is 0
+     * @param viscousFriction the coefficient of viscous friction, default is 0
+     * @param transitionVelocity the transition velocity, default is 0.01
      */
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
         Real dynamicFriction, Real viscousFriction, Real transitionVelocity);
-    /** Get parameters */
+    /** Get parameters. */
     const Parameters& getParameters() const;
-    /** Update parameters */
+    /** Update parameters. */
     Parameters& updParameters();
-    /** Set the stiffness constant */
+    /** Set the stiffness constant. */
     void setStiffness(Real stiffness);
-    /** Set the dissipation coefficient */
+    /** Set the dissipation coefficient. */
     void setDissipation(Real dissipation);
-    /** Set the coefficient of static friction */
+    /** Set the coefficient of static friction. */
     void setStaticFriction(Real staticFriction);
-    /** Set the coefficient of dynamic friction */
+    /** Set the coefficient of dynamic friction. */
     void setDynamicFriction(Real dynamicFriction);
-    /** Set the coefficient of viscous friction */
+    /** Set the coefficient of viscous friction. */
     void setViscousFriction(Real viscousFriction);
-    /** Set the transition velocity */
+    /** Set the transition velocity. */
     void setTransitionVelocity(Real transitionVelocity);
     /**
-    * Set contact plane
+    * Set the contact plane.
     *
     * @param normal     direction of the normal to the plane of contact
     * @param offset     distance to the ground origin along the normal
     */
     void setContactPlane(Vec3 normal, Real offset);
-    /** Set the Mobilized Body to which the contact sphere is attached */
+    /** Set the MobilizedBody to which the contact sphere is attached. */
     void setContactSphere(MobilizedBody bodyInput);
-    /** Set the location of the contact sphere in the body frame */
+    /** Set the location of the contact sphere in the body frame. */
     void setLocationContactSphere(Vec3 locationContactSphere);
-    /** Set the radius of the contact sphere */
+    /** Set the radius of the contact sphere. */
     void setRadiusContactSphere(Real radius);
-    /** Get the Mobilized Body to which the contact sphere is attached */
+    /** Get the MobilizedBody to which the contact sphere is attached. */
     MobilizedBody getBodySphere();
-    /** Get the location of the contact sphere in the body frame */
+    /** Get the location of the contact sphere in the body frame. */
     Vec3 getLocationContactSphere();
-    /** Set the radius of the sphere */
+    /** Set the radius of the sphere. */
     Real getRadiusContactSphere();
-    /** Get the location of the contact point in the ground frame */
+    /** Get the location of the contact point in the ground frame. */
     void getContactPointSphere(const State& state,Vec3& contactPointPos) const;
-    /** Calculate contact force */
+    /** Calculate contact force. */
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
         Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;
-    /** TODO */
+    /** Calculate potential energy. */
     Real calcPotentialEnergy(const State& state) const override;
     void realizeTopology(State& state) const override;
 private:
@@ -122,4 +122,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_CONTACT_IMPL_H_
+#endif // SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_FORCE_IMPL_H_
