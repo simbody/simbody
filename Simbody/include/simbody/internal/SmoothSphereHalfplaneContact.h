@@ -88,7 +88,7 @@ class SmoothSphereHalfplaneContactImpl;
  * sphere and plane), x is penetration depth, and R is sphere radius.
  * In the smooth approximation, we use the expression:
  * <pre>     fh_pos = (4/3) k (R k)^(1/2) ((x^2+eps)^(1/2))^(3/2) </pre>
- * <pre>     fh_smooth = fh_pos (1/2+(1/2)tanh(b d x)); </pre>
+ * <pre>     fh_smooth = fh_pos (1/2+(1/2)tanh(bd x)) </pre>
  * where eps=1e-5 enforces a small force even when there is no contact between
  * the sphere and the plane, and bd=300 determines the smoothness of the tanh
  * transition.
@@ -97,15 +97,15 @@ class SmoothSphereHalfplaneContactImpl;
  * <pre>     f = fh (1+(3/2) c v) </pre>
  * where c is dissipation and v is penetration rate.
  * In the smooth approximation, we use the expression:
- * <pre>     f_pos = fh_smooth (1+(3/2) c v); </pre>
- * <pre>     f_smooth = f_pos (1/2+(1/2) tanh(bv (v+(2/(3 c))))); </pre>
+ * <pre>     f_pos = fh_smooth (1+(3/2) c v) </pre>
+ * <pre>     f_smooth = f_pos (1/2+(1/2) tanh(bv (v+(2/(3 c))))) </pre>
  * where bv=50 determines the smoothness of the tanh transition.
  *
  * <h1>Friction Force</h1>
  *
  * The friction force is based on a model by Michael Hollars:
  *
- * <pre>     f = f_smooth [min(vs/vt,1) (ud+2(us-ud)/(1+(vs/vt)^2))+uv vs] </pre>
+ * <pre> f = f_smooth [min(vs/vt,1) (ud+2(us-ud)/(1+(vs/vt)^2))+uv vs] </pre>
  *
  * where f_smooth is the smooth normal force at the contact point, vs is the
  * slip (tangential) velocity of the two bodies at the contact point, vt is a
@@ -123,7 +123,7 @@ class SmoothSphereHalfplaneContactImpl;
  * be a nonzero drift, no matter how small the force is. The transition
  * velocity vt acts as an upper limit on the drift velocity. By setting vt to a
  * sufficiently small value, the drift velocity can be made arbitrarily small,
- * at the cost of making the equations of motion very stiff. 
+ * at the cost of making the equations of motion very stiff.
  */
 class SimTK_SIMBODY_EXPORT SmoothSphereHalfplaneContact : public Force {
 public:
@@ -142,8 +142,8 @@ public:
      * @param dynamicFriction       the coefficient of dynamic friction (ud)
      * @param viscousFriction       the coefficient of viscous friction (uv)
      * @param transitionVelocity    the transition velocity (vt)
-     * The default values are 1 for stiffness, 0 for dissipation, 
-     * staticFriction, dynamicFriction and viscousFriction and 0.01 for the
+     * The default values are 1 for stiffness, 0 for dissipation,
+     * staticFriction, dynamicFriction, and viscousFriction, and 0.01 for
      * transitionVelocity
      */
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,

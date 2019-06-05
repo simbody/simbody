@@ -81,8 +81,8 @@ void testForces() {
         Real f_smooth = f*(1./2.+(1./2.)*std::tanh(bd*depth));
         assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)
             [sphere.getMobilizedBodyIndex()][1], gravity+Vec3(0, f_smooth, 0));
-        assertEqual(hc_smooth.calcPotentialEnergyContribution(state), 
-            (2. / 5.)*f*depth);
+        assertEqual(hc_smooth.calcPotentialEnergyContribution(state),
+            (2./ 5.)*f*depth);
     }
 
     // Now do it with a vertical velocity and see if the dissipation force is
