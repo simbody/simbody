@@ -49,11 +49,11 @@ class SmoothSphereHalfplaneContactImpl;
  * The smoothing of the if statements in the original contact model is
  * performed by using hyperbolic tangent functions. For example, the following
  * if statement:
- *      y = 0, if x < d
- *      y = a, if x >= d
+ * <pre>     y = 0, if x < d </pre>
+ * <pre>     y = a, if x >= d </pre>
  * can be approximated by:
- *      f = 0.5 + 0.5*tanh(b(x-d))
- *      y = a*f
+ * <pre>     f = 0.5 + 0.5 tanh(b(x-d)) </pre>
+ * <pre>     y = a f </pre>
  * where b is a parameter determining the smoothness of the transition.
  *
  * Similar to the original implementation, this contact model includes
@@ -82,30 +82,30 @@ class SmoothSphereHalfplaneContactImpl;
  * value of the slope at low velocities.
  *
  * The original Hertz force between a sphere and a plane is given by:
- *      fh = 4/3*k*x*(R*k*x)^(1/2)
- * where k = 0.5*stiffness^(2/3) where stiffness is the effective Young's
+ * <pre>     fh = (4/3) k x (R k x)^(1/2) </pre>
+ * where k = 0.5 stiffness^(2/3) where stiffness is the effective Young's
  * modulus, which is assumed identical for both contacting materials (i.e.,
  * sphere and plane), x is penetration depth, and R is sphere radius.
  * In the smooth approximation, we use the expression:
- *      fh_pos = 4/3*k*(R*k*)^(1/2)*((x^2+eps)^(1/2))^(3/2)
- *      fh_smooth = fh_pos*(1./2.+(1./2.)*tanh(bd*x));
+ * <pre>     fh_pos = (4/3) k (R k)^(1/2) ((x^2+eps)^(1/2))^(3/2) </pre>
+ * <pre>     fh_smooth = fh_pos (1/2+(1/2)tanh(bd x)) </pre>
  * where eps=1e-5 enforces a small force even when there is no contact between
  * the sphere and the plane, and bd=300 determines the smoothness of the tanh
  * transition.
  *
  * The original Hunt-Crossley force is given by:
- *      f = fh*(1+3/2*c*v)
+ * <pre>     f = fh (1+(3/2) c v) </pre>
  * where c is dissipation and v is penetration rate.
  * In the smooth approximation, we use the expression:
- *      f_pos = fh_smooth*(1.+(3./2.)*c*v);
- *      f_smooth = f_pos*(1./2.+(1./2.)*tanh(bv*(v+(2./(3.*c)))));
+ * <pre>     f_pos = fh_smooth (1+(3/2) c v) </pre>
+ * <pre>     f_smooth = f_pos (1/2+(1/2) tanh(bv (v+(2/(3 c))))) </pre>
  * where bv=50 determines the smoothness of the tanh transition.
  *
  * <h1>Friction Force</h1>
  *
  * The friction force is based on a model by Michael Hollars:
  *
- * f = f_smooth*[min(vs/vt,1)*(ud+2(us-ud)/(1+(vs/vt)^2))+uv*vs]
+ * <pre> f = f_smooth [min(vs/vt,1) (ud+2(us-ud)/(1+(vs/vt)^2))+uv vs] </pre>
  *
  * where f_smooth is the smooth normal force at the contact point, vs is the
  * slip (tangential) velocity of the two bodies at the contact point, vt is a
@@ -113,7 +113,7 @@ class SmoothSphereHalfplaneContactImpl;
  * static, dynamic, and viscous friction respectively. Each of the three
  * friction coefficients is calculated based on the friction coefficients of
  * the two bodies in contact:
- *      u = 2*u1*u2/(u1+u2)
+ * <pre>     u = (2 u1 u2)/(u1+u2) </pre>
  * In the smooth approximation, we assume the same coefficients for both
  * contacting materials.
  *
@@ -123,8 +123,7 @@ class SmoothSphereHalfplaneContactImpl;
  * be a nonzero drift, no matter how small the force is. The transition
  * velocity vt acts as an upper limit on the drift velocity. By setting vt to a
  * sufficiently small value, the drift velocity can be made arbitrarily small,
- * at the cost of making the equations of motion very stiff. The default value
- * of vt is 0.01.
+ * at the cost of making the equations of motion very stiff.
  */
 class SimTK_SIMBODY_EXPORT SmoothSphereHalfplaneContact : public Force {
 public:
@@ -143,6 +142,9 @@ public:
      * @param dynamicFriction       the coefficient of dynamic friction (ud)
      * @param viscousFriction       the coefficient of viscous friction (uv)
      * @param transitionVelocity    the transition velocity (vt)
+     * The default values are 1 for stiffness, 0 for dissipation,
+     * staticFriction, dynamicFriction, and viscousFriction, and 0.01 for
+     * transitionVelocity
      */
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
        Real dynamicFriction, Real viscousFriction, Real transitionVelocity);

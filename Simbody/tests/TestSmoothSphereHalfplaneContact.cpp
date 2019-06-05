@@ -70,9 +70,8 @@ void testForces() {
     hc_smooth.setLocationContactSphere(Vec3(0));
     hc_smooth.setRadiusContactSphere(radius);
     State state = system.realizeTopology();
-
     // Position the sphere at a variety of positions and see if the normal
-    // force is correct (with horizontal ground plane)
+    // force and potential energy are correct (with horizontal ground plane)
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
         system.realize(state, Stage::Dynamics);
@@ -82,6 +81,8 @@ void testForces() {
         Real f_smooth = f*(1./2.+(1./2.)*std::tanh(bd*depth));
         assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)
             [sphere.getMobilizedBodyIndex()][1], gravity+Vec3(0, f_smooth, 0));
+        assertEqual(hc_smooth.calcPotentialEnergyContribution(state),
+            (2./ 5.)*f*depth);
     }
 
     // Now do it with a vertical velocity and see if the dissipation force is

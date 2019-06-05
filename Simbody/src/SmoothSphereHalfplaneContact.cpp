@@ -194,6 +194,10 @@ void SmoothSphereHalfplaneContactImpl::calcForce(const State& state,
     Vec3 contactPointPos;
     getContactPointSphere(state, contactPointPos);
     const Real indentation = - contactPlane.getDistance(contactPointPos);
+    // Initialize the potential energy
+    Real& pe = Value<Real>::updDowncast(state.updCacheEntry(
+        subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
+    pe = 0.0;
     // Adjust the contact location based on the relative stiffness of the two
     // materials. Here we assume, as in the original Simbody Hunt-Crossley
     // contact model, that both materials have the same relative stiffness.
@@ -230,6 +234,7 @@ void SmoothSphereHalfplaneContactImpl::calcForce(const State& state,
     const Real k = (1./2.)*std::pow(stiffness, (2./3.));
     const Real fH = (4./3.)*k*std::sqrt(radiusContactSphere*k)*
         std::pow(std::sqrt(indentation*indentation+eps),(3./2.));
+    pe += Real(2./5.)*fH*indentation;
     // Calculate the Hunt-Crossley force.
     const Real c = dissipation;
     const Real fHd = fH*(1.+(3./2.)*c*indentationVel);
@@ -249,11 +254,9 @@ void SmoothSphereHalfplaneContactImpl::calcForce(const State& state,
         force, bodyForces);
 }
 
-// TODO
 Real SmoothSphereHalfplaneContactImpl::calcPotentialEnergy(const State& state)
-    const {
-    Real PotentialEnergy = 0;
-    return PotentialEnergy;
+    const { return Value<Real>::downcast(state.getCacheEntry(
+        subsystem.getMySubsystemIndex(), energyCacheIndex)).get();
 }
 
 } // namespace SimTK
