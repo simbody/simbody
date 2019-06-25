@@ -55,15 +55,15 @@ void testForces() {
     const Real ud = 0.5;
     const Real uv = 0.1;
     const Real vt = 0.001;
-    double eps = 1e-5;
-    double bd = 300;
-    double bv = 50;
+    const Real cf = 1e-5;
+    const Real bd = 300;
+    const Real bv = 50;
     Random::Uniform random(0.0, 1.0);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Translation sphere(matter.updGround(),
         Transform(), body, Transform());
     SmoothSphereHalfplaneForce hc_smooth(forces);
-    hc_smooth.setParameters(k,dissipation,us,ud,uv,vt);
+    hc_smooth.setParameters(k,dissipation,us,ud,uv,vt,cf,bd,bv);
     Vec3 normal(0,1,0);
     hc_smooth.setContactPlane(normal,.0);
     hc_smooth.setContactSphereInBody(sphere);
@@ -76,7 +76,7 @@ void testForces() {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
         system.realize(state, Stage::Dynamics);
         const Real depth = radius-height;
-        Real f = (4./3.)*stiffness*std::pow(std::sqrt(depth*depth+eps),3./2.)
+        Real f = (4./3.)*stiffness*std::pow(std::sqrt(depth*depth+cf),3./2.)
             *std::sqrt(radius*stiffness);
         Real f_smooth = f*(1./2.+(1./2.)*std::tanh(bd*depth));
         assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)
@@ -90,7 +90,7 @@ void testForces() {
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
         const Real depth = radius-height;
-        Real fh = (4./3.)*stiffness*std::pow(std::sqrt(depth*depth+eps),3./2.)
+        Real fh = (4./3.)*stiffness*std::pow(std::sqrt(depth*depth+cf),3./2.)
             *std::sqrt(radius*stiffness);
         Real fh_smooth = fh*(1./2.+(1./2.)*std::tanh(bd*depth));
 
@@ -112,7 +112,7 @@ void testForces() {
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
         const Real depth = radius-height;
-        Real fh = (4./3.)*stiffness*std::pow(std::sqrt(depth*depth+eps),3./2.)
+        Real fh = (4./3.)*stiffness*std::pow(std::sqrt(depth*depth+cf),3./2.)
             *std::sqrt(radius*stiffness);
         Real fh_smooth = fh*(1./2.+(1./2.)*std::tanh(bd*depth));
 
@@ -122,7 +122,7 @@ void testForces() {
             Vec3 vec3v(v,0,0);
             Real vnormal = dot(vec3v, normal);
             Vec3 vtangent = vec3v - vnormal*normal;
-            Real aux = vtangent.normSqr() + eps;
+            Real aux = vtangent.normSqr() + cf;
             Real vslip = pow(aux,1./2.);
             Real vrel = vslip / vt;
             Real ff_smooth_scalar = fh_smooth*(std::min(vrel,Real(1))*
@@ -168,7 +168,7 @@ void testForces() {
             Real IndentationVel = -vnormal;
 
             Real fh = (4./3.)*stiffness*
-                std::pow(std::sqrt(depth*depth + eps), 3./2.)*
+                std::pow(std::sqrt(depth*depth + cf), 3./2.)*
                 std::sqrt(radius*stiffness);
             Real fhd = fh*(1.+(3./2.)*dissipation*IndentationVel);
             Real fh_smooth = fhd*(1./2.+(1./2.)*std::tanh(bd*depth))*
@@ -176,7 +176,7 @@ void testForces() {
                 (2./(3.*dissipation)))));;
 
             Real aux = pow(vtangent[0],2) + pow(vtangent[1],2) +
-                pow(vtangent[2],2) + eps;
+                pow(vtangent[2],2) + cf;
             Real vslip = pow(aux,1./2.);
             Real vrel = vslip/vt;
             Real ff_smooth_scalar = fh_smooth*(std::min(vrel, Real(1))*

@@ -51,16 +51,18 @@ void SmoothSphereHalfplaneForceImpl::realizeTopology(State& state) const {
 
 void SmoothSphereHalfplaneForce::setParameters
     (Real stiffness, Real dissipation, Real staticFriction,
-    Real dynamicFriction, Real viscousFriction, Real transitionVelocity) {
+    Real dynamicFriction, Real viscousFriction, Real transitionVelocity, Real
+    cf, Real bd, Real bv) {
     updImpl().setParameters(stiffness, dissipation, staticFriction,
-        dynamicFriction, viscousFriction, transitionVelocity);
+        dynamicFriction, viscousFriction, transitionVelocity, cf, bd, bv);
 }
 
 void SmoothSphereHalfplaneForceImpl::setParameters
     (Real stiffness, Real dissipation,  Real staticFriction,
-    Real dynamicFriction, Real viscousFriction, Real transitionVelocity) {
+    Real dynamicFriction, Real viscousFriction, Real transitionVelocity, Real
+    cf, Real bd, Real bv) {
     updParameters() = Parameters(stiffness, dissipation, staticFriction,
-        dynamicFriction, viscousFriction, transitionVelocity);
+        dynamicFriction, viscousFriction, transitionVelocity, cf, bd, bv);
 }
 
 void SmoothSphereHalfplaneForce::setStiffness(Real stiffness) {
@@ -111,6 +113,31 @@ void SmoothSphereHalfplaneForce::setTransitionVelocity(
 void SmoothSphereHalfplaneForceImpl::setTransitionVelocity
     (Real transitionVelocity) {
     parameters.transitionVelocity = transitionVelocity;
+}
+
+void SmoothSphereHalfplaneForce::setConstantContactForce(Real cf) {
+    updImpl().parameters.cf = cf;
+}
+
+void SmoothSphereHalfplaneForceImpl::setConstantContactForce(Real cf) {
+    parameters.cf = cf;
+}
+
+void SmoothSphereHalfplaneForce::setParameterTanhHertzForce(Real bd) {
+    updImpl().parameters.bd = bd;
+}
+
+void SmoothSphereHalfplaneForceImpl::setParameterTanhHertzForce(Real bd) {
+    parameters.bd = bd;
+}
+
+void SmoothSphereHalfplaneForce::setParameterTanhHuntCrossleyForce(Real bv) {
+    updImpl().parameters.bv = bv;
+}
+
+void SmoothSphereHalfplaneForceImpl::setParameterTanhHuntCrossleyForce(
+    Real bv) {
+    parameters.bv = bv;
 }
 
 void SmoothSphereHalfplaneForce::setContactPlane(Vec3 normal, Real offset) {
@@ -230,14 +257,13 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     const Real us = parameters.staticFriction;
     const Real ud = parameters.dynamicFriction;
     const Real uv = parameters.viscousFriction;
-    // Set the parameters for the smooth approximations.
-    double eps = 1e-5;
-    double bv = 50;
-    double bd = 300;
+    const Real cf = parameters.cf;
+    const Real bd = parameters.bd;
+    const Real bv = parameters.bv;
     // Calculate the Hertz force.
     const Real k = (1./2.)*std::pow(stiffness, (2./3.));
     const Real fH = (4./3.)*k*std::sqrt(radiusContactSphere*k)*
-        std::pow(std::sqrt(indentation*indentation+eps),(3./2.));
+        std::pow(std::sqrt(indentation*indentation+cf),(3./2.));
     pe += Real(2./5.)*fH*indentation;
     // Calculate the Hunt-Crossley force.
     const Real c = dissipation;
@@ -246,7 +272,7 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
         (1./2.+(1./2.)*std::tanh(bv*(indentationVel+(2./(3.*c)))));
     Vec3 force = fn*normal;
     // Calculate the friction force.
-    const Real aux = vtangent.normSqr()+eps;
+    const Real aux = vtangent.normSqr()+cf;
     const Real vslip = pow(aux,1./2.);
     const Real vrel = vslip / vt;
     const Real ffriction = fn*(std::min(vrel,Real(1))*

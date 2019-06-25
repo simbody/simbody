@@ -36,17 +36,19 @@ public:
     class Parameters {
     public:
         Parameters() : stiffness(1), dissipation(0), staticFriction(0),
-            dynamicFriction(0), viscousFriction(0), transitionVelocity(0.01) {
+            dynamicFriction(0), viscousFriction(0), transitionVelocity(0.01),
+            cf(1e-5), bd(300), bv(50) {
         }
         Parameters(Real stiffness, Real dissipation, Real staticFriction,
             Real dynamicFriction, Real viscousFriction,
-            Real transitionVelocity) : stiffness(stiffness),
-            dissipation(dissipation), staticFriction(staticFriction),
-            dynamicFriction(dynamicFriction), viscousFriction(viscousFriction),
-            transitionVelocity(transitionVelocity) {
+            Real transitionVelocity, Real cf, Real bd, Real bv) :
+            stiffness(stiffness), dissipation(dissipation),
+            staticFriction(staticFriction), dynamicFriction(dynamicFriction),
+            viscousFriction(viscousFriction),
+            transitionVelocity(transitionVelocity), cf(cf), bd(bd), bv(bv) {
         }
         Real stiffness, dissipation, staticFriction, dynamicFriction,
-            viscousFriction, transitionVelocity;
+            viscousFriction, transitionVelocity, cf, bd, bv;
     };
 
     Real            radiusContactSphere;
@@ -62,7 +64,8 @@ public:
     }
     // Set the contact material parameters.
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
-        Real dynamicFriction, Real viscousFriction, Real transitionVelocity);
+        Real dynamicFriction, Real viscousFriction, Real transitionVelocity,
+        Real cf, Real bd, Real bv);
     // Get parameters.
     const Parameters& getParameters() const;
     // Update parameters.
@@ -79,6 +82,15 @@ public:
     void setViscousFriction(Real viscousFriction);
     // Set the transition velocity.
     void setTransitionVelocity(Real transitionVelocity);
+    // Set the constant that enforces a small contact force even when there
+    // is no contact between the sphere and the plane.
+    void setConstantContactForce(Real cf);
+    // Set the parameter that determines the smoothness of the transition
+    // of the tanh used to smooth the Hertz force.
+    void setParameterTanhHertzForce(Real bd);
+    // Set the parameter that determines the smoothness of the transition
+    // of the tanh used to smooth the Hunt-Crossley force.
+    void setParameterTanhHuntCrossleyForce(Real bv);
     // Set the contact plane.
     void setContactPlane(Vec3 normal, Real offset);
     // Set the MobilizedBody to which the contact sphere is attached.

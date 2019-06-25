@@ -80,9 +80,17 @@ public:
      * @param dynamicFriction the coefficient of dynamic friction, default is 0
      * @param viscousFriction the coefficient of viscous friction, default is 0
      * @param transitionVelocity the transition velocity, default is 0.01
+     * @param cf constant that enforces a small contact force even when there
+           is no contact between the sphere and the plane to ensure
+           differentiability of the model, default is 1e-5
+     * @param bd parameter that determines the smoothness of the transition
+           of the tanh used to smooth the Hertz force, default is 300
+     * @param bv parameter that determines the smoothness of the transition
+           of the tanh used to smooth the Hunt-Crossley force, default is 50
      */
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
-       Real dynamicFriction, Real viscousFriction, Real transitionVelocity);
+       Real dynamicFriction, Real viscousFriction, Real transitionVelocity,
+       Real eps, Real bd, Real bv);
     /** Set the stiffness constant. */
     void setStiffness(Real stiffness);
     /** Set the dissipation coefficient. */
@@ -95,6 +103,15 @@ public:
     void setViscousFriction(Real viscousFriction);
     /** Set the transition velocity. */
     void setTransitionVelocity(Real transitionVelocity);
+    /** Set the constant that enforces a small contact force even when there
+        is no contact between the sphere and the plane. */
+    void setConstantContactForce(Real cf);
+    /** Set the parameter that determines the smoothness of the transition
+        of the tanh used to smooth the Hertz force. */
+    void setParameterTanhHertzForce(Real bd);
+    /** Set the parameter that determines the smoothness of the transition
+        of the tanh used to smooth the Hunt-Crossley force. */
+    void setParameterTanhHuntCrossleyForce(Real bv);
     /**
     * Set the contact plane.
     *
