@@ -66,9 +66,9 @@ void testForces() {
     hc_smooth.setParameters(k,dissipation,us,ud,uv,vt);
     Vec3 normal(0,1,0);
     hc_smooth.setContactPlane(normal,.0);
-    hc_smooth.setContactSphere(sphere);
-    hc_smooth.setLocationContactSphere(Vec3(0));
-    hc_smooth.setRadiusContactSphere(radius);
+    hc_smooth.setContactSphereInBody(sphere);
+    hc_smooth.setContactSphereLocationInBody(Vec3(0));
+    hc_smooth.setContactSphereRadius(radius);
     State state = system.realizeTopology();
     // Position the sphere at a variety of positions and see if the normal
     // force and potential energy are correct (with horizontal ground plane)
@@ -122,8 +122,7 @@ void testForces() {
             Vec3 vec3v(v,0,0);
             Real vnormal = dot(vec3v, normal);
             Vec3 vtangent = vec3v - vnormal*normal;
-            Real aux = pow(vtangent[0],2) + pow(vtangent[1],2) +
-                pow(vtangent[2],2) + eps;
+            Real aux = vtangent.normSqr() + eps;
             Real vslip = pow(aux,1./2.);
             Real vrel = vslip / vt;
             Real ff_smooth_scalar = fh_smooth*(std::min(vrel,Real(1))*

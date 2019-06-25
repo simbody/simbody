@@ -60,59 +60,45 @@ public:
     SmoothSphereHalfplaneForceImpl* clone() const override {
         return new SmoothSphereHalfplaneForceImpl(*this);
     }
-    /**
-     * Set the contact material parameters.
-     *
-     * @param stiffness the stiffness constant, default is 1
-     * @param dissipation the dissipation coefficient, default is 0
-     * @param staticFriction the coefficient of static friction, default is 0
-     * @param dynamicFriction the coefficient of dynamic friction, default is 0
-     * @param viscousFriction the coefficient of viscous friction, default is 0
-     * @param transitionVelocity the transition velocity, default is 0.01
-     */
+    // Set the contact material parameters.
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
         Real dynamicFriction, Real viscousFriction, Real transitionVelocity);
-    /** Get parameters. */
+    // Get parameters.
     const Parameters& getParameters() const;
-    /** Update parameters. */
+    // Update parameters.
     Parameters& updParameters();
-    /** Set the stiffness constant. */
+    // Set the stiffness constant.
     void setStiffness(Real stiffness);
-    /** Set the dissipation coefficient. */
+    // Set the dissipation coefficient.
     void setDissipation(Real dissipation);
-    /** Set the coefficient of static friction. */
+    // Set the coefficient of static friction.
     void setStaticFriction(Real staticFriction);
-    /** Set the coefficient of dynamic friction. */
+    // Set the coefficient of dynamic friction.
     void setDynamicFriction(Real dynamicFriction);
-    /** Set the coefficient of viscous friction. */
+    // Set the coefficient of viscous friction.
     void setViscousFriction(Real viscousFriction);
-    /** Set the transition velocity. */
+    // Set the transition velocity.
     void setTransitionVelocity(Real transitionVelocity);
-    /**
-    * Set the contact plane.
-    *
-    * @param normal     direction of the normal to the plane of contact
-    * @param offset     distance to the ground origin along the normal
-    */
+    // Set the contact plane.
     void setContactPlane(Vec3 normal, Real offset);
-    /** Set the MobilizedBody to which the contact sphere is attached. */
-    void setContactSphere(MobilizedBody bodyInput);
-    /** Set the location of the contact sphere in the body frame. */
-    void setLocationContactSphere(Vec3 locationContactSphere);
-    /** Set the radius of the contact sphere. */
-    void setRadiusContactSphere(Real radius);
-    /** Get the MobilizedBody to which the contact sphere is attached. */
+    // Set the MobilizedBody to which the contact sphere is attached.
+    void setContactSphereInBody(MobilizedBody bodyInput);
+    // Set the location of the contact sphere in the body frame.
+    void setContactSphereLocationInBody(Vec3 locationContactSphere);
+    // Set the radius of the contact sphere.
+    void setContactSphereRadius(Real radius);
+    // Get the MobilizedBody to which the contact sphere is attached.
     MobilizedBody getBodySphere();
-    /** Get the location of the contact sphere in the body frame. */
-    Vec3 getLocationContactSphere();
-    /** Set the radius of the sphere. */
-    Real getRadiusContactSphere();
-    /** Get the location of the contact point in the ground frame. */
+    // Get the location of the contact sphere in the body frame.
+    Vec3 getContactSphereLocationInBody();
+    // Get the radius of the contact sphere.
+    Real getContactSphereRadius();
+    // Get the location of the contact point in the ground frame.
     void getContactPointSphere(const State& state,Vec3& contactPointPos) const;
-    /** Calculate contact force. */
+    // Calculate contact force.
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
         Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;
-    /** Calculate potential energy. */
+    // Calculate potential energy.
     Real calcPotentialEnergy(const State& state) const override;
     void realizeTopology(State& state) const override;
 private:

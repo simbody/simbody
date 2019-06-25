@@ -121,29 +121,31 @@ void SmoothSphereHalfplaneForceImpl::setContactPlane(Vec3 normal,Real offset) {
     contactPlane = Plane(normal, offset);
 }
 
-void SmoothSphereHalfplaneForce::setContactSphere(MobilizedBody bodyInput) {
+void SmoothSphereHalfplaneForce::setContactSphereInBody(
+    MobilizedBody bodyInput) {
     updImpl().bodySphere = bodyInput;
 }
 
-void SmoothSphereHalfplaneForceImpl::setContactSphere(MobilizedBody bodyInput){
+void SmoothSphereHalfplaneForceImpl::setContactSphereInBody(
+    MobilizedBody bodyInput){
     bodySphere = bodyInput;
 }
 
-void SmoothSphereHalfplaneForce::setLocationContactSphere(
+void SmoothSphereHalfplaneForce::setContactSphereLocationInBody(
     Vec3 LocContactSphere) {
     updImpl().locationContactSphere = LocContactSphere;
 }
 
-void SmoothSphereHalfplaneForceImpl::setLocationContactSphere
+void SmoothSphereHalfplaneForceImpl::setContactSphereLocationInBody
     (Vec3 locationContactSphere) {
     locationContactSphere = locationContactSphere;
 }
 
-void SmoothSphereHalfplaneForce::setRadiusContactSphere(Real radius) {
+void SmoothSphereHalfplaneForce::setContactSphereRadius(Real radius) {
     updImpl().radiusContactSphere = radius;
 }
 
-void SmoothSphereHalfplaneForceImpl::setRadiusContactSphere(Real radius) {
+void SmoothSphereHalfplaneForceImpl::setContactSphereRadius(Real radius) {
     radiusContactSphere = radius;
 }
 
@@ -155,19 +157,19 @@ MobilizedBody SmoothSphereHalfplaneForceImpl::getBodySphere() {
     return bodySphere;
 }
 
-Vec3 SmoothSphereHalfplaneForce::getLocationContactSphere() {
+Vec3 SmoothSphereHalfplaneForce::getContactSphereLocationInBody() {
     return updImpl().locationContactSphere;
 }
 
-Vec3 SmoothSphereHalfplaneForceImpl::getLocationContactSphere() {
+Vec3 SmoothSphereHalfplaneForceImpl::getContactSphereLocationInBody() {
     return locationContactSphere;
 }
 
-Real SmoothSphereHalfplaneForce::setRadiusContactSphere() {
+Real SmoothSphereHalfplaneForce::getContactSphereRadius() {
     return updImpl().radiusContactSphere;
 }
 
-Real SmoothSphereHalfplaneForceImpl::getRadiusContactSphere() {
+Real SmoothSphereHalfplaneForceImpl::getContactSphereRadius() {
     return radiusContactSphere;
 }
 
@@ -244,8 +246,7 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
         (1./2.+(1./2.)*std::tanh(bv*(indentationVel+(2./(3.*c)))));
     Vec3 force = fn*normal;
     // Calculate the friction force.
-    const Real aux = pow(vtangent[0],2) +
-        pow(vtangent[1],2)+pow(vtangent[2],2)+eps;
+    const Real aux = vtangent.normSqr()+eps;
     const Real vslip = pow(aux,1./2.);
     const Real vrel = vslip / vt;
     const Real ffriction = fn*(std::min(vrel,Real(1))*

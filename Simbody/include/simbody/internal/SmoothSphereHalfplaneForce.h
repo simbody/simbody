@@ -59,16 +59,14 @@ class SmoothSphereHalfplaneForceImpl;
  * <ol>
  * <li>Add a GeneralForceSubsystem to a MultibodySystem.</li>
  * <li>Add a SmoothSphereHalfplaneForce to the GeneralForceSubsystem, call
- * setParameters(), setContactSphere(), setRadiusContactSphere(),
- * setLocationContactSphere(), and setContactPlane(). </li>
+ * setParameters(), setContactSphereInBody(), setContactSphereRadius(),
+ * setContactSphereLocationInBody(), and setContactPlane(). </li>
  * </ol>
  *
  */
 class SimTK_SIMBODY_EXPORT SmoothSphereHalfplaneForce : public Force {
 public:
     /**
-     * Create a smooth sphere to half plane Hunt-Crossley contact model.
-     *
      * @param forces the subsystem that will own this
         SmoothSphereHalfplaneForce element
      */
@@ -105,17 +103,17 @@ public:
     */
     void setContactPlane(Vec3 normal, Real offset);
     /** Set the MobilizedBody to which the contact sphere is attached. */
-    void setContactSphere(MobilizedBody bodyInput);
+    void setContactSphereInBody(MobilizedBody bodyInput);
     /** Set the location of the contact sphere in the body frame. */
-    void setLocationContactSphere(Vec3 locationSphere);
+    void setContactSphereLocationInBody(Vec3 locationSphere);
     /** Set the radius of the contact sphere. */
-    void setRadiusContactSphere(Real radius);
+    void setContactSphereRadius(Real radius);
     /** Get the MobilizedBody to which the contact sphere is attached. */
     MobilizedBody getBodySphere();
     /** Get the location of the contact sphere in the body frame. */
-    Vec3 getLocationContactSphere();
-    /** Set the radius of the sphere. */
-    Real setRadiusContactSphere();
+    Vec3 getContactSphereLocationInBody();
+    /** Get the radius of the contact sphere. */
+    Real getContactSphereRadius();
 
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(SmoothSphereHalfplaneForce,
         SmoothSphereHalfplaneForceImpl, Force);
