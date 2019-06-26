@@ -259,7 +259,7 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     getContactSphereOrigin(state, contactSphereOrigin);
     UnitVec3 normal;
     getNormalContactPlane(state, normal);
-    const Vec3 contactPointPosition = contactSphereOrigin -
+    const Vec3 contactPointPosition = contactSphereOrigin +
         contactSphereRadius*normal;
     // TODO not sure it is correct see SphereOnPlaneContact::findSeparation
     const Vec3 contactSphereLocationInPlane =
@@ -281,7 +281,7 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     // location of the contact sphere center minus its radius.
     ////////////////const Vec3 normal = contactPlane.getNormal(); // TODO
     const Vec3 contactPointPositionSphereAdjustedInGround =
-        contactPointPosition+Real(1./2.)*indentation*normal;
+        contactPointPosition-Real(1./2.)*indentation*normal;
     // Calculate the contact point velocity.
     const Vec3 station1 = bodySphere.findStationAtGroundPoint(state,
         contactPointPositionSphereAdjustedInGround);
@@ -324,6 +324,8 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
         (ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
     force += ffriction*(vtangent) / vslip;
     // Apply the force to the bodies.
+    std::cout << "expected 0" << station1 << std::endl;
+        std::cout << "expected 1" << force << std::endl;
     bodySphere.applyForceToBodyPoint(state, station1, -force, bodyForces);
     // TODO is this necessary?
     bodyPlane.applyForceToBodyPoint(state, station2, force, bodyForces);
