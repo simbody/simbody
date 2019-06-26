@@ -78,41 +78,41 @@ void testForces() {
     hc_smooth.setContactPlaneFrame(testFrame);
     hc_smooth.setContactPlaneInBody(plane);
     State state = system.realizeTopology();
-    //// Position the sphere at a variety of positions and see if the normal
-    //// force and potential energy are correct (with horizontal ground plane)
-    //for (Real height = radius+0.2; height > 0; height -= 0.1) {
-    //    sphere.setQToFitTranslation(state, Vec3(0, height, 0));
-    //    system.realize(state, Stage::Dynamics);
-    //    const Real depth = radius-height;
-    //    Real f = (4./3.)*stiffness*std::pow(std::sqrt(depth*depth+cf),3./2.)
-    //        *std::sqrt(radius*stiffness);
-    //    Real f_smooth = f*(1./2.+(1./2.)*std::tanh(bd*depth));
-    //    assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)
-    //        [sphere.getMobilizedBodyIndex()][1], gravity+Vec3(0, f_smooth, 0));
-    //    assertEqual(hc_smooth.calcPotentialEnergyContribution(state),
-    //        (2./ 5.)*f*depth);
-    //}
+    // Position the sphere at a variety of positions and see if the normal
+    // force and potential energy are correct (with horizontal ground plane)
+    for (Real height = radius+0.2; height > 0; height -= 0.1) {
+        sphere.setQToFitTranslation(state, Vec3(0, height, 0));
+        system.realize(state, Stage::Dynamics);
+        const Real depth = radius-height;
+        Real f = (4./3.)*stiffness*std::pow(std::sqrt(depth*depth+cf),3./2.)
+            *std::sqrt(radius*stiffness);
+        Real f_smooth = f*(1./2.+(1./2.)*std::tanh(bd*depth));
+        assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)
+            [sphere.getMobilizedBodyIndex()][1], gravity+Vec3(0, f_smooth, 0));
+        assertEqual(hc_smooth.calcPotentialEnergyContribution(state),
+            (2./ 5.)*f*depth);
+    }
 
-    //// Now do it with a vertical velocity and see if the dissipation force is
-    //// correct (with horizontal ground plane)
-    //for (Real height = radius+0.2; height > 0; height -= 0.1) {
-    //    sphere.setQToFitTranslation(state, Vec3(0, height, 0));
-    //    const Real depth = radius-height;
-    //    Real fh = (4./3.)*stiffness*std::pow(std::sqrt(depth*depth+cf),3./2.)
-    //        *std::sqrt(radius*stiffness);
-    //    Real fh_smooth = fh*(1./2.+(1./2.)*std::tanh(bd*depth));
+    // Now do it with a vertical velocity and see if the dissipation force is
+    // correct (with horizontal ground plane)
+    for (Real height = radius+0.2; height > 0; height -= 0.1) {
+        sphere.setQToFitTranslation(state, Vec3(0, height, 0));
+        const Real depth = radius-height;
+        Real fh = (4./3.)*stiffness*std::pow(std::sqrt(depth*depth+cf),3./2.)
+            *std::sqrt(radius*stiffness);
+        Real fh_smooth = fh*(1./2.+(1./2.)*std::tanh(bd*depth));
 
-    //    for (Real v = -1.0; v <= 1.0; v += 0.1) {
-    //        sphere.setUToFitLinearVelocity(state, Vec3(0, -v, 0));
-    //        system.realize(state, Stage::Dynamics);
-    //        Real f = fh_smooth*(1.+(3./2.)*dissipation*v);
-    //        Real f_smooth = f*(1./2.+(1./2.)
-    //            *std::tanh(bv*(v+(2./(3.*dissipation)))));
-    //        assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)
-    //            [sphere.getMobilizedBodyIndex()][1],
-    //            gravity+Vec3(0, f_smooth, 0));
-    //    }
-    //}
+        for (Real v = -1.0; v <= 1.0; v += 0.1) {
+            sphere.setUToFitLinearVelocity(state, Vec3(0, -v, 0));
+            system.realize(state, Stage::Dynamics);
+            Real f = fh_smooth*(1.+(3./2.)*dissipation*v);
+            Real f_smooth = f*(1./2.+(1./2.)
+                *std::tanh(bv*(v+(2./(3.*dissipation)))));
+            assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)
+                [sphere.getMobilizedBodyIndex()][1],
+                gravity+Vec3(0, f_smooth, 0));
+        }
+    }
 
     // Now do it with a horizontal velocity and see if the friction force is
     // correct (with horizontal ground plane)
@@ -136,7 +136,7 @@ void testForces() {
             Real vrel = vslip / vt;
             Real ff_smooth_scalar = fh_smooth*(std::min(vrel,Real(1))*
                 (ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
-            Vec3 ff_smooth = ff_smooth_scalar*(vtangent) / vslip;
+            Vec3 ff_smooth = ff_smooth_scalar*(-vtangent) / vslip;
             const Vec3 totalForce = gravity + ff_smooth + fh_smooth*normal;
             expectedForce = SpatialVec(Vec3(0), Vec3(0));
             Vec3 contactPointInSphere = sphere.findStationAtGroundPoint(state,
@@ -145,14 +145,10 @@ void testForces() {
                 totalForce, expectedForce);
             SpatialVec actualForce = system.getRigidBodyForces(state,
                 Stage::Dynamics)[sphere.getMobilizedBodyIndex()];
-            //std::cout << "expected 0" << contactPointInSphere << std::endl;
-            //std::cout << "expected 0" << totalForce << std::endl;
-            std::cout << "expected 0" << actualForce[0] << std::endl;
-            std::cout << "expected 1" << actualForce[1] << std::endl;
-            //assertEqual(actualForce[0],
-            //    expectedForce[sphere.getMobilizedBodyIndex()][0]);
-            //assertEqual(actualForce[1],
-            //    expectedForce[sphere.getMobilizedBodyIndex()][1]);
+            assertEqual(actualForce[0],
+                expectedForce[sphere.getMobilizedBodyIndex()][0]);
+            assertEqual(actualForce[1],
+                expectedForce[sphere.getMobilizedBodyIndex()][1]);
         }
     }
 
