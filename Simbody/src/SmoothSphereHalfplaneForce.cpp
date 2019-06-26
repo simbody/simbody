@@ -322,7 +322,7 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     const Real vrel = vslip / vt;
     const Real ffriction = fn*(std::min(vrel,Real(1))*
         (ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
-    force += ffriction*(-vtangent) / vslip;
+    force += ffriction*(vtangent) / vslip;
     // Apply the force to the bodies.
     bodySphere.applyForceToBodyPoint(state, station1, -force, bodyForces);
     // TODO is this necessary?
