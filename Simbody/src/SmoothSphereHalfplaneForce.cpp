@@ -265,6 +265,7 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     const Vec3 contactSphereLocationInPlane =
         bodySphere.findStationLocationInAnotherBody(
             state,contactSphereLocation,bodyPlane);
+    // TODO not sure what exactly it is for relevant name
     const Vec3 p_PO_F = contactSphereLocationInPlane - contactPlaneFrame.p();
     const Real indentation =
         -(dot(p_PO_F, contactPlaneFrame.y()) - contactSphereRadius);

@@ -57,7 +57,6 @@ public:
     MobilizedBody   bodySphere;
     MobilizedBody   bodyPlane;
     Parameters      parameters;
-    ////////////Plane           contactPlane;
 
     SmoothSphereHalfplaneForceImpl(GeneralForceSubsystem& subsystem);
 
@@ -93,8 +92,6 @@ public:
     // Set the parameter that determines the smoothness of the transition
     // of the tanh used to smooth the Hunt-Crossley force.
     void setParameterTanhHuntCrossleyForce(Real bv);
-    //////////////// Set the contact plane.
-    //////////////void setContactPlane(Vec3 normal, Real offset);
     // Set the MobilizedBody to which the contact sphere is attached.
     void setContactSphereInBody(MobilizedBody bodyInput1);
     // Set the MobilizedBody to which the contact plane is attached.

@@ -74,7 +74,7 @@ void testForces() {
     hc_smooth.setContactSphereInBody(sphere);
     hc_smooth.setContactSphereLocationInBody(Vec3(0));
     hc_smooth.setContactSphereRadius(radius);
-    Transform testFrame(Rotation(0,YAxis), Vec3(0));
+    Transform testFrame(Rotation(1,YAxis), Vec3(0));
     hc_smooth.setContactPlaneFrame(testFrame);
     hc_smooth.setContactPlaneInBody(plane);
     State state = system.realizeTopology();
@@ -155,7 +155,7 @@ void testForces() {
     //// Now do it with different ground angles and offsets
     //Vector_<SpatialVec> expectedForce_contact(matter.getNumBodies());
     //Vector_<SpatialVec> expectedForce_gravity(matter.getNumBodies());
-    //for (int i = 0; i < 20; i++) {
+    //for (int i = -1.0; i <= 1; i += 0.1) {
     //    for (Real offset = -0.1; offset <= 0.1; offset += 0.01) {
     //        Vec3 normal_rand((Real)(rand() % 100 - 50)  / RAND_MAX,
     //            (Real)(rand() % 100 - 50) / RAND_MAX,
