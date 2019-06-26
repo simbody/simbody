@@ -128,7 +128,7 @@ void testForces() {
             sphere.setUToFitLinearVelocity(state, Vec3(v, 0, 0));
             system.realize(state, Stage::Dynamics);
             Vec3 vec3v(v,0,0);
-            UnitVec3 normal = (plane.getBodyRotation(state)*testFrame.y());
+            UnitVec3 normal = plane.getBodyRotation(state)*testFrame.y();
             Real vnormal = dot(vec3v, normal);
             Vec3 vtangent = vec3v - vnormal*normal;
             Real aux = vtangent.normSqr() + cf;
