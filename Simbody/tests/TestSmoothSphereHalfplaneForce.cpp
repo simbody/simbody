@@ -74,7 +74,7 @@ void testForces() {
     hc_smooth.setContactSphereInBody(sphere);
     hc_smooth.setContactSphereLocationInBody(Vec3(0));
     hc_smooth.setContactSphereRadius(radius);
-    Transform testFrame(Rotation(1,YAxis), Vec3(0));
+    Transform testFrame(Rotation(-0.5*Pi, ZAxis), Vec3(0));
     hc_smooth.setContactPlaneFrame(testFrame);
     hc_smooth.setContactPlaneInBody(plane);
     State state = system.realizeTopology();
@@ -128,7 +128,7 @@ void testForces() {
             sphere.setUToFitLinearVelocity(state, Vec3(v, 0, 0));
             system.realize(state, Stage::Dynamics);
             Vec3 vec3v(v,0,0);
-            UnitVec3 normal = plane.getBodyRotation(state)*testFrame.y();
+            UnitVec3 normal = (plane.getBodyRotation(state)*testFrame.x());
             Real vnormal = dot(vec3v, normal);
             Vec3 vtangent = vec3v - vnormal*normal;
             Real aux = vtangent.normSqr() + cf;
@@ -136,13 +136,13 @@ void testForces() {
             Real vrel = vslip / vt;
             Real ff_smooth_scalar = fh_smooth*(std::min(vrel,Real(1))*
                 (ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
-            Vec3 ff_smooth = ff_smooth_scalar*(-vtangent) / vslip;
-            const Vec3 totalForce = gravity + ff_smooth + fh_smooth*normal;
+            Vec3 ff_smooth = ff_smooth_scalar*(vtangent) / vslip;
+            const Vec3 totalForceOnSphere = gravity - ff_smooth - fh_smooth*normal;
             expectedForce = SpatialVec(Vec3(0), Vec3(0));
             Vec3 contactPointInSphere = sphere.findStationAtGroundPoint(state,
                 Vec3(0, -stiffness*depth/(stiffness+stiffness), 0));
             sphere.applyForceToBodyPoint(state, contactPointInSphere,
-                totalForce, expectedForce);
+                totalForceOnSphere, expectedForce);
             SpatialVec actualForce = system.getRigidBodyForces(state,
                 Stage::Dynamics)[sphere.getMobilizedBodyIndex()];
             assertEqual(actualForce[0],

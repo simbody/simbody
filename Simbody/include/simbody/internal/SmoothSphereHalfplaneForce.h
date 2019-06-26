@@ -46,22 +46,86 @@ class SmoothSphereHalfplaneForceImpl;
  * can be approximated by:
  * <pre>     f = 0.5 + 0.5 tanh(b(x-d)) </pre>
  * <pre>     y = a f </pre>
- * where b is a parameter determining the smoothness of the transition.
+ * where b is a parameter that determines the smoothness of the transition.
  *
  * The proposed implementation does not rely on a GeneralContactSubsystem.
- * Instead, it assumes contact between a sphere and a fixed half space that
- * can have an offset and a slope with respect to the ground. The contact model
- * includes components for the normal restoring force, dissipation in the
- * material, and surface friction. The force is only applied to point contacts.
+ * Instead, it assumes contact between a sphere and a half space defined by a
+ * transform with respect to the ground. For the half space to be perpendicular
+ * to the gravity direction (i.e., X-Axis is [0,-1,0]), it should be rotated by
+ * -90° around the Z-Axis. This can be done by defining the plane frame as:
+ * (Transform examplePlaneFrame(Rotation(-0.5*Pi, ZAxis), Vec3(0))).
+ *
+ * The contact model includes components for the normal restoring force,
+ * dissipation in the material, and surface friction. The force is only applied
+ * to point contacts.
  *
  * To use it, do the following:
  *
  * <ol>
  * <li>Add a GeneralForceSubsystem to a MultibodySystem.</li>
- * <li>Add a SmoothSphereHalfplaneForce to the GeneralForceSubsystem, call
- * setParameters(), setContactSphereInBody(), setContactSphereRadius(),
- * setContactSphereLocationInBody(), and setContactPlane(). </li>
+ * <li>Add a SmoothSphereHalfplaneForce to the GeneralForceSubsystem.</li>
+ * <li>Add a MobilizedBody for the contact sphere and for the contact plane,
+ * and call setContactSphereInBody(), setContactSphereLocationInBody(),
+ * setContactSphereRadius(), setContactPlaneInBody(), setContactPlaneFrame(),
+ * and setParameters() </li>
  * </ol>
+ *
+ * <h1>Normal Force Components</h1>
+ *
+ * The normal restoring force (Hertz force) is given by:
+ * <pre>     fh_pos = (4/3) k (R k)^(1/2) ((x^2+cf)^(1/2))^(3/2) </pre>
+ * where k = 0.5 stiffness^(2/3) with stiffness the effective Young's
+ * modulus, which is assumed identical for both contacting materials (i.e.,
+ * sphere and plane), x is penetration depth, R is sphere radius, and cf
+ * (default is 1e-5) is a constant that enforces a small force to ensure
+ * non-null derivatives. To smoothly transition between periods with and
+ * without sphere-plane contact, we use a tanh function:
+ * <pre>     fh_smooth = fh_pos (1/2+(1/2)tanh(bd x)) </pre>
+ * where bd (default is 300) is a parameter that determines the smoothness of
+ * the tanh transition.
+ *
+ * The dissipation force is combined with the normal restoring force
+ * (Hunt-Crossley force) as follows:
+ * <pre>     f_pos = fh_smooth (1+(3/2) c v) </pre>
+ * where c is dissipation and v is penetration rate. To smoothly transition
+ * between null and positive Hunt-Crossley force, we used a tanh function:
+ * <pre>     f_smooth = f_pos (1/2+(1/2) tanh(bv (v+(2/(3 c))))) </pre>
+ * where bv (default is 50) is a parameter that determines the smoothness of
+ * the tanh transition.
+ *
+ * <h1>Friction Force</h1>
+ *
+ * The friction force is given by:
+ * <pre> ff = f_smooth [min(vs/vt,1) (ud+2(us-ud)/(1+(vs/vt)^2))+uv vs] </pre>
+ * where vs is the slip velocity of the two bodies at the contact point (see
+ * below), vt is a transition velocity (see below), and us, ud, and uv are the
+ * coefficients of static, dynamic, and viscous friction, respectively. Each of
+ * the three friction coefficients is calculated based on the friction
+ * coefficients of the two bodies in contact:
+ * <pre>     u = (2 u1 u2)/(u1+u2) </pre>
+ * We assume the same coefficients for both contacting materials
+ * (i.e., u=u1=u2).
+ *
+ * The slip velocity is defined as the norm of the tangential velocity. To
+ * ensure non-null tangential velocity (and thus non-null friction force), we
+ * added the small positive constant cf (default is 1e-5):
+ * <pre> vs = sqrt(vtangent[1]^2 + vtangent[2]^2 + vtangent[3]^2 + cf) </pre>
+ * where vtangent is the tangential velocity.
+ *
+ * Because the friction force is a continuous function of the slip velocity,
+ * this model cannot represent stiction; as long as a tangential force is
+ * applied, the two bodies will move relative to each other. There will always
+ * be a nonzero drift, no matter how small the force is. The transition
+ * velocity vt acts as an upper limit on the drift velocity. By setting vt to a
+ * sufficiently small value, the drift velocity can be made arbitrarily small,
+ * at the cost of making the equations of motion very stiff.
+ *
+ * <h1>Contact Force</h1>
+ *
+ * The contact force is given by:
+ * <pre> force = f_smooth*normal + ff*vtangent/vs </pre>
+ * where normal determines the direction of the normal to the contact plane
+ * (the normal points in the direction of contact).
  *
  */
 class SimTK_SIMBODY_EXPORT SmoothSphereHalfplaneForce : public Force {
@@ -74,12 +138,12 @@ public:
     /**
      * Set the contact material parameters.
      *
-     * @param stiffness the stiffness constant, default is 1
-     * @param dissipation the dissipation coefficient, default is 0
+     * @param stiffness the stiffness constant, default is 1 N/m^2
+     * @param dissipation the dissipation coefficient, default is 0 s/m
      * @param staticFriction the coefficient of static friction, default is 0
      * @param dynamicFriction the coefficient of dynamic friction, default is 0
      * @param viscousFriction the coefficient of viscous friction, default is 0
-     * @param transitionVelocity the transition velocity, default is 0.01
+     * @param transitionVelocity the transition velocity, default is 0.01 m/s
      * @param cf the constant that enforces a small contact force even when
            there is no contact between the sphere and the plane to ensure
            differentiability of the model, default is 1e-5

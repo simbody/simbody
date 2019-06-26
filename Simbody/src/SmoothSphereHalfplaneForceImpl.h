@@ -112,7 +112,7 @@ public:
     Real getContactSphereRadius();
     // Get the transform of the contact plane.
     Transform getContactPlaneTransform();
-    // Get the normal to the contact plane
+    // Get the normal to the contact plane.
     void getNormalContactPlane(const State& state,
         UnitVec3& normalContactPlane) const;
     // Get the location of the contact sphere origin in the ground frame.

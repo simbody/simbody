@@ -240,9 +240,8 @@ SmoothSphereHalfplaneForceImpl::Parameters& SmoothSphereHalfplaneForceImpl::
 
 void SmoothSphereHalfplaneForceImpl::getNormalContactPlane(const State& state,
     UnitVec3& normalContactPlane) const {
-    // TODO check for minus and for component. Seems weird wrt existing code
     normalContactPlane =
-        -(bodyPlane.getBodyRotation(state)*contactPlaneFrame.y());
+        (bodyPlane.getBodyRotation(state)*contactPlaneFrame.x());
 }
 
 void SmoothSphereHalfplaneForceImpl::getContactSphereOrigin(const State& state,
@@ -254,45 +253,46 @@ void SmoothSphereHalfplaneForceImpl::getContactSphereOrigin(const State& state,
 void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces,
     Vector& mobilityForces) const {
-    // Calculate the indentation based on the contact point location.
-    Vec3 contactSphereOrigin;
-    getContactSphereOrigin(state, contactSphereOrigin);
-    UnitVec3 normal;
-    getNormalContactPlane(state, normal);
-    const Vec3 contactPointPosition = contactSphereOrigin +
-        contactSphereRadius*normal;
-    // TODO not sure it is correct see SphereOnPlaneContact::findSeparation
-    const Vec3 contactSphereLocationInPlane =
+    // Calculate the indentation.
+    const Vec3 contactSphereLocationInBodyPlane =
         bodySphere.findStationLocationInAnotherBody(
             state,contactSphereLocation,bodyPlane);
-    // TODO not sure what exactly it is for relevant name
-    const Vec3 p_PO_F = contactSphereLocationInPlane - contactPlaneFrame.p();
-    const Real indentation =
-        -(dot(p_PO_F, contactPlaneFrame.y()) - contactSphereRadius);
+    const Vec3 distanceSpherePlaneInBodyPlane =
+        contactSphereLocationInBodyPlane - contactPlaneFrame.p();
+    const Real indentation = -(dot(distanceSpherePlaneInBodyPlane,
+        -contactPlaneFrame.x()) - contactSphereRadius);
+
     // Initialize the potential energy.
     Real& pe = Value<Real>::updDowncast(state.updCacheEntry(
         subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
     pe = 0.0;
+
+    // Calculate the contact point location (in ground).
+    Vec3 contactSphereOriginInGround;
+    getContactSphereOrigin(state, contactSphereOriginInGround);
+    UnitVec3 normal; // the normal is pointing in the direction of contact
+    getNormalContactPlane(state, normal);
+    const Vec3 contactPointPositionInGround = contactSphereOriginInGround +
+        contactSphereRadius*normal;
     // Adjust the contact location based on the relative stiffness of the two
     // materials. Here we assume, as in the original Simbody Hunt-Crossley
     // contact model, that both materials have the same relative stiffness.
-    // As described in Sherman(2011), the point of contact will then be
-    // located midway between the two surfaces. We therefore need to add half
-    // the indentation to the contact location that was determined as the
-    // location of the contact sphere center minus its radius.
-    ////////////////const Vec3 normal = contactPlane.getNormal(); // TODO
-    const Vec3 contactPointPositionSphereAdjustedInGround =
-        contactPointPosition-Real(1./2.)*indentation*normal;
+    // As described in Sherman et al. (2011), the point of contact will then be
+    // located midway between the two surfaces. We therefore need to subtract
+    // (subtraction due to normal direction) half the indentation to the
+    // contact location that was determined as the location of the contact
+    // sphere center plus its radius (plus due to normal direction).
+    const Vec3 contactPointPositionAdjustedInGround =
+        contactPointPositionInGround-Real(1./2.)*indentation*normal;
     // Calculate the contact point velocity.
     const Vec3 station1 = bodySphere.findStationAtGroundPoint(state,
-        contactPointPositionSphereAdjustedInGround);
+        contactPointPositionAdjustedInGround);
     const Vec3 station2 = bodyPlane.findStationAtGroundPoint(state,
-        contactPointPositionSphereAdjustedInGround);
+        contactPointPositionAdjustedInGround);
     const Vec3 v1 = bodySphere.findStationVelocityInGround(state, station1);
     const Vec3 v2 = bodyPlane.findStationVelocityInGround(state, station2);
     const Vec3 v = v1-v2;
     // Calculate the normal and tangential velocities.
-    // TODO is the sign correct?
     const Real vnormal = dot(v, normal);
     const Vec3 vtangent = v - vnormal*normal;
     // Get the contact model parameters.
@@ -310,6 +310,7 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     const Real k = (1./2.)*std::pow(stiffness, (2./3.));
     const Real fH = (4./3.)*k*std::sqrt(contactSphereRadius*k)*
         std::pow(std::sqrt(indentation*indentation+cf),(3./2.));
+    // Calculate the potential energy.
     pe += Real(2./5.)*fH*indentation;
     // Calculate the Hunt-Crossley force.
     const Real c = dissipation;
@@ -326,7 +327,6 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     force += ffriction*(vtangent) / vslip;
     // Apply the force to the bodies.
     bodySphere.applyForceToBodyPoint(state, station1, -force, bodyForces);
-    // TODO is this necessary?
     bodyPlane.applyForceToBodyPoint(state, station2, force, bodyForces);
 }
 
