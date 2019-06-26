@@ -51,11 +51,13 @@ public:
             viscousFriction, transitionVelocity, cf, bd, bv;
     };
 
-    Real            radiusContactSphere;
-    Vec3            locationContactSphere;
+    Real            contactSphereRadius;
+    Vec3            contactSphereLocation;
+    Transform       contactPlaneFrame;
     MobilizedBody   bodySphere;
+    MobilizedBody   bodyPlane;
     Parameters      parameters;
-    Plane           contactPlane;
+    ////////////Plane           contactPlane;
 
     SmoothSphereHalfplaneForceImpl(GeneralForceSubsystem& subsystem);
 
@@ -91,22 +93,33 @@ public:
     // Set the parameter that determines the smoothness of the transition
     // of the tanh used to smooth the Hunt-Crossley force.
     void setParameterTanhHuntCrossleyForce(Real bv);
-    // Set the contact plane.
-    void setContactPlane(Vec3 normal, Real offset);
+    //////////////// Set the contact plane.
+    //////////////void setContactPlane(Vec3 normal, Real offset);
     // Set the MobilizedBody to which the contact sphere is attached.
-    void setContactSphereInBody(MobilizedBody bodyInput);
+    void setContactSphereInBody(MobilizedBody bodyInput1);
+    // Set the MobilizedBody to which the contact plane is attached.
+    void setContactPlaneInBody(MobilizedBody bodyInput2);
     // Set the location of the contact sphere in the body frame.
     void setContactSphereLocationInBody(Vec3 locationContactSphere);
+    // Set the transform of the contact plane in the body frame.
+    void setContactPlaneFrame(Transform planeFrame);
     // Set the radius of the contact sphere.
     void setContactSphereRadius(Real radius);
     // Get the MobilizedBody to which the contact sphere is attached.
     MobilizedBody getBodySphere();
+    // Get the MobilizedBody to which the contact plane is attached.
+    MobilizedBody getBodyPlane();
     // Get the location of the contact sphere in the body frame.
     Vec3 getContactSphereLocationInBody();
     // Get the radius of the contact sphere.
     Real getContactSphereRadius();
-    // Get the location of the contact point in the ground frame.
-    void getContactPointSphere(const State& state,Vec3& contactPointPos) const;
+    // Get the transform of the contact plane.
+    Transform getContactPlaneTransform();
+    // Get the normal to the contact plane
+    void getNormalContactPlane(const State& state,
+        UnitVec3& normalContactPlane) const;
+    // Get the location of the contact sphere origin in the ground frame.
+    void getContactSphereOrigin(const State& state,Vec3& contactPointPos)const;
     // Calculate contact force.
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
         Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;

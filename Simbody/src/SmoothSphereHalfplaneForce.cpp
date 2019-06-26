@@ -140,40 +140,52 @@ void SmoothSphereHalfplaneForceImpl::setParameterTanhHuntCrossleyForce(
     parameters.bv = bv;
 }
 
-void SmoothSphereHalfplaneForce::setContactPlane(Vec3 normal, Real offset) {
-    updImpl().setContactPlane(normal, offset);
-}
-
-void SmoothSphereHalfplaneForceImpl::setContactPlane(Vec3 normal,Real offset) {
-    contactPlane = Plane(normal, offset);
-}
-
 void SmoothSphereHalfplaneForce::setContactSphereInBody(
-    MobilizedBody bodyInput) {
-    updImpl().bodySphere = bodyInput;
+    MobilizedBody bodyInput1) {
+    updImpl().bodySphere = bodyInput1;
 }
 
 void SmoothSphereHalfplaneForceImpl::setContactSphereInBody(
-    MobilizedBody bodyInput){
-    bodySphere = bodyInput;
+    MobilizedBody bodyInput1){
+    bodySphere = bodyInput1;
+}
+
+void SmoothSphereHalfplaneForce::setContactPlaneInBody(
+    MobilizedBody bodyInput2) {
+    updImpl().bodyPlane = bodyInput2;
+}
+
+void SmoothSphereHalfplaneForceImpl::setContactPlaneInBody(
+    MobilizedBody bodyInput2){
+    bodyPlane = bodyInput2;
 }
 
 void SmoothSphereHalfplaneForce::setContactSphereLocationInBody(
-    Vec3 LocContactSphere) {
-    updImpl().locationContactSphere = LocContactSphere;
+    Vec3 contactSphereLocation) {
+    updImpl().contactSphereLocation = contactSphereLocation;
 }
 
-void SmoothSphereHalfplaneForceImpl::setContactSphereLocationInBody
-    (Vec3 locationContactSphere) {
-    locationContactSphere = locationContactSphere;
+void SmoothSphereHalfplaneForceImpl::setContactSphereLocationInBody(
+    Vec3 contactSphereLocation) {
+    contactSphereLocation = contactSphereLocation;
+}
+
+void SmoothSphereHalfplaneForce::setContactPlaneFrame(
+    Transform planeFrame) {
+    updImpl().contactPlaneFrame = planeFrame;
+}
+
+void SmoothSphereHalfplaneForceImpl::setContactPlaneFrame(
+    Transform planeFrame) {
+    contactPlaneFrame = planeFrame;
 }
 
 void SmoothSphereHalfplaneForce::setContactSphereRadius(Real radius) {
-    updImpl().radiusContactSphere = radius;
+    updImpl().contactSphereRadius = radius;
 }
 
 void SmoothSphereHalfplaneForceImpl::setContactSphereRadius(Real radius) {
-    radiusContactSphere = radius;
+    contactSphereRadius = radius;
 }
 
 MobilizedBody SmoothSphereHalfplaneForce::getBodySphere() {
@@ -184,20 +196,36 @@ MobilizedBody SmoothSphereHalfplaneForceImpl::getBodySphere() {
     return bodySphere;
 }
 
+MobilizedBody SmoothSphereHalfplaneForce::getBodyPlane() {
+    return updImpl().bodyPlane;
+}
+
+MobilizedBody SmoothSphereHalfplaneForceImpl::getBodyPlane() {
+    return bodyPlane;
+}
+
 Vec3 SmoothSphereHalfplaneForce::getContactSphereLocationInBody() {
-    return updImpl().locationContactSphere;
+    return updImpl().contactSphereLocation;
 }
 
 Vec3 SmoothSphereHalfplaneForceImpl::getContactSphereLocationInBody() {
-    return locationContactSphere;
+    return contactSphereLocation;
 }
 
 Real SmoothSphereHalfplaneForce::getContactSphereRadius() {
-    return updImpl().radiusContactSphere;
+    return updImpl().contactSphereRadius;
 }
 
 Real SmoothSphereHalfplaneForceImpl::getContactSphereRadius() {
-    return radiusContactSphere;
+    return contactSphereRadius;
+}
+
+Transform SmoothSphereHalfplaneForce::getContactPlaneTransform() {
+    return updImpl().contactPlaneFrame;
+}
+
+Transform SmoothSphereHalfplaneForceImpl::getContactPlaneTransform() {
+    return contactPlaneFrame;
 }
 
 const SmoothSphereHalfplaneForceImpl::Parameters&
@@ -210,21 +238,36 @@ SmoothSphereHalfplaneForceImpl::Parameters& SmoothSphereHalfplaneForceImpl::
     return parameters;
 }
 
-void SmoothSphereHalfplaneForceImpl::getContactPointSphere(const State& state,
-    Vec3& contactPointPos) const {
-    Vec3 posSphereInGround =
-        bodySphere.findStationLocationInGround(state, locationContactSphere);
-    contactPointPos = posSphereInGround -
-        radiusContactSphere*contactPlane.getNormal();
+void SmoothSphereHalfplaneForceImpl::getNormalContactPlane(const State& state,
+    UnitVec3& normalContactPlane) const {
+    // TODO check for minus and for component. Seems weird wrt existing code
+    normalContactPlane =
+        -(bodyPlane.getBodyRotation(state)*contactPlaneFrame.y());
+}
+
+void SmoothSphereHalfplaneForceImpl::getContactSphereOrigin(const State& state,
+    Vec3& contactSphereOrigin) const {
+    contactSphereOrigin =
+        bodySphere.getBodyTransform(state) * contactSphereLocation;
 }
 
 void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces,
     Vector& mobilityForces) const {
     // Calculate the indentation based on the contact point location.
-    Vec3 contactPointPos;
-    getContactPointSphere(state, contactPointPos);
-    const Real indentation = - contactPlane.getDistance(contactPointPos);
+    Vec3 contactSphereOrigin;
+    getContactSphereOrigin(state, contactSphereOrigin);
+    UnitVec3 normal;
+    getNormalContactPlane(state, normal);
+    const Vec3 contactPointPosition = contactSphereOrigin -
+        contactSphereRadius*normal;
+    // TODO not sure it is correct see SphereOnPlaneContact::findSeparation
+    const Vec3 contactSphereLocationInPlane =
+        bodySphere.findStationLocationInAnotherBody(
+            state,contactSphereLocation,bodyPlane);
+    const Vec3 p_PO_F = contactSphereLocationInPlane - contactPlaneFrame.p();
+    const Real indentation =
+        -(dot(p_PO_F, contactPlaneFrame.y()) - contactSphereRadius);
     // Initialize the potential energy.
     Real& pe = Value<Real>::updDowncast(state.updCacheEntry(
         subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
@@ -236,19 +279,21 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     // located midway between the two surfaces. We therefore need to add half
     // the indentation to the contact location that was determined as the
     // location of the contact sphere center minus its radius.
-    const Vec3 normal = contactPlane.getNormal();
-    const Vec3 contactPointPosAdj =
-        contactPointPos+Real(1./2.)*indentation*normal;
-    const Vec3 contactPointPosAdjInB =
-        bodySphere.findStationAtGroundPoint(state, contactPointPosAdj);
+    ////////////////const Vec3 normal = contactPlane.getNormal(); // TODO
+    const Vec3 contactPointPositionSphereAdjustedInGround =
+        contactPointPosition+Real(1./2.)*indentation*normal;
     // Calculate the contact point velocity.
-    const Vec3 contactPointVel =
-        bodySphere.findStationVelocityInGround(state, contactPointPosAdjInB);
-    // Calculate the tangential and indentation velocities.
-    const Vec3 v = contactPointVel;
+    const Vec3 station1 = bodySphere.findStationAtGroundPoint(state,
+        contactPointPositionSphereAdjustedInGround);
+    const Vec3 station2 = bodyPlane.findStationAtGroundPoint(state,
+        contactPointPositionSphereAdjustedInGround);
+    const Vec3 v1 = bodySphere.findStationVelocityInGround(state, station1);
+    const Vec3 v2 = bodyPlane.findStationVelocityInGround(state, station2);
+    const Vec3 v = v1-v2;
+    // Calculate the normal and tangential velocities.
+    // TODO is the sign correct?
     const Real vnormal = dot(v, normal);
     const Vec3 vtangent = v - vnormal*normal;
-    const Real indentationVel = -vnormal;
     // Get the contact model parameters.
     const Parameters parameters = getParameters();
     const Real stiffness = parameters.stiffness;
@@ -262,14 +307,14 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     const Real bv = parameters.bv;
     // Calculate the Hertz force.
     const Real k = (1./2.)*std::pow(stiffness, (2./3.));
-    const Real fH = (4./3.)*k*std::sqrt(radiusContactSphere*k)*
+    const Real fH = (4./3.)*k*std::sqrt(contactSphereRadius*k)*
         std::pow(std::sqrt(indentation*indentation+cf),(3./2.));
     pe += Real(2./5.)*fH*indentation;
     // Calculate the Hunt-Crossley force.
     const Real c = dissipation;
-    const Real fHd = fH*(1.+(3./2.)*c*indentationVel);
+    const Real fHd = fH*(1.+(3./2.)*c*vnormal);
     const Real fn = fHd*(1./2.+(1./2.)*std::tanh(bd*indentation))*
-        (1./2.+(1./2.)*std::tanh(bv*(indentationVel+(2./(3.*c)))));
+        (1./2.+(1./2.)*std::tanh(bv*(vnormal+(2./(3.*c)))));
     Vec3 force = fn*normal;
     // Calculate the friction force.
     const Real aux = vtangent.normSqr()+cf;
@@ -279,8 +324,9 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
         (ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
     force += ffriction*(-vtangent) / vslip;
     // Apply the force to the bodies.
-    bodySphere.applyForceToBodyPoint(state, contactPointPosAdjInB,
-        force, bodyForces);
+    bodySphere.applyForceToBodyPoint(state, station1, -force, bodyForces);
+    // TODO is this necessary?
+    bodyPlane.applyForceToBodyPoint(state, station2, force, bodyForces);
 }
 
 Real SmoothSphereHalfplaneForceImpl::calcPotentialEnergy(const State& state)

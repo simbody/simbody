@@ -112,26 +112,26 @@ public:
     /** Set the parameter that determines the smoothness of the transition
         of the tanh used to smooth the Hunt-Crossley force. */
     void setParameterTanhHuntCrossleyForce(Real bv);
-    /**
-    * Set the contact plane.
-    *
-    * @param normal     direction of the normal to the plane of contact
-    * @param offset     distance to the ground origin along the normal
-    */
-    void setContactPlane(Vec3 normal, Real offset);
     /** Set the MobilizedBody to which the contact sphere is attached. */
-    void setContactSphereInBody(MobilizedBody bodyInput);
-    /** Set the location of the contact sphere in the body frame. */
+    void setContactSphereInBody(MobilizedBody bodyInput1);
+    /** Set the MobilizedBody to which the contact plane is attached. */
     void setContactSphereLocationInBody(Vec3 locationSphere);
+    /** Set the transform of the contact plane in the body frame. */
+    void setContactPlaneFrame(Transform planeFrame);
     /** Set the radius of the contact sphere. */
     void setContactSphereRadius(Real radius);
     /** Get the MobilizedBody to which the contact sphere is attached. */
+    void setContactPlaneInBody(MobilizedBody bodyInput2);
+    /** Set the location of the contact sphere in the body frame. */
     MobilizedBody getBodySphere();
+    /** Get the MobilizedBody to which the contact plane is attached. */
+    MobilizedBody getBodyPlane();
     /** Get the location of the contact sphere in the body frame. */
     Vec3 getContactSphereLocationInBody();
     /** Get the radius of the contact sphere. */
     Real getContactSphereRadius();
-
+    /** Get the transform of the contact plane. */
+    Transform getContactPlaneTransform();
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(SmoothSphereHalfplaneForce,
         SmoothSphereHalfplaneForceImpl, Force);
 };
