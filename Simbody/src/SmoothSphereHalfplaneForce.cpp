@@ -311,7 +311,7 @@ void SmoothSphereHalfplaneForceImpl::calcForce(const State& state,
     const Real fH = (4./3.)*k*std::sqrt(contactSphereRadius*k)*
         std::pow(std::sqrt(indentation*indentation+cf),(3./2.));
     // Calculate the potential energy.
-    pe += Real(2./5.)*fH*indentation;
+    pe += Real(2./5.)*fH*(1./2.+(1./2.)*std::tanh(bd*indentation))*indentation;
     // Calculate the Hunt-Crossley force.
     const Real c = dissipation;
     const Real fHd = fH*(1.+(3./2.)*c*vnormal);

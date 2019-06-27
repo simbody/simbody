@@ -41,16 +41,40 @@ void assertEqual(Vec<N> val1, Vec<N> val2) {
         ASSERT(abs(val1[i]-val2[i]) < TOL);
 }
 
+//#define PREC double
+//class PEFunction : public Differentiator::ScalarFunction {
+//public:
+//    // PE=8/15*k^(3/2)*R^(1/2)*x^(5/2)
+//    PEFunction(Real kk, Real rr, Real acc)
+//        : ScalarFunction(acc), k(kk),r(rr)
+//    {
+//    }
+//    Real calc(Real x) const {
+//        return (8./15.)*std::pow(k,3./2.)*std::pow(r,1./2.)*pow(x,5./2.);
+//    }
+//    // Must provide this virtual function.
+//    int f(Real x, Real& fx) const override {
+//        volatile PREC ffx = (PREC)calc(x);
+//        fx = ffx;
+//        return 0; // success
+//    }
+//private:
+//    const Real k, r;
+//};
+
 #define PREC double
 class PEFunction : public Differentiator::ScalarFunction {
 public:
-    // PE=8/15*k^(3/2)*R^(1/2)*x^(5/2)
-    PEFunction(Real kk, Real rr, Real acc)
-        : ScalarFunction(acc), k(kk),r(rr)
+    PEFunction(Real kk, Real rr, Real cff, Real bdd, Real acc)
+        : ScalarFunction(acc), k(kk),r(rr),cf(cff),bd(bdd)
     {
     }
     Real calc(Real x) const {
-        return (8./15.)*std::pow(k,3./2.)*std::pow(r,1./2.)*pow(x,5./2.);
+
+        Real fH = (4./3.)*k*std::sqrt(r*k)*
+        std::pow(std::sqrt(x*x+cf),(3./2.));
+        Real fHs = fH*(1./2.+(1./2.)*std::tanh(bd*x));
+        return Real(2./5.)*fHs*x;
     }
     // Must provide this virtual function.
     int f(Real x, Real& fx) const override {
@@ -59,7 +83,7 @@ public:
         return 0; // success
     }
 private:
-    const Real k, r;
+    const Real k, r, cf, bd;
 };
 
 void testForces() {
@@ -111,10 +135,10 @@ void testForces() {
         assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)
             [sphere.getMobilizedBodyIndex()][1], gravity+Vec3(0, f_smooth, 0));
         assertEqual(hc_smooth.calcPotentialEnergyContribution(state),
-            (2./5.)*f*depth);
+            (2./5.)*f_smooth*depth);
 
         Real acc=SimTK::NTraits<PREC>::getEps();
-        PEFunction funcPE(stiffness,radius,acc);
+        PEFunction funcPE(stiffness,radius,cf,bd,acc);
         Differentiator dfuncPE(funcPE);
         Real dValueDiff = dfuncPE.calcDerivative(depth);
 
