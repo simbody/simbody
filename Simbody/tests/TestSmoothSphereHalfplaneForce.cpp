@@ -41,6 +41,27 @@ void assertEqual(Vec<N> val1, Vec<N> val2) {
         ASSERT(abs(val1[i]-val2[i]) < TOL);
 }
 
+#define PREC double
+class PEFunction : public Differentiator::ScalarFunction {
+public:
+    // PE=8/15*k^(3/2)*R^(1/2)*x^(5/2)
+    PEFunction(Real kk, Real rr, Real acc)
+        : ScalarFunction(acc), k(kk),r(rr)
+    {
+    }
+    Real calc(Real x) const {
+        return (8./15.)*std::pow(k,3./2.)*std::pow(r,1./2.)*pow(x,5./2.);
+    }
+    // Must provide this virtual function.
+    int f(Real x, Real& fx) const override {
+        volatile PREC ffx = (PREC)calc(x);
+        fx = ffx;
+        return 0; // success
+    }
+private:
+    const Real k, r;
+};
+
 void testForces() {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -90,7 +111,15 @@ void testForces() {
         assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)
             [sphere.getMobilizedBodyIndex()][1], gravity+Vec3(0, f_smooth, 0));
         assertEqual(hc_smooth.calcPotentialEnergyContribution(state),
-            (2./ 5.)*f*depth);
+            (2./5.)*f*depth);
+
+        Real acc=SimTK::NTraits<PREC>::getEps();
+        PEFunction funcPE(stiffness,radius,acc);
+        Differentiator dfuncPE(funcPE);
+        Real dValueDiff = dfuncPE.calcDerivative(depth);
+
+        std::cout << dValueDiff << std::endl;
+        std::cout << f_smooth << std::endl;
     }
 
     // Now do it with a vertical velocity and see if the dissipation force is
