@@ -52,8 +52,8 @@ class SmoothSphereHalfplaneForceImpl;
  * Instead, it assumes contact between a sphere and a half space defined by a
  * transform with respect to the ground. For the half space to be perpendicular
  * to the gravity direction (i.e., X-Axis is [0,-1,0]), it should be rotated by
- * -90° around the Z-Axis. This can be done by defining the plane frame as:
- * (Transform examplePlaneFrame(Rotation(-0.5*Pi, ZAxis), Vec3(0))).
+ * -90 degrees around the Z-Axis. This can be done by defining the plane frame
+ * as: Transform examplePlaneFrame(Rotation(-0.5*Pi, ZAxis), Vec3(0)).
  *
  * The contact model includes components for the normal restoring force,
  * dissipation in the material, and surface friction. The force is only applied
@@ -77,7 +77,7 @@ class SmoothSphereHalfplaneForceImpl;
  * where k = 0.5 E^(2/3) with E the plain strain modulus, which is assumed
  * identical for both contacting materials (i.e., sphere and plane), x is
  * penetration depth, R is sphere radius, and cf (default is 1e-5) is a
- * constant that ensures non-null derivatives. To smoothly transition between
+ * constant that enforces non-null derivatives. To smoothly transition between
  * periods with and without sphere-plane contact, we use a tanh function:
  * <pre>     fh_smooth = fh_pos (1/2+(1/2)tanh(bd x)) </pre>
  * where bd (default is 300) is a parameter that determines the smoothness of
@@ -87,7 +87,7 @@ class SmoothSphereHalfplaneForceImpl;
  * (Hunt-Crossley force) as follows:
  * <pre>     f_pos = fh_smooth (1+(3/2) c v) </pre>
  * where c is dissipation and v is penetration rate. To smoothly transition
- * between null and positive Hunt-Crossley force, we used a tanh function:
+ * between null and positive Hunt-Crossley force, we use a tanh function:
  * <pre>     f_smooth = f_pos (1/2+(1/2) tanh(bv (v+(2/(3 c))))) </pre>
  * where bv (default is 50) is a parameter that determines the smoothness of
  * the tanh transition.
@@ -106,8 +106,8 @@ class SmoothSphereHalfplaneForceImpl;
  * (i.e., u=u1=u2).
  *
  * The slip velocity is defined as the norm of the tangential velocity. To
- * ensure non-null tangential velocity (and thus non-null friction force), we
- * added the small positive constant cf (default is 1e-5):
+ * enforce non-null derivatives, we added the small positive constant cf
+ * (default is 1e-5):
  * <pre> vs = sqrt(vtangent[1]^2 + vtangent[2]^2 + vtangent[3]^2 + cf) </pre>
  * where vtangent is the tangential velocity.
  *
@@ -137,15 +137,15 @@ public:
     /**
      * Set the contact material parameters.
      *
-     * @param stiffness the stiffness constant, default is 1 N/m^2
+     * @param stiffness the stiffness constant (i.e., plain strain modulus),
+           default is 1 N/m^2
      * @param dissipation the dissipation coefficient, default is 0 s/m
      * @param staticFriction the coefficient of static friction, default is 0
      * @param dynamicFriction the coefficient of dynamic friction, default is 0
      * @param viscousFriction the coefficient of viscous friction, default is 0
      * @param transitionVelocity the transition velocity, default is 0.01 m/s
-     * @param cf the constant that enforces a small contact force even when
-           there is no contact between the sphere and the plane to ensure
-           differentiability of the model, default is 1e-5
+     * @param cf the constant that enforces non-null derivatives, default is
+           1e-5
      * @param bd the parameter that determines the smoothness of the transition
            of the tanh used to smooth the Hertz force, default is 300
      * @param bv the parameter that determines the smoothness of the transition
@@ -154,9 +154,10 @@ public:
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
        Real dynamicFriction, Real viscousFriction, Real transitionVelocity,
        Real eps, Real bd, Real bv);
-    /** Set the stiffness constant. */
+    /** Set the stiffness constant (i.e., plain strain modulus), default is 1
+        N/m^2 */
     void setStiffness(Real stiffness);
-    /** Set the dissipation coefficient. */
+    /** Set the dissipation coefficient, default is 0 s/m. */
     void setDissipation(Real dissipation);
     /** Set the coefficient of static friction. */
     void setStaticFriction(Real staticFriction);
@@ -164,28 +165,27 @@ public:
     void setDynamicFriction(Real dynamicFriction);
     /** Set the coefficient of viscous friction. */
     void setViscousFriction(Real viscousFriction);
-    /** Set the transition velocity. */
+    /** Set the transition velocity, default is 0.01 m/s. */
     void setTransitionVelocity(Real transitionVelocity);
-    /** Set the constant that enforces a small contact force even when there
-        is no contact between the sphere and the plane. */
+    /** Set the constant that enforces non-null derivatives, default is 1e-5.*/
     void setConstantContactForce(Real cf);
     /** Set the parameter that determines the smoothness of the transition
-        of the tanh used to smooth the Hertz force. */
+        of the tanh used to smooth the Hertz force, default is 300. */
     void setParameterTanhHertzForce(Real bd);
     /** Set the parameter that determines the smoothness of the transition
-        of the tanh used to smooth the Hunt-Crossley force. */
+        of the tanh used to smooth the Hunt-Crossley force, default is 50. */
     void setParameterTanhHuntCrossleyForce(Real bv);
     /** Set the MobilizedBody to which the contact sphere is attached. */
     void setContactSphereInBody(MobilizedBody bodyInput1);
-    /** Set the MobilizedBody to which the contact plane is attached. */
+    /** Set the location of the contact sphere in the body frame. */
     void setContactSphereLocationInBody(Vec3 locationSphere);
-    /** Set the transform of the contact plane in the body frame. */
-    void setContactPlaneFrame(Transform planeFrame);
     /** Set the radius of the contact sphere. */
     void setContactSphereRadius(Real radius);
-    /** Get the MobilizedBody to which the contact sphere is attached. */
+    /** Set the MobilizedBody to which the contact plane is attached. */
     void setContactPlaneInBody(MobilizedBody bodyInput2);
-    /** Set the location of the contact sphere in the body frame. */
+    /** Set the transform of the contact plane in the body frame. */
+    void setContactPlaneFrame(Transform planeFrame);
+    /** Get the MobilizedBody to which the contact sphere is attached. */
     MobilizedBody getBodySphere();
     /** Get the MobilizedBody to which the contact plane is attached. */
     MobilizedBody getBodyPlane();

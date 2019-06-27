@@ -71,9 +71,10 @@ public:
     const Parameters& getParameters() const;
     // Update parameters.
     Parameters& updParameters();
-    // Set the stiffness constant.
+    // Set the stiffness constant (i.e., plain strain modulus), default is 1
+    // N/m^2.
     void setStiffness(Real stiffness);
-    // Set the dissipation coefficient.
+    // Set the dissipation coefficient, default is 0 s/m.
     void setDissipation(Real dissipation);
     // Set the coefficient of static friction.
     void setStaticFriction(Real staticFriction);
@@ -81,10 +82,9 @@ public:
     void setDynamicFriction(Real dynamicFriction);
     // Set the coefficient of viscous friction.
     void setViscousFriction(Real viscousFriction);
-    // Set the transition velocity.
+    // Set the transition velocity, default is 0.01 m/s.
     void setTransitionVelocity(Real transitionVelocity);
-    // Set the constant that enforces a small contact force even when there
-    // is no contact between the sphere and the plane.
+    // Set the constant that enforces non-null derivatives, default is 1e-5.
     void setConstantContactForce(Real cf);
     // Set the parameter that determines the smoothness of the transition
     // of the tanh used to smooth the Hertz force.
@@ -94,14 +94,14 @@ public:
     void setParameterTanhHuntCrossleyForce(Real bv);
     // Set the MobilizedBody to which the contact sphere is attached.
     void setContactSphereInBody(MobilizedBody bodyInput1);
-    // Set the MobilizedBody to which the contact plane is attached.
-    void setContactPlaneInBody(MobilizedBody bodyInput2);
     // Set the location of the contact sphere in the body frame.
     void setContactSphereLocationInBody(Vec3 locationContactSphere);
-    // Set the transform of the contact plane in the body frame.
-    void setContactPlaneFrame(Transform planeFrame);
     // Set the radius of the contact sphere.
     void setContactSphereRadius(Real radius);
+    // Set the MobilizedBody to which the contact plane is attached.
+    void setContactPlaneInBody(MobilizedBody bodyInput2);
+    // Set the transform of the contact plane in the body frame.
+    void setContactPlaneFrame(Transform planeFrame);
     // Get the MobilizedBody to which the contact sphere is attached.
     MobilizedBody getBodySphere();
     // Get the MobilizedBody to which the contact plane is attached.
