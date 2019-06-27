@@ -153,7 +153,7 @@ public:
      */
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
        Real dynamicFriction, Real viscousFriction, Real transitionVelocity,
-       Real eps, Real bd, Real bv);
+       Real cf, Real bd, Real bv);
     /** Set the stiffness constant (i.e., plain strain modulus), default is 1
         N/m^2 */
     void setStiffness(Real stiffness);
