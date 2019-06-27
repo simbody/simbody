@@ -74,12 +74,11 @@ class SmoothSphereHalfplaneForceImpl;
  *
  * The normal restoring force (Hertz force) is given by:
  * <pre>     fh_pos = (4/3) k (R k)^(1/2) ((x^2+cf)^(1/2))^(3/2) </pre>
- * where k = 0.5 stiffness^(2/3) with stiffness the effective Young's
- * modulus, which is assumed identical for both contacting materials (i.e.,
- * sphere and plane), x is penetration depth, R is sphere radius, and cf
- * (default is 1e-5) is a constant that enforces a small force to ensure
- * non-null derivatives. To smoothly transition between periods with and
- * without sphere-plane contact, we use a tanh function:
+ * where k = 0.5 E^(2/3) with E the plain strain modulus, which is assumed
+ * identical for both contacting materials (i.e., sphere and plane), x is
+ * penetration depth, R is sphere radius, and cf (default is 1e-5) is a
+ * constant that ensures non-null derivatives. To smoothly transition between
+ * periods with and without sphere-plane contact, we use a tanh function:
  * <pre>     fh_smooth = fh_pos (1/2+(1/2)tanh(bd x)) </pre>
  * where bd (default is 300) is a parameter that determines the smoothness of
  * the tanh transition.
