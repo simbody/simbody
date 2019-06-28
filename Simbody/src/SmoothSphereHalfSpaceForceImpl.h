@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_FORCE_IMPL_H_
-#define SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_FORCE_IMPL_H_
+#ifndef SimTK_SIMBODY_SMOOTH_SPHERE_HALFSPACE_FORCE_IMPL_H_
+#define SimTK_SIMBODY_SMOOTH_SPHERE_HALFSPACE_FORCE_IMPL_H_
 
 /* -------------------------------------------------------------------------- *
  *                               Simbody(tm)                                  *
@@ -26,12 +26,12 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/SmoothSphereHalfplaneForce.h"
+#include "simbody/internal/SmoothSphereHalfSpaceForce.h"
 #include "ForceImpl.h"
 
 namespace SimTK {
 
-class SmoothSphereHalfplaneForceImpl : public ForceImpl {
+class SmoothSphereHalfSpaceForceImpl : public ForceImpl {
 public:
     class Parameters {
     public:
@@ -53,15 +53,15 @@ public:
 
     Real            contactSphereRadius;
     Vec3            contactSphereLocation;
-    Transform       contactPlaneFrame;
+    Transform       contactHalfSpaceFrame;
     MobilizedBody   bodySphere;
-    MobilizedBody   bodyPlane;
+    MobilizedBody   bodyHalfSpace;
     Parameters      parameters;
 
-    SmoothSphereHalfplaneForceImpl(GeneralForceSubsystem& subsystem);
+    SmoothSphereHalfSpaceForceImpl(GeneralForceSubsystem& subsystem);
 
-    SmoothSphereHalfplaneForceImpl* clone() const override {
-        return new SmoothSphereHalfplaneForceImpl(*this);
+    SmoothSphereHalfSpaceForceImpl* clone() const override {
+        return new SmoothSphereHalfSpaceForceImpl(*this);
     }
     // Set the contact material parameters.
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
@@ -87,34 +87,36 @@ public:
     // Set the constant that enforces non-null derivatives, default is 1e-5.
     void setConstantContactForce(Real cf);
     // Set the parameter that determines the smoothness of the transition
-    // of the tanh used to smooth the Hertz force.
-    void setParameterTanhHertzForce(Real bd);
-    // Set the parameter that determines the smoothness of the transition
-    // of the tanh used to smooth the Hunt-Crossley force.
-    void setParameterTanhHuntCrossleyForce(Real bv);
+    // of the tanh used to smooth the Hertz force. The larger the steeper the
+    // transition but also the more discontinuous-like, default is 300.
+    void setHertzSmoothing(Real bd);
+    // Set the parameter that determines the smoothness of the transition of
+    // the tanh used to smooth the Hunt-Crossley force. The larger the steeper
+    // the transition but also the more discontinuous-like, default is 50.
+    void setHuntCrossleySmoothing(Real bv);
     // Set the MobilizedBody to which the contact sphere is attached.
-    void setContactSphereInBody(MobilizedBody bodyInput1);
+    void setContactSphereBody(MobilizedBody bodyInput1);
     // Set the location of the contact sphere in the body frame.
     void setContactSphereLocationInBody(Vec3 locationContactSphere);
     // Set the radius of the contact sphere.
     void setContactSphereRadius(Real radius);
-    // Set the MobilizedBody to which the contact plane is attached.
-    void setContactPlaneInBody(MobilizedBody bodyInput2);
-    // Set the transform of the contact plane in the body frame.
-    void setContactPlaneFrame(Transform planeFrame);
+    // Set the MobilizedBody to which the contact half space is attached.
+    void setContactHalfSpaceBody(MobilizedBody bodyInput2);
+    // Set the transform of the contact half space in the body frame.
+    void setContactHalfSpaceFrame(Transform halfSpaceFrame);
     // Get the MobilizedBody to which the contact sphere is attached.
     MobilizedBody getBodySphere();
-    // Get the MobilizedBody to which the contact plane is attached.
-    MobilizedBody getBodyPlane();
+    // Get the MobilizedBody to which the contact half space is attached.
+    MobilizedBody getBodyHalfSpace();
     // Get the location of the contact sphere in the body frame.
     Vec3 getContactSphereLocationInBody();
     // Get the radius of the contact sphere.
     Real getContactSphereRadius();
-    // Get the transform of the contact plane.
-    Transform getContactPlaneTransform();
-    // Get the normal to the contact plane.
-    void getNormalContactPlane(const State& state,
-        UnitVec3& normalContactPlane) const;
+    // Get the transform of the contact half space.
+    Transform getContactHalfSpaceTransform();
+    // Get the normal to the contact half space.
+    void getNormalContactHalfSpace(const State& state,
+        UnitVec3& normalContactHalfSpace) const;
     // Get the location of the contact sphere origin in the ground frame.
     void getContactSphereOrigin(const State& state,Vec3& contactPointPos)const;
     // Calculate contact force.
@@ -130,4 +132,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_FORCE_IMPL_H_
+#endif // SimTK_SIMBODY_SMOOTH_SPHERE_HALFSPACE_FORCE_IMPL_H_

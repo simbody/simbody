@@ -41,51 +41,6 @@ void assertEqual(Vec<N> val1, Vec<N> val2) {
         ASSERT(abs(val1[i]-val2[i]) < TOL);
 }
 
-//#define PREC double
-//class PEFunction : public Differentiator::ScalarFunction {
-//public:
-//    // PE=8/15*k^(3/2)*R^(1/2)*x^(5/2)
-//    PEFunction(Real kk, Real rr, Real acc)
-//        : ScalarFunction(acc), k(kk),r(rr)
-//    {
-//    }
-//    Real calc(Real x) const {
-//        return (8./15.)*std::pow(k,3./2.)*std::pow(r,1./2.)*pow(x,5./2.);
-//    }
-//    // Must provide this virtual function.
-//    int f(Real x, Real& fx) const override {
-//        volatile PREC ffx = (PREC)calc(x);
-//        fx = ffx;
-//        return 0; // success
-//    }
-//private:
-//    const Real k, r;
-//};
-
-#define PREC double
-class PEFunction : public Differentiator::ScalarFunction {
-public:
-    PEFunction(Real kk, Real rr, Real cff, Real bdd, Real acc)
-        : ScalarFunction(acc), k(kk),r(rr),cf(cff),bd(bdd)
-    {
-    }
-    Real calc(Real x) const {
-
-        Real fH = (4./3.)*k*std::sqrt(r*k)*
-        std::pow(std::sqrt(x*x+cf),(3./2.));
-        Real fHs = fH*(1./2.+(1./2.)*std::tanh(bd*x));
-        return Real(2./5.)*fHs*x;
-    }
-    // Must provide this virtual function.
-    int f(Real x, Real& fx) const override {
-        volatile PREC ffx = (PREC)calc(x);
-        fx = ffx;
-        return 0; // success
-    }
-private:
-    const Real k, r, cf, bd;
-};
-
 void testForces() {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -110,21 +65,21 @@ void testForces() {
         Transform(), body1, Transform());
 
     Body::Rigid body2(MassProperties(1.0, Vec3(0), Inertia(1)));
-    MobilizedBody::Free plane(matter.updGround(),
+    MobilizedBody::Free halfSpace(matter.updGround(),
         Transform(), body2, Transform());
 
-    SmoothSphereHalfplaneForce hc_smooth(forces);
+    SmoothSphereHalfSpaceForce hc_smooth(forces);
 
     hc_smooth.setParameters(k,dissipation,us,ud,uv,vt,cf,bd,bv);
-    hc_smooth.setContactSphereInBody(sphere);
+    hc_smooth.setContactSphereBody(sphere);
     hc_smooth.setContactSphereLocationInBody(Vec3(0));
     hc_smooth.setContactSphereRadius(radius);
     Transform testFrame(Rotation(-0.5*Pi, ZAxis), Vec3(0));
-    hc_smooth.setContactPlaneFrame(testFrame);
-    hc_smooth.setContactPlaneInBody(plane);
+    hc_smooth.setContactHalfSpaceFrame(testFrame);
+    hc_smooth.setContactHalfSpaceBody(halfSpace);
     State state = system.realizeTopology();
     // Position the sphere at a variety of positions and see if the normal
-    // force and potential energy are correct (with horizontal ground plane)
+    // force and potential energy are correct.
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
         system.realize(state, Stage::Dynamics);
@@ -136,18 +91,10 @@ void testForces() {
             [sphere.getMobilizedBodyIndex()][1], gravity+Vec3(0, f_smooth, 0));
         assertEqual(hc_smooth.calcPotentialEnergyContribution(state),
             (2./5.)*f_smooth*depth);
-
-        Real acc=SimTK::NTraits<PREC>::getEps();
-        PEFunction funcPE(stiffness,radius,cf,bd,acc);
-        Differentiator dfuncPE(funcPE);
-        Real dValueDiff = dfuncPE.calcDerivative(depth);
-
-        std::cout << dValueDiff << std::endl;
-        std::cout << f_smooth << std::endl;
     }
 
     // Now do it with a vertical velocity and see if the dissipation force is
-    // correct (with horizontal ground plane)
+    // correct.
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
         const Real depth = radius-height;
@@ -168,7 +115,7 @@ void testForces() {
     }
 
     // Now do it with a horizontal velocity and see if the friction force is
-    // correct (with horizontal ground plane)
+    // correct.
     Vector_<SpatialVec> expectedForce(matter.getNumBodies());
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
@@ -181,7 +128,7 @@ void testForces() {
             sphere.setUToFitLinearVelocity(state, Vec3(v, 0, 0));
             system.realize(state, Stage::Dynamics);
             Vec3 vec3v(v,0,0);
-            UnitVec3 normal = (plane.getBodyRotation(state)*testFrame.x());
+            UnitVec3 normal = (halfSpace.getBodyRotation(state)*testFrame.x());
             Real vnormal = dot(vec3v, normal);
             Vec3 vtangent = vec3v - vnormal*normal;
             Real aux = vtangent.normSqr() + cf;
@@ -190,7 +137,8 @@ void testForces() {
             Real ff_smooth_scalar = fh_smooth*(std::min(vrel,Real(1))*
                 (ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
             Vec3 ff_smooth = ff_smooth_scalar*(vtangent) / vslip;
-            const Vec3 totalForceOnSphere = gravity - ff_smooth - fh_smooth*normal;
+            const Vec3 totalForceOnSphere =
+                gravity - ff_smooth - fh_smooth*normal;
             expectedForce = SpatialVec(Vec3(0), Vec3(0));
             Vec3 contactPointInSphere = sphere.findStationAtGroundPoint(state,
                 Vec3(0, -stiffness*depth/(stiffness+stiffness), 0));
@@ -204,67 +152,6 @@ void testForces() {
                 expectedForce[sphere.getMobilizedBodyIndex()][1]);
         }
     }
-
-    //// Now do it with different ground angles and offsets
-    //Vector_<SpatialVec> expectedForce_contact(matter.getNumBodies());
-    //Vector_<SpatialVec> expectedForce_gravity(matter.getNumBodies());
-    //for (int i = -1.0; i <= 1; i += 0.1) {
-    //    for (Real offset = -0.1; offset <= 0.1; offset += 0.01) {
-    //        Vec3 normal_rand((Real)(rand() % 100 - 50)  / RAND_MAX,
-    //            (Real)(rand() % 100 - 50) / RAND_MAX,
-    //            (Real)(rand() % 100 - 50) / RAND_MAX);
-    //        normal_rand = normal_rand / normal_rand.norm();
-    //        hc_smooth.setContactPlane(normal_rand, offset);
-    //        Vec3 loc_inG(0.23, 0.10, 0.42); // random location of the sphere in
-    //        // the space, in the ground frame
-    //        sphere.setQToFitTranslation(state, loc_inG);
-    //        Vec3 vel_inG(0.34, -0.65, -0.48); // random velocity of the sphere
-    //        // in the space, in the ground frame
-    //        sphere.setUToFitLinearVelocity(state, vel_inG);
-    //        system.realize(state, Stage::Dynamics);
-
-    //        Vec3 contactPoint = loc_inG - normal_rand*radius;
-    //        const Real depth = -(dot(contactPoint,normal_rand)-offset);
-    //        Real vnormal = dot(vel_inG, normal_rand);
-    //        Vec3 vtangent = vel_inG - vnormal*normal_rand;
-    //        Real IndentationVel = -vnormal;
-
-    //        Real fh = (4./3.)*stiffness*
-    //            std::pow(std::sqrt(depth*depth + cf), 3./2.)*
-    //            std::sqrt(radius*stiffness);
-    //        Real fhd = fh*(1.+(3./2.)*dissipation*IndentationVel);
-    //        Real fh_smooth = fhd*(1./2.+(1./2.)*std::tanh(bd*depth))*
-    //            (1./2.+(1./2.)*std::tanh(bv*(IndentationVel +
-    //            (2./(3.*dissipation)))));;
-
-    //        Real aux = pow(vtangent[0],2) + pow(vtangent[1],2) +
-    //            pow(vtangent[2],2) + cf;
-    //        Real vslip = pow(aux,1./2.);
-    //        Real vrel = vslip/vt;
-    //        Real ff_smooth_scalar = fh_smooth*(std::min(vrel, Real(1))*
-    //            (ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
-    //        Vec3 ff_smooth = ff_smooth_scalar*(-vtangent) / vslip;
-    //        const Vec3 totalForce = ff_smooth + fh_smooth*normal_rand;
-    //        expectedForce_contact = SpatialVec(Vec3(0), Vec3(0));
-    //        expectedForce_gravity = SpatialVec(Vec3(0), Vec3(0));
-    //        expectedForce = SpatialVec(Vec3(0), Vec3(0));
-
-    //        Vec3 contactPointInSphere = -normal_rand*radius +
-    //            normal_rand*depth*(stiffness / (stiffness + stiffness));
-    //        sphere.applyForceToBodyPoint(state, contactPointInSphere,
-    //            totalForce, expectedForce_contact);
-    //        sphere.applyForceToBodyPoint(state, Vec3(0,0,0),
-    //            gravity, expectedForce_gravity);
-    //        expectedForce = expectedForce_contact + expectedForce_gravity;
-
-    //        SpatialVec actualForce = system.getRigidBodyForces(state,
-    //            Stage::Dynamics)[sphere.getMobilizedBodyIndex()];
-    //        assertEqual(actualForce[0],
-    //            expectedForce[sphere.getMobilizedBodyIndex()][0]);
-    //        assertEqual(actualForce[1],
-    //            expectedForce[sphere.getMobilizedBodyIndex()][1]);
-    //    }
-    //}
 }
 
 int main() {
