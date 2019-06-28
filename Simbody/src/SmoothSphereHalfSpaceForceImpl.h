@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_FORCE_IMPL_H_
-#define SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_FORCE_IMPL_H_
+#ifndef SimTK_SIMBODY_SMOOTH_SPHERE_HALFSPACE_FORCE_IMPL_H_
+#define SimTK_SIMBODY_SMOOTH_SPHERE_HALFSPACE_FORCE_IMPL_H_
 
 /* -------------------------------------------------------------------------- *
  *                               Simbody(tm)                                  *
@@ -26,12 +26,12 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/SmoothSphereHalfplaneForce.h"
+#include "simbody/internal/SmoothSphereHalfSpaceForce.h"
 #include "ForceImpl.h"
 
 namespace SimTK {
 
-class SmoothSphereHalfplaneForceImpl : public ForceImpl {
+class SmoothSphereHalfSpaceForceImpl : public ForceImpl {
 public:
     class Parameters {
     public:
@@ -51,16 +51,17 @@ public:
             viscousFriction, transitionVelocity, cf, bd, bv;
     };
 
-    Real            radiusContactSphere;
-    Vec3            locationContactSphere;
+    Real            contactSphereRadius;
+    Vec3            contactSphereLocation;
+    Transform       contactHalfSpaceFrame;
     MobilizedBody   bodySphere;
+    MobilizedBody   bodyHalfSpace;
     Parameters      parameters;
-    Plane           contactPlane;
 
-    SmoothSphereHalfplaneForceImpl(GeneralForceSubsystem& subsystem);
+    SmoothSphereHalfSpaceForceImpl(GeneralForceSubsystem& subsystem);
 
-    SmoothSphereHalfplaneForceImpl* clone() const override {
-        return new SmoothSphereHalfplaneForceImpl(*this);
+    SmoothSphereHalfSpaceForceImpl* clone() const override {
+        return new SmoothSphereHalfSpaceForceImpl(*this);
     }
     // Set the contact material parameters.
     void setParameters(Real stiffness, Real dissipation, Real staticFriction,
@@ -70,9 +71,10 @@ public:
     const Parameters& getParameters() const;
     // Update parameters.
     Parameters& updParameters();
-    // Set the stiffness constant.
+    // Set the stiffness constant (i.e., plain strain modulus), default is 1
+    // N/m^2.
     void setStiffness(Real stiffness);
-    // Set the dissipation coefficient.
+    // Set the dissipation coefficient, default is 0 s/m.
     void setDissipation(Real dissipation);
     // Set the coefficient of static friction.
     void setStaticFriction(Real staticFriction);
@@ -80,33 +82,43 @@ public:
     void setDynamicFriction(Real dynamicFriction);
     // Set the coefficient of viscous friction.
     void setViscousFriction(Real viscousFriction);
-    // Set the transition velocity.
+    // Set the transition velocity, default is 0.01 m/s.
     void setTransitionVelocity(Real transitionVelocity);
-    // Set the constant that enforces a small contact force even when there
-    // is no contact between the sphere and the plane.
+    // Set the constant that enforces non-null derivatives, default is 1e-5.
     void setConstantContactForce(Real cf);
     // Set the parameter that determines the smoothness of the transition
-    // of the tanh used to smooth the Hertz force.
-    void setParameterTanhHertzForce(Real bd);
-    // Set the parameter that determines the smoothness of the transition
-    // of the tanh used to smooth the Hunt-Crossley force.
-    void setParameterTanhHuntCrossleyForce(Real bv);
-    // Set the contact plane.
-    void setContactPlane(Vec3 normal, Real offset);
+    // of the tanh used to smooth the Hertz force. The larger the steeper the
+    // transition but also the more discontinuous-like, default is 300.
+    void setHertzSmoothing(Real bd);
+    // Set the parameter that determines the smoothness of the transition of
+    // the tanh used to smooth the Hunt-Crossley force. The larger the steeper
+    // the transition but also the more discontinuous-like, default is 50.
+    void setHuntCrossleySmoothing(Real bv);
     // Set the MobilizedBody to which the contact sphere is attached.
-    void setContactSphereInBody(MobilizedBody bodyInput);
+    void setContactSphereBody(MobilizedBody bodyInput1);
     // Set the location of the contact sphere in the body frame.
     void setContactSphereLocationInBody(Vec3 locationContactSphere);
     // Set the radius of the contact sphere.
     void setContactSphereRadius(Real radius);
+    // Set the MobilizedBody to which the contact half space is attached.
+    void setContactHalfSpaceBody(MobilizedBody bodyInput2);
+    // Set the transform of the contact half space in the body frame.
+    void setContactHalfSpaceFrame(Transform halfSpaceFrame);
     // Get the MobilizedBody to which the contact sphere is attached.
     MobilizedBody getBodySphere();
+    // Get the MobilizedBody to which the contact half space is attached.
+    MobilizedBody getBodyHalfSpace();
     // Get the location of the contact sphere in the body frame.
     Vec3 getContactSphereLocationInBody();
     // Get the radius of the contact sphere.
     Real getContactSphereRadius();
-    // Get the location of the contact point in the ground frame.
-    void getContactPointSphere(const State& state,Vec3& contactPointPos) const;
+    // Get the transform of the contact half space.
+    Transform getContactHalfSpaceTransform();
+    // Get the normal to the contact half space.
+    void getNormalContactHalfSpace(const State& state,
+        UnitVec3& normalContactHalfSpace) const;
+    // Get the location of the contact sphere origin in the ground frame.
+    void getContactSphereOrigin(const State& state,Vec3& contactPointPos)const;
     // Calculate contact force.
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
         Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;
@@ -120,4 +132,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_SMOOTH_SPHERE_HALFPLANE_FORCE_IMPL_H_
+#endif // SimTK_SIMBODY_SMOOTH_SPHERE_HALFSPACE_FORCE_IMPL_H_
