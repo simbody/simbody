@@ -89,7 +89,8 @@ class SmoothSphereHalfSpaceForceImpl;
  * the tanh transition. The graph below compares the smooth approaximation with
  * respect to the original model.
  *
- * \htmlonly <style>div.image img[src="SmoothSphereHalfSpaceForce_HertzForce.png"]{width:750px;}</style> \endhtmlonly
+ * \htmlonly <style>div.image img[src="SmoothSphereHalfSpaceForce_HertzForce."
+ * "png"]{width:750px;}</style> \endhtmlonly
  * @image html SmoothSphereHalfSpaceForce_HertzForce.png "Curves produced using E=1e6, R=0.8, cf=1e-5, and bd=300"
  *
  * The dissipation force is combined with the normal restoring force
@@ -188,11 +189,11 @@ public:
     void setStiffness(Real stiffness);
     /** Set the dissipation coefficient, default is 0 (s/m). */
     void setDissipation(Real dissipation);
-    /** Set the coefficient of static friction. */
+    /** Set the coefficient of static friction, default is 0. */
     void setStaticFriction(Real staticFriction);
-    /** Set the coefficient of dynamic friction. */
+    /** Set the coefficient of dynamic friction, default is 0. */
     void setDynamicFriction(Real dynamicFriction);
-    /** Set the coefficient of viscous friction. */
+    /** Set the coefficient of viscous friction, default is 0. */
     void setViscousFriction(Real viscousFriction);
     /** Set the transition velocity, default is 0.01 (m/s). */
     void setTransitionVelocity(Real transitionVelocity);

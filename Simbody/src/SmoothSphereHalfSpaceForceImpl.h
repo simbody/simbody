@@ -76,11 +76,11 @@ public:
     void setStiffness(Real stiffness);
     // Set the dissipation coefficient, default is 0 s/m.
     void setDissipation(Real dissipation);
-    // Set the coefficient of static friction.
+    // Set the coefficient of static friction, default is 0.
     void setStaticFriction(Real staticFriction);
-    // Set the coefficient of dynamic friction.
+    // Set the coefficient of dynamic friction, default is 0.
     void setDynamicFriction(Real dynamicFriction);
-    // Set the coefficient of viscous friction.
+    // Set the coefficient of viscous friction, default is 0.
     void setViscousFriction(Real viscousFriction);
     // Set the transition velocity, default is 0.01 m/s.
     void setTransitionVelocity(Real transitionVelocity);
