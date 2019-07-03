@@ -112,12 +112,7 @@ class SmoothSphereHalfSpaceForceImpl;
  * <pre> ff = f_smooth [min(vs/vt,1) (ud+2(us-ud)/(1+(vs/vt)^2))+uv vs] </pre>
  * where vs is the slip velocity of the two bodies at the contact point (see
  * below), vt is a transition velocity (see below), and us, ud, and uv are the
- * coefficients of static, dynamic, and viscous friction, respectively. Each of
- * the three friction coefficients is calculated based on the friction
- * coefficients of the two bodies in contact:
- * <pre>     u = (2 u1 u2)/(u1+u2) </pre>
- * We assume the same coefficients for both contacting materials
- * (i.e., u=u1=u2).
+ * coefficients of static, dynamic, and viscous friction, respectively.
  *
  * The slip velocity is defined as the norm of the tangential velocity. To
  * enforce non-null derivatives, we added the small positive constant cf

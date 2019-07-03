@@ -58,7 +58,6 @@ void testForces() {
     const Real cf = 1e-5;
     const Real bd = 300;
     const Real bv = 50;
-    Random::Uniform random(0.0, 1.0);
 
     Body::Rigid body1(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Translation sphere(matter.updGround(),

@@ -306,9 +306,9 @@ void SmoothSphereHalfSpaceForceImpl::calcForce(const State& state,
     const Real bd = parameters.bd;
     const Real bv = parameters.bv;
     // Calculate the Hertz force.
-    const Real k = (1./2.)*std::pow(stiffness, (2./3.));
+    const Real k = (1./2.)*std::pow(stiffness,2./3.);
     const Real fH = (4./3.)*k*std::sqrt(contactSphereRadius*k)*
-        std::pow(std::sqrt(indentation*indentation+cf),(3./2.));
+        std::pow(std::sqrt(indentation*indentation+cf),3./2.);
     // Calculate the potential energy.
     // The potential energy is the integral of the Hertz force. Due to the
     // smooth approximation, there is no exact expression for the potential
