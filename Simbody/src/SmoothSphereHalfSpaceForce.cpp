@@ -307,28 +307,29 @@ void SmoothSphereHalfSpaceForceImpl::calcForce(const State& state,
     const Real bv = parameters.bv;
     // Calculate the Hertz force.
     const Real k = (1./2.)*std::pow(stiffness,2./3.);
-    const Real fH = (4./3.)*k*std::sqrt(contactSphereRadius*k)*
+    const Real fh_pos = (4./3.)*k*std::sqrt(contactSphereRadius*k)*
         std::pow(std::sqrt(indentation*indentation+cf),3./2.);
+    const Real fh_smooth = fh_pos*(1./2.+(1./2.)*std::tanh(bd*indentation));
     // Calculate the potential energy.
     // The potential energy is the integral of the Hertz force. Due to the
     // smooth approximation, there is no exact expression for the potential
     // energy. Here we provide an approximation based on the original
     // expression (i.e., pe = Real(2./5.)*fH*indentation) where we replace fH
-    // by the smooth approximation.
-    pe += Real(2./5.)*fH*(1./2.+(1./2.)*std::tanh(bd*indentation))*indentation;
+    // by the smooth approximation (i.e., fh_smooth).
+    pe += Real(2./5.)*fh_smooth*indentation;
     // Calculate the Hunt-Crossley force.
     const Real c = dissipation;
-    const Real fHd = fH*(1.+(3./2.)*c*vnormal);
-    const Real fn = fHd*(1./2.+(1./2.)*std::tanh(bd*indentation))*
-        (1./2.+(1./2.)*std::tanh(bv*(vnormal+(2./(3.*c)))));
-    Vec3 force = fn*normal;
+    const Real fhc_pos = fh_smooth*(1.+(3./2.)*c*vnormal);
+    const Real fhc_smooth = fhc_pos*(1./2.+(1./2.)*std::tanh(
+        bv*(vnormal+(2./(3.*c)))));
+    Vec3 force = fhc_smooth*normal;
     // Calculate the friction force.
     const Real aux = vtangent.normSqr()+cf;
     const Real vslip = pow(aux,1./2.);
     const Real vrel = vslip / vt;
-    const Real ffriction = fn*(std::min(vrel,Real(1))*
+    const Real ff = fhc_smooth*(std::min(vrel,Real(1))*
         (ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
-    force += ffriction*(vtangent) / vslip;
+    force += ff*(vtangent) / vslip;
     // Apply the force to the bodies.
     bodySphere.applyForceToBodyPoint(state, station1, -force, bodyForces);
     bodyHalfSpace.applyForceToBodyPoint(state, station2, force, bodyForces);
