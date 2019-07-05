@@ -314,8 +314,8 @@ void SmoothSphereHalfSpaceForceImpl::calcForce(const State& state,
     // The potential energy is the integral of the Hertz force. Due to the
     // smooth approximation, there is no exact expression for the potential
     // energy. Here we provide an approximation based on the original
-    // expression (i.e., pe = Real(2./5.)*fH*indentation) where we replace fH
-    // by the smooth approximation (i.e., fh_smooth).
+    // expression (i.e., pe = Real(2./5.)*fHertz*indentation) where we replace
+    // fHertz by the smooth approximation (i.e., fh_smooth).
     pe += Real(2./5.)*fh_smooth*indentation;
     // Calculate the Hunt-Crossley force.
     const Real c = dissipation;
