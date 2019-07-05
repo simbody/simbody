@@ -185,11 +185,11 @@ public:
     void setConstantContactForce(Real cf);
     /** Set the parameter that determines the smoothness of the transition
         of the tanh used to smooth the Hertz force. The larger the steeper the
-        transition but also the more discontinuous-like, default is 300. */
+        transition but also the more discontinuous, default is 300. */
     void setHertzSmoothing(Real bd);
     /** Set the parameter that determines the smoothness of the transition
         of the tanh used to smooth the Hunt-Crossley force. The larger the
-        steeper the transition but also the more discontinuous-like, default
+        steeper the transition but also the more discontinuous, default
         is 50. */
     void setHuntCrossleySmoothing(Real bv);
     /** Set the MobilizedBody to which the contact sphere is attached. */
