@@ -3034,7 +3034,7 @@ void calcAccelerationErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   aerr) const override
-{   getImplementation().calcVelocityDotErrors
+{   getImplementation().calcAccelerationErrors
                                         (state,A_AB,constrainedUDot,aerr); }
 
 void addInAccelerationConstraintForcesVirtual
