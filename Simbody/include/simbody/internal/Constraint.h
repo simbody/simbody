@@ -475,6 +475,7 @@ class Custom;
 class CoordinateCoupler;
 class SpeedCoupler;
 class PrescribedMotion;
+class PrescribedVelocity;
 class PointOnPlaneContact; 
 class SphereOnPlaneContact; // ball in contact with plane (sliding or rolling)
 class SphereOnSphereContact; // ball in contact with ball (sliding or rolling)
@@ -496,6 +497,7 @@ class CustomImpl;
 class CoordinateCouplerImpl;
 class SpeedCouplerImpl;
 class PrescribedMotionImpl;
+class PrescribedVelocityImpl;
 class PointOnPlaneContactImpl; 
 class SphereOnPlaneContactImpl;
 class SphereOnSphereContactImpl;
@@ -2195,6 +2197,43 @@ public:
     
     /** Default constructor creates an empty handle. **/
     PrescribedMotion() {}
+};
+
+
+//==============================================================================
+//                             PRESCRIBED VELOCITY
+//==============================================================================
+/** This is a %Constraint that uses a Function to prescribe
+the behavior of a single generalized coordinate as a function of time. You
+provide a Function which takes the current time as its argument and returns the
+required value of the generalized coordinate. It also must support derivatives
+up to second order. **/
+class SimTK_SIMBODY_EXPORT Constraint::PrescribedVelocity
+	: public Constraint::Custom {
+public:
+	/** Create a PrescribedVelocity constraint. You specify a Function that takes
+	time as its single argument, and returns the required value for the
+	constrained coordinate.
+
+	@param      matter
+	The matter subsystem to which this constraint will be added.
+	@param      function
+	The Function which specifies the value of the constrained coordinate.
+	The constraint takes over ownership of this object, and automatically
+	deletes it when the constraint is deleted.
+	@param      speedBody
+	The MobilizedBody corresponding to the generalized coordinate which will
+	be constrained.
+	@param      speedIndex
+	The index of the generalized coordinate which will be constrained. **/
+	PrescribedVelocity(SimbodyMatterSubsystem&    matter,
+		const Function*            function,
+		MobilizedBodyIndex         speedBody,
+		MobilizerUIndex            speedIndex);
+
+
+	/** Default constructor creates an empty handle. **/
+	PrescribedVelocity() {}
 };
 
 

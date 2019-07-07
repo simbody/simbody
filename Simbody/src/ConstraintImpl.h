@@ -3034,7 +3034,7 @@ void calcAccelerationErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   aerr) const override
-{   getImplementation().calcVelocityDotErrors
+{   getImplementation().calcAccelerationErrors
                                         (state,A_AB,constrainedUDot,aerr); }
 
 void addInAccelerationConstraintForcesVirtual
@@ -3251,6 +3251,58 @@ int*                        referenceCount;
 ConstrainedMobilizerIndex   coordBody;
 MobilizerQIndex             coordIndex;
 mutable Vector              temp;
+};
+
+
+
+//==============================================================================
+//                          PRESCRIBED VELOCITY IMPL
+//==============================================================================
+class Constraint::PrescribedVelocityImpl
+	: public Constraint::Custom::Implementation {
+public:
+	PrescribedVelocityImpl(SimbodyMatterSubsystem&    matter,
+		const Function*            function,
+		MobilizedBodyIndex         speedBody,
+		MobilizerUIndex            speedIndex);
+
+	~PrescribedVelocityImpl() {
+		if (--referenceCount[0] == 0) {
+			delete function;
+			delete[] referenceCount;
+		}
+	}
+
+	Implementation* clone() const override {
+		referenceCount[0]++;
+		return new PrescribedVelocityImpl(*this);
+	}
+
+	void calcVelocityErrors
+	(const State&                                    state,
+	 const Array_<SpatialVec, ConstrainedBodyIndex>&  V_AB,
+	 const Array_<Real, ConstrainedUIndex>&     constrainedU,
+	 Array_<Real>&                                   verr) const override;
+
+	void calcVelocityDotErrors
+	(const State&                                    state,
+	 const Array_<SpatialVec, ConstrainedBodyIndex>&  A_AB,
+	 const Array_<Real, ConstrainedUIndex>&     constrainedUDot,
+	 Array_<Real>&                                   vaerr) const override;
+
+	void addInVelocityConstraintForces
+	(const State&                                state,
+	 const Array_<Real>&                         multipliers,
+	 Array_<SpatialVec, ConstrainedBodyIndex>&    bodyForces,
+	 Array_<Real, ConstrainedUIndex>&             mobilityForces) const override;
+
+	//------------------------------------------------------------------------------
+private:
+	const Function*             function;
+	int*                        referenceCount;
+	ConstrainedMobilizerIndex   speedBody;
+	MobilizerUIndex             speedIndex;
+	mutable Vector              temp;
 };
 
 
