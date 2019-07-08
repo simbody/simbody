@@ -2200,6 +2200,7 @@ public:
 };
 
 
+
 //==============================================================================
 //                             PRESCRIBED VELOCITY
 //==============================================================================
@@ -2209,31 +2210,31 @@ provide a Function which takes the current time as its argument and returns the
 required value of the generalized coordinate. It also must support derivatives
 up to second order. **/
 class SimTK_SIMBODY_EXPORT Constraint::PrescribedVelocity
-	: public Constraint::Custom {
+:   public Constraint::Custom {
 public:
-	/** Create a PrescribedVelocity constraint. You specify a Function that takes
-	time as its single argument, and returns the required value for the
-	constrained coordinate.
+    /** Create a PrescribedVelocity constraint. You specify a Function that takes
+    time as its single argument, and returns the required value for the
+    constrained coordinate.
 
-	@param      matter
+    @param      matter
 	The matter subsystem to which this constraint will be added.
-	@param      function
+    @param      function
 	The Function which specifies the value of the constrained coordinate.
 	The constraint takes over ownership of this object, and automatically
 	deletes it when the constraint is deleted.
-	@param      speedBody
+    @param      speedBody
 	The MobilizedBody corresponding to the generalized coordinate which will
 	be constrained.
-	@param      speedIndex
+    @param      speedIndex
 	The index of the generalized coordinate which will be constrained. **/
-	PrescribedVelocity(SimbodyMatterSubsystem&    matter,
-		const Function*            function,
-		MobilizedBodyIndex         speedBody,
-		MobilizerUIndex            speedIndex);
+    PrescribedVelocity(SimbodyMatterSubsystem&    matter,
+		       const Function*            function,
+		       MobilizedBodyIndex         speedBody,
+		       MobilizerUIndex            speedIndex);
 
 
-	/** Default constructor creates an empty handle. **/
-	PrescribedVelocity() {}
+    /** Default constructor creates an empty handle. **/
+    PrescribedVelocity() {}
 };
 
 
