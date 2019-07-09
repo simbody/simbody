@@ -2207,13 +2207,13 @@ public:
 /** This is a %Constraint that uses a Function to prescribe
 the behavior of a single generalized coordinate as a function of time. You
 provide a Function which takes the current time as its argument and returns the
-required value of the generalized coordinate. It also must support derivatives
+required speed of the generalized coordinate. It also must support derivatives
 up to second order. **/
 class SimTK_SIMBODY_EXPORT Constraint::PrescribedVelocity
 :   public Constraint::Custom {
 public:
     /** Create a PrescribedVelocity constraint. You specify a Function that takes
-    time as its single argument, and returns the required value for the
+    time as its single argument, and returns the required speed for the
     constrained coordinate.
 
     @param      matter
