@@ -41,6 +41,11 @@ option(SIMBODY_COVERAGE
        "Adding ability to assess test coverage (requires gcc or clang)."
        OFF)
 
+# Declare the option to install documentation
+option(INSTALL_DOCS
+       "Install documentation."
+       ON)
+
 # Check compiler version
 if(MSVC)
     if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
@@ -585,7 +590,9 @@ endif()
 # These are used in Doxyfile.in and SimbodyConfig.cmake.in.
 set(SIMBODY_INSTALL_DOXYGENDIR   "${CMAKE_INSTALL_DOCDIR}/api")
 set(SIMBODY_DOXYGEN_TAGFILE_NAME "SimbodyDoxygenTagfile")
-add_subdirectory(doc)
+if( INSTALL_DOCS )
+    add_subdirectory(doc)
+endif()
 
 # Specify where visualizer should be installed. This needs to be in the
 # root CMakeLists.txt so the cmake config file can see this value.
@@ -624,8 +631,10 @@ if( BUILD_EXAMPLES )
     add_subdirectory( examples )
 endif()
 
-file(GLOB TOPLEVEL_DOCS LICENSE.txt *.md doc/*.pdf doc/*.md)
-install(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
+if( INSTALL_DOCS )
+    file(GLOB TOPLEVEL_DOCS LICENSE.txt *.md doc/*.pdf doc/*.md)
+    install(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
+endif()
 
 # Add uninstall target
 configure_file(
