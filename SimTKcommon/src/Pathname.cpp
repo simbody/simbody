@@ -446,6 +446,10 @@ string Pathname::getThisExecutablePath() {
         SimTK_ERRCHK_ALWAYS(status==0,
                 "Pathname::getThisExecutablePath()",
                 "2048-byte buffer is not big enough to store executable path.");
+    #elif defined(__FreeBSD__) || defined(__DragonFly__)
+        // This isn't automatically null terminated.
+        const size_t nBytes = readlink("/proc/curproc/file", buf, sizeof(buf));
+        buf[nBytes] = '\0';
     #else // Linux
         // This isn't automatically null terminated.
         const size_t nBytes = readlink("/proc/self/exe", buf, sizeof(buf));
