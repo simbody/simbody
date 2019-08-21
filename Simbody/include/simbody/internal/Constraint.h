@@ -2228,9 +2228,9 @@ public:
     @param      speedIndex
 	The index of the generalized coordinate which will be constrained. **/
     PrescribedVelocity(SimbodyMatterSubsystem&    matter,
-		       const Function*            function,
-		       MobilizedBodyIndex         speedBody,
-		       MobilizerUIndex            speedIndex);
+                       const Function*            function,
+                       MobilizedBodyIndex         speedBody,
+                       MobilizerUIndex            speedIndex);
 
 
     /** Default constructor creates an empty handle. **/
