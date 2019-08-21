@@ -2217,16 +2217,16 @@ public:
     constrained speed.
 
     @param      matter
-	The matter subsystem to which this constraint will be added.
+        The matter subsystem to which this constraint will be added.
     @param      function
-	The Function which specifies the value of the constrained speed.
-	The constraint takes over ownership of this object, and automatically
-	deletes it when the constraint is deleted.
+        The Function which specifies the value of the constrained speed.
+        The constraint takes over ownership of this object, and automatically
+        deletes it when the constraint is deleted.
     @param      speedBody
-	The MobilizedBody corresponding to the generalized speed which will
-	be constrained.
+        The MobilizedBody corresponding to the generalized speed which will
+        be constrained.
     @param      speedIndex
-	The index of the generalized speed which will be constrained. **/
+        The index of the generalized speed which will be constrained. **/
     PrescribedVelocity(SimbodyMatterSubsystem&    matter,
                        const Function*            function,
                        MobilizedBodyIndex         speedBody,
