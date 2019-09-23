@@ -1,11 +1,7 @@
 # This script is used by the Travis-CI (continuous integration) testing
 # framework to run Simbody's tests with every GitHub push or pull-request.
-#
-# Ask for Ubuntu "trusty" (14.04) to pick up newer compilers. Still have
-# to upgrade gcc from trusty's 4.8 to 4.9 though, because 4.8 didn't support
-# C++11 regular expressions.
+
 sudo: required
-dist: trusty
 language: cpp
 
 # For thread_local support on macOS, we require xcode8 or greater.
@@ -48,21 +44,6 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes update; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes install liblapack-dev; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes install freeglut3-dev libxi-dev libxmu-dev; fi
-
-  # C++11 on Ubuntu. Update to gcc 4.9, which provides full C++11 support.  We
-  # use this script because if building Simbody with C++11, we need gcc-4.9,
-  # and the Travis Ubuntu 12.04 machines have an older version of gcc. Even if
-  # building with Clang, we need the newer libstdc++ that we get by updating to
-  # gcc-4.9.  See https://github.com/travis-ci/travis-ci/issues/979.
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get --yes update -qq; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get --yes install -qq g++-4.9; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CXX" = "g++" ]]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
-  
-  # CMake 2.8.11 on Ubuntu.
-  #- if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo add-apt-repository ppa:kalakris/cmake -y; fi
-  #- if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get --yes update -qq; fi
-  #- if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get --yes install cmake; fi
 
 install:
   - mkdir -p $TRAVIS_BUILD_DIR/simbody-build && cd $TRAVIS_BUILD_DIR/simbody-build
