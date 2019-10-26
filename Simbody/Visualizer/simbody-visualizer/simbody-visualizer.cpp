@@ -2647,7 +2647,7 @@ static const int DefaultWindowWidth  = 800;
 static const int DefaultWindowHeight = 600;
 
 
-// The glut callback for chaning window size.
+// The glut callback for changing window size.
 static void changeSize(int width, int height) {
     if (height == 0)
         height = 1;

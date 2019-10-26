@@ -38,7 +38,7 @@ endif()
 
 if(OPENGL_FOUND AND SIMBODY_HAS_GLUT)
 
-add_executable(${GUI_NAME} 
+add_executable(${GUI_NAME} MACOSX_BUNDLE
     simbody-visualizer.cpp lodepng.cpp lodepng.h
     ${GLUT32_HEADERS}) # only on Windows
 
@@ -49,9 +49,11 @@ endif()
 # If building as debug, append the debug postfix to the name of the executable.
 # CMAKE_DEBUG_POSTFIX only affects non-executable targets, but we use its value
 # to set the postfix for this executable.
+# Setting the target property DEBUG_POSTFIX does not work for MACOSX bundles,
+# so we use DEBUG_OUTPUT_NAME instead.
 set_target_properties(${GUI_NAME} PROPERTIES
         PROJECT_LABEL "Code - ${GUI_NAME}"
-        DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+        DEBUG_OUTPUT_NAME ${GUI_NAME}${CMAKE_DEBUG_POSTFIX})
 
 # On OSX, bake the relative path to the Simbody libraries into the visualizer
 # executable. Then there's no need to set `DYLD_LIBRARY_PATH` to find the
