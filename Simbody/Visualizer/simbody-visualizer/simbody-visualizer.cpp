@@ -138,6 +138,22 @@ static int inPipe, outPipe;
 // and can no longer write to the simulator.
 static std::atomic<bool> writeToSimulator{true};
 
+// On Mac, if the simbody-visualizer.app/Contents/MacOS/Info.plist's field
+// NSHighResolutionCapable is set to true, then this function is expected
+// to return 2.0 for high-DPI screens.
+// This function could also be used for other operating systems that support
+// high-DPI screens. For now, this is just a stub.
+// https://developer.apple.com/library/archive/documentation/GraphicsImaging/Conceptual/OpenGL-MacProgGuide/EnablingOpenGLforHighResolution/EnablingOpenGLforHighResolution.html#//apple_ref/doc/uid/TP40001987-CH1001-SW4
+static int getScalingFactor() {
+    #if defined(__APPLE__)
+    // If we figure out a way to get the "backing scale factor", we can increase
+    // this number to support high-DPI displays.
+        return 1;
+    #else
+        return 1;
+    #endif
+}
+
 static void computeBoundingSphereForVertices(const vector<float>& vertices, float& radius, fVec3& center) {
     fVec3 lower(vertices[0], vertices[1], vertices[2]);
     fVec3 upper = lower;
@@ -269,7 +285,7 @@ public:
     void draw(bool setColor = true) {
         if (setColor)
             glColor3d(color[0], color[1], color[2]);
-        glLineWidth(thickness);
+        glLineWidth(getScalingFactor() * thickness);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glVertexPointer(3, GL_FLOAT, 0, &lines[0]);
         glDrawArrays(GL_LINES, 0, (GLsizei)(lines.size()/3));
@@ -457,7 +473,7 @@ public:
     virtual void execute() = 0;
 };
 
-static int viewWidth, viewHeight;
+static int viewWidth, viewHeight, viewWidthPixels, viewHeightPixels;
 static GLfloat fieldOfView = GLfloat(SimTK_PI/4);
 static GLfloat nearClip = 1;
 static GLfloat farClip = 1000;
@@ -1284,7 +1300,8 @@ static void drawGroundAndSky(float farClipDistance) {
                 groundImage[i*width+j] = float(std::pow(line,.1)*(.35f+noise));
             }
         }
-        glTexImage2D(GL_TEXTURE_2D, 0, 1, width, width, 0, GL_RED, GL_FLOAT, groundImage);
+        glTexImage2D(GL_TEXTURE_2D, 0, 1, width, width, 0, GL_RED, GL_FLOAT,
+                     groundImage);
     }
 
     // Draw the box to represent the sky.
@@ -1443,7 +1460,7 @@ static void renderScene(std::vector<std::string>* screenText = NULL) {
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glViewport(0, 0, viewWidth, viewHeight);
+        glViewport(0, 0, viewWidthPixels, viewHeightPixels);
         float sceneRadius;
         fVec3 sceneCenter;
         // Scene is already locked so OK to call this.
@@ -1480,10 +1497,10 @@ static void renderScene(std::vector<std::string>* screenText = NULL) {
             drawGroundAndSky(farClipDistance);
         for (int i = 0; i < (int) scene->lines.size(); i++)
             scene->lines[i].draw();
-        glLineWidth(2);
+        glLineWidth(getScalingFactor() * 2);
         for (int i = 0; i < (int) scene->sceneText.size(); i++)
             scene->sceneText[i].draw();
-        glLineWidth(1);
+        glLineWidth(getScalingFactor() * 1);
         glEnableClientState(GL_NORMAL_ARRAY);
         for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
             scene->drawnMeshes[i].draw();
@@ -1942,8 +1959,8 @@ private:
 };
 
 static void writeImage(const string& filename) {
-    int width = ((viewWidth+3)/4)*4; // must be a multiple of 4 pixels
-    int height = viewHeight;
+    int width = ((viewWidthPixels+3)/4)*4; // must be a multiple of 4 pixels
+    int height = viewHeightPixels;
 
     // Create offscreen buffers for rendering the image.
 
@@ -2653,6 +2670,9 @@ static void changeSize(int width, int height) {
         height = 1;
     viewWidth = width;
     viewHeight = height;
+    viewWidthPixels = getScalingFactor() * width;
+    viewHeightPixels = getScalingFactor() * height;
+
 }
 
 

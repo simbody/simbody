@@ -63,9 +63,15 @@ if(${SIMBODY_USE_INSTALL_RPATH})
     # Linux we'll have to revisit.
 
     # vis_dir_to_install_dir is most likely "../"
+    if (APPLE)
+        set(vis_install_dir
+                "${SIMBODY_VISUALIZER_INSTALL_DIR}/simbody-visualizer.app/Contents/MacOS")
+    else()
+        set(vis_install_dir "${SIMBODY_VISUALIZER_INSTALL_DIR}")
+    endif()
     file(RELATIVE_PATH vis_dir_to_install_dir
-        "${SIMBODY_VISUALIZER_INSTALL_DIR}"
-        "${CMAKE_INSTALL_PREFIX}")
+            "${vis_install_dir}"
+            "${CMAKE_INSTALL_PREFIX}")
     set(vis_dir_to_lib_dir "${vis_dir_to_install_dir}${CMAKE_INSTALL_LIBDIR}")
     set_target_properties(${GUI_NAME} PROPERTIES
         INSTALL_RPATH "\@executable_path/${vis_dir_to_lib_dir}"

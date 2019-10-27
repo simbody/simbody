@@ -149,6 +149,10 @@ endif()
 # Ensure that debug libraries have "_d" appended to their names.
 set(CMAKE_DEBUG_POSTFIX "_d")
 
+# This variable gets used when configuring the Info.plist for
+# simbody-visualizer.app; see cmake/MacOSXBundleInfo.plist.in.
+set(MACOSX_BUNDLE_HIGH_RESOLUTION_CAPABLE "false")
+
 #
 # These are the names of all the libraries we may generate. These are
 # target names so can be used to specify dependencies of one library
