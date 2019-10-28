@@ -321,6 +321,16 @@ VisualizerProtocol::VisualizerProtocol
         Pathname::addDirectoryOffset(def,
             Pathname::addDirectoryOffset("SimTK", SIMBODY_VISUALIZER_REL_INSTALL_DIR)));
 
+    #if defined(__APPLE__)
+        for (auto& path : actualSearchPath) {
+            #ifndef NDEBUG
+                path += "/simbody-visualizer_d.app/Contents/MacOS/";
+            #else
+                path += "/simbody-visualizer.app/Contents/MacOS/";
+            #endif
+        }
+    #endif
+
     // Pipe[0] is the read end, Pipe[1] is the write end.
     int sim2vizPipe[2], viz2simPipe[2], status;
 

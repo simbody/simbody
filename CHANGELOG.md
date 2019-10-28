@@ -7,7 +7,8 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 3.7 (in development)
 --------------------
-
+* Fix scaling issue of simbody-visualizer on macOS Catalina. Now,
+  simbody-visualizer is an app bundle (simbody-visualizer.app) on Mac.
 
 3.6 (21 February 2018)
 ----------------------
