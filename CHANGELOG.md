@@ -10,6 +10,11 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 * Fix scaling issue of simbody-visualizer on macOS Catalina. Now,
   simbody-visualizer is an app bundle (simbody-visualizer.app) on Mac.
 
+3.6.1 (11 June 2018)
+--------------------
+* Fixed bug wherein a program may crash when using the visualizer if the
+  visualizer window was closed manually (PR #633).
+
 3.6 (21 February 2018)
 ----------------------
 * Forced GCC to be at least 4.9.0, so that new C++11 features like regular
