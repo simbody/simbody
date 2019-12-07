@@ -85,7 +85,7 @@ You want to...
 --------------
 * **[install Simbody](#installing)**.
 * [use Simbody in your own program][user].
-* [view API documentation](https://simbody.github.io/simbody-latest-doxygen).
+* [view API documentation](https://simbody.github.io).
 * [learn the theory behind Simbody](https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf).
 * [extend Simbody](https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAdvancedProgrammingGuide.pdf).
 * [**get support** at the Simbody Forum](https://simtk.org/forums/viewforum.php?f=47).
