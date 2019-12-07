@@ -184,7 +184,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
 2. In the field **Where is the source code**, specify `C:/Simbody-source`.
 3. In the field **Where to build the binaries**, specify something like `C:/Simbody-build`, just not inside your source directory. This is *not* where we will install Simbody; see below.
 4. Click the **Configure** button.
-    1. When prompted to select a *generator*, select one ending with **Win64** to build 64-bit binaries (e.g., **Visual Studio 14 2015 Win64** or **Visual Studio 15 2017 Win64**), or select one *without* **Win64** to build 32-bit binaries (e.g., **Visual Studio 14 2015** or **Visual Studio 15 2017**).
+    1. When prompted to select a *generator*, in the dropdown for *Optional platform for generator*, choose **x64** to build 64-bit binaries or leave blank to build 32-bit binaries. In older versions of CMake, select a generator ending with **Win64** to build 64-bit binaries (e.g., **Visual Studio 14 2015 Win64** or **Visual Studio 15 2017 Win64**), or select one *without* **Win64** to build 32-bit binaries (e.g., **Visual Studio 14 2015** or **Visual Studio 15 2017**).
     2. Click **Finish**.
 5. Where do you want to install Simbody on your computer? Set this by changing the `CMAKE_INSTALL_PREFIX` variable. We'll assume you set it to `C:/Simbody`. If you choose a different installation location, make sure to use *yours* where we use `C:/Simbody` below.
 6. Play around with the other build options:
