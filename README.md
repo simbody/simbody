@@ -127,6 +127,8 @@ Simbody works on Windows, Mac, and Linux. For each operating system, you can use
 6. [**Windows using MinGW**](#windows-using-mingw): build from source using MinGW.
 7. [**Windows/Mac/Linux**](#windows-mac-and-linux-using-conda): install pre-built binaries with the Conda package manager.
 
+If you use Linux, check [Repology](https://repology.org/project/simbody/versions) to see if your distribution provides a package for Simbody.
+
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
 
 #### C++11 and gcc/Clang
