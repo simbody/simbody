@@ -389,6 +389,8 @@ Thomas Beutlich     |@tbeu          |Fix many typos and spelling errors
 Julien Nabet        |@serval2412    |Code style & safety improvements
 Elena Ceseracciu    |@elen4         |Improved dependency resolution
 Kevin He            |@kingchurch    |Bug fixes
+                    |@yurivict      |Improved support for FreeBSD
+Martin Gejke        |@mgejke        |Bug fixes
 Paul Mitiguy        |               |Rotation class; dynamics
 Matthew Millard     |@mjhmilla      |Bicubic spline
 Jack Middleton      |               |Numerical methods

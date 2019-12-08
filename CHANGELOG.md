@@ -5,10 +5,22 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 **Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
 
-3.7 (in development)
+3.7 (December 2019)
+-------------------
+* The new SmoothSphereHalfSpaceForce provides a continuous and differentiable
+  contact model, ideal for use with gradient-based optimization algorithms (PR
+  #667).
+* Fixed a memory issue with CPodes (PR #642).
+* Created a CMake variable to control whether docs are installed (PR #655).
+* Fixed a bug with calculating constraint acceleration errors (PR #670).
+* Fixed Pathname::getThisExecutablePath() for FreeBSD (PR #672).
+* Fixed scaling issue of simbody-visualizer on macOS 10.15 Catalina. Now,
+  simbody-visualizer is an app bundle (simbody-visualizer.app) on Mac (PR #676).
+
+3.6.1 (11 June 2018)
 --------------------
-* Fix scaling issue of simbody-visualizer on macOS Catalina. Now,
-  simbody-visualizer is an app bundle (simbody-visualizer.app) on Mac.
+* Fixed bug wherein a program may crash when using the visualizer if the
+  visualizer window was closed manually (PR #633).
 
 3.6 (21 February 2018)
 ----------------------
