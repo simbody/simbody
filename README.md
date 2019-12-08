@@ -123,8 +123,9 @@ Simbody works on Windows, Mac, and Linux. For each operating system, you can use
 2. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
 3. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
 4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
-5. [**Windows using MinGW**](#windows-using-mingw): build from source using MinGW.
-6. [**Windows/Mac/Linux**](#windows-mac-and-linux-using-conda): install pre-built binaries with the Conda package manager.
+5. [**FreeBSD**](#freebsd): install pre-built binaries with pkg.
+6. [**Windows using MinGW**](#windows-using-mingw): build from source using MinGW.
+7. [**Windows/Mac/Linux**](#windows-mac-and-linux-using-conda): install pre-built binaries with the Conda package manager.
 
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
 
@@ -537,6 +538,17 @@ Simbody is installed into the `usr/` directory.  The directory
 * `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
     * `examples/src` source code for the examples.
     * `examples/bin` symbolic link to executable examples.
+
+FreeBSD and pkg
+---------------
+
+Simbody is available via the FreeBSD package repository.
+
+#### Install
+
+1. Open a terminal and run the following command:
+
+        $ sudo pkg install simbody
 
 Windows using MinGW
 -------------------
