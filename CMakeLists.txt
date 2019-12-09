@@ -76,10 +76,10 @@ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 endif()
 
 set(SIMBODY_MAJOR_VERSION 3)
-set(SIMBODY_MINOR_VERSION 7)
+set(SIMBODY_MINOR_VERSION 8)
 set(SIMBODY_PATCH_VERSION 0)
 
-set(SIMBODY_COPYRIGHT_YEARS "2005-18")
+set(SIMBODY_COPYRIGHT_YEARS "2005-20")
 
 # underbar separated list of dotted authors, no spaces or commas
 set(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
