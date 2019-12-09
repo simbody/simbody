@@ -392,7 +392,7 @@ Elena Ceseracciu    |@elen4         |Improved dependency resolution
 Kevin He            |@kingchurch    |Bug fixes
 (unknown)           |@yurivict      |Improved support for FreeBSD
 Martin Gejke        |@mgejke        |Bug fixes
-Paul Mitiguy        |               |Rotation class; dynamics
+Paul Mitiguy        |@mitiguy       |Rotation class; dynamics
 Matthew Millard     |@mjhmilla      |Bicubic spline
 Jack Middleton      |               |Numerical methods
 Christopher Bruns   |@cmbruns-hhmi  |Molmodel
