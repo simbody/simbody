@@ -2476,10 +2476,6 @@ double cmaes_random_Uniform( cmaes_random_t *t)
   return (double)(t->aktrand)/(2.147483647e9);
 }
 
-static char *
-szCat(const char *sz1, const char*sz2, 
-      const char *sz3, const char *sz4);
-
 /* --------------------------------------------------------- */
 /* -------------- Functions: cmaes_readpara_t -------------- */
 /* --------------------------------------------------------- */
@@ -3056,6 +3052,20 @@ static void assign_string(char ** pdests, const char *ins)
       *pdests = new_string(ins);
 }
 
+static void
+printErrorStrings(FILE *fd, char const *s1, char const *s2,
+                  char const *s3, char const *s4)
+{
+  if (s1 != NULL)
+    fprintf(fd, "%s", s1);
+  if (s2 != NULL)
+    printf(fd, " %s", s2);
+  if (s3 != NULL)
+    printf(fd, " %s", s3);
+  if (s4 != NULL)
+    printf(fd, " %s", s4);
+}
+
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
 
@@ -3067,8 +3077,9 @@ cmaes_FATAL(char const *s1, char const *s2, char const *s3,
   time_t t = time(NULL);
   ERRORMESSAGE( s1, s2, s3, s4);
   ERRORMESSAGE("*** Exiting cmaes_t ***",0,0,0);
-  printf("\n -- %s %s\n", asctime(localtime(&t)), 
-           s2 ? szCat(s1, s2, s3, s4) : s1);
+  printf("\n -- %s ", asctime(localtime(&t)));
+  printErrorStrings(stdout, s1, s2, s3, s4);
+  printf("\n");
   printf(" *** CMA-ES ABORTED, see errcmaes.err *** \n");
   fflush(stdout);
   exit(1);
@@ -3092,41 +3103,19 @@ static void ERRORMESSAGE( char const *s1, char const *s2,
   */
   time_t t = time(NULL);
   FILE *fp = fopen( "errcmaes.err", "a");
-  if (!fp)
-    {
-      printf("\nFATAL ERROR: %s\n", s2 ? szCat(s1, s2, s3, s4) : s1);
+  if (fp == NULL) {
+      printf("\nFATAL ERROR: ", s1);
+      printErrorStrings(stdout, s1, s2, s3, s4);
+      printf("\n");
       printf("cmaes_t could not open file 'errcmaes.err'.");
       printf("\n *** CMA-ES ABORTED *** ");
       fflush(stdout);
       exit(1);
-    }
-  fprintf( fp, "\n -- %s %s\n", asctime(localtime(&t)), 
-           s2 ? szCat(s1, s2, s3, s4) : s1);
-  fclose (fp);
+  } else {
+      fprintf(fp, "\n -- %s ");
+      printErrorStrings(fp, s1, s2, s3, s4);
+      fprintf(fp, "\n");
+      fclose (fp);
+  }
 #endif
 }
-
-/* ========================================================= */
-static char *szCat(const char *sz1, const char*sz2, 
-                   const char *sz3, const char *sz4)
-{
-  static char szBuf[700];
-
-  if (!sz1)
-    FATAL("szCat() : Invalid Arguments",0,0,0);
-
-  strncpy ((char *)szBuf, sz1, (unsigned)intMin( (int)strlen(sz1), 698));
-  szBuf[intMin( (int)strlen(sz1), 698)] = '\0';
-  if (sz2)
-    strncat ((char *)szBuf, sz2, 
-             (unsigned)intMin((int)strlen(sz2)+1, 698 - (int)strlen((char const *)szBuf)));
-  if (sz3)
-    strncat((char *)szBuf, sz3, 
-            (unsigned)intMin((int)strlen(sz3)+1, 698 - (int)strlen((char const *)szBuf)));
-  if (sz4)
-    strncat((char *)szBuf, sz4, 
-            (unsigned)intMin((int)strlen(sz4)+1, 698 - (int)strlen((char const *)szBuf)));
-  return (char *) szBuf;
-}
-
-
