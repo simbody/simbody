@@ -100,7 +100,7 @@
             such that parameters can be set also comparatively safely within the
             code, namely after calling cmaes_init_para(). The order of parameters
             of readpara_init() has changed to be the same as for cmaes_init().
-  14/11/25  fix warnings from Microsoft C compiler (sherm)
+  14/11/25:  fix warnings from Microsoft C compiler (sherm)
   14/11/26: renamed exported symbols so they begin with a cmaes_prefix.
   
   Wish List
@@ -217,7 +217,6 @@ static double rgdouMax( const double *rgd, int len);
 static double rgdouMin( const double *rgd, int len);
 static double douMax( double d1, double d2);
 static double douMin( double d1, double d2);
-static int    intMin( int i, int j);
 static int    MaxIdx( const double *rgd, int len);
 static int    MinIdx( const double *rgd, int len);
 static double myhypot(double a, double b);
@@ -282,18 +281,18 @@ cmaes_init_final(cmaes_t *t /* "this" */)
   if (t->version == NULL) {
         ERRORMESSAGE("cmaes_init_final called (probably) without calling cmaes_init_para first",
                      ", which will likely lead to unexpected results",0,0);
-        printf("Warning: cmaes_init_final called (probably) without calling cmaes_init_para first\n");
+        printf("Error: cmaes_init_final called (probably) without calling cmaes_init_para first\n");
   }
   if (strcmp(c_cmaes_version, t->version) != 0) {
         ERRORMESSAGE("cmaes_init_final called twice, which will lead to a memory leak",
                      "; use cmaes_exit() first",0,0);
-        printf("Warning: cmaes_init_final called twice, which will lead to a memory leak; use cmaes_exit first\n");
+        printf("Error: cmaes_init_final called twice, which will lead to a memory leak; use cmaes_exit first\n");
   }
   /* assign_string(&t->signalsFilename, "cmaes_signals.par"); */
 
   if (!t->sp.flgsupplemented) {
     cmaes_readpara_SupplementDefaults(&t->sp);
-    if (!isNoneStr(t->sp.filename))
+    if (!isNoneStr(t->sp.filename)) /* TODO: should this be done in readpara_SupplementDefaults? */
       cmaes_readpara_WriteToFile(&t->sp, "actparcmaes.par");
   }
      
@@ -414,7 +413,6 @@ cmaes_init(cmaes_t *t, /* "this" */
 /* --------------------------------------------------------- */
 
 #ifdef __GNUC__
-    // These macros generate warnings in Visual Studio.
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wunused-result"
 #endif
@@ -532,6 +530,8 @@ cmaes_resume_distribution(cmaes_t *t, char *filename)
   if (res != (t->sp.N*t->sp.N+t->sp.N)/2)
     FATAL("cmaes_resume_distribution(): C: dimensions differ",0,0,0); 
    
+  fclose(fp);
+  
   t->flgIniphase = 0;
   t->flgEigensysIsUptodate = 0;
   t->flgresumedone = 1;
@@ -590,7 +590,7 @@ cmaes_SetMean(cmaes_t *t, const double *xmean)
   int i, N=t->sp.N;
 
   if (t->state >= 1 && t->state < 3)
-    FATAL("cmaes_SetMean: mean cannot be set between the calls of ",
+    FATAL("cmaes_SetMean: mean cannot be set inbetween the calls of ",
           "SamplePopulation and UpdateDistribution",0,0);
 
   if (xmean != NULL && xmean != t->rgxmean)
@@ -758,10 +758,10 @@ cmaes_Optimize( cmaes_t *evo, double(*pFun)(double const *, int dim), long itera
     double *const*pop; /* sampled population */
     const char *stop;
     int i;
-    long startiter = (long)evo->gen; 
+    double startiter = evo->gen; 
     
     while(!(stop=cmaes_TestForTermination(evo)) && 
-        ((long)evo->gen < startiter + iterations || !iterations))
+        (evo->gen < startiter + iterations || !iterations))
     { 
         /* Generate population of new candidate solutions */
         pop = cmaes_SamplePopulation(evo); /* do not change content of pop */
@@ -2401,7 +2401,7 @@ cmaes_random_init( cmaes_random_t *t, long unsigned inseed)
   if (inseed < 1) {
     while ((long) (cloc - clock()) == 0)
       ; /* TODO: remove this for time critical applications? */
-    inseed = (long unsigned)abs((long)(100*time(NULL)+clock()));
+    inseed = (long unsigned)labs((long)(100*time(NULL)+clock()));
   }
   return cmaes_random_Start(t, inseed);
 }
@@ -2476,9 +2476,20 @@ double cmaes_random_Uniform( cmaes_random_t *t)
   return (double)(t->aktrand)/(2.147483647e9);
 }
 
-static char *
-szCat(const char *sz1, const char*sz2, 
-      const char *sz3, const char *sz4);
+/* --------------------------------------------------------- */
+static void
+printErrorStrings(FILE *fd, char const *s1, char const *s2,
+                  char const *s3, char const *s4)
+{
+  if (s1 != NULL)
+    fprintf(fd, "%s", s1);
+  if (s2 != NULL)
+    fprintf(fd, " %s", s2);
+  if (s3 != NULL)
+    fprintf(fd, " %s", s3);
+  if (s4 != NULL)
+    fprintf(fd, " %s", s4);
+}
 
 /* --------------------------------------------------------- */
 /* -------------- Functions: cmaes_readpara_t -------------- */
@@ -2581,16 +2592,16 @@ cmaes_readpara_init (cmaes_readpara_t *t,
 
   N = t->N; 
   if (N == 0)
-    FATAL("cmaes_readpara_cmaes_readpara_t(): problem dimension N undefined.\n",
+    FATAL("cmaes_readpara_t(): problem dimension N undefined.\n",
           "  (no default value available).",0,0); 
   if (t->xstart == NULL && inxstart == NULL && t->typicalX == NULL) {
-    ERRORMESSAGE("Warning: initialX undefined. typicalX = 0.5...0.5 used.","","","");
-    printf("\nWarning: initialX undefined. typicalX = 0.5...0.5 used.\n");
+    ERRORMESSAGE("Error: initialX undefined. typicalX = 0.5...0.5 used.","","","");
+    printf("\nError: initialX undefined. typicalX = 0.5...0.5 used.\n");
   }
   if (t->rgInitialStds == NULL && inrgsigma == NULL) {
     /* FATAL("initialStandardDeviations undefined","","",""); */
-    ERRORMESSAGE("Warning: initialStandardDeviations undefined. 0.3...0.3 used.","","","");
-    printf("\nWarning: initialStandardDeviations. 0.3...0.3 used.\n");
+    ERRORMESSAGE("Error: initialStandardDeviations undefined. 0.3...0.3 used.","","","");
+    printf("\nError: initialStandardDeviations undefined. 0.3...0.3 used.\n");
   }
 
   if (t->xstart == NULL) {
@@ -2781,7 +2792,7 @@ cmaes_readpara_SupplementDefaults(cmaes_readpara_t *t)
   if (t->seed < 1) {
     while ((int) (cloc - clock()) == 0)
       ; /* TODO: remove this for time critical applications!? */
-    t->seed = (unsigned int)abs((long)(100*time(NULL)+clock()));
+    t->seed = (unsigned int)labs((long)(100*time(NULL)+clock()));
   }
 
   if (t->stStopFitness.flg == -1)
@@ -2904,11 +2915,6 @@ static double
 douSquare(double d)
 {
   return d*d;
-}
-static int 
-intMin( int i, int j)
-{
-  return i < j ? i : j;
 }
 static double
 douMax( double i, double j)
@@ -3067,8 +3073,9 @@ cmaes_FATAL(char const *s1, char const *s2, char const *s3,
   time_t t = time(NULL);
   ERRORMESSAGE( s1, s2, s3, s4);
   ERRORMESSAGE("*** Exiting cmaes_t ***",0,0,0);
-  printf("\n -- %s %s\n", asctime(localtime(&t)), 
-           s2 ? szCat(s1, s2, s3, s4) : s1);
+  printf("\n -- %s ", asctime(localtime(&t)));
+  printErrorStrings(stdout, s1, s2, s3, s4);
+  printf("\n");
   printf(" *** CMA-ES ABORTED, see errcmaes.err *** \n");
   fflush(stdout);
   exit(1);
@@ -3090,43 +3097,21 @@ static void ERRORMESSAGE( char const *s1, char const *s2,
   /*  static char szBuf[700];  desirable but needs additional input argument 
       sprintf(szBuf, "%f:%f", gen, gen*lambda);
   */
-  time_t t = time(NULL);
   FILE *fp = fopen( "errcmaes.err", "a");
-  if (!fp)
-    {
-      printf("\nFATAL ERROR: %s\n", s2 ? szCat(s1, s2, s3, s4) : s1);
-      printf("cmaes_t could not open file 'errcmaes.err'.");
-      printf("\n *** CMA-ES ABORTED *** ");
-      fflush(stdout);
-      exit(1);
-    }
-  fprintf( fp, "\n -- %s %s\n", asctime(localtime(&t)), 
-           s2 ? szCat(s1, s2, s3, s4) : s1);
-  fclose (fp);
+  if (fp == NULL) {
+    printf("\nFATAL ERROR: ");
+    printErrorStrings(stdout, s1, s2, s3, s4);
+    printf("\n");
+    printf("cmaes_t could not open file 'errcmaes.err'.");
+    printf("\n *** CMA-ES ABORTED *** ");
+    fflush(stdout);
+    exit(1);
+  } else {
+    time_t t = time(NULL);
+    fprintf(fp, "\n -- %s ", asctime(localtime(&t)));
+    printErrorStrings(fp, s1, s2, s3, s4);
+    fprintf(fp, "\n");
+    fclose (fp);
+  }
 #endif
 }
-
-/* ========================================================= */
-static char *szCat(const char *sz1, const char*sz2, 
-                   const char *sz3, const char *sz4)
-{
-  static char szBuf[700];
-
-  if (!sz1)
-    FATAL("szCat() : Invalid Arguments",0,0,0);
-
-  strncpy ((char *)szBuf, sz1, (unsigned)intMin( (int)strlen(sz1), 698));
-  szBuf[intMin( (int)strlen(sz1), 698)] = '\0';
-  if (sz2)
-    strncat ((char *)szBuf, sz2, 
-             (unsigned)intMin((int)strlen(sz2)+1, 698 - (int)strlen((char const *)szBuf)));
-  if (sz3)
-    strncat((char *)szBuf, sz3, 
-            (unsigned)intMin((int)strlen(sz3)+1, 698 - (int)strlen((char const *)szBuf)));
-  if (sz4)
-    strncat((char *)szBuf, sz4, 
-            (unsigned)intMin((int)strlen(sz4)+1, 698 - (int)strlen((char const *)szBuf)));
-  return (char *) szBuf;
-}
-
-
