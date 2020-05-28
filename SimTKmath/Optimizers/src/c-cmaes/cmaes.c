@@ -99,13 +99,9 @@
   14/10/18: splitted cmaes_init() into cmaes_init_para() and cmaes_init_final(),
             such that parameters can be set also comparatively safely within the
             code, namely after calling cmaes_init_para(). The order of parameters
-<<<<<<< HEAD
             of readpara_init() has changed to be the same as for cmaes_init().
-  14/11/25  fix warnings from Microsoft C compiler (sherm)
-=======
-            of readpara_init() has changed to be the same as for cmaes_init(). 
+  14/11/25:  fix warnings from Microsoft C compiler (sherm)
   14/11/26: renamed exported symbols so they begin with a cmaes_prefix.
->>>>>>> bd5aeb2a21fbc437f1b322610022f7cb1ba6a9db
   
   Wish List
     o make signals_filename part of cmaes_t using assign_string()
