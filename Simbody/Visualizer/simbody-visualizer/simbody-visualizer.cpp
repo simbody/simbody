@@ -2042,11 +2042,11 @@ class ReadingInterrupted : public std::exception {};
 static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
     while (totalRead < bytes) {
-        auto retval = READ(srcPipe, buffer + totalRead, bytes - totalRead);
         int attempts = 0;
-        while (retval == -1 && errno == 4 && ++attempts < 5) {
+        int retval = -1;
+        do {
           retval = READ(srcPipe, buffer + totalRead, bytes - totalRead);
-        }
+        } while (retval == -1 && errno == EINTR && ++attempts < 5);
         SimTK_ERRCHK4_ALWAYS(retval!=-1, "simbody-visualizer",
             "An attempt to read() %d bytes from pipe %d failed with errno=%d (%s).",
             bytes - totalRead, srcPipe, errno, strerror(errno));
