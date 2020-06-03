@@ -3,7 +3,14 @@
 # other platforms we depend on their already being a glut (or freeglut)
 # available.
 
+set(MISSING_DEPENDENCIES "")
+
+set(OpenGL_GL_PREFERENCE LEGACY)
 find_package(OpenGL)
+if (NOT OPENGL_FOUND)
+    list(APPEND MISSING_DEPENDENCIES OpenGL)
+endif()
+
 if(WIN32)
     set(glut32dir "${CMAKE_CURRENT_SOURCE_DIR}/glut32")
     set(GLUT32_HEADERS "${glut32dir}/glut.h" "${glut32dir}/glext.h")
@@ -26,17 +33,30 @@ else()
             set(SIMBODY_HAS_GLUT TRUE)
         else()
             set(SIMBODY_HAS_GLUT FALSE)
+            list(APPEND MISSING_DEPENDENCIES GLUT)
         endif()
     else()
         if(GLUT_FOUND AND GLUT_Xmu_LIBRARY AND GLUT_Xi_LIBRARY)
             set(SIMBODY_HAS_GLUT TRUE)
         else()
             set(SIMBODY_HAS_GLUT FALSE)
+
+            if (NOT GLUT_FOUND)
+                list(APPEND MISSING_DEPENDENCIES GLUT)
+            endif()
+            if (NOT GLUT_Xmu_LIBRARY)
+                list(APPEND MISSING_DEPENDENCIES libxmu)
+            endif()
+            if (NOT GLUT_Xi_LIBRARY)
+                list(APPEND MISSING_DEPENDENCIES libxi)
+            endif()
         endif()
     endif()
 endif()
 
-if(OPENGL_FOUND AND SIMBODY_HAS_GLUT)
+if(MISSING_DEPENDENCIES)
+    message(WARNING "Visualizer will not be built because some of its dependencies (${MISSING_DEPENDENCIES}) are missing")
+else()
 
 add_executable(${GUI_NAME} MACOSX_BUNDLE
     simbody-visualizer.cpp lodepng.cpp lodepng.h
@@ -105,6 +125,4 @@ if(WIN32)
         DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
-else()
-    message(WARNING "Visualizer will not be built because some of its dependencies (OpenGL or GLUT) are missing")
 endif()
