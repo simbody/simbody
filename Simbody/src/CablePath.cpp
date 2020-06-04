@@ -23,7 +23,6 @@
 
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/CableTrackerSubsystem.h"
 #include "simbody/internal/CablePath.h"
