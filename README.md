@@ -49,6 +49,7 @@ int main() {
             bodyInfo, Transform(Vec3(0, 1, 0)));
 
     // Set up visualization.
+    system.setUseUniformBackground(true);
     Visualizer viz(system);
     system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
 
