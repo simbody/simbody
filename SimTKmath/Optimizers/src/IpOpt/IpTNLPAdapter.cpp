@@ -386,7 +386,7 @@ namespace SimTKIpopt
           n_c++;
         }
         else if (lower_bound > upper_bound) {
-          char string[128];
+          char string[129];
           sprintf(string, "There are inconsistent bounds on constraint %d: lower = %25.16e and upper = %25.16e.", i, lower_bound, upper_bound);
           delete [] d_map;
           delete [] c_map;
