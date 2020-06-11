@@ -1497,10 +1497,10 @@ static void renderScene(std::vector<std::string>* screenText = NULL) {
             drawGroundAndSky(farClipDistance);
         for (int i = 0; i < (int) scene->lines.size(); i++)
             scene->lines[i].draw();
-        glLineWidth(getScalingFactor() * 2);
+        glLineWidth(getScalingFactor() * 2.0);
         for (int i = 0; i < (int) scene->sceneText.size(); i++)
             scene->sceneText[i].draw();
-        glLineWidth(getScalingFactor() * 1);
+        glLineWidth(getScalingFactor() * 1.0);
         glEnableClientState(GL_NORMAL_ARRAY);
         for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
             scene->drawnMeshes[i].draw();
