@@ -1,0 +1,201 @@
+name: continuous-integration
+
+# syntax https://help.github.com/en/articles/workflow-syntax-for-github-actions
+on:
+  pull_request:
+    branches:
+      - '*'
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+
+jobs:
+  windows:
+    name: Windows
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Doxygen
+        # choco install doxygen.portable # <-- too unreliable.
+        run: |
+          (New-Object System.Net.WebClient).DownloadFile("https://sourceforge.net/projects/myosin/files/doxygen-1.8.14.windows.x64.bin.zip/download", "doxygen.zip")
+          7z x $env:GITHUB_WORKSPACE/doxygen.zip -odoxygen
+          echo "::add-path::$env:GITHUB_WORKSPACE\\doxygen"
+
+      - name: Configure
+        run: |
+          mkdir $env:GITHUB_WORKSPACE\\build
+          chdir $env:GITHUB_WORKSPACE\\build
+          # Set the CXXFLAGS environment variable to turn warnings into errors.
+          # TODO: Can remove /WX when we use that in CMakeLists.txt.
+          cmake -E env CXXFLAGS="/WX" cmake $env:GITHUB_WORKSPACE -LAH -G"Visual Studio 16 2019" -A x64 -DCMAKE_INSTALL_PREFIX=~/simbody-install
+
+      - name: Build
+        run: |
+          chdir $env:GITHUB_WORKSPACE\\build
+          cmake --build . --config Release -- /maxcpucount:4
+
+      - name: Test
+        run: |
+          chdir $env:GITHUB_WORKSPACE\\build
+          ctest --parallel 4 --output-on-failure --build-config Release
+
+      - name: Obtain short git commit hash
+        id: commithash
+        shell: bash
+        # https://stackoverflow.com/questions/58886293/getting-current-branch-and-commit-hash-in-github-action
+        run: echo "::set-output name=hash::$(git rev-parse --short HEAD)"
+
+      - name: Install
+        run: |
+          chdir $env:GITHUB_WORKSPACE\\build
+          cmake --build . --config Release --target doxygen -- /maxcpucount:4
+          cmake --build . --config Release --target install -- /maxcpucount:4 /verbosity:quiet
+          chdir $env:GITHUB_WORKSPACE
+          move ~/simbody-install simbody-${{ steps.commithash.outputs.hash }}
+
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with:
+          name: simbody-${{ steps.commithash.outputs.hash }}-win
+          path: simbody-${{ steps.commithash.outputs.hash }}
+
+
+  mac:
+    name: Mac
+
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Homebrew packages
+        run: |
+          brew install cmake doxygen
+
+      - name: Configure
+        run: |
+          mkdir $GITHUB_WORKSPACE/../build
+          cd $GITHUB_WORKSPACE/../build
+          OSIM_CMAKE_ARGS=($GITHUB_WORKSPACE -LAH)
+          OSIM_CMAKE_ARGS+=(-DCMAKE_INSTALL_PREFIX=~/simbody-install)
+          OSIM_CMAKE_ARGS+=(-DCMAKE_BUILD_TYPE=Release)
+          OSIM_CMAKE_ARGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET=10.10)
+          OSIM_CMAKE_ARGS+=(-DCMAKE_CXX_FLAGS="-Werror")
+          printf '%s\n' "${OSIM_CMAKE_ARGS[@]}"
+          cmake "${OSIM_CMAKE_ARGS[@]}"
+
+      - name: Build
+        run: |
+          cd $GITHUB_WORKSPACE/../build
+          make --jobs 4
+
+      - name: Test
+        run: |
+          cd $GITHUB_WORKSPACE/../build
+          ctest --parallel 4 --output-on-failure
+
+      - name: Obtain short git commit hash
+        id: commithash
+        shell: bash
+        run: echo "::set-output name=hash::$(git rev-parse --short HEAD)"
+
+      - name: Install
+        run: |
+          cd $GITHUB_WORKSPACE/../build
+          make doxygen
+          make install
+          cd $GITHUB_WORKSPACE
+          mv ~/simbody-install simbody-${{ steps.commithash.outputs.hash }}
+          zip --symlinks --recurse-paths --quiet simbody-${{ steps.commithash.outputs.hash }}.zip simbody-${{ steps.commithash.outputs.hash }}
+
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with:
+          # The upload-artifact zipping does not preserve symlinks or executable
+          # bits. So we zip ourselves, even though this causes a double-zip.
+          name: simbody-${{ steps.commithash.outputs.hash }}-mac
+          path: simbody-${{ steps.commithash.outputs.hash }}.zip
+
+
+  ubuntu:
+    name: Ubuntu
+
+    runs-on: ubuntu-18.04
+
+    strategy:
+      matrix:
+        build_type: [Release, Debug]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install packages
+        run: sudo apt-get install --yes liblapack-dev freeglut3-dev libxi-dev libxmu-dev doxygen
+
+      - name: Configure
+        run: |
+          mkdir $GITHUB_WORKSPACE/../build
+          cd $GITHUB_WORKSPACE/../build
+          OSIM_CMAKE_ARGS=($GITHUB_WORKSPACE -LAH)
+          OSIM_CMAKE_ARGS+=(-DCMAKE_INSTALL_PREFIX=~/simbody-install)
+          OSIM_CMAKE_ARGS+=(-DCMAKE_BUILD_TYPE=${{ matrix.build_type }})
+          OSIM_CMAKE_ARGS+=(-DCMAKE_CXX_FLAGS="-Werror")
+          printf '%s\n' "${OSIM_CMAKE_ARGS[@]}"
+          cmake "${OSIM_CMAKE_ARGS[@]}"
+
+      - name: Build
+        run: |
+          cd $GITHUB_WORKSPACE/../build
+          make --jobs 4
+
+      - name: Test
+        run: |
+          cd $GITHUB_WORKSPACE/../build
+          ctest --parallel 4 --output-on-failure
+
+      - name: Obtain short git commit hash
+        id: commithash
+        shell: bash
+        run: echo "::set-output name=hash::$(git rev-parse --short HEAD)"
+
+      - name: Install
+        run: |
+          cd $GITHUB_WORKSPACE/../build
+          make doxygen
+          make install
+          cd $GITHUB_WORKSPACE
+          mv ~/simbody-install simbody-${{ steps.commithash.outputs.hash }}
+          zip --symlinks --recurse-paths --quiet simbody-${{ steps.commithash.outputs.hash }}.zip simbody-${{ steps.commithash.outputs.hash }}
+
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with:
+          # The upload-artifact zipping does not preserve symlinks or executable
+          # bits. So we zip ourselves, even though this causes a double-zip.
+          name: simbody-${{ steps.commithash.outputs.hash }}-linux
+          path: simbody-${{ steps.commithash.outputs.hash }}.zip
+
+
+  style:
+    name: Style
+
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for tabs
+        # Ensure that there are no tabs in source code.
+        # GREP returns 0 (true) if there are any matches, and
+        # we don't want any matches. If there are matches,
+        # print a helpful message, and make the test fail by using "false".
+        # The GREP command here checks for any tab characters in the the files
+        # that match the specified pattern. GREP does not pick up explicit tabs
+        # (e.g., literally a \t in a source file).
+        run: if grep --recursive --include={*.cpp,*.c,*.h,*.md,*.yml,*.cmake.*.xml,*.html,*.in,*.txt} --exclude-dir=c-cmaes -P "\t" . ; then echo "Tabs found in the lines shown above. See CONTRIBUTING.md about tabs."; false; else echo "Repo passed no-tabs check."; fi
