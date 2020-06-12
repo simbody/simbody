@@ -18,7 +18,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       - name: Install Doxygen
         # choco install doxygen.portable # <-- too unreliable.
@@ -51,7 +51,7 @@ jobs:
         # https://stackoverflow.com/questions/58886293/getting-current-branch-and-commit-hash-in-github-action
         run: echo "::set-output name=hash::$(git rev-parse --short HEAD)"
 
-      - name: Install opensim-core
+      - name: Install
         run: |
           chdir $env:GITHUB_WORKSPACE\\build
           cmake --build . --config Release --target doxygen -- /maxcpucount:4
@@ -59,7 +59,7 @@ jobs:
           chdir $env:GITHUB_WORKSPACE
           move ~/simbody-install simbody-${{ steps.commithash.outputs.hash }}
 
-      - name: Upload opensim-core
+      - name: Upload
         uses: actions/upload-artifact@v2
         with:
           name: simbody-${{ steps.commithash.outputs.hash }}-win
@@ -72,11 +72,11 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       - name: Install Homebrew packages
         run: |
-          brew install cmake doxygen swig@3
+          brew install cmake doxygen
 
       - name: Configure
         run: |
@@ -90,12 +90,12 @@ jobs:
           printf '%s\n' "${OSIM_CMAKE_ARGS[@]}"
           cmake "${OSIM_CMAKE_ARGS[@]}"
 
-      - name: Buid opensim-core
+      - name: Build
         run: |
           cd $GITHUB_WORKSPACE/../build
           make --jobs 4
 
-      - name: Test opensim-core
+      - name: Test
         run: |
           cd $GITHUB_WORKSPACE/../build
           ctest --parallel 4 --output-on-failure
@@ -133,7 +133,7 @@ jobs:
         build_type: [Release, Debug]
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       - name: Install packages
         run: sudo apt-get install --yes liblapack-dev freeglut3-dev libxi-dev libxmu-dev doxygen
@@ -188,7 +188,7 @@ jobs:
     runs-on: ubuntu-18.04
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       - name: Check for tabs
         # Ensure that there are no tabs in source code.
