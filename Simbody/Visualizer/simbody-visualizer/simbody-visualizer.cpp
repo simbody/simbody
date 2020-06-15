@@ -2038,6 +2038,7 @@ class ReadingInterrupted : public std::exception {};
 
 // Read a particular number of bytes from srcPipe to the given buffer.
 // This will hang until the expected number of bytes has been received.
+// Retries read calls up to 5 times if a call is interrupted.
 // Throws ReadingInterrupted if the srcPipe is closed.
 static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
