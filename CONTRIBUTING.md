@@ -400,6 +400,7 @@ Randy Radmer        |               |Molmodel
 Charles Schwieters  |               |Provided initial multibody code
 Abhinandan Jain     |               |Underlying spatial algebra formulation
 Isaac Newton        |               |F=ma, calculus, etc.
+Jason Blum          |@jjblum        |Vis bug fix
 
 Contributor License Agreement
 -----------------------------

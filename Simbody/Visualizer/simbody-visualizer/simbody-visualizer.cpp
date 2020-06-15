@@ -2038,13 +2038,18 @@ class ReadingInterrupted : public std::exception {};
 
 // Read a particular number of bytes from srcPipe to the given buffer.
 // This will hang until the expected number of bytes has been received.
+// Retries read calls up to 5 times if a call is interrupted.
 // Throws ReadingInterrupted if the srcPipe is closed.
 static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
     while (totalRead < bytes) {
-        auto retval = READ(srcPipe, buffer + totalRead, bytes - totalRead);
+        int attempts = 0;
+        int retval = -1;
+        do {
+          retval = READ(srcPipe, buffer + totalRead, bytes - totalRead);
+        } while (retval == -1 && errno == EINTR && ++attempts < 5);
         SimTK_ERRCHK4_ALWAYS(retval!=-1, "simbody-visualizer",
-            "An attempt to read() %d bytes from pipe %d failed with errno=%d (%s).", 
+            "An attempt to read() %d bytes from pipe %d failed with errno=%d (%s).",
             bytes - totalRead, srcPipe, errno, strerror(errno));
         // The pipe was closed, perhaps because the simulator was closed.
         // Without this check, we end up in an infinite loop.
