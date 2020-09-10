@@ -70,7 +70,7 @@ ParallelExecutorImpl* ParallelExecutorImpl::clone() const {
     return new ParallelExecutorImpl(numMaxThreads);
 }
 void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
-  if (min(times, numMaxThreads) == 1) {
+  if (numMaxThreads < 2) {
       //(1) NON-PARALLEL CASE:
       // Nothing is actually going to get done in parallel, so we might as well
       // just execute the task directly and save the threading overhead.
