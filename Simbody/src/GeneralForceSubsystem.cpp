@@ -515,6 +515,7 @@ private:
     Vector_<Vec3> m_particleForceCacheLocal;
     Vector m_mobilityForceCacheLocal;
 };
+
 } //namespace
 
 namespace SimTK{
@@ -675,8 +676,10 @@ public:
         }
         if (hasParallelForces)
             calcForcesTask = new CalcForcesParallelTask();
-        else
+        else {
             calcForcesTask = new CalcForcesNonParallelTask();
+            calcForcesExecutor = new ParallelExecutor(1); // NonParallelTask is not thread-safe
+        }
         
         // Note that we'll allocate these even if all the needs-caching
         // elements are presently disabled. That way they'll be around when
