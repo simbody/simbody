@@ -24,6 +24,7 @@
 #include "Parallel2DExecutorImpl.h"
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include <utility>
+#include <cmath>
 
 using std::pair;
 
@@ -46,13 +47,10 @@ void Parallel2DExecutorImpl::init(int numProcessors) {
         bins = 1;
     }
     else {
-        
+
         // Determine how many levels of subdivision to use.
-        
-        int levels = 1;
-        while (1<<levels < numProcessors)
-            levels++;
-        levels++;
+
+        int levels = (int)std::ceil(std::log2(numProcessors)) + 1;
         bins = 1<<levels;
         
         // Build the set of squares.
