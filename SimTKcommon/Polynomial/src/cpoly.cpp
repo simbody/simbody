@@ -602,7 +602,7 @@ T CPoly<T>::scale( const int nn, const T pt[], const T eta, const T infin, const
       if( infin / sc > max ) sc = 1;
       }
    l = (int)( log( sc ) / log(base ) + 0.5 );
-   fn_val = pow( base , l );
+   fn_val = T(std::pow( base , l )); // extraneous cast required by VS 16.8.2
    return fn_val;
    }
 
