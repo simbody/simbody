@@ -143,7 +143,7 @@ _40:
             sc = smalno;
     }
     l = (int)(log(sc)/log(base) + 0.5);
-    factor = pow(base*(T) 1.0,l);
+    factor = T(std::pow( base, l )); // extraneous cast required by VS 16.8.2
     if (factor != 1.0) {
         for (i=0;i<=n;i++) 
             p[i] = factor*p[i];     /* Scale polynomial. */

@@ -73,14 +73,14 @@ public:
     same vector as the source iterator. **/
     VectorIterator& operator=(const VectorIterator& source) = default;
 
-    ELT& operator*() {
+    /** Dereference the iterator to access the element it points to. Note
+    that although the iterator may be const, it can still point to a 
+    mutable element. **/
+    ELT& operator*() const {
         assert (index >= 0 && index < vectorp->size());
         return (*vectorp)[(int)index];
     }
-    ELT& operator[](ptrdiff_t i) {
-        assert (i >= 0 && i < vectorp->size());
-        return (*vectorp)[(int)i];
-    }
+
     VectorIterator& operator++() {
         assert (index < vectorp->size());
         ++index;
