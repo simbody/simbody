@@ -20,17 +20,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # this is so deprecated ::add-path:: will still work (temporary fix)
-      - name: ACTIONS_ALLOW_UNSECURE_COMMANDS
-        id: ACTIONS_ALLOW_UNSECURE_COMMANDS
-        run: echo 'ACTIONS_ALLOW_UNSECURE_COMMANDS=true' >> $GITHUB_ENV
-
       - name: Install Doxygen
         # choco install doxygen.portable # <-- too unreliable.
         run: |
           (New-Object System.Net.WebClient).DownloadFile("https://sourceforge.net/projects/myosin/files/doxygen-1.8.14.windows.x64.bin.zip/download", "doxygen.zip")
           7z x $env:GITHUB_WORKSPACE/doxygen.zip -odoxygen
-          echo "::add-path::$env:GITHUB_WORKSPACE\\doxygen"
+          echo "$env:GITHUB_WORKSPACE\\doxygen" >> $GITHUB_PATH
 
       - name: Configure
         run: |
