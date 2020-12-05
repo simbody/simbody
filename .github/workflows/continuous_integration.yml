@@ -25,6 +25,7 @@ jobs:
         run: |
           (New-Object System.Net.WebClient).DownloadFile("https://sourceforge.net/projects/myosin/files/doxygen-1.8.14.windows.x64.bin.zip/download", "doxygen.zip")
           7z x $env:GITHUB_WORKSPACE/doxygen.zip -odoxygen
+          echo "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $GITHUB_ENV
           echo "::add-path::$env:GITHUB_WORKSPACE\\doxygen"
 
       - name: Configure
