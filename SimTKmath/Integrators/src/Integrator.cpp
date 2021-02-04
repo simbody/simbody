@@ -182,6 +182,9 @@ Real Integrator::getActualInitialStepSizeTaken() const {
 Real Integrator::getPreviousStepSizeTaken() const {
     return getRep().getPreviousStepSizeTaken();
 }
+const Vector& Integrator::getPreviousStepUnweightedYErrorEstimates() const {
+    return getRep().getPreviousStepUnweightedYErrorEstimates();
+}
 Real Integrator::getPredictedNextStepSize() const {
     return getRep().getPredictedNextStepSize();
 }

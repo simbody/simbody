@@ -527,8 +527,8 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
               nu = advanced.getNU(), 
               nz = advanced.getNZ(), 
               ny = nq+nu+nz;
-    
-    Vector yErrEst(ny);
+
+    yErrEst.resize(ny);
     bool stepSucceeded = false;
     do {
         // If we lose more than a small fraction of the step size we wanted
@@ -767,6 +767,10 @@ Real AbstractIntegratorRep::getActualInitialStepSizeTaken() const {
 
 Real AbstractIntegratorRep::getPreviousStepSizeTaken() const {
     return lastStepSize;
+}
+
+const Vector& AbstractIntegratorRep::getPreviousStepUnweightedYErrorEstimates() const {
+    return yErrEst;
 }
 
 Real AbstractIntegratorRep::getPredictedNextStepSize() const {
