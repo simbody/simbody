@@ -29,6 +29,7 @@
 #include "simmath/internal/GCVSPLUtil.h"
 
 #include <limits>
+#include <memory>
 
 namespace SimTK {
 
@@ -61,40 +62,24 @@ public:
     @param[in]  y      
         Values of the dependent variables for each Bezier control point.
     **/
-    Spline_(int degree, const Vector& x, const Vector_<T>& y) 
-    :   impl(new SplineImpl(degree, x, y)) {}
+    Spline_(int degree, const Vector& x, const Vector_<T>& y)
+      :   impl(std::make_shared<SplineImpl>(degree, x, y)) {}
 
     /** Default constructor creates an empty %Spline_ handle; not very 
     useful. **/
-    Spline_() : impl(nullptr) {}
+    Spline_() = default;
 
     /** Copy constructor is shallow and reference-counted; that is, the new
     %Spline_ refers to the same object as does \a source. **/
-    Spline_(const Spline_& source) : impl(source.impl) 
-    {   if (impl) impl->referenceCount++; }
+    Spline_(const Spline_& source) = default;
 
     /** Copy assignment is shallow and reference-counted; that is, after the
     assignment this %Spline_ refers to the same object as does \a source. **/
-    Spline_& operator=(const Spline_& source) {
-        if (impl) {
-            impl->referenceCount--;
-            if (impl->referenceCount == 0)
-                delete impl;
-        }
-        impl = source.impl;
-        if (impl) impl->referenceCount++;
-        return *this;
-    }
+    Spline_& operator=(const Spline_& source) = default;
 
     /** Destructor decrements the reference count and frees the heap space if
     this is the last reference. **/
-    ~Spline_() {
-        if (impl) {
-            impl->referenceCount--;
-            if (impl->referenceCount == 0)
-                delete impl;
-        }
-    }
+    ~Spline_() = default;
 
     /** Calculate the values of the dependent variables at a particular value 
     of the independent variable.
@@ -173,7 +158,7 @@ public:
 
 private:
     class SplineImpl;
-    SplineImpl* impl;
+    std::shared_ptr<SplineImpl> impl;
 };
 
 /** Provide a convenient name for a scalar-valued Spline_. **/
@@ -183,18 +168,16 @@ typedef Spline_<Real> Spline;
 template <class T>
 class Spline_<T>::SplineImpl {
 public:
-    SplineImpl(int degree, const Vector& x, const Vector_<T>& y) 
-    :   referenceCount(1), degree(degree), x(x), y(y) {}
-    ~SplineImpl() {
-        assert(referenceCount == 0);
-    }
+    SplineImpl(int degree, const Vector& x, const Vector_<T>& y)
+      : degree(degree), x(x), y(y) {}
+
     T getValue(Real t) const {
         return GCVSPLUtil::splder(0, degree, t, x, y);
     }
     T getDerivative(int derivOrder, Real t) const {
         return GCVSPLUtil::splder(derivOrder, degree, t, x, y);
     }
-    int         referenceCount;
+
     int         degree;
     Vector      x;
     Vector_<T>  y;
