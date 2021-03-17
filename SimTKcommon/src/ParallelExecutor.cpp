@@ -29,6 +29,11 @@
 #include <algorithm>
 #include <mutex>
 
+#if defined(__FreeBSD__)
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
+
 using namespace std;
 
 namespace SimTK {
@@ -187,6 +192,9 @@ void ParallelExecutor::execute(Task& task, int times) {
 #elif __linux__
    #include <dlfcn.h>
    #include <unistd.h>
+#elif __FreeBSD__
+   #include <dlfcn.h>
+   #include <unistd.h>
 #else
   #error "Architecture unsupported"
 #endif
@@ -211,6 +219,17 @@ int ParallelExecutor::getNumProcessors() {
         return( (int)nProcessorsOnline );
     }
 #else
+#ifdef __FreeBSD__
+    int ncpu,retval;
+    size_t len = 4;
+
+    retval = sysctlbyname( "hw.ncpu", &ncpu, &len, NULL, 0 );
+    if( retval == 0 ) {
+       return (ncpu );
+    } else {
+       return(1);
+    }
+#else
     // Windows
 
     SYSTEM_INFO siSysInfo;
@@ -225,6 +244,7 @@ int ParallelExecutor::getNumProcessors() {
     ncpu =  siSysInfo.dwNumberOfProcessors;
     if( ncpu < 1 ) ncpu = 1;
     return(ncpu);
+#endif
 #endif
 #endif
 }
