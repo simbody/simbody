@@ -30,7 +30,6 @@ namespace SimTK {
 * will invalidate the system at %Stage::Topology, although the invalidation
 * will not occur until the parameters are set on an actual instance of
 * %ExponentialSpringForce.
-* @see ExponentialSpringForce::setParameters()
 *
 * The force in the normal direction is computed using an exponential:
 *
@@ -54,9 +53,12 @@ namespace SimTK {
 * behavior of an exponential spring that are not handled by this class.
 * They are p0, mus, muk, and sliding.  These quantities are handled as
 * as states in order to allow them to change during the course of a simulation.
-* @see ExponentialSpringForce for details on these quantities.
+* See ExponentialSpringForce for details on these states.
+*
+* @see ExponentialSpringForce::setParameters()
+* @see ExponentialSpringForce
 */
-class ExponentialSpringParameters
+class SimTK_SIMBODY_EXPORT ExponentialSpringParameters
 {
 protected:
 	/// <summary>
@@ -99,9 +101,9 @@ protected:
 	/// <summary>
 	/// kTau is equal to 1.0/tau. tau is the characteristic time to transition
 	/// between the static and kinetic coefficents of friction.  The user sets tau.
-	/// @see setSlidingTimeConstant()
 	/// kTau is maintained as the member variable to avoid the cost of
 	/// frequently dividing by tau.  The default value of tau is 0.01 seconds.
+	/// @see setSlidingTimeConstant()
 	/// </summary>
 	Real kTau;
 
@@ -272,7 +274,7 @@ public:
 * Member variables with an _G suffix are expressed in the ground frame.
 * Member veriables without a suffix are expressed in the floor frame.
 */
-class ExponentialSpringData
+class SimTK_SIMBODY_EXPORT ExponentialSpringData
 {
 public:
 	// Default Constructor
@@ -390,7 +392,7 @@ public:
 * that acts over a great distance is not that far fetched as long as the
 * force gets sufficiently small sufficiently quickly.
 *
-* Normal Force ----
+* Normal Force \n
 * The elastic part of the normal force is computed using an exponential
 * whose shape is a function of three parameters (d0, d1, and d2):
 *
@@ -413,9 +415,9 @@ public:
 * So, all together, the spring force in the normal direction is given by
 *
 *		fNormal	= fElastic + fDamping
-*				= d1*exp(d2*(py-d0)) * (1.0 - kv*vy)
+*				= d1*exp(d2*(py-d0)) - kv*vy*d1*exp(d2*(py-d0))
 *
-* Friction ----
+* Friction \n
 * Friction is implemented using a simple linear, damped spring.
 *
 *		friction = -kp*(p-p0) - kv*(v)
@@ -426,8 +428,8 @@ public:
 * Station projected onto the floor.  p, p0, and v are all expressed in the
 * frame of the floor.
 *
-* The frictional parameters kp and kv are usually chosen to result in critical
-* damping for a 1 kg mass:
+* By default, the frictional parameters kp and kv are chosen to result in critical
+* damping for a specified mass:
 *
 *		kv = 2.0 * sqrt(kp*mass)
 *
@@ -514,7 +516,7 @@ public:
 * ------------------------------------------------------------------
 * STATES
 * ------------------------------------------------------------------
-* DISCRETE STATES (Changeable during simulation; Invalidate Dynamics Stage)
+* DISCRETE STATES (Changeable during simulation)\n
 * mus:	static coefficient of friction.
 *		(0.0 <= mus <= 1.0; default = 0.7)
 * muk:	kinetic coefficient of friction.
@@ -522,7 +524,7 @@ public:
 * Station:	%Station on the Body expressed in the Body frame at which the spring
 *			force is applied.  (NOT A STATE YET. @todo make station a state)
 *
-* AUTO UPDATE DISCRETE STATE
+* AUTO UPDATE DISCRETE STATE\n
 * (Computed and put in cache during %System::realize(). Swapped to the actual state
 * after a successful integration step.)
 * p0:	zero of the frictional spring.
@@ -530,11 +532,11 @@ public:
 *		project p0 on to the floor. To project on to the fllor, the
 *		y component is simpmly set to zero (p0[1] = 0.0).
 *
-* CONTINUOUS STATE (Governed by differential equation. Evolved by integrator.)
+* CONTINUOUS STATE (Governed by differential equation. Evolved by integrator.)\n
 * Sliding:	characterizes whether the spring zero is sliding (1.0) or fixed in place (0.0).
 *			This state is used for transitioning back and forth between mus and muk.
 */
-class ExponentialSpringForce : public ForceSubsystem {
+class SimTK_SIMBODY_EXPORT ExponentialSpringForce : public ForceSubsystem {
 public:
 	ExponentialSpringForce(MultibodySystem& system,
 		const Transform& floor,const MobilizedBody& body,const Vec3& station);
