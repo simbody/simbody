@@ -51,6 +51,7 @@ will include this one). **/
 #include "simbody/internal/Constraint.h"
 #include "simbody/internal/Constraint_BuiltIns.h"
 #include "simbody/internal/ElasticFoundationForce.h"
+#include "simbody/internal/ExponentialSpringForce.h"
 #include "simbody/internal/Force.h"
 #include "simbody/internal/Force_BuiltIns.h"
 #include "simbody/internal/ForceSubsystem.h"
