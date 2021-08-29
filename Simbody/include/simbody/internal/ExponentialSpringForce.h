@@ -20,7 +20,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "Simbody.h"
-#include "simbody/internal/ForceSubsystemGuts.h"
 
 namespace SimTK {
 
