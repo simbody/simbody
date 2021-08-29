@@ -129,7 +129,7 @@ int main() {
         ContactTrackerSubsystem* tracker = NULL;
         CompliantContactSubsystem* contactForces = NULL;
         MobilizedBody::Free* blockCmp = NULL;
-        if (CmpContactOn == true) {
+        if (CmpContactOn == true) { 
             tracker = new ContactTrackerSubsystem(system);
             contactForces = new CompliantContactSubsystem(system, *tracker);
             contactForces->setTrackDissipatedEnergy(true);

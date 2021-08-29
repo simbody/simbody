@@ -32,14 +32,14 @@ namespace SimTK {
 *
 * The force in the normal direction is computed using an exponential:
 *
-*		fNormal = d1 * exp(-d2*(py-d0)) * (1.0 - kvNorm)
+*        fNormal = d1 * exp(-d2*(py-d0)) * (1.0 - kvNorm)
 *
 * where py is the distance of the spring point on the Body above the plane
 * of the floor expressied in the floor frame.
 *
 * The friction force is modeled using a linear spring with damping:
 *
-*		fFric = -kpFric*(pxz-p0) - kvFric*v,
+*        fFric = -kpFric*(pxz-p0) - kvFric*v,
 *
 * where pxz is the position of the spring on the Body projected onto the plane
 * of the floor and expressed in the floor frame, and p0 is the spring zero
@@ -60,189 +60,189 @@ namespace SimTK {
 class SimTK_SIMBODY_EXPORT ExponentialSpringParameters
 {
 protected:
-	/// <summary>
-	/// d0 shifts the exponential function up and down with respect to
-	/// the floor plane.Its default value is 0.0065905 (~7 mm above the floor
-	/// plane). This slight upward shift prevents significant penetration
-	/// into the floor plane.  d0 can have a value of 0.0.
-	/// </summary>
-	Real d0;
+    /// <summary>
+    /// d0 shifts the exponential function up and down with respect to
+    /// the floor plane.Its default value is 0.0065905 (~7 mm above the floor
+    /// plane). This slight upward shift prevents significant penetration
+    /// into the floor plane.  d0 can have a value of 0.0.
+    /// </summary>
+    Real d0;
 
-	/// <summary>
-	/// d1 linearly scales the applied force up or down. Its default value is 0.5336.
-	/// </summary>
-	Real d1;
+    /// <summary>
+    /// d1 linearly scales the applied force up or down. Its default value is 0.5336.
+    /// </summary>
+    Real d1;
 
-	/// <summary>
-	/// d2 multiplies the exponent.  Its default value is 1150.0. Larger values
-	/// of d2 makes the exponential curve rise more rapidly.
-	/// </summary>
-	Real d2;
+    /// <summary>
+    /// d2 multiplies the exponent.  Its default value is 1150.0. Larger values
+    /// of d2 makes the exponential curve rise more rapidly.
+    /// </summary>
+    Real d2;
 
-	/// <summary>
-	/// kvNorm is the viscosity of the spring in the normal direction. Its default
-	/// value is 0.5. kvNorm can have a value of 0.0.
-	/// </summary>
-	Real kvNorm;
+    /// <summary>
+    /// kvNorm is the viscosity of the spring in the normal direction. Its default
+    /// value is 0.5. kvNorm can have a value of 0.0.
+    /// </summary>
+    Real kvNorm;
 
-	/// <summary>
-	/// kpFric is the elasticity of the friction spring. Its default value is 2000.
-	/// </summary>
-	Real kpFric;
+    /// <summary>
+    /// kpFric is the elasticity of the friction spring. Its default value is 2000.
+    /// </summary>
+    Real kpFric;
 
-	/// <summary>
-	/// kvFric is the viscosity of the friction spring. By default, its value is
-	/// set relative to kpFric so that critical damping would occur for a specified
-	/// mass (i.e., kvFric = 2 * sqrt(kpFric * mass)).  kvFric can be 0.0.
-	/// </summary>
-	Real kvFric;
+    /// <summary>
+    /// kvFric is the viscosity of the friction spring. By default, its value is
+    /// set relative to kpFric so that critical damping would occur for a specified
+    /// mass (i.e., kvFric = 2 * sqrt(kpFric * mass)).  kvFric can be 0.0.
+    /// </summary>
+    Real kvFric;
 
-	/// <summary>
-	/// kTau is equal to 1.0/tau. tau is the characteristic time to transition
-	/// between the static and kinetic coefficents of friction.  The user sets tau.
-	/// kTau is maintained as the member variable to avoid the cost of
-	/// frequently dividing by tau.  The default value of tau is 0.01 seconds.
-	/// @see setSlidingTimeConstant()
-	/// </summary>
-	Real kTau;
+    /// <summary>
+    /// kTau is equal to 1.0/tau. tau is the characteristic time to transition
+    /// between the static and kinetic coefficents of friction.  The user sets tau.
+    /// kTau is maintained as the member variable to avoid the cost of
+    /// frequently dividing by tau.  The default value of tau is 0.01 seconds.
+    /// @see setSlidingTimeConstant()
+    /// </summary>
+    Real kTau;
 
-	/// <summary>
-	/// vSettle is the velocity of pxz below which the friction spring transitions
-	/// to using the static coefficient of friction. Its default value is 0.01 m/s.
-	/// </summary>
-	Real vSettle;
+    /// <summary>
+    /// vSettle is the velocity of pxz below which the friction spring transitions
+    /// to using the static coefficient of friction. Its default value is 0.01 m/s.
+    /// </summary>
+    Real vSettle;
 
 public:
-	// Constructors and operators
-	/// Default Constructor
-	ExponentialSpringParameters();
+    // Constructors and operators
+    /// Default Constructor
+    ExponentialSpringParameters();
 
-	/// <summary>
-	///  Copy constructor.
-	/// </summary>
-	/// <param name="params"> Reference to the object to be copied. </param>
-	ExponentialSpringParameters(const ExponentialSpringParameters& params);
+    /// <summary>
+    ///  Copy constructor.
+    /// </summary>
+    /// <param name="params"> Reference to the object to be copied. </param>
+    ExponentialSpringParameters(const ExponentialSpringParameters& params);
 
-	/// <summary>
-	/// Assignment operator.
-	/// </summary>
-	void operator = (const ExponentialSpringParameters& params);
+    /// <summary>
+    /// Assignment operator.
+    /// </summary>
+    void operator = (const ExponentialSpringParameters& params);
 
-	/// <summary>
-	/// Set the parameters conrolling the shape of the exponential.
-	/// </summary>
-	/// <param name="d0">
-	/// d0 shifts the exponential function up and down with respect to the floor
-	/// plane. Its default value is 0.0065905 (~7 mm above the floor plane). 
-	/// This slight upward shift prevents significant penetration into the floor.
-	/// </param>
-	/// <param name="d1">
-	/// d1 linearly scales the applied force up or down. Its default value is 0.5336.
-	/// </param>
-	/// d2 multiplies the exponent. Its default value is 1150.0. Larger values of
-	/// d2 make the exponential curve rise more rapidly as py gets less than d0.
-	/// <param name="d2"></param>
-	void setShapeParameters(Real d0, Real d1 = 0.5336, Real d2 = 1150.0);
+    /// <summary>
+    /// Set the parameters conrolling the shape of the exponential.
+    /// </summary>
+    /// <param name="d0">
+    /// d0 shifts the exponential function up and down with respect to the floor
+    /// plane. Its default value is 0.0065905 (~7 mm above the floor plane). 
+    /// This slight upward shift prevents significant penetration into the floor.
+    /// </param>
+    /// <param name="d1">
+    /// d1 linearly scales the applied force up or down. Its default value is 0.5336.
+    /// </param>
+    /// d2 multiplies the exponent. Its default value is 1150.0. Larger values of
+    /// d2 make the exponential curve rise more rapidly as py gets less than d0.
+    /// <param name="d2"></param>
+    void setShapeParameters(Real d0, Real d1 = 0.5336, Real d2 = 1150.0);
 
-	/// <summary>
-	/// Get the paramters that control the shape of the exponential.
-	/// </summary>
-	void getShapeParameters(Real& d0, Real& d1, Real& d2) const;
+    /// <summary>
+    /// Get the paramters that control the shape of the exponential.
+    /// </summary>
+    void getShapeParameters(Real& d0, Real& d1, Real& d2) const;
 
-	/// <summary>
-	/// Set the viscosity of the exponential part of the spring.  This viscosity
-	/// only applies to the component of the velocity of the body spring point
-	/// that is normal to the floor plane.
-	/// </summary>
-	/// <param name="kvNorm">
-	/// Viscosity of the spring in the normal direction. Its default value is 0.5.
-	/// </param>
+    /// <summary>
+    /// Set the viscosity of the exponential part of the spring.  This viscosity
+    /// only applies to the component of the velocity of the body spring point
+    /// that is normal to the floor plane.
+    /// </summary>
+    /// <param name="kvNorm">
+    /// Viscosity of the spring in the normal direction. Its default value is 0.5.
+    /// </param>
 
-	void setNormalViscosity(Real& kvNorm);
-	/// <summary>
-	/// Get the viscosity of the exponential part of the spring.
-	/// </summary>
-	/// <returns>normal viscosity</returns>
-	Real getNormalViscosity() const;
+    void setNormalViscosity(Real& kvNorm);
+    /// <summary>
+    /// Get the viscosity of the exponential part of the spring.
+    /// </summary>
+    /// <returns>normal viscosity</returns>
+    Real getNormalViscosity() const;
 
-	/// <summary>
-	/// Set the elasticity of the friction spring and compute and set a viscosity
-	/// that will result in critical damping for the specified mass
-	/// (i.e., kv = 2*sqrt(kp*mass)), which is done by default.
-	/// Friction forces lie in the plane tangent to the floor.
-	/// </summary>
-	/// <param name="kp">Elasticity of the friction spring.</param>
-	/// <param name="mass">
-	/// Mass of the body for which critical damping would be achieved.  Articulated
-	/// bodies effectively don't have a constant mass as it relates to acceleration in
-	/// a particular direction, so think of this mass as a kind of average
-	/// effective mass.  A default mass of 1.0 kg is used if a mass is not specified.
-	/// </param>
-	void setElasticityAndComputeViscosity(Real kp, Real mass = 1.0);
+    /// <summary>
+    /// Set the elasticity of the friction spring and compute and set a viscosity
+    /// that will result in critical damping for the specified mass
+    /// (i.e., kv = 2*sqrt(kp*mass)), which is done by default.
+    /// Friction forces lie in the plane tangent to the floor.
+    /// </summary>
+    /// <param name="kp">Elasticity of the friction spring.</param>
+    /// <param name="mass">
+    /// Mass of the body for which critical damping would be achieved.  Articulated
+    /// bodies effectively don't have a constant mass as it relates to acceleration in
+    /// a particular direction, so think of this mass as a kind of average
+    /// effective mass.  A default mass of 1.0 kg is used if a mass is not specified.
+    /// </param>
+    void setElasticityAndComputeViscosity(Real kp, Real mass = 1.0);
 
-	/// <summary>
-	/// Set the elasticity of the friction spring.  It's default value is 2000.0.
-	/// </summary>
-	/// <param name="kp">Elastcity of the frictgion spring.</param>
-	void setElasticity(Real kp);
+    /// <summary>
+    /// Set the elasticity of the friction spring.  It's default value is 2000.0.
+    /// </summary>
+    /// <param name="kp">Elastcity of the frictgion spring.</param>
+    void setElasticity(Real kp);
 
-	/// <summary>
-	/// Set the vicosity of the friction spring.  Its value can be set to 0.0.
-	/// </summary>
-	/// <param name="kv">Viscosity of the friction spring.</param>
-	void setViscosity(Real kv);
+    /// <summary>
+    /// Set the vicosity of the friction spring.  Its value can be set to 0.0.
+    /// </summary>
+    /// <param name="kv">Viscosity of the friction spring.</param>
+    void setViscosity(Real kv);
 
-	/// <summary>
-	/// Get the elasticity of the friction spring.
-	/// </summary>
-	/// <returns>Elasticity of the friction spring.</returns>
-	Real getElasticity() const;
+    /// <summary>
+    /// Get the elasticity of the friction spring.
+    /// </summary>
+    /// <returns>Elasticity of the friction spring.</returns>
+    Real getElasticity() const;
 
-	/// <summary>
-	/// Get the viscosity of the friction spring.
-	/// </summary>
-	/// <returns>Viscosity of the friction spring.</returns>
-	Real getViscosity() const;
+    /// <summary>
+    /// Get the viscosity of the friction spring.
+    /// </summary>
+    /// <returns>Viscosity of the friction spring.</returns>
+    Real getViscosity() const;
 
-	/// <summary>
-	/// Set the time constant for transitioning back and forth between
-	/// the static and kinetic coefficents of friction.  The transition
-	/// is mediated by a rising or falling exponential that is asymptotic to
-	/// mu static or mu kinetic respectively.
-	/// </summary>
-	/// <param name="tau">time constant</param>
-	void setSlidingTimeConstant(Real tau);
+    /// <summary>
+    /// Set the time constant for transitioning back and forth between
+    /// the static and kinetic coefficents of friction.  The transition
+    /// is mediated by a rising or falling exponential that is asymptotic to
+    /// mu static or mu kinetic respectively.
+    /// </summary>
+    /// <param name="tau">time constant</param>
+    void setSlidingTimeConstant(Real tau);
 
-	/// <summary>
-	/// Get the time constant for transitioning back and forth between
-	/// the static and kinetic coefficents of friction.  The default value is
-	/// 0.01 seconds.
-	/// </summary>
-	/// <returns>time constant</returns>
-	Real getSlidingTimeConstant() const;
+    /// <summary>
+    /// Get the time constant for transitioning back and forth between
+    /// the static and kinetic coefficents of friction.  The default value is
+    /// 0.01 seconds.
+    /// </summary>
+    /// <returns>time constant</returns>
+    Real getSlidingTimeConstant() const;
 
-	/// <summary>
-	/// Set the velocity below which the coefficient of friction transitions
-	/// to the static coefficient of friction.  It's default value is 0.01 m/s.
-	/// </summary>
-	/// <param name="vSettle">Settle velocity</param>
-	void setSettleVelocity(Real vSettle);
+    /// <summary>
+    /// Set the velocity below which the coefficient of friction transitions
+    /// to the static coefficient of friction.  It's default value is 0.01 m/s.
+    /// </summary>
+    /// <param name="vSettle">Settle velocity</param>
+    void setSettleVelocity(Real vSettle);
 
-	/// <summary>
-	/// Get the velocity below which the coefficient of friction transitions
-	/// to the static coefficient of friction.
-	/// </summary>
-	/// <returns>Settle velocity</returns>
-	Real getSettleVelocity() const;
+    /// <summary>
+    /// Get the velocity below which the coefficient of friction transitions
+    /// to the static coefficient of friction.
+    /// </summary>
+    /// <returns>Settle velocity</returns>
+    Real getSettleVelocity() const;
 
-	/// <summary>
-	/// The member variables managed by this class are used by the underlying
-	/// implementation of the %ExponentialSpringForce Subsystem.  Direct access
-	/// is given to %ExponentialSpringForceImpl for reasons of speed.  Direct access
-	/// is not given to other classes to ensure that these paramters are set only
-	/// to valid values.
-	/// </summary>
-	friend class ExponentialSpringForceImpl;
+    /// <summary>
+    /// The member variables managed by this class are used by the underlying
+    /// implementation of the %ExponentialSpringForce Subsystem.  Direct access
+    /// is given to %ExponentialSpringForceImpl for reasons of speed.  Direct access
+    /// is not given to other classes to ensure that these paramters are set only
+    /// to valid values.
+    /// </summary>
+    friend class ExponentialSpringForceImpl;
 };
 
 
@@ -276,81 +276,81 @@ public:
 class SimTK_SIMBODY_EXPORT ExponentialSpringData
 {
 public:
-	// Default Constructor
-	ExponentialSpringData();
+    // Default Constructor
+    ExponentialSpringData();
 
-	// Copy Constructor
-	ExponentialSpringData(const ExponentialSpringData& data);
+    // Copy Constructor
+    ExponentialSpringData(const ExponentialSpringData& data);
 
-	// Assignment Operator
-	void operator = (const ExponentialSpringData& data);
+    // Assignment Operator
+    void operator = (const ExponentialSpringData& data);
 
-	// Members ----
-	// Position of the body spring station in the ground frame.
-	Vec3 p_G;
+    // Members ----
+    // Position of the body spring station in the ground frame.
+    Vec3 p_G;
 
-	// Velocity of the body spring station in the ground frame.
-	Vec3 v_G;
+    // Velocity of the body spring station in the ground frame.
+    Vec3 v_G;
 
-	// Position of the body spring station expressed in the floor frame.
-	Vec3 p;
+    // Position of the body spring station expressed in the floor frame.
+    Vec3 p;
 
-	// Velocity of the body spring station expressed in the floor frame.
-	Vec3 v;
+    // Velocity of the body spring station expressed in the floor frame.
+    Vec3 v;
 
-	// Displacment of the body spring station normal to the floor
-	// expressed in the floor frame.
-	Real py;
+    // Displacment of the body spring station normal to the floor
+    // expressed in the floor frame.
+    Real py;
 
-	// Velocity of the body spring station normal to the floor
-	// expressed in the floor frame.
-	Real vy;
+    // Velocity of the body spring station normal to the floor
+    // expressed in the floor frame.
+    Real vy;
 
-	// Position of the body spring station projected onto the floor
-	// expressed in the floor frame.
-	Vec3 pxz;
+    // Position of the body spring station projected onto the floor
+    // expressed in the floor frame.
+    Vec3 pxz;
 
-	// Velocity of the body spring station in the plane of the floor
-	// expressed in the floor frame.
-	Vec3 vxz;
+    // Velocity of the body spring station in the plane of the floor
+    // expressed in the floor frame.
+    Vec3 vxz;
 
-	// Position of the body spring station projected onto the floor
-	// expressed in the ground frame.  This quantity is not needed to
-	// calculate the spring force, but is likely desired for vizualization.
-	Vec3 pxz_G;
+    // Position of the body spring station projected onto the floor
+    // expressed in the ground frame.  This quantity is not needed to
+    // calculate the spring force, but is likely desired for vizualization.
+    Vec3 pxz_G;
 
-	// Elastic force in the normal direction.
-	Real fyElas;
+    // Elastic force in the normal direction.
+    Real fyElas;
 
-	// Damping force in the normal direction.
-	Real fyDamp;
+    // Damping force in the normal direction.
+    Real fyDamp;
 
-	// Total normal force.
-	Real fy;
+    // Total normal force.
+    Real fy;
 
-	// Instantaneous coefficient of friction.
-	Real mu;
+    // Instantaneous coefficient of friction.
+    Real mu;
 
-	// Limit of the frictional force.
-	Real fxyLimit;
+    // Limit of the frictional force.
+    Real fxyLimit;
 
-	// Elastic frictional force.
-	Vec3 fricElas;
+    // Elastic frictional force.
+    Vec3 fricElas;
 
-	// Damping frictional force.
-	Vec3 fricDamp;
+    // Damping frictional force.
+    Vec3 fricDamp;
 
-	// Resultant frictional force
-	Vec3 fric;
+    // Resultant frictional force
+    Vec3 fric;
 
-	// Magnitude of the frictional force
-	Real fxy;
+    // Magnitude of the frictional force
+    Real fxy;
 
-	// Total spring force
-	Vec3 f;
+    // Total spring force
+    Vec3 f;
 
-	// Total spring force expressed in the ground frame.
-	Vec3 f_G;
+    // Total spring force expressed in the ground frame.
+    Vec3 f_G;
 };
 
 
@@ -395,31 +395,31 @@ public:
 * The elastic part of the normal force is computed using an exponential
 * whose shape is a function of three parameters (d0, d1, and d2):
 *
-*	fElastic = d1 * exp(d2 * (py - d0))
+*    fElastic = d1 * exp(d2 * (py - d0))
 *
 * where py is the height above the floor plane of the specified Station
 * on the Body. The default values for the parameters are
 *
-*		d0 = 0.0065905
-*		d1 = 0.5336
-*		d2 = -1150.0
+*        d0 = 0.0065905
+*        d1 = 0.5336
+*        d2 = -1150.0
 *
 * The damping part is linear in velocity and scaled by the elastic part:
 *
-*		fDamping = - kv*vy * fElastic,
+*        fDamping = - kv*vy * fElastic,
 *
 * where kv = 0.5 by default and vy is the component of the velocity of the
 * Body Station in the normal direction relative to the floor plane.
 *
 * So, all together, the spring force in the normal direction is given by
 *
-*		fNormal	= fElastic + fDamping
-*				= d1*exp(d2*(py-d0)) - kv*vy*d1*exp(d2*(py-d0))
+*        fNormal    = fElastic + fDamping
+*                = d1*exp(d2*(py-d0)) - kv*vy*d1*exp(d2*(py-d0))
 *
 * Friction \n
 * Friction is implemented using a simple linear, damped spring.
 *
-*		friction = -kp*(p-p0) - kv*(v)
+*        friction = -kp*(p-p0) - kv*(v)
 *
 * where kp is the elasticity, kv is the viscosity, p is the position of the
 * spring Station on the Body projected onto the plane of the floor, p0 is the
@@ -430,7 +430,7 @@ public:
 * By default, the frictional parameters kp and kv are chosen to result in critical
 * damping for a specified mass:
 *
-*		kv = 2.0 * sqrt(kp*mass)
+*        kv = 2.0 * sqrt(kp*mass)
 *
 * Valid values of kp can range widely (e.g., kp = 1,000 to kp = 1,000,000)
 * depending on the material properties of the Body and Floor.  In general, the
@@ -440,10 +440,10 @@ public:
 * When the frictional force is greater than its allowed limit, the frictional
 * force is capped at this limit:
 *
-*		fLimit = mu*fNormal
-*		if(friction.norm() > fLimit) {
-*			friction = fLimit * friction.normalize()
-*		}	
+*        fLimit = mu*fNormal
+*        if(friction.norm() > fLimit) {
+*            friction = fLimit * friction.normalize()
+*        }    
 * 
 * where mu is the instantaneous coefficient of friction.
 * 
@@ -451,7 +451,7 @@ public:
 * force by itself exceeds fLimit, a new spring zero (p0) is found such
 * that the magnitude of the elastic part is equal to fLimit:
 *
-*		if( (kp*(p-p0)).norm() > fLimit)  p0New = p + (p-p0)/kp
+*        if( (kp*(p-p0)).norm() > fLimit)  p0New = p + (p-p0)/kp
 *
 * In Simbody, p0 is handled as an Auto Update Discrete State.  Any change
 * to p0 is made to the Update Cache (not to the State directly), and the
@@ -461,34 +461,34 @@ public:
 * Coefficients of kinetic (sliding) and static (fixed) friction can be
 * specified for the spring subject to the following constraints:
 *
-*		0.0 <= muk <= mus <= 1.0
+*        0.0 <= muk <= mus <= 1.0
 *
 * A continuous state variable (Z = Sliding) is used to characterize the
 * sliding state of the spring.
 *
-* 		Sliding = 0		means fully fixed in place (lower bound)
-* 		Sliding = 1		means fully sliding (upper bound)
+*         Sliding = 0        means fully fixed in place (lower bound)
+*         Sliding = 1        means fully sliding (upper bound)
 * 
 * The instantaneous coefficient of friction (mu) is calculated based on the
 * value of Sliding:
 *
-*		mu = mus - Sliding*(mus - muk)
+*        mu = mus - Sliding*(mus - muk)
 * 
 * The time derivative of Sliding is used to drive Sliding toward the
 * extreme of 0.0 or 1.0, depending on the following criteria...
 * 
 * When the frictional force exceeds its limit, Sliding is driven toward 1:
 * 
-* 		if (friction.norm() >= fLimit)  SlidingDot = (1.0 - Sliding)/T
+*         if (friction.norm() >= fLimit)  SlidingDot = (1.0 - Sliding)/T
 * 
 * When the velocity of p falls below some specified velocity (e.g., 0.01 m/s)
 * AND the frictional force is less than its limit, Sliding is driven toward 0:
 *
-* 		else if (v.norm < 0.01)  SlidingDot = -Sliding/T
+*         else if (v.norm < 0.01)  SlidingDot = -Sliding/T
 * 
 * Otherwise, no change to the Sliding state is made at all:
 *
-* 		else  SlidingDot = 0.0
+*         else  SlidingDot = 0.0
 *
 * In the above equations, T is the characteristic rate at which the Sliding
 * rises or decays (e.g., T = 0.01 sec).
@@ -516,52 +516,52 @@ public:
 * STATES
 * ------------------------------------------------------------------
 * DISCRETE STATES (Changeable during simulation)\n
-* mus:	static coefficient of friction.
-*		(0.0 <= mus <= 1.0; default = 0.7)
-* muk:	kinetic coefficient of friction.
-*		(0.0 <= muk <= mus; default = 0.5)
-* Station:	%Station on the Body expressed in the Body frame at which the spring
-*			force is applied.  (NOT A STATE YET. @todo make station a state)
+* mus:    static coefficient of friction.
+*        (0.0 <= mus <= 1.0; default = 0.7)
+* muk:    kinetic coefficient of friction.
+*        (0.0 <= muk <= mus; default = 0.5)
+* Station:    %Station on the Body expressed in the Body frame at which the spring
+*            force is applied.  (NOT A STATE YET. @todo make station a state)
 *
 * AUTO UPDATE DISCRETE STATE\n
 * (Computed and put in cache during %System::realize(). Swapped to the actual state
 * after a successful integration step.)
-* p0:	zero of the frictional spring.
-*		Calling resetSprZero() will set p0 equal to Station and then
-*		project p0 on to the floor. To project on to the fllor, the
-*		y component is simpmly set to zero (p0[1] = 0.0).
+* p0:    zero of the frictional spring.
+*        Calling resetSprZero() will set p0 equal to Station and then
+*        project p0 on to the floor. To project on to the fllor, the
+*        y component is simpmly set to zero (p0[1] = 0.0).
 *
 * CONTINUOUS STATE (Governed by differential equation. Evolved by integrator.)\n
-* Sliding:	characterizes whether the spring zero is sliding (1.0) or fixed in place (0.0).
-*			This state is used for transitioning back and forth between mus and muk.
+* Sliding:    characterizes whether the spring zero is sliding (1.0) or fixed in place (0.0).
+*            This state is used for transitioning back and forth between mus and muk.
 */
 class SimTK_SIMBODY_EXPORT ExponentialSpringForce : public ForceSubsystem {
 public:
-	ExponentialSpringForce(MultibodySystem& system,
-		const Transform& floor,const MobilizedBody& body,const Vec3& station);
-	ExponentialSpringForce(MultibodySystem& system, const ExponentialSpringParameters& params,
-		const Transform& floor, const MobilizedBody& body, const Vec3& station);
-	// Parameters (set these before realizing at the Topology Stage)
-	void setParameters(const ExponentialSpringParameters& params);
-	const ExponentialSpringParameters& getParameters() const;
-	// Coefficients of Friction (discrete states - can change during a simulation)
-	// Static
-	void setMuStatic(State& state, const Real& mus);
-	const Real& getMuStatic(const State& state) const;
-	// Kinetic
-	void setMuKinetic(State& state, const Real& muk);
-	const Real& getMuKinetic(const State& state) const;
-	// Reset the spring zero (auto update discrete state) so that it
-	// coincides in the floor plane with the specified station on the body.
-	// This is often done at the beginning of a simulation to ensure that
-	// a simulation does not begin with large friction forces.
-	void resetSprZero(State& state) const;
-	// Data Cache
-	const ExponentialSpringData& calcData(const State& state) const;
-	const ExponentialSpringData& getData(const State& state) const;
-	// Shortcuts for accessing the underlying implementation
-	ExponentialSpringForceImpl& updImpl();
-	const ExponentialSpringForceImpl& getImpl() const;
+    ExponentialSpringForce(MultibodySystem& system,
+        const Transform& floor,const MobilizedBody& body,const Vec3& station);
+    ExponentialSpringForce(MultibodySystem& system, const ExponentialSpringParameters& params,
+        const Transform& floor, const MobilizedBody& body, const Vec3& station);
+    // Parameters (set these before realizing at the Topology Stage)
+    void setParameters(const ExponentialSpringParameters& params);
+    const ExponentialSpringParameters& getParameters() const;
+    // Coefficients of Friction (discrete states - can change during a simulation)
+    // Static
+    void setMuStatic(State& state, const Real& mus);
+    const Real& getMuStatic(const State& state) const;
+    // Kinetic
+    void setMuKinetic(State& state, const Real& muk);
+    const Real& getMuKinetic(const State& state) const;
+    // Reset the spring zero (auto update discrete state) so that it
+    // coincides in the floor plane with the specified station on the body.
+    // This is often done at the beginning of a simulation to ensure that
+    // a simulation does not begin with large friction forces.
+    void resetSprZero(State& state) const;
+    // Data Cache
+    const ExponentialSpringData& calcData(const State& state) const;
+    const ExponentialSpringData& getData(const State& state) const;
+    // Shortcuts for accessing the underlying implementation
+    ExponentialSpringForceImpl& updImpl();
+    const ExponentialSpringForceImpl& getImpl() const;
 };
 
 
