@@ -16,7 +16,7 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include "ExponentialSpringForce.h"
+#include "simbody/internal/ExponentialSpringForce.h"
 
 namespace SimTK {
 
