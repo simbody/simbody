@@ -1,20 +1,20 @@
-/* -------------------------------------------------------------------------- *
- *                               Simbody(tm)                                  *
- * -------------------------------------------------------------------------- *
- * Copyright (c) 2021 Authors.                                                *
- * Authors: Frank C. Anderson                                                 *
- * Contributors:                                                              *
- *                                                                            *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
- * not use this file except in compliance with the License. You may obtain a  *
- * copy of the License at http://www.apache.org/licenses/LICENSE-2.0.         *
- *                                                                            *
- * Unless required by applicable law or agreed to in writing, software        *
- * distributed under the License is distributed on an "AS IS" BASIS,          *
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   *
- * See the License for the specific language governing permissions and        *
- * limitations under the License.                                             *
- * -------------------------------------------------------------------------- */
+/*-----------------------------------------------------------------------------
+                               Simbody(tm)
+-------------------------------------------------------------------------------
+ Copyright (c) 2021 Authors.
+ Authors: Frank C. Anderson
+ Contributors:
+
+ Licensed under the Apache License, Version 2.0 (the "License"); you may
+ not use this file except in compliance with the License. You may obtain a
+ copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ ------------------------------------------------------------------------------*/
 
 #include "simbody/internal/ExponentialSpringForce.h"
 
@@ -92,8 +92,7 @@ using std::endl;
 ExponentialSpringParameters::
 ExponentialSpringParameters() :
     d0(0.0065905), d1(0.5336), d2(1150.0), kvNorm(0.5),
-    kpFric(2000.0), kvFric(0.0), kTau(100.0), vSettle(0.01)
-{
+    kpFric(2000.0), kvFric(0.0), kTau(100.0), vSettle(0.01) {
     // The friction viscosity can be set for critical damping of a specified
     // mass.  By default, this is done for a mass of 1.0 kg.
     setElasticityAndComputeViscosity(kpFric);
@@ -101,31 +100,31 @@ ExponentialSpringParameters() :
 //_____________________________________________________________________________
 // Copy Constructor
 ExponentialSpringParameters::
-ExponentialSpringParameters(const ExponentialSpringParameters& params)
-{
+ExponentialSpringParameters(const ExponentialSpringParameters& params) {
     operator=(params);
 }
 //_____________________________________________________________________________
 // Assignment Operator
-void
+ExponentialSpringParameters&
 ExponentialSpringParameters::
-operator=(const ExponentialSpringParameters& params)
-{
-    d0 = params.d0;
-    d1 = params.d1;
-    d2 = params.d2;
-    kvNorm = params.kvNorm;
-    kpFric = params.kpFric;
-    kvFric = params.kvFric;
-    kTau = params.kTau;
-    vSettle = params.vSettle;
+operator=(const ExponentialSpringParameters& params) {
+    if (&params != this) {
+        d0 = params.d0;
+        d1 = params.d1;
+        d2 = params.d2;
+        kvNorm = params.kvNorm;
+        kpFric = params.kpFric;
+        kvFric = params.kvFric;
+        kTau = params.kTau;
+        vSettle = params.vSettle;
+    }
+    return *this;
 }
 //_____________________________________________________________________________
 // Set the parameters that control the shape of the exponential function.
 void
 ExponentialSpringParameters::
-setShapeParameters(Real d0, Real d1, Real d2)
-{
+setShapeParameters(Real d0, Real d1, Real d2) {
     // d0
     this->d0 = d0;
 
@@ -151,8 +150,7 @@ setShapeParameters(Real d0, Real d1, Real d2)
 // Get the parameters that control the shape of the exponential function.
 void
 ExponentialSpringParameters::
-getShapeParameters(Real &d0, Real& d1, Real& d2) const
-{
+getShapeParameters(Real &d0, Real& d1, Real& d2) const {
     d0 = this->d0;
     d1 = this->d1;
     d2 = this->d2;
@@ -162,8 +160,7 @@ getShapeParameters(Real &d0, Real& d1, Real& d2) const
 // the damping in the direction normal to the floor.
 void
 ExponentialSpringParameters::
-setNormalViscosity(Real& kvNorm)
-{
+setNormalViscosity(Real& kvNorm) {
     if (kvNorm < 0.0) {
         // An exception should be throw, but for now...
         cout << "ExponentialSpringParameters: kvNorm should be zero or positive!" << endl;
@@ -178,8 +175,7 @@ setNormalViscosity(Real& kvNorm)
 // that applies to velocity in the normal direction.
 Real
 ExponentialSpringParameters::
-getNormalViscosity() const
-{
+getNormalViscosity() const {
     return kvNorm;
 }
 //_____________________________________________________________________________
@@ -187,8 +183,7 @@ getNormalViscosity() const
 // damped motion for a specified mass.
 void
 ExponentialSpringParameters::
-setElasticityAndComputeViscosity(Real kp, Real mass)
-{
+setElasticityAndComputeViscosity(Real kp, Real mass) {
     // Set the elasticity
     setElasticity(kp);
 
@@ -196,8 +191,7 @@ setElasticityAndComputeViscosity(Real kp, Real mass)
     if (mass <= 0.0) {
         // An exception should be throw, but for now...
         cout << "ExponentialSpringParameters: mass should be positive!" << endl;
-    }
-    else {
+    } else {
         this->kvFric = 2.0 * std::sqrt(this->kpFric * mass);
     }
 }
@@ -205,13 +199,11 @@ setElasticityAndComputeViscosity(Real kp, Real mass)
 // Set the elasticity of the friction spring.
 void
 ExponentialSpringParameters::
-setElasticity(Real kp)
-{
+setElasticity(Real kp) {
     if (kp <= 0.0) {
         // An exception should be throw, but for now...
         cout << "ExponentialSpringParameters: kpFric should be positive!" << endl;
-    }
-    else {
+    } else {
         this->kpFric = kp;
     }
 }
@@ -219,21 +211,18 @@ setElasticity(Real kp)
 // Get the elasticity of the friction spring.
 Real
 ExponentialSpringParameters::
-getElasticity() const
-{
+getElasticity() const {
     return kpFric;
 }
 //_____________________________________________________________________________
 // Set the viscosity of the friction spring.
 void
 ExponentialSpringParameters::
-setViscosity(Real kv)
-{
+setViscosity(Real kv) {
     if (kv < 0.0) {
         // An exception should be throw, but for now...
         cout << "ExponentialSpringParameters: kvFric should be zero or positive!" << endl;
-    }
-    else {
+    } else {
         this->kvFric = kv;
     }
 }
@@ -241,8 +230,7 @@ setViscosity(Real kv)
 // Get the viscosity of the friction spring.
 Real
 ExponentialSpringParameters::
-getViscosity() const
-{
+getViscosity() const {
     return kvFric;
 }
 //_____________________________________________________________________________
@@ -250,13 +238,11 @@ getViscosity() const
 // frictional coefficients.
 void
 ExponentialSpringParameters::
-setSlidingTimeConstant(Real tau)
-{
+setSlidingTimeConstant(Real tau) {
     if (tau <= 0.0) {
         // An exception should be throw, but for now...
         cout << "ExponentialSpringParameters: tau should be positive!" << endl;
-    }
-    else {
+    } else {
         this->kTau = 1.0 / tau;
     }
 }
@@ -264,21 +250,18 @@ setSlidingTimeConstant(Real tau)
 // Get the elasticity of the friction spring.
 Real
 ExponentialSpringParameters::
-getSlidingTimeConstant() const
-{
+getSlidingTimeConstant() const {
     return 1.0/kTau;
 }
 //_____________________________________________________________________________
 // Set the velocity for settling into using the static coefficient of friction.
 void
 ExponentialSpringParameters::
-setSettleVelocity(Real vSettle)
-{
+setSettleVelocity(Real vSettle) {
     if (vSettle <= 0.0) {
         // An exception should be throw, but for now...
         cout << "ExponentialSpringParameters: vSettle should be positive!" << endl;
-    }
-    else {
+    } else {
         this->vSettle = vSettle;
     }
 }
@@ -286,8 +269,7 @@ setSettleVelocity(Real vSettle)
 // Get the elasticity of the friction spring.
 Real
 ExponentialSpringParameters::
-getSettleVelocity() const
-{
+getSettleVelocity() const {
     return vSettle;
 }
 
@@ -304,42 +286,41 @@ ExponentialSpringData() :
     fyElas(NaN), fyDamp(NaN), fy(NaN),
     mu(NaN), fxyLimit(NaN),
     fricElas(NaN), fricDamp(NaN), fric(NaN), fxy(NaN),
-    f(NaN), f_G(NaN)
-{
-}
+    f(NaN), f_G(NaN) { }
 //_____________________________________________________________________________
 // Copy Constructor
 ExponentialSpringData::
-ExponentialSpringData(const ExponentialSpringData& data)
-{
+ExponentialSpringData(const ExponentialSpringData& data) {
     operator=(data);
 }
 //_____________________________________________________________________________
 // Assignment Operator
-void
+ExponentialSpringData&
 ExponentialSpringData::
-operator=(const ExponentialSpringData& data)
-{
-    p_G = data.p_G;
-    v_G = data.v_G;
-    p = data.p;
-    v = data.v;
-    py = data.py;
-    vy = data.vy;
-    pxz = data.pxz;
-    vxz = data.vxz;
-    pxz_G = data.pxz_G;
-    fyElas = data.fyElas;
-    fyDamp = data.fyDamp;
-    fy = data.fy;
-    mu = data.mu;
-    fxyLimit = data.fxyLimit;
-    fricElas = data.fricElas;
-    fricDamp = data.fricDamp;
-    fric = data.fric;
-    fxy = data.fxy;
-    f = data.f;
-    f_G = data.f_G;
+operator=(const ExponentialSpringData& data) {
+    if (&data != this) {
+        p_G = data.p_G;
+        v_G = data.v_G;
+        p = data.p;
+        v = data.v;
+        py = data.py;
+        vy = data.vy;
+        pxz = data.pxz;
+        vxz = data.vxz;
+        pxz_G = data.pxz_G;
+        fyElas = data.fyElas;
+        fyDamp = data.fyDamp;
+        fy = data.fy;
+        mu = data.mu;
+        fxyLimit = data.fxyLimit;
+        fricElas = data.fricElas;
+        fricDamp = data.fricDamp;
+        fric = data.fric;
+        fxy = data.fxy;
+        f = data.f;
+        f_G = data.f_G;
+    }
+    return *this;
 }
 
 //_____________________________________________________________________________
@@ -349,8 +330,7 @@ ExponentialSpringForceImpl(const Transform& floor,const MobilizedBody &body,
     const Vec3& station) :
     ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
     xFloor(floor), body(body), station(station),
-    defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0.,0.,0.))
-{
+    defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0.,0.,0.)) {
     // Currently, this constructor doesn't need to do anything.
 }
 //_____________________________________________________________________________
@@ -360,15 +340,13 @@ ExponentialSpringForceImpl(const ExponentialSpringParameters& params,
     const Transform& floor, const MobilizedBody& body, const Vec3& station) :
     ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
     params(params), xFloor(floor), body(body), station(station),
-    defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0., 0., 0.))
-{
+    defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0., 0., 0.)) {
 }
 //_____________________________________________________________________________
 // Clone
 Subsystem::Guts*
 ExponentialSpringForceImpl::
-cloneImpl() const
-{
+cloneImpl() const {
     return new ExponentialSpringForceImpl(params,xFloor, body, station);
 }
 //_____________________________________________________________________________
@@ -378,8 +356,7 @@ cloneImpl() const
 // Q's (i.e., quaternions need 4 Q's).
 int
 ExponentialSpringForceImpl::
-realizeSubsystemTopologyImpl(State& state) const
-{
+realizeSubsystemTopologyImpl(State& state) const {
     // Coefficients of friction: mus and muk
     // Both are treated as discrete states.  By doing so, mus and muk
     // can be changed during a simulation.
@@ -446,8 +423,7 @@ realizeSubsystemTopologyImpl(State& state) const
 // Most everything important happens in this one method.
 int
 ExponentialSpringForceImpl::
-realizeSubsystemDynamicsImpl(const State& state) const
-{
+realizeSubsystemDynamicsImpl(const State& state) const {
     // Get current accumulated forces
     const MultibodySystem& system = MultibodySystem::downcast(getSystem());
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
@@ -570,8 +546,7 @@ realizeSubsystemDynamicsImpl(const State& state) const
 // there.  This method does nothing.
 int
 ExponentialSpringForceImpl::
-realizeSubsystemAccelerationImpl(const State& state) const
-{
+realizeSubsystemAccelerationImpl(const State& state) const {
     //Real sliding = getZ(state)[indexZ];
     //Real slidingDot = -sliding / 0.01;
     //updSlidingDotInCache(state, 0.0);
@@ -579,11 +554,12 @@ realizeSubsystemAccelerationImpl(const State& state) const
 }
 //_____________________________________________________________________________
 // Calculate the potential energy stored in the spring.
+// The System should be realized through Stage::Dynamics before a call to
+// this method is made; an exception will be thrown otherwise.
 Real
 ExponentialSpringForceImpl::
 calcPotentialEnergy(const State& state) const {
     const MultibodySystem& system = MultibodySystem::downcast(getSystem());
-    system.realize(state, Stage::Dynamics);
     const ExponentialSpringData& data = getData(state);
 
     // Strain energy in the normal direction (exponential spring)
@@ -607,8 +583,7 @@ calcPotentialEnergy(const State& state) const {
 // If mus is less than mus, muk is set to mus.
 void
 ExponentialSpringForceImpl::
-setMuStatic(State& state, Real mus)
-{
+setMuStatic(State& state, Real mus) {
     if (mus < 0.0) mus = 0.0;
     if (mus > 1.0) mus = 1.0;
     Value<Real>::updDowncast(updDiscreteVariable(state, indexMus)) = mus;
@@ -624,8 +599,7 @@ setMuStatic(State& state, Real mus)
 // Get the coefficient of static friction for this spring.
 const Real&
 ExponentialSpringForceImpl::
-getMuStatic(const State& state) const
-{
+getMuStatic(const State& state) const {
     return Value<Real>::downcast(getDiscreteVariable(state, indexMus));
 }
 
@@ -639,8 +613,7 @@ getMuStatic(const State& state) const
 // If muk is greater than mus, mus is set to muk.
 void
 ExponentialSpringForceImpl::
-setMuKinetic(State& state, Real muk) const
-{
+setMuKinetic(State& state, Real muk) const {
     if (muk < 0.0) muk = 0.0;
     if (muk > 1.0) muk = 1.0;
     Value<Real>::updDowncast(updDiscreteVariable(state, indexMuk)) = muk;
@@ -655,8 +628,7 @@ setMuKinetic(State& state, Real muk) const
 // Get the coefficient of kinetic friction for this spring.
 const Real&
 ExponentialSpringForceImpl::
-getMuKinetic(const State& state) const
-{
+getMuKinetic(const State& state) const {
     return Value<Real>::downcast(getDiscreteVariable(state, indexMuk));
 }
 
@@ -699,8 +671,7 @@ resetSprZero(State& state) const {
 // The updated value should not account for the size of the damping force.
 Vec3&
 ExponentialSpringForceImpl::
-updSprZero(State& state) const
-{
+updSprZero(State& state) const {
     return Value<Vec3>::updDowncast(updDiscreteVariable(state, indexSprZero));
 }
 //_____________________________________________________________________________
@@ -710,8 +681,7 @@ updSprZero(State& state) const
 // force exerted by the spring.
 const Vec3&
 ExponentialSpringForceImpl::
-getSprZero(const State& state) const
-{
+getSprZero(const State& state) const {
     return Value<Vec3>::downcast(getDiscreteVariable(state, indexSprZero));
 }
 //_____________________________________________________________________________
@@ -720,8 +690,7 @@ getSprZero(const State& state) const
 // Use this method.
 void
 ExponentialSpringForceImpl::
-updSprZeroInCache(const State& state, const Vec3& setpoint) const
-{
+updSprZeroInCache(const State& state, const Vec3& setpoint) const {
     Value<Vec3>::updDowncast(updDiscreteVarUpdateValue(state, indexSprZero)) = setpoint;
 }
 //_____________________________________________________________________________
@@ -731,8 +700,7 @@ updSprZeroInCache(const State& state, const Vec3& setpoint) const
 // force exerted by the spring.
 Vec3
 ExponentialSpringForceImpl::
-getSprZeroInCache(const State& state) const
-{
+getSprZeroInCache(const State& state) const {
     return Value<Vec3>::downcast(getDiscreteVarUpdateValue(state, indexSprZero));
 }
 //_____________________________________________________________________________
@@ -747,8 +715,7 @@ getSprZeroInCache(const State& state) const
 // in case I want a reminder of how cache access works.
 void
 ExponentialSpringForceImpl::
-realizeSprZeroCache(const State& state) const
-{
+realizeSprZeroCache(const State& state) const {
     if (isCacheValueRealized(state, indexSprZeroInCache)) return;
     Vec3 sprZero = getSprZero(state);
     Real time = state.getTime();
@@ -763,8 +730,7 @@ realizeSprZeroCache(const State& state) const
 // Updating the value of SlidingDot in the Cache will not invalidate the State.
 void
 ExponentialSpringForceImpl::
-updSlidingDotInCache(const State& state, Real slidingDot) const
-{
+updSlidingDotInCache(const State& state, Real slidingDot) const {
     updZDot(state)[indexZ] = slidingDot;
 }
 //_____________________________________________________________________________
@@ -772,8 +738,7 @@ updSlidingDotInCache(const State& state, Real slidingDot) const
 // SlidingDot is the time derivative of the Sliding state variable.
 const Real
 ExponentialSpringForceImpl::
-getSlidingDotInCache(const State& state) const
-{
+getSlidingDotInCache(const State& state) const {
     return getZDot(state)[indexZ];
 }
 
@@ -784,16 +749,14 @@ getSlidingDotInCache(const State& state) const
 // Retrieve a writable reference to the spring data contained in the Cache.
 ExponentialSpringData&
 ExponentialSpringForceImpl::
-updData(const State& state) const
-{
+updData(const State& state) const {
     return Value<ExponentialSpringData>::updDowncast(updCacheEntry(state, indexData));
 }
 //_____________________________________________________________________________
 // Retrieve a const reference to the spring data contained in the Cache.
 const ExponentialSpringData&
 ExponentialSpringForceImpl::
-getData(const State& state) const
-{
+getData(const State& state) const {
     return Value<ExponentialSpringData>::downcast(getCacheEntry(state, indexData));
 }
 
@@ -805,8 +768,7 @@ getData(const State& state) const
 // Update the parameters for this exponential spring.
 void
 ExponentialSpringForceImpl::
-setParameters(const ExponentialSpringParameters& params)
-{
+setParameters(const ExponentialSpringParameters& params) {
     this->params = params;
     invalidateSubsystemTopologyCache();
 }
@@ -814,8 +776,7 @@ setParameters(const ExponentialSpringParameters& params)
 // Get the parameters for this exponential spring.
 const ExponentialSpringParameters&
 ExponentialSpringForceImpl::
-getParameters() const
-{
+getParameters() const {
     return params;
 }
 
@@ -876,8 +837,7 @@ ClampAboveZero(Real value, Real max) {
 // Constructor for default spring parameters.
 ExponentialSpringForce::
 ExponentialSpringForce(MultibodySystem& system,
-    const Transform& floor, const MobilizedBody& body,const Vec3& station)
-{
+    const Transform& floor, const MobilizedBody& body,const Vec3& station) {
     adoptSubsystemGuts(new ExponentialSpringForceImpl(floor, body, station));
     system.addForceSubsystem(*this);
 }
@@ -886,8 +846,7 @@ ExponentialSpringForce(MultibodySystem& system,
 ExponentialSpringForce::
 ExponentialSpringForce(MultibodySystem& system,
     const ExponentialSpringParameters& params,
-    const Transform& floor, const MobilizedBody& body, const Vec3& station)
-{
+    const Transform& floor, const MobilizedBody& body, const Vec3& station) {
     adoptSubsystemGuts(new ExponentialSpringForceImpl(params,floor, body, station));
     system.addForceSubsystem(*this);
 }
@@ -904,8 +863,7 @@ ExponentialSpringForce(MultibodySystem& system,
 // @see ExponentialSpringParameters for the list of parameters.
 void
 ExponentialSpringForce::
-setParameters(const ExponentialSpringParameters& params)
-{
+setParameters(const ExponentialSpringParameters& params) {
     updImpl().setParameters(params);
 }
 //_____________________________________________________________________________
@@ -913,8 +871,7 @@ setParameters(const ExponentialSpringParameters& params)
 // @see ExponentialSpringParameters for the list of parameters.
 const ExponentialSpringParameters&
 ExponentialSpringForce::
-getParameters() const
-{
+getParameters() const {
     return getImpl().getParameters();
 }
 
@@ -922,16 +879,14 @@ getParameters() const
 // Set the static coefficient of fricition
 void
 ExponentialSpringForce::
-setMuStatic(State& state, const Real& mus)
-{
+setMuStatic(State& state, const Real& mus) {
     updImpl().setMuStatic(state, mus);
 }
 //_____________________________________________________________________________
 // Get the static coefficient of fricition
 const Real&
 ExponentialSpringForce::
-getMuStatic(const State& state) const
-{
+getMuStatic(const State& state) const {
     return getImpl().getMuStatic(state);
 }
 
@@ -939,16 +894,14 @@ getMuStatic(const State& state) const
 // Set the kinetic coefficient of fricition
 void
 ExponentialSpringForce::
-setMuKinetic(State& state, const Real& muk)
-{
+setMuKinetic(State& state, const Real& muk) {
     updImpl().setMuKinetic(state, muk);
 }
 //_____________________________________________________________________________
 // Get the kinetic coefficient of fricition
 const Real&
 ExponentialSpringForce::
-getMuKinetic(const State& state) const
-{
+getMuKinetic(const State& state) const {
     return getImpl().getMuKinetic(state);
 }
 
@@ -959,37 +912,17 @@ getMuKinetic(const State& state) const
 // process, the System is realized through the Position Stage.
 void
 ExponentialSpringForce::
-resetSprZero(State& state) const
-{
+resetSprZero(State& state) const {
     getImpl().resetSprZero(state);
 }
 
 //_____________________________________________________________________________
-// If necessary perform the calculations to fill the data cache, and then
-// return a const reference to the calculated data.  A call to this
-// method can be costly if the System has not already been realized through
-// the Dynamics Stage.
+// Retrieve access to a const reference to the data cache.  The System
+// should be realized through Stage::Dynamics before a call to this method;
+// an exception will be thrown otherwise.
 const ExponentialSpringData&
 ExponentialSpringForce::
-calcData(const State& state) const
-{
-    const MultibodySystem& system = MultibodySystem::downcast(getSystem());
-
-    // Realize through to the Dynamics Stage
-    // If the system has already been realized through the Dynamics Stage,
-    // there is practically no cost.
-    system.realize(state, Stage::Dynamics);
-
-    return getImpl().getData(state);
-}
-//_____________________________________________________________________________
-// Get access to the data cache.  Use this method if the data cache is
-// expected to be valid (e.g., at the end of a successful integration step).
-// An exception will be thrown if the cache entry is invalid.
-const ExponentialSpringData&
-ExponentialSpringForce::
-getData(const State& state) const
-{
+getData(const State& state) const {
     return getImpl().getData(state);
 }
 
@@ -998,8 +931,7 @@ getData(const State& state) const
 // to be made to underlying parameters and states.
 ExponentialSpringForceImpl&
 ExponentialSpringForce::
-updImpl()
-{
+updImpl() {
     return dynamic_cast<ExponentialSpringForceImpl&>(updRep());
 }
 //_____________________________________________________________________________
@@ -1007,8 +939,7 @@ updImpl()
 // access (but not change) to underlying parameters and states.
 const ExponentialSpringForceImpl&
 ExponentialSpringForce::
-getImpl() const
-{
+getImpl() const {
     return dynamic_cast<const ExponentialSpringForceImpl&>(getRep());
 }
 
