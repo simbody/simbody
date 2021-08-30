@@ -24,22 +24,22 @@
 namespace SimTK {
 
 //=============================================================================
-/** Class ExponentialSpringParameters manages the parameters used to specify the
-characteristics of an ExponentialSpringForce instance.  Changing a parameter
-will invalidate the system at %Stage::Topology, although the invalidation
-will not occur until the parameters are set on an actual instance of
-%ExponentialSpringForce.
+/** Class ExponentialSpringParameters manages the parameters used to specify
+the characteristics of an ExponentialSpringForce instance.  Changing a
+parameter will invalidate the system at Stage::Topology, although the
+invalidation will not occur until the parameters are set on an actual
+instance of ExponentialSpringForce.
 
 The force in the normal direction is computed using an exponential:
 
        fNormal = d1 * exp(-d2*(py-d0)) * (1.0 - kvNorm)
 
 where py is the distance of the spring point on the Body above the plane
-of the floor expressied in the floor frame.
+of the floor expressied in the frame of the contact plane.
 
 The friction force is modeled using a linear spring with damping:
 
-       fFric = -kpFric*(pxz-p0) - kvFric*v,
+       fFric = -kpFric*(pxz-p0) - kvFric*vxz,
 
 where pxz is the position of the spring on the Body projected onto the plane
 of the floor and expressed in the floor frame, and p0 is the spring zero
@@ -205,18 +205,18 @@ ExponentialSpringForceImpl Subsystem. All of its member variables are
 guarranteed to be calculated and set once the System has been realized
 to the Dynamics Stage.
 
-To understand what the quantities managed by this class represent, a basic
+To understand what the quantities organized by this class represent, a basic
 description of the contact problem that is solved, along with a description
-of coordinate frame conventions, is needed.
+of coordinate frame conventions, will be helpful.
 
-Class ExponentialSpringForce computes and applies a contact force that
-occurs at a specified point on a MoblizedBody (i.e., a Station) due to
-interaction of that point with a specified contact plane. That plane is
-typically used to model interactions with a floor, but need not be limited
-to this use case. The contact plane can be rotated and displaced relative to
-the ground frame and so can be used to model a wall or ramp, for example.
+Class ExponentialSpringForce computes and applies a contact force at a
+specified point on a MoblizedBody (i.e., a Station) due to interaction of
+that point with a specified contact plane. That plane is typically used to
+model interactions with a floor, but need not be limited to this use case.
+The contact plane can be rotated and displaced relative to the ground frame
+and so can be used to model a wall or ramp, for example.
 
-Contact force computations are carried out in the frame of the contact plane.
+%Contact force computations are carried out in the frame of the contact plane.
 The positive y-axis of the contact frame defines the normal of the
 contact plane. The positive y-axis is the axis along which a repelling
 normal force (modeled using an exponential) is applied. The x-axis and
@@ -229,8 +229,8 @@ variables with a "xz" suffix (e.g., pxz, vxz, or fxz) indicate that
 these quanties lie in the contact plane (tangent to it) and are
 associated with the friction force.
 
-Member variables without a "_G" suffix are expressed in frame of the contact
-plane. Member variables with a "_G" suffix are expressed in the ground frame. 
+Member variables with a "_G" suffix are expressed in the ground frame. Member
+variables without a "_G" suffix are expressed in frame of the contact plane. 
 
 Note- It is recognized that a class whose member variables are public does
 not generally conform to good coding practices. In the case of this class,
@@ -264,26 +264,28 @@ public:
     /** Velocity of the body spring station in the ground frame. */
     Vec3 v_G;
 
-    /** Position of the body spring station expressed in the floor frame. */
+    /** Position of the body spring station expressed in the frame of the
+    contact plane. */
     Vec3 p;
 
-    /** Velocity of the body spring station expressed in the floor frame. */
+    /** Velocity of the body spring station expressed in the frame of the
+    contact plane. */
     Vec3 v;
 
     /** Displacment of the body spring station normal to the floor expressed
-    in the floor frame. */
+    in the frame of the contact plane. */
     Real py;
 
     /** Velocity of the body spring station normal to the floor expressed
-    in the floor frame. */
+    in the frame of the contact plane. */
     Real vy;
 
     /** Position of the body spring station projected onto the floor expressed
-    in the floor frame. */
+    in the frame of the contact plane. */
     Vec3 pxz;
 
     /** Velocity of the body spring station in the plane of the floor
-    expressed in the floor frame. */
+    expressed in the frame of the contact plane. */
     Vec3 vxz;
 
     /** Position of the body spring station projected onto the floor expressed
@@ -291,13 +293,15 @@ public:
     force, but is likely desired for vizualization. */
     Vec3 pxz_G;
 
-    /** Elastic force in the normal direction expressed in the floor frame. */
+    /** Elastic force in the normal direction expressed in the frame of the
+    contact plane. */
     Real fyElas;
 
-    /** Damping force in the normal direction expressed in the floor frame. */
+    /** Damping force in the normal direction expressed in the frame of the
+    contact plane. */
     Real fyDamp;
 
-    /** Total normal force expressed in the floor frame. */
+    /** Total normal force expressed in the frame of the contact plane. */
     Real fy;
 
     /** Instantaneous coefficient of friction. */
@@ -306,13 +310,14 @@ public:
     /** Limit of the frictional force. */
     Real fxyLimit;
 
-    /** Elastic frictional force expressed in the floor frame. */
+    /** Elastic frictional force expressed in the frame of the contact plane. */
     Vec3 fricElas;
 
-    /** Damping frictional force expressed in the floor frame. */
+    /** Damping frictional force expressed in the frame of the contact plane. */
     Vec3 fricDamp;
 
-    /** Total frictional force (elastic + damping) expressed in the floor frame. */
+    /** Total frictional force (elastic + damping) expressed in the frame of
+    the contact plane. */
     Vec3 fric;
 
     /** Magnitude of the frictional force. */
@@ -329,14 +334,17 @@ public:
 
 
 //=============================================================================
-/** Class ExponentialSpringForce implements an exponential spring as a means of
-modeling contact of a body with a floor.  At present, the floor is modeled
-simply as a horizontal plane.  In practice, a number of body-fixed points
-('Stations' in Simbody vocabulary) are strategically chosen across the
-surface of the body so as to represent the geometry of that body reasonably
-well, and an exponential spring force is applied at each of those points.
-For example, if the body were a cube, one would likely choose to place a
-spring at each corner of the cube.
+/** Class ExponentialSpringForce implements an 'exponential spring' as a means
+of modeling contact of a point on a MobilizedBody with a contact plane. In
+practice, a number of body-fixed points ('Stations' in Simbody vocabulary) are
+strategically chosen across the surface of the MobilizedBody so as to represent
+the geometry of that body reasonably well, and an ExponentialSpringForce is
+created for each of those points.  For example, if the body were a cube, one
+would likely choose to place an exponential spring at each corner of the cube.
+The contact plane is typically used to model interactions with a floor, but
+need not be limited to this use case. The contact plane can be rotated and
+displaced relative to the ground frame and so can be used to model a wall or
+ramp, for example.
 
 A distinguishing feature of the exponential spring, relative to other
 contact models, is that it ALWAYS applies a force to the body; there is
@@ -344,9 +352,11 @@ never a time in a simulation when the spring force is not applied.  This
 seemingly non-physical feature works because the force becomes small
 (less than 0.01 N) as soon as the body station is more than 1.0 cm above
 the ground and extremely small (less than 0.000001 N) as soon as the body
-station is more than 2.0 cm above the ground.  The sizes of these forces
-is well below the accuracy with which the acceleration due to gravity
-(e.g., g = (0.,-9.8,0.)) is typically specified in a simulation.
+station is more than 2.0 cm above the ground. The sizes of these forces is
+below the precision with which the acceleration due to gravity
+(e.g., g = (0.,-9.8,0.)) is typically specified in a simulation. The sizes
+of these is also small compared to the errors made in neglecting air
+resistance or to errors made in the estimation of inertial properties.
 
 An advantage of this distinguishing feature is that there is no need to
 search for intersections (the number active of springs does not change
@@ -365,73 +375,89 @@ fundamental forces; it is only suggested that the use of a force field
 that acts over a great distance is not that far fetched as long as the
 force gets sufficiently small sufficiently quickly.
 
-Normal Force \n
+----------------------------------
+Computations and Coordinate Frames
+----------------------------------
+%Contact force computations are carried out in the frame of the contact plane.
+The positive y-axis of the contact plane defines its normal. The positive
+y-axis is the axis along which the repelling normal force (modeled using an
+exponential) is applied. The x-axis and z-axis of the contact plane together
+define the tangent plane. Friction forces will always lie in x-z plane.
+
+In the equations below, a variable with a "y" suffix (e.g., py or vy) refers
+to a quantity that is normal to the contact plane. A variables with an "xz"
+suffix refers to a quantity that lies in the contact plane.
+
+Normal %Force (positive y-axis) \n
 The elastic part of the normal force is computed using an exponential
 whose shape is a function of three parameters (d0, d1, and d2):
 
-   fElastic = d1 * exp(d2 * (py - d0))
+        fyElastic = d1 * exp(d2 * (py - d0)),
 
-where py is the height above the floor plane of the specified Station
-on the Body. The default values for the parameters are
+where py is the height above the contact plane of the specified Station
+on the MobilizedBody. The damping part is linear in velocity and scaled by the
+elastic part:
 
-       d0 = 0.0065905
-       d1 = 0.5336
-       d2 = -1150.0
+        fyDamping = - kv*vy * fElastic,
 
-The damping part is linear in velocity and scaled by the elastic part:
+where vy is the normal component of the velocity of the specified Station.
+All together, the spring force in the normal direction is given by
 
-       fDamping = - kv*vy * fElastic,
+        fy  = fElastic + fDamping
+            = d1*exp(d2*(py-d0)) - kv*vy * d1*exp(d2*(py-d0))
 
-where kv = 0.5 by default and vy is the component of the velocity of the
-Body Station in the normal direction relative to the floor plane.
+Friction %Force (x-z plane) \n
+Friction force (type Vec3) is implemented using a damped linear spring.
+The elastic and viscous terms are given by
 
-So, all together, the spring force in the normal direction is given by
+        fxyElas = -kp*(pxy-p0)
 
-       fNormal    = fElastic + fDamping
-               = d1*exp(d2*(py-d0)) - kv*vy*d1*exp(d2*(py-d0))
+        fxyDamp = -kv*(vxy)
 
-Friction \n
-Friction is implemented using a simple linear, damped spring.
+and the total friction force is given by
 
-       friction = -kp*(p-p0) - kv*(v)
+        friction = fxyElas + fxyDamp
 
-where kp is the elasticity, kv is the viscosity, p is the position of the
-spring Station on the Body projected onto the plane of the floor, p0 is the
-spring zero in the plane of the floor, and v is the velocity of the spring
-Station projected onto the floor.  p, p0, and v are all expressed in the
-frame of the floor.
+where kp is the spring elasticity, kv is the spring viscosity, pxy is the
+position of the spring Station projected onto the contact plane, p0 is the
+current spring zero, which always resides in the contact plane, and vxy is
+the velocity of the Station in the contact plane.
 
 By default, the frictional parameters kp and kv are chosen to result in
 critical damping for a specified mass:
 
-       kv = 2.0 * sqrt(kp*mass)
+        kv = 2.0 * sqrt(kp*mass)
 
 Valid values of kp can range widely (e.g., kp = 1,000 to kp = 1,000,000)
-depending on the material properties of the Body and Floor.  In general, the
-higher kp and kv, the smaller the integration step size will need to be
-in order to produce an accurate integration.
+depending on the material properties of the MobilizedBody and the contact
+plane. In addition to being set by the above equation for critical damping,
+kv can be set to 0.0 or to some other independent quantity. In general, the
+higher kp and kv, the smaller the integration step size will need to be in
+order to produce an accurate integration.
 
-When the frictional force is greater than its allowed limit, the frictional
-force is capped at this limit:
+A Moving Spring Zero\n
+When the computed frictional force exceeds the allowed limit, it is capped at
+the limit (fxyLimit):
 
-       fLimit = mu*fNormal
-       if(friction.norm() > fLimit) {
-           friction = fLimit * friction.normalize()
+       fxyLimit = mu*fy
+       if(friction.norm() > fxyLimit) {
+           friction = fxyLimit * friction.normalize()
        }    
 
-where mu is the instantaneous coefficient of friction.
+where mu is the instantaneous coefficient of friction (more below).
 
-In addition, if the magnitude of the elastic part of the frictional
-force by itself exceeds fLimit, a new spring zero (p0) is found such
-that the magnitude of the elastic part is equal to fLimit:
+If the magnitude of the elastic part of the friction force by itself exceeds
+fxyLimit, a new spring zero (p0) is found such that the magnitude of the
+elastic part would be equal to fxyLimit:
 
-       if( (kp*(p-p0)).norm() > fLimit)  p0New = p + (p-p0)/kp
+       if(fxyElas.norm() > fxyLimit)  p0New = pxy + (pxy-p0)/kp
 
 In Simbody, p0 is handled as an Auto Update Discrete State.  Any change
 to p0 is made to the Update Cache (not to the State directly), and the
 integrator swaps this cache value with the actual p0 State after a
 successful integration step is obtained.
 
+Coefficients of Friction \n
 Coefficients of kinetic (sliding) and static (fixed) friction can be
 specified for the spring subject to the following constraints:
 
@@ -440,75 +466,71 @@ specified for the spring subject to the following constraints:
 A continuous state variable (Z = Sliding) is used to characterize the
 sliding state of the spring.
 
-        Sliding = 0        means fully fixed in place (lower bound)
-        Sliding = 1        means fully sliding (upper bound)
+        Sliding = 0     means fully fixed in place (lower bound)
+        Sliding = 1     means fully sliding (upper bound)
 
 The instantaneous coefficient of friction (mu) is calculated based on the
 value of Sliding:
 
-       mu = mus - Sliding*(mus - muk)
+        mu = mus - Sliding*(mus - muk)
 
 The time derivative of Sliding is used to drive Sliding toward the
 extreme of 0.0 or 1.0, depending on the following criteria...
 
 When the frictional force exceeds its limit, Sliding is driven toward 1:
 
-        if (friction.norm() >= fLimit)  SlidingDot = (1.0 - Sliding)/T
+        if (friction.norm() >= fxyLimit)  SlidingDot = (1.0 - Sliding)/tau
 
-When the velocity of p falls below some specified velocity (e.g., 0.01 m/s)
-AND the frictional force is less than its limit, Sliding is driven toward 0:
+When vxy falls below some specified magnitude (e.g., 0.01 m/s) AND the
+frictional force is less than its limit, Sliding is driven toward 0:
 
-        else if (v.norm < 0.01)  SlidingDot = -Sliding/T
+        else if (vxy.norm < 0.01)  SlidingDot = -Sliding/tau
 
-Otherwise, no change to the Sliding state is made at all:
+Otherwise, no change to the Sliding state is made:
 
         else  SlidingDot = 0.0
 
-In the above equations, T is the characteristic rate at which the Sliding
-rises or decays (e.g., T = 0.01 sec).
-
-The motivation for using a continuous state variable for Sliding is that,
-although the transition between fixed and sliding may happen quickly,
-it does not happen instantaneously.  And, modeling Sliding based on a
+In the above equations, tau is the characteristic rate at which the Sliding
+rises or decays. The motivation for using a continuous state variable for
+Sliding is that, although the transition between fixed and sliding may happen
+quickly, it does not happen instantaneously.  And, modeling Sliding based on a
 differential equation ensures that mu is continuous.
 
-A future enhancement might include the capacity to model the ground
-or floor with a polygonal mesh, as opposed to an infinite plane.
+Future Enhancements \n
+Future enhancements might include the capacity to
+1) use a polygonal mesh as the contact plane, and
+2) move the specified MobilizedBody Station in manner that adapts to the 
+contact circumstances. For example, to model a coin rolling on a table
+a small number of stations could be continually moved to the portion of the
+coin that is closest to the table.
 
-------------------------------------------------------------------
-PARAMETERS
-------------------------------------------------------------------
-Parameters specifying the characteristics of the exponential
-spring are handled using %ExponentialSpringParameters.
-
-@see ExponentialSpringParameters.
-
-Whenever the paramters are set, the system is invalated at
-the %Stage::Topology.
-
-------------------------------------------------------------------
+------
 STATES
-------------------------------------------------------------------
-DISCRETE STATES (Changeable during simulation)\n
-mus:    static coefficient of friction.
-       (0.0 <= mus <= 1.0; default = 0.7)
-muk:    kinetic coefficient of friction.
-       (0.0 <= muk <= mus; default = 0.5)
-Station:    %Station on the Body expressed in the Body frame at which the
-            spring force is applied.  (@todo make station a state)
+------
+DISCRETE STATES\n
+@param mus static coefficient of friction.  0.0 <= mus <= 1.0
+@param muk kinetic coefficient of friction.  0.0 <= muk <= mus
+@param station Point on the MobilizedBody expressed in the body frame.
 
 AUTO UPDATE DISCRETE STATE\n
-(Computed and put in cache during %System::realize(). Swapped to the actual
-state after a successful integration step.)
-p0:    zero of the frictional spring.
-       Calling resetSprZero() will set p0 equal to Station and then
-       project p0 on to the floor. To project on to the fllor, the
-       y component is simpmly set to zero (p0[1] = 0.0).
+@param p0 Zero of the frictional spring.
 
-CONTINUOUS STATE (Governed by differential equation. Evolved by integrator.)\n
-Sliding:    characterizes whether the spring zero is sliding (1.0) or fixed in
-            place (0.0). This state is used for transitioning back and forth
-            between mus and muk. */
+CONTINUOUS STATE\n
+@param Sliding Characterizes whether the spring zero is sliding (1.0) or fixed
+in place (0.0). This state is used for transitioning back and forth between
+mus and muk.
+
+----------
+PARAMETERS
+----------
+Parameters specifying the characteristics of the exponential spring are
+handled using ExponentialSpringParameters.
+
+----
+DATA
+----
+Calculated quantities are cached during the Dynamics Stage.  The cached
+data is made accessible by the helper class ExponentialSpringData. */
 class SimTK_SIMBODY_EXPORT ExponentialSpringForce : public ForceSubsystem {
 public:
     ExponentialSpringForce(MultibodySystem& system,
