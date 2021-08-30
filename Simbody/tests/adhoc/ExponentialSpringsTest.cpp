@@ -1,3 +1,21 @@
+/*-----------------------------------------------------------------------------
+                               Simbody(tm)
+-------------------------------------------------------------------------------
+ Copyright (c) 2021 Authors.
+ Authors: Frank C. Anderson
+ Contributors:
+
+ Licensed under the Apache License, Version 2.0 (the "License"); you may
+ not use this file except in compliance with the License. You may obtain a
+ copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ ------------------------------------------------------------------------------*/
+
 // TestExponentialSprings.cpp
 // Authors: Frank C. Anderson
 // This file contains the main() function. Program execution begins and ends there.
@@ -34,12 +52,11 @@ private:
 };
 
 
-/*=============================================================================
-* This class impmlements an event reported that identifies the highest
-* position reached by a body.  If energy is conserved, which should
-* be the case if there are no damping components of the contact force,
-* then the height should be constant across multiple bounces.
-*/
+//=============================================================================
+/** This class impmlements an event reported that identifies the highest
+position reached by a body.  If energy is conserved, which should
+be the case if there are no damping components of the contact force,
+then the height should be constant across multiple bounces. */
 class MaxHeightReporter : public TriggeredEventReporter {
 public:
     MaxHeightReporter(const MultibodySystem& system, const MobilizedBody& body)
@@ -63,6 +80,24 @@ private:
     const MobilizedBody& body;
 };
 
+//=============================================================================
+/** This class impmlements an event reported that access the force exerted
+by an ExponentialSpringForce at regular intervals. */
+class ExpSprForceReporter : public PeriodicEventReporter {
+public:
+    ExpSprForceReporter(const MultibodySystem& system,
+        const ExponentialSpringForce& spr, Real reportInterval)
+        : PeriodicEventReporter(reportInterval), system(system), spr(spr) {
+    }
+    void handleEvent(const State& state) const override {
+        system.realize(state, Stage::Dynamics);
+        const ExponentialSpringData& data = spr.getData(state);
+        cout << state.getTime() << "\tf_G = " << data.f_G << endl;
+    }
+private:
+    const MultibodySystem& system;
+    const ExponentialSpringForce& spr;
+};
 
 
 //=============================================================================
@@ -83,7 +118,7 @@ int main() {
         bool VisOn = true;
 
         // Specify initial conditions.
-        int condition = 5;
+        int condition = 2;
         // 0 = sitting still
         // 1 = dropped
         // 2 = sliding
@@ -167,14 +202,22 @@ int main() {
             // Add Exponential Springs
             ExponentialSpringParameters params;
             //params.setElasticityAndComputeViscosity(100000.0);
-            spr1 = new ExponentialSpringForce(system, params, floorXForm, *blockExp, Vec3(0.1, -0.1, 0.1));
-            spr2 = new ExponentialSpringForce(system, params, floorXForm, *blockExp, Vec3(0.1, -0.1, -0.1));
-            spr3 = new ExponentialSpringForce(system, params, floorXForm, *blockExp, Vec3(-0.1, -0.1, 0.1));
-            spr4 = new ExponentialSpringForce(system, params, floorXForm, *blockExp, Vec3(-0.1, -0.1, -0.1));
-            spr5 = new ExponentialSpringForce(system, params, floorXForm, *blockExp, Vec3(0.1, 0.1, 0.1));
-            spr6 = new ExponentialSpringForce(system, params, floorXForm, *blockExp, Vec3(0.1, 0.1, -0.1));
-            spr7 = new ExponentialSpringForce(system, params, floorXForm, *blockExp, Vec3(-0.1, 0.1, 0.1));
-            spr8 = new ExponentialSpringForce(system, params, floorXForm, *blockExp, Vec3(-0.1, 0.1, -0.1));
+            spr1 = new ExponentialSpringForce(system, params, floorXForm,
+                *blockExp, Vec3(0.1, -0.1, 0.1));
+            spr2 = new ExponentialSpringForce(system, params, floorXForm,
+                *blockExp, Vec3(0.1, -0.1, -0.1));
+            spr3 = new ExponentialSpringForce(system, params, floorXForm,
+                *blockExp, Vec3(-0.1, -0.1, 0.1));
+            spr4 = new ExponentialSpringForce(system, params, floorXForm,
+                *blockExp, Vec3(-0.1, -0.1, -0.1));
+            spr5 = new ExponentialSpringForce(system, params, floorXForm,
+                *blockExp, Vec3(0.1, 0.1, 0.1));
+            spr6 = new ExponentialSpringForce(system, params, floorXForm,
+                *blockExp, Vec3(0.1, 0.1, -0.1));
+            spr7 = new ExponentialSpringForce(system, params, floorXForm,
+                *blockExp, Vec3(-0.1, 0.1, 0.1));
+            spr8 = new ExponentialSpringForce(system, params, floorXForm,
+                *blockExp, Vec3(-0.1, 0.1, -0.1));
         }
 
         // Add reporting and visualization
@@ -194,7 +237,10 @@ int main() {
 
             system.addEventReporter(new MyReporter(system, 1./120.));
             system.addEventReporter(new Visualizer::Reporter(*viz, 1./120.));
-            if(blockExp!=NULL) system.addEventReporter(new MaxHeightReporter(system, *blockExp));
+            if(blockExp!=NULL)
+                //system.addEventReporter(new MaxHeightReporter(system, *blockExp));
+            if (spr1 != NULL)
+                system.addEventReporter(new ExpSprForceReporter(system, *spr3, 0.1));
         }
 
         // Initialize the system and state.
