@@ -58,302 +58,272 @@ See ExponentialSpringForce for details on these states.
 @see ExponentialSpringForce */
 class SimTK_SIMBODY_EXPORT ExponentialSpringParameters {
 protected:
-    /// <summary>
-    /// d0 shifts the exponential function up and down with respect to
-    /// the floor plane.Its default value is 0.0065905 (~7 mm above the floor
-    /// plane). This slight upward shift prevents significant penetration
-    /// into the floor plane.  d0 can have a value of 0.0.
-    /// </summary>
+    /** d0 shifts the exponential function up and down with respect to
+    the floor plane.Its default value is 0.0065905 (~7 mm above the floor
+    plane). This slight upward shift prevents significant penetration
+    into the floor plane.  d0 can have a value of 0.0. */
     Real d0;
 
-    /// <summary>
-    /// d1 linearly scales the applied force up or down. Its default value is 0.5336.
-    /// </summary>
+    /** d1 linearly scales the applied force up or down. Its default value
+    is 0.5336. */
     Real d1;
 
-    /// <summary>
-    /// d2 multiplies the exponent.  Its default value is 1150.0. Larger values
-    /// of d2 makes the exponential curve rise more rapidly.
-    /// </summary>
+    /** d2 multiplies the exponent.  Its default value is 1150.0. Larger values
+    of d2 makes the exponential curve rise more rapidly. */
     Real d2;
 
-    /// <summary>
-    /// kvNorm is the viscosity of the spring in the normal direction. Its default
-    /// value is 0.5. kvNorm can have a value of 0.0.
-    /// </summary>
+    /** kvNorm is the viscosity of the spring in the normal direction. Its
+    default value is 0.5. kvNorm can have a value of 0.0. */
     Real kvNorm;
 
-    /// <summary>
-    /// kpFric is the elasticity of the friction spring. Its default value is 2000.
-    /// </summary>
+    /** kpFric is the elasticity of the friction spring. Its default value
+    is 2000. */
     Real kpFric;
 
-    /// <summary>
-    /// kvFric is the viscosity of the friction spring. By default, its value is
-    /// set relative to kpFric so that critical damping would occur for a specified
-    /// mass (i.e., kvFric = 2 * sqrt(kpFric * mass)).  kvFric can be 0.0.
-    /// </summary>
+    /** kvFric is the viscosity of the friction spring. By default, its value
+    is set relative to kpFric so that critical damping would occur for a
+    specified mass (i.e., kvFric = 2 * sqrt(kpFric * mass)).
+    kvFric can be 0.0. */
     Real kvFric;
 
-    /// <summary>
-    /// kTau is equal to 1.0/tau. tau is the characteristic time to transition
-    /// between the static and kinetic coefficents of friction.  The user sets tau.
-    /// kTau is maintained as the member variable to avoid the cost of
-    /// frequently dividing by tau.  The default value of tau is 0.01 seconds.
-    /// @see setSlidingTimeConstant()
-    /// </summary>
+    /** kTau is equal to 1.0/tau. tau is the characteristic time to transition
+    between the static and kinetic coefficents of friction. The user sets tau.
+    kTau is maintained as the member variable to avoid the cost of
+    frequently dividing by tau.  The default value of tau is 0.01 seconds.
+    @see setSlidingTimeConstant() */
     Real kTau;
 
-    /// <summary>
-    /// vSettle is the velocity of pxz below which the friction spring transitions
-    /// to using the static coefficient of friction. Its default value is 0.01 m/s.
-    /// </summary>
+    /** vSettle is the velocity of pxz below which the friction spring
+    transitions to using the static coefficient of friction. Its default value
+    is 0.01 m/s. */
     Real vSettle;
 
 public:
-    // Constructors and operators
-    /// Default Constructor
+    /** Default Constructor */
     ExponentialSpringParameters();
 
-    /// <summary>
-    ///  Copy constructor.
-    /// </summary>
-    /// <param name="params"> Reference to the object to be copied. </param>
+    /** Copy constructor.
+    @param params Const reference to the object to be copied. */
     ExponentialSpringParameters(const ExponentialSpringParameters& params);
 
-    /// <summary>
-    /// Assignment operator.
-    /// </summary>
+    /** Assignment operator.
+    @param params Const reference to the object to which this instance should
+    be assigned. */
     ExponentialSpringParameters& operator =
         (const ExponentialSpringParameters& params);
 
-    /// <summary>
-    /// Set the parameters conrolling the shape of the exponential.
-    /// </summary>
-    /// <param name="d0">
-    /// shifts the exponential function up and down with respect to the floor
-    /// plane. Its default value is 0.0065905 (~7 mm above the floor plane). 
-    /// This slight upward shift prevents significant penetration into the floor.
-    /// </param>
-    /// <param name="d1">
-    /// linearly scales the applied force up or down. Its default value is 0.5336.
-    /// </param>
-    /// <param name="d2">
-    /// multiplies the exponent. Its default value is 1150.0. Larger values of
-    /// d2 make the exponential curve rise more rapidly as py gets less than d0.
-    /// </param>
+    /** Set the parameters conrolling the shape of the exponential.
+    @param d0 shifts the exponential function up and down with respect to
+    the floor plane. Its default value is 0.0065905 (~7 mm above the floor). 
+    This slight upward shift eliminates significant penetration into the floor.
+    @param d1 linearly scales the applied force up or down. Its default
+    value is 0.5336.
+    @param d2 multiplies the exponent. Its default value is 1150.0. Larger
+    values of d2 make the exponential curve rise more rapidly as py gets less
+    than d0. */
     void setShapeParameters(Real d0, Real d1 = 0.5336, Real d2 = 1150.0);
 
-    /// <summary>
-    /// Get the paramters that control the shape of the exponential.
-    /// </summary>
+    /** Get the paramters that control the shape of the exponential.
+    @see setShapeParameters() */
     void getShapeParameters(Real& d0, Real& d1, Real& d2) const;
 
-    /// <summary>
-    /// Set the viscosity of the exponential part of the spring.  This viscosity
-    /// only applies to the component of the velocity of the body spring point
-    /// that is normal to the floor plane.
-    /// </summary>
-    /// <param name="kvNorm">
-    /// Viscosity of the spring in the normal direction. Its default value is 0.5.
-    /// </param>
-
+    /** Set the viscosity of the exponential part of the spring. This viscosity
+    only applies to the component of the velocity of the body spring point
+    that is normal to the floor plane.
+    @param kvNorm Viscosity of the spring in the normal direction. Its default
+    value is 0.5. */
     void setNormalViscosity(Real& kvNorm);
-    /// <summary>
-    /// Get the viscosity of the exponential part of the spring.
-    /// </summary>
-    /// <returns>viscosity in the normal direction</returns>
+
+    /** Get the viscosity of the exponential part of the spring.
+    @returns Spring viscosity in the normal direction */
     Real getNormalViscosity() const;
 
-    /// <summary>
-    /// Set the elasticity of the friction spring and compute and set a viscosity
-    /// that will result in critical damping for the specified mass
-    /// (i.e., kv = 2*sqrt(kp*mass)), which is done by default.
-    /// Friction forces lie in the plane tangent to the floor.
-    /// </summary>
-    /// <param name="kp">Elasticity of the friction spring.</param>
-    /// <param name="mass">
-    /// Mass of the body for which critical damping would be achieved.  Articulated
-    /// bodies effectively don't have a constant mass as it relates to acceleration in
-    /// a particular direction, so think of this mass as a kind of average
-    /// effective mass.  A default mass of 1.0 kg is used if a mass is not specified.
-    /// </param>
+    /** Set the elasticity of the friction spring and compute and set a
+    viscosity that will result in critical damping for the specified mass
+    (i.e., kv = 2*sqrt(kp*mass)).
+    @param kp Elasticity of the friction spring.
+    @param mass Mass of the body for which critical damping would be achieved.
+    Articulated bodies effectively don't have a constant mass as it relates to
+    acceleration in a particular direction, so think of this mass as a kind
+    of average effective mass. A default mass of 1.0 kg is used if a mass
+    is not specified. */
     void setElasticityAndComputeViscosity(Real kp, Real mass = 1.0);
 
-    /// <summary>
-    /// Set the elasticity of the friction spring.  It's default value is 2000.0.
-    /// </summary>
-    /// <param name="kp">Elastcity of the frictgion spring.</param>
+    /** Set the elasticity of the friction spring. It's default value is 2000.
+    @param kp Elastcity of the friction spring */
     void setElasticity(Real kp);
 
-    /// <summary>
-    /// Set the vicosity of the friction spring.  Its value can be set to 0.0.
-    /// </summary>
-    /// <param name="kv">Viscosity of the friction spring.</param>
+    /** Set the vicosity of the friction spring.  Its value can be set to 0.0.
+    @param kv Viscosity of the friction spring */
     void setViscosity(Real kv);
 
-    /// <summary>
-    /// Get the elasticity of the friction spring.
-    /// </summary>
-    /// <returns>Elasticity of the friction spring.</returns>
+    /** Get the elasticity of the friction spring.
+    @returns Elasticity of the friction spring */
     Real getElasticity() const;
 
-    /// <summary>
-    /// Get the viscosity of the friction spring.
-    /// </summary>
-    /// <returns>Viscosity of the friction spring.</returns>
+    /** Get the viscosity of the friction spring.
+    @returns Viscosity of the friction spring */
     Real getViscosity() const;
 
-    /// <summary>
-    /// Set the time constant for transitioning back and forth between
-    /// the static and kinetic coefficents of friction.  The transition
-    /// is mediated by a rising or falling exponential that is asymptotic to
-    /// mu static or mu kinetic respectively.
-    /// </summary>
-    /// <param name="tau">time constant</param>
+    /** Set the time constant for transitioning back and forth between the
+    static and kinetic coefficents of friction.  The transition is mediated
+    by a rising or falling exponential that is asymptotic to mu static or
+    or mu kinetic respectively. The default value of tau is 0.01 s.
+    @param tau Time constant for sliding transitions */
     void setSlidingTimeConstant(Real tau);
 
-    /// <summary>
-    /// Get the time constant for transitioning back and forth between
-    /// the static and kinetic coefficents of friction.  The default value is
-    /// 0.01 seconds.
-    /// </summary>
-    /// <returns>time constant</returns>
+    /** Get the time constant for transitioning back and forth between the
+    static and kinetic coefficents of friction.
+    @returns time constant for sliding transitions
+    @see setSlidingTimeConstant() */
     Real getSlidingTimeConstant() const;
 
-    /// <summary>
-    /// Set the velocity below which the coefficient of friction transitions
-    /// to the static coefficient of friction.  It's default value is 0.01 m/s.
-    /// </summary>
-    /// <param name="vSettle">Settle velocity</param>
+    /** Set the velocity below which the coefficient of friction transitions
+    to the static coefficient of friction. It's default value is 0.01 m/s.
+    @param vSettle Settle velocity */
     void setSettleVelocity(Real vSettle);
 
-    /// <summary>
-    /// Get the velocity below which the coefficient of friction transitions
-    /// to the static coefficient of friction.
-    /// </summary>
-    /// <returns>Settle velocity</returns>
+    /** Get the velocity below which the coefficient of friction transitions
+    to the static coefficient of friction.
+    @returns Settle velocity */
     Real getSettleVelocity() const;
 
-    /// <summary>
-    /// The member variables managed by this class are used by the underlying
-    /// implementation of the %ExponentialSpringForce Subsystem.  Direct access
-    /// is given to %ExponentialSpringForceImpl for reasons of speed.  Direct access
-    /// is not given to other classes to ensure that these paramters are set only
-    /// to valid values.
-    /// </summary>
+    /** The member variables managed by this class are used by the underlying
+    implementation of the %ExponentialSpringForce Subsystem.  Direct access
+    is given to %ExponentialSpringForceImpl for reasons of speed and
+    convenience.  Direct access is not given to other classes to ensure that
+    these paramters are set only to valid values. */
     friend class ExponentialSpringForceImpl;
 };
 
 
 //=============================================================================
-/** Class ExponentialSpringData is used to store key quantities associated with
-the %ExponentialSpringForce Subsystem during a simulation.  An instance
-of this class serves as the Cache Entry for the
-ExponentialSpringForceImpl Subsystem.
-All of its member variables are guarranteed to be calculated and set once
-the System has been realized to the Dynamics Stage.
+/** ExponentialSpringData is a helper class that is used to store key
+quantities associated with the ExponentialSpringForce Subsystem during a
+simulation.  An instance of this class serves as the data Cache Entry for the
+ExponentialSpringForceImpl Subsystem. All of its member variables are
+guarranteed to be calculated and set once the System has been realized
+to the Dynamics Stage.
 
-Contact is computed only for the case of a point on a body colliding with a
-plane representing a floor. The general contact problem (e.g., finding
-intersections between lists of bodies) is not solved.  The floor plane can be
-rotated and displaced relative to the ground frame. The positive y axis of the
-floor frame defines the normal of the floor plane.  The y axis is the axis
-along which the spring force is modeled as an exponential. The x and z axes
-of the floor frame lie in the plane of the floor. The friction force lies in
-the floor plane.
+To understand what the quantities managed by this class represent, a basic
+description of the contact problem that is solved, along with a description
+of coordinate frame conventions, is needed.
+
+Class ExponentialSpringForce computes and applies a contact force that
+occurs at a specified point on a MoblizedBody (i.e., a Station) due to
+interaction of that point with a specified contact plane. That plane is
+typically used to model interactions with a floor, but need not be limited
+to this use case. The contact plane can be rotated and displaced relative to
+the ground frame and so can be used to model a wall or ramp, for example.
+
+Contact force computations are carried out in the frame of the contact plane.
+The positive y-axis of the contact frame defines the normal of the
+contact plane. The positive y-axis is the axis along which a repelling
+normal force (modeled using an exponential) is applied. The x-axis and
+z-axis of the contact frame are tangent to the contact plane. The friction
+force will always lie in x-z plane.
+
+Member variables with a "y" suffix (e.g., py, vy, or fy) indicate that
+these quantities pertain to the normal of the contact plane.  Member
+variables with a "xz" suffix (e.g., pxz, vxz, or fxz) indicate that
+these quanties lie in the contact plane (tangent to it) and are
+associated with the friction force.
+
+Member variables without a "_G" suffix are expressed in frame of the contact
+plane. Member variables with a "_G" suffix are expressed in the ground frame. 
+
+Note- It is recognized that a class whose member variables are public does
+not generally conform to good coding practices. In the case of this class,
+however, the typical user will only have access to a const reference to
+the instance owned by the State and, thus, the user will not be able to
+alter the member variables (unless extraordinary measures are taken). Only
+the underlying implementation (ExponentialSpringForceImpl) has writable
+access to the instance of this class that is owned by the State.
 
 A copy constructor and assignment operator are provided in the event a user
 wants to create a copy of the data that is not owned by the State.
 
-Member variables with an _G suffix are expressed in the ground frame.
-Member variables without a suffix are expressed in the floor frame.
-
-Note- It is recognized that making class member variables public does not
-generally conform to good coding practice.  In the case of this class,
-however, the user only has access to a const reference to the instance
-owned by the State and, thus, the user will not be able to alter the
-member variables (unless extraordinary steps are taken, like casting to a
-non-const variable or something). Only the underlying implementation
-(ExponentialSpringForceImpl) has non-const access to the instance of this
-class that is owned by the State. */
+@see ExponentialSpringForce */
 class SimTK_SIMBODY_EXPORT ExponentialSpringData {
 public:
-    /// Default Constructor
+    /** Default Constructor. */
     ExponentialSpringData();
 
-    /// Copy Constructor
+    /** Copy Constructor.
+    @param data Const refernce to the object that should be copied. */
     ExponentialSpringData(const ExponentialSpringData& data);
 
-    /// Assignment Operator
+    /** Assignment Operator.
+    @param data Const reference to the object to which this instance should
+    be assigned. */
     ExponentialSpringData& operator = (const ExponentialSpringData& data);
 
-    /// <summary>
-    /// Position of the body spring station in the ground frame.
-    /// </summary>
+    /** Position of the body spring station in the ground frame. */
     Vec3 p_G;
 
-    /// Velocity of the body spring station in the ground frame.
+    /** Velocity of the body spring station in the ground frame. */
     Vec3 v_G;
 
-    /// Position of the body spring station expressed in the floor frame.
+    /** Position of the body spring station expressed in the floor frame. */
     Vec3 p;
 
-    /// Velocity of the body spring station expressed in the floor frame.
+    /** Velocity of the body spring station expressed in the floor frame. */
     Vec3 v;
 
-    /// Displacment of the body spring station normal to the floor
-    /// expressed in the floor frame.
+    /** Displacment of the body spring station normal to the floor expressed
+    in the floor frame. */
     Real py;
 
-    /// Velocity of the body spring station normal to the floor
-    /// expressed in the floor frame.
+    /** Velocity of the body spring station normal to the floor expressed
+    in the floor frame. */
     Real vy;
 
-    /// Position of the body spring station projected onto the floor
-    /// expressed in the floor frame.
+    /** Position of the body spring station projected onto the floor expressed
+    in the floor frame. */
     Vec3 pxz;
 
-    /// Velocity of the body spring station in the plane of the floor
-    /// expressed in the floor frame.
+    /** Velocity of the body spring station in the plane of the floor
+    expressed in the floor frame. */
     Vec3 vxz;
 
-    /// Position of the body spring station projected onto the floor
-    /// expressed in the ground frame.  This quantity is not needed to
-    /// calculate the spring force, but is likely desired for vizualization.
+    /** Position of the body spring station projected onto the floor expressed
+    in the ground frame.  This quantity is not needed to calculate the spring
+    force, but is likely desired for vizualization. */
     Vec3 pxz_G;
 
-    /// Elastic force in the normal direction.
+    /** Elastic force in the normal direction expressed in the floor frame. */
     Real fyElas;
 
-    /// Damping force in the normal direction.
+    /** Damping force in the normal direction expressed in the floor frame. */
     Real fyDamp;
 
-    /// Total normal force.
+    /** Total normal force expressed in the floor frame. */
     Real fy;
 
-    /// Instantaneous coefficient of friction.
+    /** Instantaneous coefficient of friction. */
     Real mu;
 
-    /// Limit of the frictional force.
+    /** Limit of the frictional force. */
     Real fxyLimit;
 
-    /// Elastic frictional force.
+    /** Elastic frictional force expressed in the floor frame. */
     Vec3 fricElas;
 
-    /// Damping frictional force.
+    /** Damping frictional force expressed in the floor frame. */
     Vec3 fricDamp;
 
-    /// Resultant frictional force
+    /** Total frictional force (elastic + damping) expressed in the floor frame. */
     Vec3 fric;
 
-    /// Magnitude of the frictional force
+    /** Magnitude of the frictional force. */
     Real fxy;
 
-    /// Total spring force
+    /** Resultant spring force (normal + friction) expressed in the floor
+    frame. */
     Vec3 f;
 
-    /// Total spring force expressed in the ground frame.
+    /** Resultant spring force (normal + frcition) expressed in the ground
+    frame. */
     Vec3 f_G;
 };
 

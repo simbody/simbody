@@ -106,7 +106,8 @@ int main() {
     try {
         // I should probably make the following options command line areguments,
         // but since this code is part of the build environment, it is easy to
-        // recomplile.  I'll refine once the exponential spring classes pass muster.
+        // recomplile.  I'll refine once the exponential spring classes pass
+        // basic muster.
 
         // Use compliant Contact?
         bool CmpContactOn = true;
@@ -135,12 +136,24 @@ int main() {
         MultibodySystem system; system.setUseUniformBackground(true);
         SimbodyMatterSubsystem matter(system);
         GeneralForceSubsystem forces(system);
-        if(condition < 7) Force::UniformGravity gravity(forces, matter, Vec3(0., -9.8, 0.));  // tilt = 0 deg
-        if(condition == 7) Force::UniformGravity gravity(forces, matter, Vec3(0.9750, -9.7514, 0.));  // tilt = 5.71 deg, mu = 0.10    
-        if(condition == 8) Force::UniformGravity gravity(forces, matter, Vec3(4.0172, -8.9388, 0.));  // tilt = 24.2 deg, mu = 0.45
-        if(condition == 9) Force::UniformGravity gravity(forces, matter, Vec3(4.3880, -8.7627, 0.));  // tilt = 26.6 deg, mu = 0.5008
-        if(condition == 10) Force::UniformGravity gravity(forces, matter, Vec3(5.0385, -7.8400, 0.));  // tilt = 36.87 deg, mu = 0.75
-        //if (condition == 10) Force::UniformGravity gravity(forces, matter, Vec3(5.0385, -8.4055, 0.));  // tilt = 31.0 deg, mu = 0.60
+        // tilt = 0 deg
+        if(condition < 7) Force::UniformGravity
+            gravity(forces, matter, Vec3(0., -9.8, 0.));
+        // tilt=5.71 deg, mu=0.10 slips
+        if(condition == 7) Force::UniformGravity
+            gravity(forces, matter, Vec3(0.9750, -9.7514, 0.));
+        // tilt=24.2 deg, mu=0.45 slips
+        if(condition == 8) Force::UniformGravity
+            gravity(forces, matter, Vec3(4.0172, -8.9388, 0.));
+        // tilt=26.6 deg, mu=0.5008 slips
+        if(condition == 9) Force::UniformGravity
+            gravity(forces, matter, Vec3(4.3880, -8.7627, 0.));
+        // tilt=36.87 deg, mu=0.75 slips
+        if(condition == 10) Force::UniformGravity
+            gravity(forces, matter, Vec3(5.0385, -7.8400, 0.));
+        // tilt = 31.0 deg, mu = 0.60
+        //if (condition == 10) Force::UniformGravity
+        //gravity(forces, matter, Vec3(5.0385, -8.4055, 0.));
         Body::Rigid BodyPropsExp(MassProperties(10.0, Vec3(0), Inertia(1)));
         BodyPropsExp.addDecoration(Transform(), DecorativeBrick(Vec3(0.1)).setColor(Blue));
         Body::Rigid BodyPropsCmp(MassProperties(10.0, Vec3(0), Inertia(1)));
@@ -199,9 +212,10 @@ int main() {
             Rotation floorTilt(angle, ZAxis);
             Vec3 floorOrigin(0., -0.004, 0.);
             Transform floorXForm(floorTilt, floorOrigin);
-            // Add Exponential Springs
+            // Modify the default parameters if desired
             ExponentialSpringParameters params;
             //params.setElasticityAndComputeViscosity(100000.0);
+            // Add the Exponential Springs
             spr1 = new ExponentialSpringForce(system, params, floorXForm,
                 *blockExp, Vec3(0.1, -0.1, 0.1));
             spr2 = new ExponentialSpringForce(system, params, floorXForm,
@@ -290,7 +304,8 @@ int main() {
             }
             // Spinning top
             if (condition == 5) {
-                R.setRotationFromAngleAboutNonUnitVector(convertDegreesToRadians(54.74), Vec3(1, 0, 1));
+                R.setRotationFromAngleAboutNonUnitVector(convertDegreesToRadians(54.74),
+                    Vec3(1, 0, 1));
                 blockCmp->setQToFitRotation(state, R);
                 blockCmp->setQToFitTranslation(state, Vec3(-0.5, 0.2, 0.0));
                 blockCmp->setU(state, Vec6(0, 0, 0, 0, 0, 0));
@@ -306,9 +321,9 @@ int main() {
         }
         // Exponential Contact
         // Same initial conditions as for Compliant Contact except shifted so
-        // both blocks are visible.
+        // both blocks can be seen.
         if (ExpContactOn) {
-            // Test modifying cooefficients of friction
+            // Test modifying cooefficients of friction (states)
             //spr4->setMuStatic(state, -3.5);
             // Sitting Still
             if ((condition == 0) || (condition > 6)) {

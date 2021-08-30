@@ -108,7 +108,7 @@ ExponentialSpringParameters(const ExponentialSpringParameters& params) {
 ExponentialSpringParameters&
 ExponentialSpringParameters::
 operator=(const ExponentialSpringParameters& params) {
-    if (&params != this) {
+    if(&params != this) {
         d0 = params.d0;
         d1 = params.d1;
         d2 = params.d2;
@@ -129,22 +129,16 @@ setShapeParameters(Real d0, Real d1, Real d2) {
     this->d0 = d0;
 
     // d1
-    if (d1 <= 0.0) {
+    if(d1 <= 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: d1 should be positive!" << endl;
-    }
-    else {
-        this->d1 = d1;
-    }
+        cout << "ExponentialSpringParameters: ERR - d1 should be positive!" << endl;
+    } else this->d1 = d1;
 
     // d2
-    if (d2 <= 0.0) {
+    if(d2 <= 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: d2 should be positive!" << endl;
-    }
-    else {
-        this->d2 = d2;
-    }
+        cout << "ExponentialSpringParameters: ERR - d2 should be positive!" << endl;
+    } else this->d2 = d2;
 }
 //_____________________________________________________________________________
 // Get the parameters that control the shape of the exponential function.
@@ -161,14 +155,10 @@ getShapeParameters(Real &d0, Real& d1, Real& d2) const {
 void
 ExponentialSpringParameters::
 setNormalViscosity(Real& kvNorm) {
-    if (kvNorm < 0.0) {
+    if(kvNorm < 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: kvNorm should be zero or positive!" << endl;
-    }
-    else {
-        this->kvNorm = kvNorm;
-    }
-
+        cout << "ExponentialSpringParameters: ERR - kvNorm should be zero or positive!" << endl;
+    } else this->kvNorm = kvNorm;
 }
 //_____________________________________________________________________________
 // Get the viscosity of the exponential spring.  This is the viscosity
@@ -188,24 +178,20 @@ setElasticityAndComputeViscosity(Real kp, Real mass) {
     setElasticity(kp);
 
     // Compute the viscosity
-    if (mass <= 0.0) {
+    if(mass<=0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: mass should be positive!" << endl;
-    } else {
-        this->kvFric = 2.0 * std::sqrt(this->kpFric * mass);
-    }
+        cout<<"ExponentialSpringParameters: ERR - mass should be positive!"<<endl;
+    } else this->kvFric = 2.0 * std::sqrt(this->kpFric * mass);
 }
 //_____________________________________________________________________________
 // Set the elasticity of the friction spring.
 void
 ExponentialSpringParameters::
 setElasticity(Real kp) {
-    if (kp <= 0.0) {
+    if(kp <= 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: kpFric should be positive!" << endl;
-    } else {
-        this->kpFric = kp;
-    }
+        cout << "ExponentialSpringParameters: ERR - kpFric should be positive!" << endl;
+    } else this->kpFric = kp;
 }
 //_____________________________________________________________________________
 // Get the elasticity of the friction spring.
@@ -219,12 +205,10 @@ getElasticity() const {
 void
 ExponentialSpringParameters::
 setViscosity(Real kv) {
-    if (kv < 0.0) {
+    if(kv < 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: kvFric should be zero or positive!" << endl;
-    } else {
-        this->kvFric = kv;
-    }
+        cout << "ExponentialSpringParameters: ERR - kvFric should be zero or positive!" << endl;
+    } else this->kvFric = kv;
 }
 //_____________________________________________________________________________
 // Get the viscosity of the friction spring.
@@ -239,31 +223,27 @@ getViscosity() const {
 void
 ExponentialSpringParameters::
 setSlidingTimeConstant(Real tau) {
-    if (tau <= 0.0) {
+    if(tau <= 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: tau should be positive!" << endl;
-    } else {
-        this->kTau = 1.0 / tau;
-    }
+        cout << "ExponentialSpringParameters: ERR - tau should be positive!" << endl;
+    } else this->kTau = 1.0 / tau;
 }
 //_____________________________________________________________________________
 // Get the elasticity of the friction spring.
 Real
 ExponentialSpringParameters::
 getSlidingTimeConstant() const {
-    return 1.0/kTau;
+    return 1.0 / kTau;
 }
 //_____________________________________________________________________________
 // Set the velocity for settling into using the static coefficient of friction.
 void
 ExponentialSpringParameters::
 setSettleVelocity(Real vSettle) {
-    if (vSettle <= 0.0) {
+    if(vSettle<=0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: vSettle should be positive!" << endl;
-    } else {
-        this->vSettle = vSettle;
-    }
+        cout<<"ExponentialSpringParameters: ERR - vSettle should be positive!"<<endl;
+    } else this->vSettle = vSettle;
 }
 //_____________________________________________________________________________
 // Get the elasticity of the friction spring.
@@ -286,7 +266,7 @@ ExponentialSpringData() :
     fyElas(NaN), fyDamp(NaN), fy(NaN),
     mu(NaN), fxyLimit(NaN),
     fricElas(NaN), fricDamp(NaN), fric(NaN), fxy(NaN),
-    f(NaN), f_G(NaN) { }
+    f(NaN), f_G(NaN) {}
 //_____________________________________________________________________________
 // Copy Constructor
 ExponentialSpringData::
@@ -298,7 +278,7 @@ ExponentialSpringData(const ExponentialSpringData& data) {
 ExponentialSpringData&
 ExponentialSpringData::
 operator=(const ExponentialSpringData& data) {
-    if (&data != this) {
+    if(&data!=this) {
         p_G = data.p_G;
         v_G = data.v_G;
         p = data.p;
@@ -330,9 +310,7 @@ ExponentialSpringForceImpl(const Transform& floor,const MobilizedBody &body,
     const Vec3& station) :
     ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
     xFloor(floor), body(body), station(station),
-    defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0.,0.,0.)) {
-    // Currently, this constructor doesn't need to do anything.
-}
+    defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0.,0.,0.)) {}
 //_____________________________________________________________________________
 // Constructor
 ExponentialSpringForceImpl::
@@ -340,14 +318,13 @@ ExponentialSpringForceImpl(const ExponentialSpringParameters& params,
     const Transform& floor, const MobilizedBody& body, const Vec3& station) :
     ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
     params(params), xFloor(floor), body(body), station(station),
-    defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0., 0., 0.)) {
-}
+    defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0., 0., 0.)) {}
 //_____________________________________________________________________________
 // Clone
 Subsystem::Guts*
 ExponentialSpringForceImpl::
 cloneImpl() const {
-    return new ExponentialSpringForceImpl(params,xFloor, body, station);
+    return new ExponentialSpringForceImpl(params, xFloor, body, station);
 }
 //_____________________________________________________________________________
 // Realize the system at the Topology Stage.
@@ -392,7 +369,7 @@ realizeSubsystemTopologyImpl(State& state) const {
     cout << "Topology: allocating Z variable, Sliding." << endl;
     Real initialValue = 0.0;
     Vector zInit(1, initialValue);
-    indexZ = allocateZ(state,zInit);
+    indexZ = allocateZ(state, zInit);
 
     // Data
     // Useful information that is computed during a simulation is organized
@@ -418,6 +395,7 @@ realizeSubsystemTopologyImpl(State& state) const {
 // for example.
 // 
 // Variables without a suffix are expressed in the floor frame.
+// 
 // Variables with the _G suffix are expressed in the ground frame.
 //
 // Most everything important happens in this one method.
@@ -453,11 +431,11 @@ realizeSubsystemDynamicsImpl(const State& state) const {
 
     // Normal Force (perpendicular to floor) -------------------------------------
     // Elastic Part
-    data.fyElas = params.d1 * std::exp(-params.d2 * (data.py - params.d0));
+    data.fyElas = params.d1*std::exp(-params.d2*(data.py-params.d0));
     // Damping Part
     data.fyDamp = params.kvNorm * data.vy * data.fyElas;
     // Total
-    data.fy = data.fyElas - data.fyDamp;
+    data.fy = data.fyElas-data.fyDamp;
     // Don't allow the normal force to be negative or too large.
     data.fy = ClampAboveZero(data.fy, 100000.0);
     //if (data.fy < 0.0) data.fy = 0.0;
@@ -471,7 +449,6 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     Real muk = getMuKinetic(state);
     data.mu = mus - sliding * (mus - muk);
     data.fxyLimit = data.mu * data.fy;
-    //cout << "t = " << state.getTime() << "\tSliding = " << sliding << "\tmu = " << mu << endl;
     // Access the SprZero from the State.
     Vec3 p0 = getSprZero(state);
     // The SprZero is always expressed in the Floor frame, so its y-component
@@ -505,8 +482,8 @@ realizeSubsystemDynamicsImpl(const State& state) const {
         p0New = data.pxz + fricElasNew / params.kpFric;
         // Make sure that p0 is always in the plane of the floor.
         p0New[1] = 0.0;
-        // Update the cache and mark the cache as realized.
-        // This should be the only place that the following two lines are called.
+        // Update the spring zero cache and mark the cache as realized.
+        // Only place that the following two lines are called.
         updSprZeroInCache(state, p0New);
         markCacheValueRealized(state, indexSprZeroInCache);
     }
@@ -514,12 +491,8 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     // Update SlidingDot
     Real vMag = data.vxz.norm();
     Real slidingDot = 0.0;
-    if (limitReached) {
-        slidingDot = params.kTau*(1.0 - sliding);
-    }
-    else if(vMag<params.vSettle) {
-        slidingDot = -params.kTau*sliding;
-    }
+    if (limitReached)  slidingDot = params.kTau*(1.0 - sliding);
+    else if (vMag < params.vSettle)  slidingDot = -params.kTau*sliding;
     updSlidingDotInCache(state, slidingDot);
 
     // Total spring force expressed in the floor frame
@@ -531,8 +504,6 @@ realizeSubsystemDynamicsImpl(const State& state) const {
 
     // Apply the force
     body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
-    //forces[i][1] += springForce;
-    //cout << "pos[1]= " << pos[1] << "\tfp= " << elasticForce[1] << "\tfv= " << dampingForce[1] << "\tf= " << springForce[1] << endl;
 
     return 0;
 }
