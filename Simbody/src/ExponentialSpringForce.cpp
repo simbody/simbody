@@ -61,7 +61,7 @@ public:
 protected:
     ExponentialSpringParameters params;
 private:
-    Transform xFloor;
+    Transform xContactPlane;
     const MobilizedBody& body;
     Real defaultMus;
     Real defaultMuk;
@@ -309,7 +309,7 @@ ExponentialSpringForceImpl::
 ExponentialSpringForceImpl(const Transform& floor,const MobilizedBody &body,
     const Vec3& station) :
     ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
-    xFloor(floor), body(body), station(station),
+    xContactPlane(floor), body(body), station(station),
     defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0.,0.,0.)) {}
 //_____________________________________________________________________________
 // Constructor
@@ -317,14 +317,14 @@ ExponentialSpringForceImpl::
 ExponentialSpringForceImpl(const ExponentialSpringParameters& params,
     const Transform& floor, const MobilizedBody& body, const Vec3& station) :
     ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
-    params(params), xFloor(floor), body(body), station(station),
+    params(params), xContactPlane(floor), body(body), station(station),
     defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0., 0., 0.)) {}
 //_____________________________________________________________________________
 // Clone
 Subsystem::Guts*
 ExponentialSpringForceImpl::
 cloneImpl() const {
-    return new ExponentialSpringForceImpl(params, xFloor, body, station);
+    return new ExponentialSpringForceImpl(params, xContactPlane, body, station);
 }
 //_____________________________________________________________________________
 // Realize the system at the Topology Stage.
@@ -416,8 +416,8 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     data.v_G = body.findStationVelocityInGround(state, station);
 
     // Transform the position and velocity into the floor frame.
-    data.p = xFloor.shiftBaseStationToFrame(data.p_G);
-    data.v = xFloor.xformBaseVecToFrame(data.v_G);
+    data.p = xContactPlane.shiftBaseStationToFrame(data.p_G);
+    data.v = xContactPlane.xformBaseVecToFrame(data.v_G);
 
     // Resolve into normal (y) and tangential parts (xz plane)
     // Normal (perpendicular to Floor)
@@ -427,7 +427,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     data.pxz = data.p;    data.pxz[1] = 0.0;
     data.vxz = data.v;    data.vxz[1] = 0.0;
     // Not used to calculate force, but likely useful for visualization
-    data.pxz_G = xFloor.shiftFrameStationToBase(data.pxz);
+    data.pxz_G = xContactPlane.shiftFrameStationToBase(data.pxz);
 
     // Normal Force (perpendicular to floor) -------------------------------------
     // Elastic Part
@@ -500,7 +500,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     data.f[1] = data.fy;    // The y component is the normal force.
 
     // Transform the spring forces back to the Ground frame
-    data.f_G = xFloor.xformFrameVecToBase(data.f);
+    data.f_G = xContactPlane.xformFrameVecToBase(data.f);
 
     // Apply the force
     body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
@@ -621,7 +621,7 @@ resetSprZero(State& state) const {
     Vec3 p_G = body.findStationLocationInGround(state, station);
 
     // Transform the position to the Floor frame.
-    Vec3 p_F = xFloor.shiftBaseStationToFrame(p_G);
+    Vec3 p_F = xContactPlane.shiftBaseStationToFrame(p_G);
 
     // Project into the plane of the Floor
     p_F[1] = 0.0;
