@@ -24,38 +24,56 @@
 namespace SimTK {
 
 //=============================================================================
-/** Class ExponentialSpringParameters manages the parameters used to specify
-the characteristics of an ExponentialSpringForce instance.  Changing a
-parameter will invalidate the system at Stage::Topology, although the
-invalidation will not occur until the parameters are set on an actual
-instance of ExponentialSpringForce.
+/** ExponentialSpringParameters is a helper class used to customize the
+characteristics of an ExponentialSpringForce instance.  To customize the
+parameters on such an instance, the user should
 
-The force in the normal direction is computed using an exponential:
+1) Create an ExponentialSpringParameters object. For example,
 
-       fNormal = d1 * exp(-d2*(py-d0)) * (1.0 - kvNorm)
+        ExponentialSpringParameters myParams;
 
-where py is the distance of the spring point on the Body above the plane
-of the floor expressied in the frame of the contact plane.
+2) Use the available 'set' methods in this class to change the parameters
+of that object. For example,
 
-The friction force is modeled using a linear spring with damping:
+        myParams.setNormalViscosity(0.25);
 
-       fFric = -kpFric*(pxz-p0) - kvFric*vxz,
+3) And then use ExponentialSpringForce::setParameters() to alter the
+parameters of one (or many) ExponentialSpringForce instances. For example,
 
-where pxz is the position of the spring on the Body projected onto the plane
-of the floor and expressed in the floor frame, and p0 is the spring zero
-in the plane of the floor.
+        ExponentialSpringForce spr1, spr2;
+        spr1.setParameters(myParams);
+        spr2.setParameters(myParams);
 
-d0 is the only parameter that can be positive, negative, or zero.  All other
-parameters should be positive (and sometimes 0.0).
+4) When a new set of parameters is set on an ExponentialSpringForce
+instance, as above in step 3, the System will be invalidated at
+Stage::Topology.  The System must therefore be realized at Stage::Topology
+before a simulation can proceed.
 
-Note that there are 4 additional quantities that determine the
-behavior of an exponential spring that are not handled by this class.
-They are p0, mus, muk, and sliding.  These quantities are handled as
-as states in order to allow them to change during the course of a simulation.
-See ExponentialSpringForce for details on these states.
+        System.realizeTopology();
 
-@see ExponentialSpringForce::setParameters()
-@see ExponentialSpringForce */
+Note that each ExponentialSpringForce instance owns its own private
+ExponentialSpringParameters object. The myParams object is just used to set
+the parameter values of the privately owned parameters object.  It is fine for
+objects like myParams to go out out of scope or for myParams objects
+allocated from the heap to be deleted.
+
+The default values of the parameters held by ExponentialSpringParamters
+work well for typical contact interactions, but clearly will not be
+appropriate for simulating many contact interactions.  For example, one might
+need to simulate an interaction in which very little energy is dissipated
+during a bounce.
+
+For an explanation of the equaitons that underlie exponential spring forces,
+refer to class ExponentialSpringForce. For details on the customizable
+parameters, refer to the member variables of this class (below) and also the
+'set' methods available in this class (also below).
+
+Note that there are 2 quantities not managed by this class that can be
+customized.  These are the static coefficient of friction (mus) and the 
+kinetic coefficient of friction (muk).  mus and muk are handled as states in
+order to allow them to change during the course of a simulation. They can be
+set using ExponentialSpringForce::setMuStatic() and
+ExponentialSpringForce::setMuKinetic(). */
 class SimTK_SIMBODY_EXPORT ExponentialSpringParameters {
 protected:
     /** d0 shifts the exponential function up and down with respect to
@@ -73,7 +91,7 @@ protected:
     Real d2;
 
     /** kvNorm is the viscosity of the spring in the normal direction. Its
-    default value is 0.5. kvNorm can have a value of 0.0. */
+    default value is 0.5. kvNorm may be set equal to 0.0. */
     Real kvNorm;
 
     /** kpFric is the elasticity of the friction spring. Its default value
@@ -82,8 +100,8 @@ protected:
 
     /** kvFric is the viscosity of the friction spring. By default, its value
     is set relative to kpFric so that critical damping would occur for a
-    specified mass (i.e., kvFric = 2 * sqrt(kpFric * mass)).
-    kvFric can be 0.0. */
+    specified mass (i.e., kvFric = 2*sqrt(kpFric*mass)). kvFric may also be
+    set independently from kpFric and may be set to 0.0. */
     Real kvFric;
 
     /** kTau is equal to 1.0/tau. tau is the characteristic time to transition
@@ -129,7 +147,8 @@ public:
 
     /** Set the viscosity of the exponential part of the spring. This viscosity
     only applies to the component of the velocity of the body spring point
-    that is normal to the floor plane.
+    normal to the contact plane. To eliminate energy dissipation in the normal
+    direction, set kvNorm equal to 0.0.
     @param kvNorm Viscosity of the spring in the normal direction. Its default
     value is 0.5. */
     void setNormalViscosity(Real& kvNorm);
@@ -153,7 +172,16 @@ public:
     @param kp Elastcity of the friction spring */
     void setElasticity(Real kp);
 
-    /** Set the vicosity of the friction spring.  Its value can be set to 0.0.
+    /** Set the viscosity of the friction spring. Setting the viscosity equal
+    to 0.0 is fine, but may not have the expected result.  If a body is not
+    sliding, setting kv = 0.0 will simply allow the body to vibrate in place
+    indefinitely. If a body is sliding, even if kv = 0.0, the kinetic energy
+    of the body will still be dissipated because the frictional force will
+    not be zero.  (The elastic part of the friction spring is stretched and so
+    still applies a force, but potential energy is not stored in the spring
+    because the spring zero is continually released.) The only way to eliminate
+    energy dissipation entirely is to set the coefficients of friction equal to
+    0.0, which can be done by one call to ExponentialSpringForce::setMuStatic(0.0).
     @param kv Viscosity of the friction spring */
     void setViscosity(Real kv);
 
@@ -166,7 +194,7 @@ public:
     Real getViscosity() const;
 
     /** Set the time constant for transitioning back and forth between the
-    static and kinetic coefficents of friction.  The transition is mediated
+    static and kinetic coefficents of friction. The transition is mediated
     by a rising or falling exponential that is asymptotic to mu static or
     or mu kinetic respectively. The default value of tau is 0.01 s.
     @param tau Time constant for sliding transitions */
@@ -189,10 +217,10 @@ public:
     Real getSettleVelocity() const;
 
     /** The member variables managed by this class are used by the underlying
-    implementation of the %ExponentialSpringForce Subsystem.  Direct access
-    is given to %ExponentialSpringForceImpl for reasons of speed and
+    implementation of the ExponentialSpringForce Subsystem.  Direct access
+    is given to ExponentialSpringForceImpl for reasons of speed and
     convenience.  Direct access is not given to other classes to ensure that
-    these paramters are set only to valid values. */
+    paramters are set only to valid values. */
     friend class ExponentialSpringForceImpl;
 };
 
@@ -508,17 +536,18 @@ coin that is closest to the table.
 STATES
 ------
 DISCRETE STATES\n
-@param mus static coefficient of friction.  0.0 <= mus <= 1.0
-@param muk kinetic coefficient of friction.  0.0 <= muk <= mus
-@param station Point on the MobilizedBody expressed in the body frame.
+    mus = Static coefficient of friction.  0.0 <= mus <= 1.0 \n
+    muk = Kinetic coefficient of friction.  0.0 <= muk <= mus \n
+    station = Point on the MobilizedBody expressed in the body frame.
+
 
 AUTO UPDATE DISCRETE STATE\n
-@param p0 Zero of the frictional spring.
+    p0 = Zero of the frictional spring.
+
 
 CONTINUOUS STATE\n
-@param Sliding Characterizes whether the spring zero is sliding (1.0) or fixed
-in place (0.0). This state is used for transitioning back and forth between
-mus and muk.
+    Sliding = Indicator of whether the MobilizedBody is sliding.
+
 
 ----------
 PARAMETERS
