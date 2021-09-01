@@ -25,9 +25,13 @@ namespace SimTK {
  //=============================================================================
 class ExponentialSpringForceImpl : public ForceSubsystem::Guts {
 public:
-    ExponentialSpringForceImpl(const Transform& floor, const MobilizedBody& body, const Vec3& station);
-    ExponentialSpringForceImpl(const ExponentialSpringParameters& params,
-        const Transform& floor, const MobilizedBody& body, const Vec3& station);
+    // Constuctor for default parameters.
+    ExponentialSpringForceImpl(const Transform& floor,
+        const MobilizedBody& body, const Vec3& station, Real mus, Real muk);
+    // Constructor for customized parameters.
+    ExponentialSpringForceImpl(const Transform& floor,
+        const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
+        const ExponentialSpringParameters& params);
     Subsystem::Guts* cloneImpl() const;
     int realizeSubsystemTopologyImpl(State& state) const override;
     int realizeSubsystemDynamicsImpl(const State& state) const;
@@ -61,7 +65,7 @@ public:
 protected:
     ExponentialSpringParameters params;
 private:
-    Transform xContactPlane;
+    Transform contactPlane;
     const MobilizedBody& body;
     Real defaultMus;
     Real defaultMuk;
@@ -306,25 +310,37 @@ operator=(const ExponentialSpringData& data) {
 //_____________________________________________________________________________
 // Constructor
 ExponentialSpringForceImpl::
-ExponentialSpringForceImpl(const Transform& floor,const MobilizedBody &body,
-    const Vec3& station) :
+ExponentialSpringForceImpl(const Transform& floor,
+    const MobilizedBody &body, const Vec3& station, Real mus, Real muk) :
     ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
-    xContactPlane(floor), body(body), station(station),
-    defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0.,0.,0.)) {}
+    contactPlane(floor), body(body), station(station),
+    defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0.,0.,0.))
+{
+    // Check for valid static coefficient
+    if(defaultMus < 0.0) defaultMus = 0.0;
+    if(defaultMus > 1.0) defaultMus = 1.0;
+
+    // Check for valid kinetic coefficient
+    if(defaultMuk < 0.0) defaultMuk = 0.0;
+    if(defaultMuk > defaultMus) defaultMuk = defaultMus;
+}
 //_____________________________________________________________________________
 // Constructor
 ExponentialSpringForceImpl::
-ExponentialSpringForceImpl(const ExponentialSpringParameters& params,
-    const Transform& floor, const MobilizedBody& body, const Vec3& station) :
-    ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
-    params(params), xContactPlane(floor), body(body), station(station),
-    defaultMus(0.7), defaultMuk(0.5), defaultSprZero(Vec3(0., 0., 0.)) {}
+ExponentialSpringForceImpl(const Transform& floor,
+    const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
+    const ExponentialSpringParameters& params) :
+    ExponentialSpringForceImpl(floor,body,station,mus,muk)
+{
+    this->params = params;
+}
 //_____________________________________________________________________________
 // Clone
 Subsystem::Guts*
 ExponentialSpringForceImpl::
 cloneImpl() const {
-    return new ExponentialSpringForceImpl(params, xContactPlane, body, station);
+    return new ExponentialSpringForceImpl(contactPlane, body, station,
+        defaultMus, defaultMuk, params);
 }
 //_____________________________________________________________________________
 // Realize the system at the Topology Stage.
@@ -416,8 +432,8 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     data.v_G = body.findStationVelocityInGround(state, station);
 
     // Transform the position and velocity into the floor frame.
-    data.p = xContactPlane.shiftBaseStationToFrame(data.p_G);
-    data.v = xContactPlane.xformBaseVecToFrame(data.v_G);
+    data.p = contactPlane.shiftBaseStationToFrame(data.p_G);
+    data.v = contactPlane.xformBaseVecToFrame(data.v_G);
 
     // Resolve into normal (y) and tangential parts (xz plane)
     // Normal (perpendicular to Floor)
@@ -427,7 +443,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     data.pxz = data.p;    data.pxz[1] = 0.0;
     data.vxz = data.v;    data.vxz[1] = 0.0;
     // Not used to calculate force, but likely useful for visualization
-    data.pxz_G = xContactPlane.shiftFrameStationToBase(data.pxz);
+    data.pxz_G = contactPlane.shiftFrameStationToBase(data.pxz);
 
     // Normal Force (perpendicular to floor) -------------------------------------
     // Elastic Part
@@ -500,7 +516,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     data.f[1] = data.fy;    // The y component is the normal force.
 
     // Transform the spring forces back to the Ground frame
-    data.f_G = xContactPlane.xformFrameVecToBase(data.f);
+    data.f_G = contactPlane.xformFrameVecToBase(data.f);
 
     // Apply the force
     body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
@@ -621,7 +637,7 @@ resetSprZero(State& state) const {
     Vec3 p_G = body.findStationLocationInGround(state, station);
 
     // Transform the position to the Floor frame.
-    Vec3 p_F = xContactPlane.shiftBaseStationToFrame(p_G);
+    Vec3 p_F = contactPlane.shiftBaseStationToFrame(p_G);
 
     // Project into the plane of the Floor
     p_F[1] = 0.0;
@@ -808,17 +824,24 @@ ClampAboveZero(Real value, Real max) {
 // Constructor for default spring parameters.
 ExponentialSpringForce::
 ExponentialSpringForce(MultibodySystem& system,
-    const Transform& floor, const MobilizedBody& body,const Vec3& station) {
-    adoptSubsystemGuts(new ExponentialSpringForceImpl(floor, body, station));
+    const Transform& contactPlane,
+    const MobilizedBody& body,const Vec3& station,
+    Real mus, Real muk) {
+    adoptSubsystemGuts(
+        new ExponentialSpringForceImpl(contactPlane, body, station,
+            mus, muk));
     system.addForceSubsystem(*this);
 }
 //_____________________________________________________________________________
 // Constructor for non-default spring parameters.
 ExponentialSpringForce::
 ExponentialSpringForce(MultibodySystem& system,
-    const ExponentialSpringParameters& params,
-    const Transform& floor, const MobilizedBody& body, const Vec3& station) {
-    adoptSubsystemGuts(new ExponentialSpringForceImpl(params,floor, body, station));
+    const Transform& contactPlane, const MobilizedBody& body, const Vec3& station,
+    Real mus, Real muk, const ExponentialSpringParameters& params)
+{
+    adoptSubsystemGuts(
+        new ExponentialSpringForceImpl(contactPlane, body, station,
+            mus, muk, params));
     system.addForceSubsystem(*this);
 }
 //_____________________________________________________________________________
@@ -878,12 +901,12 @@ getMuKinetic(const State& state) const {
 
 //_____________________________________________________________________________
 // Reset the spring zero.
-// This method sets the spring zero to the point on the Floor that coincides
-// with the Station that has been specified on the MobilizedBody.  In this
-// process, the System is realized through the Position Stage.
+// This method sets the spring zero to the point on the contact plane that
+// coincides with the Station that has been specified on the MobilizedBody
+// for which this exponential spring was constructed.
 void
 ExponentialSpringForce::
-resetSprZero(State& state) const {
+resetSpringZero(State& state) const {
     getImpl().resetSprZero(state);
 }
 
