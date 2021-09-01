@@ -215,23 +215,23 @@ int main() {
             // Modify the default parameters if desired
             ExponentialSpringParameters params;
             //params.setElasticityAndComputeViscosity(100000.0);
-            // Add the Exponential Springs
-            spr1 = new ExponentialSpringForce(system, params, floorXForm,
-                *blockExp, Vec3(0.1, -0.1, 0.1));
-            spr2 = new ExponentialSpringForce(system, params, floorXForm,
-                *blockExp, Vec3(0.1, -0.1, -0.1));
-            spr3 = new ExponentialSpringForce(system, params, floorXForm,
-                *blockExp, Vec3(-0.1, -0.1, 0.1));
-            spr4 = new ExponentialSpringForce(system, params, floorXForm,
-                *blockExp, Vec3(-0.1, -0.1, -0.1));
-            spr5 = new ExponentialSpringForce(system, params, floorXForm,
-                *blockExp, Vec3(0.1, 0.1, 0.1));
-            spr6 = new ExponentialSpringForce(system, params, floorXForm,
-                *blockExp, Vec3(0.1, 0.1, -0.1));
-            spr7 = new ExponentialSpringForce(system, params, floorXForm,
-                *blockExp, Vec3(-0.1, 0.1, 0.1));
-            spr8 = new ExponentialSpringForce(system, params, floorXForm,
-                *blockExp, Vec3(-0.1, 0.1, -0.1));
+            // Add an exponential spring at each corner of the block.
+            spr1 = new ExponentialSpringForce(system, floorXForm,
+                *blockExp, Vec3(0.1, -0.1, 0.1), mu_s, mu_k, params);
+            spr2 = new ExponentialSpringForce(system, floorXForm,
+                *blockExp, Vec3(0.1, -0.1, -0.1), mu_s, mu_k, params);
+            spr3 = new ExponentialSpringForce(system, floorXForm,
+                *blockExp, Vec3(-0.1, -0.1, 0.1), mu_s, mu_k, params);
+            spr4 = new ExponentialSpringForce(system, floorXForm,
+                *blockExp, Vec3(-0.1, -0.1, -0.1), mu_s, mu_k, params);
+            spr5 = new ExponentialSpringForce(system, floorXForm,
+                *blockExp, Vec3(0.1, 0.1, 0.1), mu_s, mu_k, params);
+            spr6 = new ExponentialSpringForce(system, floorXForm,
+                *blockExp, Vec3(0.1, 0.1, -0.1), mu_s, mu_k, params);
+            spr7 = new ExponentialSpringForce(system, floorXForm,
+                *blockExp, Vec3(-0.1, 0.1, 0.1), mu_s, mu_k, params);
+            spr8 = new ExponentialSpringForce(system, floorXForm,
+                *blockExp, Vec3(-0.1, 0.1, -0.1), mu_s, mu_k, params);
         }
 
         // Add reporting and visualization
@@ -252,20 +252,20 @@ int main() {
             system.addEventReporter(new MyReporter(system, 1./120.));
             system.addEventReporter(new Visualizer::Reporter(*viz, 1./120.));
             if(blockExp!=NULL)
-                //system.addEventReporter(new MaxHeightReporter(system, *blockExp));
+                //system.addEventReporter(
+                //new MaxHeightReporter(system, *blockExp));
             if (spr1 != NULL)
-                system.addEventReporter(new ExpSprForceReporter(system, *spr3, 0.1));
+                system.addEventReporter(
+                    new ExpSprForceReporter(system, *spr3, 0.1));
         }
 
         // Initialize the system and state.
-        // Note- when a spring station has a height of 0.0042 above the floor,
-        // the spring will support a mass of 1.0 kg with acceleration due to
-        // gravity = -9.8 m/s^2.
         system.realizeTopology();
         State state = system.getDefaultState();
         system.realizeModel(state);
         Rotation R(convertDegreesToRadians(0.0), Vec3(1, 0, 0));
         // Compliant Contact
+        // I should probably haved used a switch block!
         if (CmpContactOn) {
             // Sitting Still
             if ((condition == 0)||(condition>6)) {
@@ -378,14 +378,14 @@ int main() {
             // Reset the spring zeros
             // The spring zeros are set to the point on the Floor that coincices
             // with the Station that was specified on the Body.
-            if (spr1 != NULL) spr1->resetSprZero(state);
-            if (spr2 != NULL) spr2->resetSprZero(state);
-            if (spr3 != NULL) spr3->resetSprZero(state);
-            if (spr4 != NULL) spr4->resetSprZero(state);
-            if (spr5 != NULL) spr5->resetSprZero(state);
-            if (spr6 != NULL) spr6->resetSprZero(state);
-            if (spr7 != NULL) spr7->resetSprZero(state);
-            if (spr8 != NULL) spr8->resetSprZero(state);
+            if (spr1 != NULL) spr1->resetSpringZero(state);
+            if (spr2 != NULL) spr2->resetSpringZero(state);
+            if (spr3 != NULL) spr3->resetSpringZero(state);
+            if (spr4 != NULL) spr4->resetSpringZero(state);
+            if (spr5 != NULL) spr5->resetSpringZero(state);
+            if (spr6 != NULL) spr6->resetSpringZero(state);
+            if (spr7 != NULL) spr7->resetSpringZero(state);
+            if (spr8 != NULL) spr8->resetSpringZero(state);
         }
 
         // Run Menu and storage for Replay
