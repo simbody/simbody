@@ -826,7 +826,8 @@ ExponentialSpringForce::
 ExponentialSpringForce(MultibodySystem& system,
     const Transform& contactPlane,
     const MobilizedBody& body,const Vec3& station,
-    Real mus, Real muk) {
+    Real mus, Real muk)
+{
     adoptSubsystemGuts(
         new ExponentialSpringForceImpl(contactPlane, body, station,
             mus, muk));

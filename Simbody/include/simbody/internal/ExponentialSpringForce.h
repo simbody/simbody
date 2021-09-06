@@ -26,7 +26,7 @@ namespace SimTK {
 
 //=============================================================================
 /** ExponentialSpringParameters is a helper class used to customize the
-customizable characteristics of an ExponentialSpringForce instance.  To
+characteristics of an ExponentialSpringForce instance.  To
 customize the parameters on such an instance, the user should
 
 1) Create an ExponentialSpringParameters object. For example,
