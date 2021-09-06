@@ -4,20 +4,20 @@
 /*----------------------------------------------------------------------------- 
                                Simbody(tm)                                  
 -------------------------------------------------------------------------------
- Copyright (c) 2021 Authors.                                                
- Authors: Frank C. Anderson                                                 
- Contributors:                                                              
-                                                                            
- Licensed under the Apache License, Version 2.0 (the "License"); you may    
- not use this file except in compliance with the License. You may obtain a  
- copy of the License at http://www.apache.org/licenses/LICENSE-2.0.         
-                                                                            
- Unless required by applicable law or agreed to in writing, software        
- distributed under the License is distributed on an "AS IS" BASIS,          
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   
- See the License for the specific language governing permissions and        
- limitations under the License.                                             
- ------------------------------------------------------------------------------*/
+ Copyright (c) 2021 Authors.
+ Authors: Frank C. Anderson
+ Contributors:
+ 
+ Licensed under the Apache License, Version 2.0 (the "License"); you may
+ not use this file except in compliance with the License. You may obtain a
+ copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ ----------------------------------------------------------------------------*/
 
 #include "Simbody.h"
 
@@ -149,8 +149,8 @@ public:
     only applies to the component of the velocity of the body spring point
     normal to the contact plane. To eliminate energy dissipation in the normal
     direction, set kvNorm equal to 0.0.
-    @param kvNorm New viscosity of the spring in the normal direction. Its default
-    value is 0.5. kvNorm should be positive. */
+    @param kvNorm New viscosity of the spring in the normal direction. Its
+    default value is 0.5. kvNorm should be positive. */
     void setNormalViscosity(Real& kvNorm);
 
     /** Get the viscosity of the exponential part of the spring.
