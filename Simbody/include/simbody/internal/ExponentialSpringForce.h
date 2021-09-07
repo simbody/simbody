@@ -2,7 +2,7 @@
 #define SimTK_SIMBODY_EXPONENTIAL_SPRING_FORCE_H_
 
 /*----------------------------------------------------------------------------- 
-                               Simbody(tm)                                  
+                               Simbody(tm)
 -------------------------------------------------------------------------------
  Copyright (c) 2021 Authors.
  Authors: Frank C. Anderson
