@@ -198,7 +198,8 @@ ExponentialSpringParameters::
 setElasticity(Real kp) {
     if(kp <= 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - kpFric should be positive!" << endl;
+        cout << "ExponentialSpringParameters: ERR - kpFric should be positive!"
+            << endl;
     } else this->kpFric = kp;
 }
 //_____________________________________________________________________________
@@ -375,7 +376,8 @@ realizeSubsystemTopologyImpl(State& state) const {
     cout <<"Topology: allocating auto-update state variable, SprZero."<<endl;
     // Index to the actual discrete variable
     // Changing the SprZero will invalidate the Dynamics Stage.
-    // The SprZero held in Cache depends on realization through the Velocity Stage.
+    // The SprZero held in Cache depends on realization through the Velocity
+    // Stage.
     indexSprZero =
         allocateAutoUpdateDiscreteVariable(state, Stage::Dynamics,
             new Value<Vec3>(defaultSprZero),Stage::Velocity);
@@ -479,7 +481,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     // Access the SprZero from the State.
     Vec3 p0 = getSprZero(state);
     // The SprZero is always expressed in the Floor frame, so its y-component
-    // should always be zero.  The following statement shouldn't be necessary,
+    // should always be zero. The following statement shouldn't be necessary,
     // but rounding is possible
     p0[1] = 0.0;
     // Elastic part
