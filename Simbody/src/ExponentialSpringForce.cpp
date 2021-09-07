@@ -14,7 +14,7 @@
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  See the License for the specific language governing permissions and
  limitations under the License.
- ------------------------------------------------------------------------------*/
+ ----------------------------------------------------------------------------*/
 
 #include "simbody/internal/ExponentialSpringForce.h"
 
@@ -135,13 +135,15 @@ setShapeParameters(Real d0, Real d1, Real d2) {
     // d1
     if(d1 <= 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - d1 should be positive!" << endl;
+        cout << "ExponentialSpringParameters: ERR - d1 should be positive!"
+            << endl;
     } else this->d1 = d1;
 
     // d2
     if(d2 <= 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - d2 should be positive!" << endl;
+        cout << "ExponentialSpringParameters: ERR - d2 should be positive!"
+            << endl;
     } else this->d2 = d2;
 }
 //_____________________________________________________________________________
@@ -161,7 +163,8 @@ ExponentialSpringParameters::
 setNormalViscosity(Real& kvNorm) {
     if(kvNorm < 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - kvNorm should be zero or positive!" << endl;
+        cout << "ExponentialSpringParameters: ERR - kvNorm should be zero "
+            << "or positive!" << endl;
     } else this->kvNorm = kvNorm;
 }
 //_____________________________________________________________________________
@@ -184,7 +187,8 @@ setElasticityAndComputeViscosity(Real kp, Real mass) {
     // Compute the viscosity
     if(mass<=0.0) {
         // An exception should be throw, but for now...
-        cout<<"ExponentialSpringParameters: ERR - mass should be positive!"<<endl;
+        cout<<"ExponentialSpringParameters: ERR - mass should be positive!"
+            <<endl;
     } else this->kvFric = 2.0 * std::sqrt(this->kpFric * mass);
 }
 //_____________________________________________________________________________
@@ -211,7 +215,8 @@ ExponentialSpringParameters::
 setViscosity(Real kv) {
     if(kv < 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - kvFric should be zero or positive!" << endl;
+        cout << "ExponentialSpringParameters: ERR - kvFric should be zero or "
+            << "positive!" << endl;
     } else this->kvFric = kv;
 }
 //_____________________________________________________________________________
@@ -229,7 +234,8 @@ ExponentialSpringParameters::
 setSlidingTimeConstant(Real tau) {
     if(tau <= 0.0) {
         // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - tau should be positive!" << endl;
+        cout << "ExponentialSpringParameters: ERR - tau should be positive!"
+            << endl;
     } else this->kTau = 1.0 / tau;
 }
 //_____________________________________________________________________________
@@ -246,7 +252,8 @@ ExponentialSpringParameters::
 setSettleVelocity(Real vSettle) {
     if(vSettle<=0.0) {
         // An exception should be throw, but for now...
-        cout<<"ExponentialSpringParameters: ERR - vSettle should be positive!"<<endl;
+        cout<<"ExponentialSpringParameters: ERR - vSettle should be positive!"
+            <<endl;
     } else this->vSettle = vSettle;
 }
 //_____________________________________________________________________________
@@ -353,16 +360,19 @@ realizeSubsystemTopologyImpl(State& state) const {
     // Coefficients of friction: mus and muk
     // Both are treated as discrete states.  By doing so, mus and muk
     // can be changed during a simulation.
-    indexMus = allocateDiscreteVariable(state, Stage::Dynamics, new Value<Real>(defaultMus));
-    indexMuk = allocateDiscreteVariable(state, Stage::Dynamics, new Value<Real>(defaultMuk));
+    indexMus = allocateDiscreteVariable(state,
+        Stage::Dynamics, new Value<Real>(defaultMus));
+    indexMuk = allocateDiscreteVariable(state,
+        Stage::Dynamics, new Value<Real>(defaultMuk));
 
     // SprZero
     // The spring SprZero is a discrete variable that is auto updated during
     // the course of a simulation so that the frictional force generated
-    // by a spring is consistent with the spring's theoretical limit (mu*Fnormal).
-    // Because the SprZero could potentially need updating after every integration
-    // step, it is treated as an AutoUpdate Discrete Variable.
-    cout << "Topology: allocating auto-update discrete state variable, SprZero." << endl;
+    // by a spring is consistent with the spring's theoretical limit
+    // (mu*Fnormal).
+    // Because the SprZero could potentially need updating after every
+    // integration step, it is treated as an AutoUpdate Discrete Variable.
+    cout <<"Topology: allocating auto-update state variable, SprZero."<<endl;
     // Index to the actual discrete variable
     // Changing the SprZero will invalidate the Dynamics Stage.
     // The SprZero held in Cache depends on realization through the Velocity Stage.
@@ -421,7 +431,8 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     // Get current accumulated forces
     const MultibodySystem& system = MultibodySystem::downcast(getSystem());
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
-    Vector_<SpatialVec>& forces_G = system.updRigidBodyForces(state, Stage::Dynamics);
+    Vector_<SpatialVec>& forces_G =
+        system.updRigidBodyForces(state, Stage::Dynamics);
 
     // Retrieve a writable reference to the data cache entry.
     // Most computed quantities are stored in the data cache.
@@ -445,7 +456,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     // Not used to calculate force, but likely useful for visualization
     data.pxz_G = contactPlane.shiftFrameStationToBase(data.pxz);
 
-    // Normal Force (perpendicular to floor) -------------------------------------
+    // Normal Force (perpendicular to floor) --------------------------------
     // Elastic Part
     data.fyElas = params.d1*std::exp(-params.d2*(data.py-params.d0));
     // Damping Part
@@ -456,7 +467,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     data.fy = ClampAboveZero(data.fy, 100000.0);
     //if (data.fy < 0.0) data.fy = 0.0;
 
-    // Friction (in the plane of floor) ------------------------------------------
+    // Friction (in the plane of floor) -------------------------------------
     // Get the sliding state.
     Real sliding = getZ(state)[indexZ];
     // Compute the maximum allowed frictional force based on the current
@@ -678,7 +689,8 @@ getSprZero(const State& state) const {
 void
 ExponentialSpringForceImpl::
 updSprZeroInCache(const State& state, const Vec3& setpoint) const {
-    Value<Vec3>::updDowncast(updDiscreteVarUpdateValue(state, indexSprZero)) = setpoint;
+    Value<Vec3>::updDowncast(updDiscreteVarUpdateValue(state, indexSprZero))
+        = setpoint;
 }
 //_____________________________________________________________________________
 // Get the SprZero of this exponential spring.
@@ -688,7 +700,8 @@ updSprZeroInCache(const State& state, const Vec3& setpoint) const {
 Vec3
 ExponentialSpringForceImpl::
 getSprZeroInCache(const State& state) const {
-    return Value<Vec3>::downcast(getDiscreteVarUpdateValue(state, indexSprZero));
+    return Value<Vec3>::downcast(
+        getDiscreteVarUpdateValue(state,indexSprZero) );
 }
 //_____________________________________________________________________________
 // Realize the SprZero Cache.
@@ -737,14 +750,16 @@ getSlidingDotInCache(const State& state) const {
 ExponentialSpringData&
 ExponentialSpringForceImpl::
 updData(const State& state) const {
-    return Value<ExponentialSpringData>::updDowncast(updCacheEntry(state, indexData));
+    return Value<ExponentialSpringData>::updDowncast(updCacheEntry(state,
+        indexData));
 }
 //_____________________________________________________________________________
 // Retrieve a const reference to the spring data contained in the Cache.
 const ExponentialSpringData&
 ExponentialSpringForceImpl::
 getData(const State& state) const {
-    return Value<ExponentialSpringData>::downcast(getCacheEntry(state, indexData));
+    return Value<ExponentialSpringData>::downcast(getCacheEntry(state,
+        indexData));
 }
 
 
@@ -767,7 +782,7 @@ getParameters() const {
     return params;
 }
 
-//__________________________________________________________________________
+//_____________________________________________________________________________
 // Sigma - a function that transitions smoothly from 0.0 to 1.0 or
 // from 1.0 to 0.0.
 //
@@ -806,7 +821,7 @@ Sigma(Real t0, Real tau, Real t) {
     Real s = 1.0 / (1.0 + std::exp(x));
     return s;
 }
-//__________________________________________________________________________
+//_____________________________________________________________________________
 // Clamp a value between zero and a maximum value.
 Real
 ExponentialSpringForceImpl::
@@ -837,7 +852,8 @@ ExponentialSpringForce(MultibodySystem& system,
 // Constructor for non-default spring parameters.
 ExponentialSpringForce::
 ExponentialSpringForce(MultibodySystem& system,
-    const Transform& contactPlane, const MobilizedBody& body, const Vec3& station,
+    const Transform& contactPlane,
+    const MobilizedBody& body, const Vec3& station,
     Real mus, Real muk, const ExponentialSpringParameters& params)
 {
     adoptSubsystemGuts(
