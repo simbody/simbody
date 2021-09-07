@@ -102,9 +102,11 @@ private:
 
 //=============================================================================
 int main() {
-    std::cout << "Running a simulation in which contact with the ground is modeled with exponential springs.\n";
+    std::cout << "Running a simulation in which contact with a floor is " <<
+        "modeled with exponential springs." << endl;
     try {
-        // I should probably make the following options command line areguments,
+        // I should probably make the following options command line
+        // areguments,
         // but since this code is part of the build environment, it is easy to
         // recomplile.  I'll refine once the exponential spring classes pass
         // basic muster.
@@ -155,9 +157,11 @@ int main() {
         //if (condition == 10) Force::UniformGravity
         //gravity(forces, matter, Vec3(5.0385, -8.4055, 0.));
         Body::Rigid BodyPropsExp(MassProperties(10.0, Vec3(0), Inertia(1)));
-        BodyPropsExp.addDecoration(Transform(), DecorativeBrick(Vec3(0.1)).setColor(Blue));
+        BodyPropsExp.addDecoration(Transform(),
+            DecorativeBrick(Vec3(0.1)).setColor(Blue));
         Body::Rigid BodyPropsCmp(MassProperties(10.0, Vec3(0), Inertia(1)));
-        BodyPropsCmp.addDecoration(Transform(), DecorativeBrick(Vec3(0.1)).setColor(Red));
+        BodyPropsCmp.addDecoration(Transform(),
+            DecorativeBrick(Vec3(0.1)).setColor(Red));
 
      
         // Add a 6 dof mass that uses the Compliant Contact system.
@@ -183,9 +187,10 @@ int main() {
             contactForces->setTrackDissipatedEnergy(true);
             contactForces->setTransitionVelocity(1.0e-3);
             // Ground
-            matter.Ground().updBody().addContactSurface(Transform(R_xdown, Vec3(0, 0, 0)),
+            matter.Ground().updBody().addContactSurface(
+                Transform(R_xdown, Vec3(0, 0, 0)),
                 ContactSurface(ContactGeometry::HalfSpace(),
-                    ContactMaterial(fK * .1, fDis * .9, mu_s, mu_k, fVis * 10)));
+                    ContactMaterial(fK*.1, fDis*.9, mu_s, mu_k, fVis*10)));
             // Free Body (cube)
             int surfx =
                 BodyPropsCmp.addContactSurface(Transform(),
@@ -300,11 +305,12 @@ int main() {
                 blockCmp->setQToFitRotation(state, R);
                 blockCmp->setQToFitTranslation(state, Vec3(-0.5, 0.1, 0.0));
                 blockCmp->setU(state, Vec6(0, 0, 0, 2.0, 0, 0));
-                blockCmp->setUToFitAngularVelocity(state, Vec3(0.0, 12.0, 0.0));
+                blockCmp->setUToFitAngularVelocity(state, Vec3(0.0,12.0,0.0));
             }
             // Spinning top
             if (condition == 5) {
-                R.setRotationFromAngleAboutNonUnitVector(convertDegreesToRadians(54.74),
+                R.setRotationFromAngleAboutNonUnitVector(
+                    convertDegreesToRadians(54.74),
                     Vec3(1, 0, 1));
                 blockCmp->setQToFitRotation(state, R);
                 blockCmp->setQToFitTranslation(state, Vec3(-0.5, 0.2, 0.0));
@@ -316,7 +322,7 @@ int main() {
                 blockCmp->setQToFitRotation(state, R);
                 blockCmp->setQToFitTranslation(state, Vec3(-1.5, 1.0, 0.0));
                 blockCmp->setU(state, Vec6(0, 0, 0, 0.8, 0, 0));
-                blockCmp->setUToFitAngularVelocity(state, Vec3(0.0, 0.0, -10.0));
+                blockCmp->setUToFitAngularVelocity(state, Vec3(0.0,0.0,-10.0));
             }
         }
         // Exponential Contact
@@ -358,26 +364,27 @@ int main() {
                 blockExp->setQToFitRotation(state, R);
                 blockExp->setQToFitTranslation(state, Vec3(0.5, 0.1, 0.0));
                 blockExp->setU(state, Vec6(0, 0, 0, 2.0, 0, 0));
-                blockExp->setUToFitAngularVelocity(state, Vec3(0.0, 12.0, 0.0));
+                blockExp->setUToFitAngularVelocity(state, Vec3(0.0,12.0,0.0));
             }
             // Spinning top
             if (condition == 5) {
-                R.setRotationFromAngleAboutNonUnitVector(convertDegreesToRadians(54.74),Vec3(1,0,1));
+                R.setRotationFromAngleAboutNonUnitVector(
+                    convertDegreesToRadians(54.74),Vec3(1,0,1));
                 blockExp->setQToFitRotation(state, R);
                 blockExp->setQToFitTranslation(state, Vec3(0.5, 0.2, 0.0));
                 blockExp->setU(state, Vec6(0, 0, 0, 0, 0, 0));
-                blockExp->setUToFitAngularVelocity(state, Vec3(0.0, 6.0, 0.0));
+                blockExp->setUToFitAngularVelocity(state, Vec3(0.0,6.0,0.0));
             }
             // Tumbling
             if (condition == 6) {
                 blockExp->setQToFitRotation(state, R);
                 blockExp->setQToFitTranslation(state, Vec3(-1.5, 1.0, 0.5));
                 blockExp->setU(state, Vec6(0, 0, 0, 0.8, 0, 0));
-                blockExp->setUToFitAngularVelocity(state, Vec3(0.0, 0.0, -10.0));
+                blockExp->setUToFitAngularVelocity(state, Vec3(0.0,0.0,-10.0));
             }
             // Reset the spring zeros
-            // The spring zeros are set to the point on the Floor that coincices
-            // with the Station that was specified on the Body.
+            // The spring zeros are set to the point on the Floor that
+            // coincices with the Station that was specified on the Body.
             if (spr1 != NULL) spr1->resetSpringZero(state);
             if (spr2 != NULL) spr2->resetSpringZero(state);
             if (spr3 != NULL) spr3->resetSpringZero(state);
@@ -414,7 +421,7 @@ int main() {
         // Report integrator performance
         cout << std::endl << "Integrator = " << integ.getMethodName() << endl;
         cout << "    Accuracy in use = " << integ.getAccuracyInUse() << endl;
-        cout << "Num steps attempted = " << integ.getNumStepsAttempted() << endl;
+        cout << "Num steps attempted = "<<integ.getNumStepsAttempted()<<endl;
         cout << "    Num steps taken = " << integ.getNumStepsTaken() << endl;
         cout << " cpu time taken = " << cpuDuration << " sec" << endl;
         cout << "real time taken = " << realDuration << " sec" << endl;
