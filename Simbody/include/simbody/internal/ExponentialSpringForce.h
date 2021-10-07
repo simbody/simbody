@@ -1,13 +1,13 @@
-#ifndef SimTK_SIMBODY_EXPONENTIAL_SPRING_FORCE_H_
+﻿#ifndef SimTK_SIMBODY_EXPONENTIAL_SPRING_FORCE_H_
 #define SimTK_SIMBODY_EXPONENTIAL_SPRING_FORCE_H_
 
-/*----------------------------------------------------------------------------- 
+/*-----------------------------------------------------------------------------
                                Simbody(tm)
 -------------------------------------------------------------------------------
  Copyright (c) 2021 Authors.
  Authors: Frank C. Anderson
  Contributors:
- 
+
  Licensed under the Apache License, Version 2.0 (the "License"); you may
  not use this file except in compliance with the License. You may obtain a
  copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
@@ -26,8 +26,10 @@ namespace SimTK {
 
 //=============================================================================
 /** ExponentialSpringParameters is a helper class used to customize the
-characteristics of an ExponentialSpringForce instance.  To
-customize the parameters on such an instance, the user should
+characteristics of an ExponentialSpringForce instance. It manages all
+parameters that are implemented as Stage::Topology variables. To customize any
+of the Topology-stage parameters on an ExponentialSpringForce instance, the
+user should
 
 1) Create an ExponentialSpringParameters object. For example,
 
@@ -47,14 +49,14 @@ of that object. For example,
 
 4) Realize the system to Stage::Topology.  When a new set of parameters is
 set on an ExponentialSpringForce instance, as above in step 3, the System will
-be invalidated at Stage::Topology. The System must therefore be realized at
+be invalidated at Stage::Topology.  The System must therefore be realized at
 Stage::Topology before a simulation can proceed.
 
         system.realizeTopology();
 
 Note that each ExponentialSpringForce instance owns its own private
-ExponentialSpringParameters object. The myParams object is just used to set
-the desired parameter values of the privately owned parameters object.  It is
+ExponentialSpringParameters object.  The myParams object is just used to set
+the desired parameter values of the privately owned parameters object. It is
 fine for objects like myParams to go out out of scope or for myParams objects
 allocated from the heap to be deleted.
 
@@ -64,12 +66,21 @@ appropriate for simulating many contact interactions.  For example, one might
 want to simulate an interaction in which very little energy is dissipated
 during a bounce.
 
-Note that there are 2 quantities not managed by this class that can be
-customized: the static coefficient of friction (mus) and the kinetic
-coefficient of friction (muk).  mus and muk are handled as states to allow
-them to change during the course of a simulation. They can be set using
-ExponentialSpringForce::setMuStatic() and
-ExponentialSpringForce::setMuKinetic().
+Units for the default parameters are Newtons, meters, seconds, and kilograms;
+however, you may use an alternate set of self-consistent units by
+re-specifying all parameters.
+
+Note that there are 2 quantities not managed by this class that can be used
+to further customize the behavior of an ExponentialSpringForce instance: the
+static coefficient of friction (mus) and the kinetic coefficient of friction
+(muk). mus and muk are parameters, but they are not implemented as
+Topology-stage variables; they are implemented as Dynamics-stage discrete
+state variables. Thus, they can be changed during the course of a simulation
+without invalidating the System at Stage::Topology. This functionality allows
+a contact plane to posses non-uniform frictional characteristics across its
+surface. For example, a patch of ice on a sidewalk could be modeled. mus and
+muk can be set during a simulation using ExponentialSpringForce::setMuStatic()
+and ExponentialSpringForce::setMuKinetic().
 
 For an explanation of the equations that underlie exponential spring forces,
 refer to class ExponentialSpringForce.*/
@@ -80,25 +91,28 @@ public:
     ExponentialSpringParameters();
 
     /** Copy constructor. Member variables are initialized to the values of
-    the specified parameterd object.
-    @param params Const reference to the object to be copied. */
-    ExponentialSpringParameters(const ExponentialSpringParameters& params);
+    the specified source object.
+    @param source Const reference to the source object to be copied. */
+    ExponentialSpringParameters(const ExponentialSpringParameters& source);
 
-    /** Assignment operator.
-    @param params Const reference to the object to which this instance should
-    be assigned. */
-    ExponentialSpringParameters& operator =
-        (const ExponentialSpringParameters& params);
+    /** Copy assignment operator.
+    @param source Const reference to the source object to which this instance
+    should be assigned. */
+    ExponentialSpringParameters&
+        operator=(const ExponentialSpringParameters& source);
 
     /** Set the parameters that determine the shape of the exponential.
     @param d0 shifts the exponential function up and down with respect to
-    the floor plane. Its default value is 0.0065905 (~7 mm above the floor).
-    This slight upward shift eliminates significant penetration into the floor.
+    the contact plane. Its default value is 0.0065905 m (~7 mm above the
+    contact plane). This slight upward shift eliminates significant
+    penetration into the contact plane. d0 can positive, have a value of 0.0,
+    or be negative.
     @param d1 linearly scales the applied force up or down. Its default
-    value is 0.5336.
-    @param d2 multiplies the exponent. Its default value is 1150.0. Larger
-    values of d2 make the exponential curve rise more rapidly as py gets less
-    than d0. */
+    value is 0.5336 (unitless). d1 should be positive to generate a repulsive
+    force.
+    @param d2 linearly scales the exponent. Its default value is 1150.0 / m.
+    Larger values of d2 make the exponential curve rise more rapidly as py
+    gets less than d0. d1 must be positive. */
     void setShapeParameters(Real d0, Real d1 = 0.5336, Real d2 = 1150.0);
 
     /** Get the parameters that determine the shape of the exponential.
@@ -110,7 +124,7 @@ public:
     normal to the contact plane. To eliminate energy dissipation in the normal
     direction, set kvNorm equal to 0.0.
     @param kvNorm New viscosity of the spring in the normal direction. Its
-    default value is 0.5. kvNorm should be positive. */
+    default value is 0.5 N*s/m. kvNorm must be positive or zero. */
     void setNormalViscosity(Real& kvNorm);
 
     /** Get the viscosity of the exponential part of the spring.
@@ -128,7 +142,8 @@ public:
     is not specified. */
     void setElasticityAndComputeViscosity(Real kp, Real mass = 1.0);
 
-    /** Set the elasticity of the friction spring. It's default value is 2000.
+    /** Set the elasticity of the friction spring. It's default value is
+    2000.0 N/m.
     @param kp New elasticity of the friction spring. kp should be positive. */
     void setElasticity(Real kp);
 
@@ -144,9 +159,10 @@ public:
     not be zero.  (The elastic part of the friction spring is stretched and so
     still applies a force, but potential energy is not stored in the spring
     because the spring zero is continually released.) The only way to eliminate
-    energy dissipation is to set the coefficients of friction equal to 0.0,
-    which can be done by one call to ExponentialSpringForce::setMuStatic(0.0).
-    @param kv New viscosity of the friction spring. kv should be 0.0 or
+    energy dissipation entirely is to set the coefficients of friction equal
+    to 0.0, which can be done by a call to
+    ExponentialSpringForce::setMuStatic(0.0).
+    @param kv New viscosity of the friction spring. kv must be 0.0 or
     positive. */
     void setViscosity(Real kv);
 
@@ -159,7 +175,7 @@ public:
     by a rising or falling exponential that is asymptotic to mu static or
     or mu kinetic respectively.
     @param tau Time constant for sliding transitions. The default value of tau
-    is 0.01 s. tau should be positive. */
+    is 0.01 s. tau must be positive. */
     void setSlidingTimeConstant(Real tau);
 
     /** Get the time constant for transitioning back and forth between the
@@ -170,7 +186,7 @@ public:
     /** Set the velocity below which the coefficient of friction transitions
     to the static coefficient of friction.
     @param vSettle Settle velocity. It's default value is 0.01 m/s. vSettle
-    should be positive.*/
+    must be positive.*/
     void setSettleVelocity(Real vSettle);
 
     /** Get the velocity below which the coefficient of friction transitions
@@ -179,51 +195,20 @@ public:
     Real getSettleVelocity() const;
 
 protected:
-    /** d0 shifts the exponential function up and down with respect to
-    the conact plane. Its default value is 0.0065905 (~7 mm above the contact
-    plane). This slight upward shift prevents significant penetration
-    into the floor plane.  d0 can have a value of 0.0 or be negative. */
     Real d0;
-
-    /** d1 linearly scales the exponential force. Its default value
-    is 0.5336. d1 should be positive. */
     Real d1;
-
-    /** d2 multiplies the exponent.  Its default value is 1150.0. d1 should be
-    positive. Larger values of d2 make the exponential curve rise more
-    steeply. */
     Real d2;
-
-    /** kvNorm is the viscosity of the spring in the normal direction. Its
-    default value is 0.5. kvNorm may be set equal to 0.0. */
     Real kvNorm;
-
-    /** kpFric is the elasticity of the friction spring. Its default value
-    is 2000. */
     Real kpFric;
-
-    /** kvFric is the viscosity of the friction spring. By default, its value
-    is set relative to kpFric so that critical damping would occur for a
-    specified mass (i.e., kvFric = 2*sqrt(kpFric*mass)). kvFric may be set
-    independently and may also be set to 0.0. */
     Real kvFric;
-
-    /** kTau is equal to 1.0/tau. tau is the characteristic time to transition
-    between the static and kinetic coefficients of friction. The user sets tau.
-    kTau is maintained underneath as the member variable to avoid the cost of
-    frequently dividing by tau.  The default value of tau is 0.01 seconds.
-    @see setSlidingTimeConstant() */
     Real kTau;
-
-    /** vSettle is the velocity below which the friction spring transitions to
-    using the static coefficient of friction. Its default value is 0.01 m/s. */
     Real vSettle;
 
     /** The member variables managed by this class are used by the underlying
     implementation of the ExponentialSpringForce Subsystem.  Direct access
-    is given to ExponentialSpringForceImpl for reasons of speed and
-    convenience.  Direct access is not given to other classes to ensure that
-    parameters are set only to valid values. */
+    is given to ExponentialSpringForceImpl for reasons of convenience. Direct
+    access is not given to other classes to ensure that parameters are set
+    only to valid values. */
     friend class ExponentialSpringForceImpl;
 };
 
@@ -241,7 +226,7 @@ description of the contact problem that is solved, along with a description
 of coordinate frame conventions, will be helpful.
 
 Class ExponentialSpringForce computes and applies a contact force at a
-specified point on a MoblizedBody (i.e., a Station) due to interaction of
+specified point on a MobilizedBody (i.e., a Station) due to interaction of
 that point with a specified contact plane. That plane is typically used to
 model interactions with a floor, but need not be limited to this use case.
 The contact plane can be rotated and displaced relative to the ground frame
@@ -281,13 +266,13 @@ public:
     ExponentialSpringData();
 
     /** Copy Constructor.
-    @param data Const reference to the object that should be copied. */
-    ExponentialSpringData(const ExponentialSpringData& data);
+    @param source Const reference to the source object that should be copied.*/
+    ExponentialSpringData(const ExponentialSpringData& source);
 
-    /** Assignment Operator.
-    @param data Const reference to the object to which this instance should
-    be assigned. */
-    ExponentialSpringData& operator = (const ExponentialSpringData& data);
+    /** Copy Assignment Operator.
+    @param source Const reference to the source object to which this instance
+    should be assigned. */
+    ExponentialSpringData& operator=(const ExponentialSpringData& source);
 
     /** Position of the body spring station in the ground frame. */
     Vec3 p_G;
@@ -366,16 +351,16 @@ public:
 
 //=============================================================================
 /** Class ExponentialSpringForce uses an 'exponential spring' as a means
-of modeling contact of a point on a MobilizedBody with a contact plane. In
-practice, a number of body-fixed points ('Stations' in Simbody vocabulary) are
-strategically chosen across the surface of the MobilizedBody so as to represent
-the geometry of that body reasonably well, and an ExponentialSpringForce is
-created for each of those points.  For example, if the body were a cube, one
-would likely choose to place an exponential spring at each corner of the cube.
-The contact plane is typically used to model interactions with a floor, but
-need not be limited to this use case. The contact plane can be rotated and
-displaced relative to the ground frame and so can be used to model a wall or
-ramp, for example.
+of modeling contact of a point on a MobilizedBody with a contact plane that is
+fixed to Ground. In practice, you should choose a number of body-fixed points
+('Stations' in Simbody vocabulary), strategically located across the
+surface of a MobilizedBody, and create an ExponentialSpringForce that acts at
+each of those points. For example, if the body were a cube, you would likely
+choose to place an exponential spring at each corner of the cube. The contact
+plane is typically used to model interactions with a floor, but need not be
+limited to this use case. The contact plane can be rotated and displaced
+relative to the ground frame and so can be used to model a wall or ramp, for
+example.
 
 A distinguishing feature of the exponential spring, relative to other
 contact models, is that it ALWAYS applies a force to the body; there is
@@ -391,11 +376,10 @@ As a side note, electrostatic forces, which are the fundamental force from
 which all conventional contact forces arise, are never actually zero either.
 They obey Coulomb's Law (Fe = ke*q1*q2/r^2) which states that an
 electrostatic force only approaches zero as the distance between two
-charges (r) approaches infinity.  It is certainly not the claim here that
-exponential springs accurately model contact force at the level of
-fundamental forces; it is only suggested that the use of a force field
-that acts over a great distance is not that far fetched as long as the
-force gets sufficiently small sufficiently quickly.
+charges (r) approaches infinity. It is certainly not the case that exponential
+springs accurately model contact force at the level of fundamental forces; we
+only suggest that the use of a force field that acts over a great distance is
+reasonable as long as the force gets sufficiently small sufficiently quickly.
 
 Introducing any additional modeling approximation into a simulation is hard to
 justify, however, unless there are significant benefits. In the case of
@@ -510,7 +494,7 @@ the limit (fxyLimit):
        fxyLimit = mu*fy
        if(friction.norm() > fxyLimit) {
            friction = fxyLimit * friction.normalize()
-       }    
+       }
 
 where mu is the instantaneous coefficient of friction (more below).
 
@@ -529,7 +513,7 @@ Coefficients of Friction \n
 Coefficients of kinetic (sliding) and static (fixed) friction can be
 specified for the spring subject to the following constraints:
 
-       0.0 <= muk <= mus <= 1.0
+       0.0 ≤ muk ≤ mus ≤ 1.0
 
 A continuous state variable (Z = Sliding) is used to characterize the
 sliding state of the spring.
@@ -543,7 +527,7 @@ value of Sliding:
         mu = mus - Sliding*(mus - muk)
 
 The time derivative of Sliding is used to drive Sliding toward the
-extreme of 0.0 or 1.0, depending on the following criteria...
+extreme of 0.0 or 1.0, depending on the following criteria:
 
 When the frictional force exceeds its limit, Sliding is driven toward 1:
 
@@ -567,7 +551,7 @@ based on a differential equation ensures that mu is continuous.
 Future Enhancements \n
 Future enhancements might include the capacity to
 1) use a polygonal mesh as the contact surface, and
-2) move the specified MobilizedBody Station in manner that adapts to the 
+2) move the specified MobilizedBody Station in manner that adapts to the
 contact circumstances. For example, to model a coin rolling on a table
 a small number of stations could be continually moved to the portion of the
 coin that is closest to the table.
@@ -575,9 +559,9 @@ coin that is closest to the table.
 ------
 STATES
 ------
-DISCRETE STATES\n
-    mus = Static coefficient of friction.  0.0 <= mus <= 1.0 \n
-    muk = Kinetic coefficient of friction.  0.0 <= muk <= mus \n
+PARAMETERS (implemented as discrete states)\n
+    mus = Static coefficient of friction.  0.0  mus ≤ 1.0 \n
+    muk = Kinetic coefficient of friction.  0.0 ≤ muk ≤ mus \n
     station = Point on the MobilizedBody expressed in the body frame.
 
 
@@ -615,8 +599,10 @@ public:
     will be applied. The position and velocity of this point relative to
     the contact plane determine the magnitude and direction of the contact
     force.
-    @param mus Static coefficient of friction.   0.0 <= mus <= 1.0 
-    @param muk Kinetic coefficient of friction.  0.0 <= muk <= mus */
+    @param mus Initial value of the static coefficient of friction.
+    0.0 ≤ mus ≤ 1.0
+    @param muk Initial value of the kinetic coefficient of friction.
+    0.0 ≤ muk ≤ mus */
     ExponentialSpringForce(MultibodySystem& system,
         const Transform& contactPlane,
         const MobilizedBody& body,const Vec3& station,
@@ -633,8 +619,8 @@ public:
     will be applied. The position and velocity of this point relative to
     the contact plane determine the magnitude and direction of the contact
     force.
-    @param mus Static coefficient of friction.   0.0 <= mus <= 1.0
-    @param muk Kinetic coefficient of friction.  0.0 <= muk <= mus
+    @param mus Static coefficient of friction.   0.0 ≤ mus ≤ 1.0
+    @param muk Kinetic coefficient of friction.  0.0 ≤ muk ≤ mus
     @param params Customized parameters. */
     ExponentialSpringForce(MultibodySystem& system,
         const Transform& contactPlane,
@@ -672,7 +658,7 @@ public:
     Stage::Dynamics.
     @param state State object that will be modified.
     @param mus New value of the static coefficient of friction.
-    0.0 <= mus <= 1.0 */
+    0.0 ≤ mus ≤ 1.0 */
     void setMuStatic(State& state, const Real& mus);
 
     /** Get the static coefficient of friction (mus) held by the specified
@@ -687,7 +673,7 @@ public:
     time during a simulation. A change to muk will invalidate the System at
     Stage::Dynamics. @param state State object that will be modified.
     @param muk New value of the kinetic coefficient of friction.
-    0.0 <= muk <= mus */
+    0.0 ≤ muk ≤ mus */
     void setMuKinetic(State& state, const Real& muk);
 
     /** Get the kinetic coefficient of friction (muk) held by the specified
@@ -695,13 +681,12 @@ public:
     @param state State object from which to retrieve muk. */
     const Real& getMuKinetic(const State& state) const;
 
-    /** Reset the spring zero so that it coincides, in the contact plane, with
-    the station on the MoblilizedBody that was specified during construction
-    of this exponential spring. This step is often needed at the beginning of
-    a simulation to ensure that a simulation does not begin with large friction
-    forces. After this call, the elastic portion of the friction force
-    (fxyElas) should be 0.0.  Calling this method will invalidate the System
-    at Stage::Dynamics.
+    /** Reset the spring zero so that it coincides with the projection of the
+    spring station onto the contact plane. This step is often needed at the
+    beginning of a simulation to ensure that a simulation does not begin with
+    large friction forces. After this call, the elastic portion of the
+    friction force (fxyElas) should be 0.0. Calling this method will
+    invalidate the System at Stage::Dynamics.
     @param state State object on which to base the reset. */
     void resetSpringZero(State& state) const;
 
