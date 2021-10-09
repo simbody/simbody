@@ -55,22 +55,27 @@ Stage::Topology before a simulation can proceed.
         system.realizeTopology();
 
 Note that each ExponentialSpringForce instance owns its own private
-ExponentialSpringParameters object.  The myParams object is just used to set
+ExponentialSpringParameters object. The myParams object is just used to set
 the desired parameter values of the privately owned parameters object. It is
 fine for objects like myParams to go out out of scope or for myParams objects
 allocated from the heap to be deleted.
 
+Therefore, also note that the parameter values possessed by an
+ExponentialSpringForce instance do not necessarily correspond to the values
+held by an instance of this class until a call to
+ExponentialSpringForce::setParameters() is made.
+
 The default values of the parameters held by ExponentialSpringParameters
 work well for typical contact interactions, but clearly may not be
-appropriate for simulating many contact interactions.  For example, one might
+appropriate for simulating many contact interactions. For example, one might
 want to simulate an interaction in which very little energy is dissipated
 during a bounce.
 
-Units for the default parameters are Newtons, meters, seconds, and kilograms;
-however, you may use an alternate set of self-consistent units by
-re-specifying all parameters.
+The default values of the parameters are expressed in units of Newtons,
+meters, seconds, and kilograms; however, you may use an alternate set of
+self-consistent units by re-specifying all parameters.
 
-Note that there are 2 quantities not managed by this class that can be used
+Finally, there are 2 quantities not managed by this class that can be used
 to further customize the behavior of an ExponentialSpringForce instance: the
 static coefficient of friction (mus) and the kinetic coefficient of friction
 (muk). mus and muk are parameters, but they are not implemented as
@@ -112,61 +117,77 @@ public:
     force.
     @param d2 linearly scales the exponent. Its default value is 1150.0 / m.
     Larger values of d2 make the exponential curve rise more rapidly as py
-    gets less than d0. d1 must be positive. */
+    gets less than d0. d1 should be positive. */
     void setShapeParameters(Real d0, Real d1 = 0.5336, Real d2 = 1150.0);
 
     /** Get the parameters that determine the shape of the exponential.
     @see setShapeParameters() */
     void getShapeParameters(Real& d0, Real& d1, Real& d2) const;
 
-    /** Set the viscosity of the exponential part of the spring. This viscosity
-    only applies to the component of the velocity of the body spring point
-    normal to the contact plane. To eliminate energy dissipation in the normal
-    direction, set kvNorm equal to 0.0.
-    @param kvNorm New viscosity of the spring in the normal direction. Its
-    default value is 0.5 N*s/m. kvNorm must be positive or zero. */
+    /** Set the viscosity of the exponential part of an ExponentialSpringForce.
+    This viscosity only multiplies the component of the velocity of the
+    spring station that is normal to the contact plane. To eliminate energy
+    dissipation due to motion in the normal direction, set kvNorm equal to 0.0.
+    @param kvNorm Viscosity of a spring in the normal direction.
+    Its default value is 0.5 N*s/m. kvNorm should be positive or zero. */
     void setNormalViscosity(Real& kvNorm);
 
-    /** Get the viscosity of the exponential part of the spring.
-    @returns Spring viscosity in the normal direction */
+    /** Get the viscosity of the exponential part of an ExponentialSpringForce.
+    The exponential part of the contact force is always normal to the contact
+    plane.
+    @returns Viscosity in the normal direction */
     Real getNormalViscosity() const;
 
-    /** Set the elasticity of the friction spring and compute and set a
-    viscosity that will result in critical damping for the specified mass
-    (i.e., kv = 2*sqrt(kp*mass)).
+    /** Set both the elasticity and viscosity of the friction spring
+    associated with an exponential spring. The value that is set for the
+    viscosity is computed so that critical damping would result for a
+    specified mass (i.e., kv = 2*sqrt(kp*mass)). A call to this method
+    overrides any values set previously by calls to setElasticity() or
+    setViscosity().
     @param kp Elasticity of the friction spring. kp should be positive.
     @param mass Mass of the body for which critical damping would be achieved.
-    Articulated bodies effectively don't have a constant mass as it relates to
+    Articulated bodies generally don't have a constant mass as it relates to
     acceleration in a particular direction, so think of this mass as a kind
-    of average effective mass. A default mass of 1.0 kg is used if a mass
-    is not specified. */
+    of average mass. A default mass of 1.0 kg is used if a mass is not
+    specified. */
     void setElasticityAndComputeViscosity(Real kp, Real mass = 1.0);
 
-    /** Set the elasticity of the friction spring. It's default value is
-    2000.0 N/m.
-    @param kp New elasticity of the friction spring. kp should be positive. */
+    /** Set the elasticity of the friction spring associated with an
+    exponential spring. A call to this method overrides any value of
+    elasticity previously set by a call to setElasticityAndComputeViscosity().
+    @param kp Elasticity of the friction spring. Its default value is
+    2000.0 N/m. kp should be positive. */
     void setElasticity(Real kp);
 
-    /** Get the elasticity of the friction spring.
+    /** Get the elasticity of the friction spring. The value of the elasticity
+    is the default value (2000.0 N/m) or the value set by a call to either
+    setElasticity() or setElasticityAndComputeVicosity(), whichever was called
+    most recently.
     @returns Elasticity of the friction spring */
     Real getElasticity() const;
 
-    /** Set the viscosity of the friction spring. Setting the viscosity equal
+    /** Set the viscosity of the friction spring. A call to this method
+    overrides any value of viscosity previously set by a call to
+    setElasticityAndComputeViscosity(). Setting the viscosity equal
     to 0.0 is fine, but may not have the expected result.  If a body is not
     sliding, setting kv = 0.0 will simply allow the body to vibrate in place
     indefinitely. If a body is sliding, even if kv = 0.0, the kinetic energy
     of the body will still be dissipated because the frictional force will
-    not be zero.  (The elastic part of the friction spring is stretched and so
-    still applies a force, but potential energy is not stored in the spring
-    because the spring zero is continually released.) The only way to eliminate
-    energy dissipation entirely is to set the coefficients of friction equal
-    to 0.0, which can be done by a call to
+    not be zero. (The elastic part of the friction spring is stretched and so
+    still applies a force, but the potential energy stored in the spring is
+    not increased because the spring zero is continually released.) The only
+    way to eliminate energy dissipation entirely is to set the coefficients
+    of friction equal to 0.0, which can be done by a call to
     ExponentialSpringForce::setMuStatic(0.0).
-    @param kv New viscosity of the friction spring. kv must be 0.0 or
-    positive. */
+    @param kv Viscosity of the friction spring. Its default value is
+    2.0*sqrt(kp*mass) = 2.0*sqrt(2000*1) ~= 89.4427 N*s/m. kv should be 0.0
+    or positive. */
     void setViscosity(Real kv);
 
-     /** Get the viscosity of the friction spring.
+    /** Get the viscosity of the friction spring. The value of the viscosity
+    is the default value (~89.4427 N*s/m) or the value set by a call to either
+    setViscosity() or setElasticityAndComputeViscosity(), whichever was called
+    most recently.
     @returns Viscosity of the friction spring */
     Real getViscosity() const;
 
@@ -364,10 +385,10 @@ example.
 
 A distinguishing feature of the exponential spring, relative to other
 contact models, is that it ALWAYS applies a force to the body; there is
-never a time in a simulation when the spring force is not applied.  This
-seemingly non-physical feature works because the force becomes small
-(less than 0.01 N) as soon as the body station is more than 1.0 cm above
-the ground and extremely small (less than 0.000001 N) as soon as the body
+never a time in a simulation when the spring force is not applied. This
+seemingly non-physical feature works because (assuming default parameters are
+in use) the force becomes small (less than 0.01 N) as soon as the body station
+is more than 1.0 cm above the ground and extremely small (less than 0.000001 N) as soon as the body
 station is more than 2.0 cm above the ground. The sizes of these forces are
 likely small compared to the errors made in neglecting air resistance,
 assuming a uniform gravitational field, or estimating inertial parameters.
@@ -384,27 +405,33 @@ reasonable as long as the force gets sufficiently small sufficiently quickly.
 Introducing any additional modeling approximation into a simulation is hard to
 justify, however, unless there are significant benefits. In the case of
 exponential springs there are two: simplicity and speed. With exponential
-springs, there is no need to search for intersections (the number active
+springs, there is no need to search for body intersections (the number active
 of springs does not change during a simulation) and there is no need to
-find the precise time of contact.  In addition, because the function
+find the precise time of contact. In addition, because the function
 describing the contact force is smooth, the integration step sizes taken
 by variable-step explicit integrators are often well-behaved.
 
+One of the challenges in modeling friction is handling the static
+case. When the net force applied to a body in a direction tangent to a contact
+plane is less than the limiting value of the static friction force (μₛ fₙ),
+the body should not drift but remain fixed in place. One approach to handling
+this case is to apply conditional constraints that enforce zero acceleration
+of the body in the contact plane. Unfortunately, implementation of this
+approach is complex, particularly if there are multiple contact points on the
+body. Another approach is to apply a velocity-dependent frictional force
+that opposes any slide velocity (i.e., f = -kᵥv). This latter approach is
+relatively simple to implement, but will not entirely eliminate drift. By
+making kᵥ very large, the drift velocity can be made negligibly small but it
+cannot be brought exactly to zero. And, unfortunately, as kᵥ is made very
+large, the system equations become stiff, requiring integrator step size to
+be reduced, sometimes considerably (at least in explicit integrators).
+
 Part of the speed-up offered by ExponentialSpringForce derives, not from the
 use of an exponential for the normal force, but from the friction model
-employed. In this class, Coulomb friction (i.e., a purely velocity-dependent
-friction force) is NOT used. A disadvantage of the Coulomb friction model
-is that there will always be some amount of drift of a body in the plane of
-contact, which is not what is observed in real physical systems. When the
-net force applied to a body in a direction tangent to a contact plane is less
-than the limiting value of the static friction force (mu*fNormal), the body
-should not drift but remain fixed in place. The strategy employed in some
-Coulomb models is to make the damping coefficient so large that the drift
-velocity is rendered negligibly small.  Unfortunately, the consequence is
-often very small integration step sizes (i.e., the equations become stiff).
-ExponentialSpringForce uses a spring-based frictional model that includes
-a position-dependent (elastic) term.  Doing so eliminates drift velocity
-entirely while maintaining relatively large integration step sizes.
+employed. ExponentialSpringForce uses a spring-based frictional model that
+includes a velocity-depending (damping) term AND a position-dependent
+(elastic) term. By including the elastic term, drift is entirely eliminated
+and relatively large integration step sizes are maintained.
 
 In initial comparisons, using class ExponentialSpringForce to model
 contact resulted in simulation cpu times that were typically 4 times less
