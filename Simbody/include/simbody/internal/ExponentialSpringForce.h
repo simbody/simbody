@@ -77,14 +77,14 @@ self-consistent units by re-specifying all parameters.
 
 Finally, there are 2 quantities not managed by this class that can be used
 to further customize the behavior of an ExponentialSpringForce instance: the
-static coefficient of friction (mus) and the kinetic coefficient of friction
-(muk). mus and muk are parameters, but they are not implemented as
+static coefficient of friction (μₛ) and the kinetic coefficient of friction
+(μₖ). μₛ and μₖ are parameters, but they are not implemented as
 Topology-stage variables; they are implemented as Dynamics-stage discrete
 state variables. Thus, they can be changed during the course of a simulation
 without invalidating the System at Stage::Topology. This functionality allows
 a contact plane to posses non-uniform frictional characteristics across its
-surface. For example, a patch of ice on a sidewalk could be modeled. mus and
-muk can be set during a simulation using ExponentialSpringForce::setMuStatic()
+surface. For example, a patch of ice on a sidewalk could be modeled. μₛ and
+μₖ can be set during a simulation using ExponentialSpringForce::setMuStatic()
 and ExponentialSpringForce::setMuKinetic().
 
 For an explanation of the equations that underlie exponential spring forces,
@@ -141,7 +141,7 @@ public:
     /** Set both the elasticity and viscosity of the friction spring
     associated with an exponential spring. The value that is set for the
     viscosity is computed so that critical damping would result for a
-    specified mass (i.e., kv = 2*sqrt(kp*mass)). A call to this method
+    specified mass (i.e., kᵥ = 2*sqrt(kₚ*mass)). A call to this method
     overrides any values set previously by calls to setElasticity() or
     setViscosity().
     @param kp Elasticity of the friction spring. kp should be positive.
@@ -170,8 +170,8 @@ public:
     overrides any value of viscosity previously set by a call to
     setElasticityAndComputeViscosity(). Setting the viscosity equal
     to 0.0 is fine, but may not have the expected result.  If a body is not
-    sliding, setting kv = 0.0 will simply allow the body to vibrate in place
-    indefinitely. If a body is sliding, even if kv = 0.0, the kinetic energy
+    sliding, setting kᵥ = 0.0 will simply allow the body to vibrate in place
+    indefinitely. If a body is sliding, even if kᵥ = 0.0, the kinetic energy
     of the body will still be dissipated because the frictional force will
     not be zero. (The elastic part of the friction spring is stretched and so
     still applies a force, but the potential energy stored in the spring is
@@ -195,9 +195,9 @@ public:
     static and kinetic coefficients of friction. The transition is mediated
     by a rising or falling exponential that is asymptotic to mu static or
     or mu kinetic respectively.
-    @param tau Time constant for sliding transitions. The default value of tau
-    is 0.01 s. tau must be positive. */
-    void setSlidingTimeConstant(Real tau);
+    @param τ Time constant for sliding transitions. The default value of τ
+    is 0.01 s. τ must be positive. */
+    void setSlidingTimeConstant(Real τ);
 
     /** Get the time constant for transitioning back and forth between the
     static and kinetic coefficients of friction.
@@ -468,57 +468,64 @@ suffix refers to a quantity that lies in the contact plane.
 
 Normal %Force (positive y-axis) \n
 The elastic part of the normal force is computed using an exponential
-whose shape is a function of three parameters (d0, d1, and d2):
+whose shape is a function of three parameters (d₀, d₁, and d₂):
 
-        fyElastic = d1 * exp(d2 * (py - d0)),
+        fyElastic = d₁exp(d₂(py-d₀)),
 
 where py is the height above the contact plane of the specified Station
 on the MobilizedBody. The damping part is linear in velocity and scaled by the
 elastic part:
 
-        fyDamping = - kv*vy * fyElastic,
+        fyDamping = - kyᵥ vy fyElastic,
 
-where vy is the normal component of the velocity of the specified Station.
-All together, the spring force in the normal direction is given by
+where vy is the normal component of the velocity of the specified Station and
+kyᵥ is the damping coefficient for the normal direction. All together, the
+spring force in the normal direction is given by
 
         fy  = fyElastic + fyDamping
-            = d1*exp(d2*(py-d0)) - kv*vy * d1*exp(d2*(py-d0))
+            = d₁exp(d₂(py-d₀)) - kyᵥ vy d₁exp(d₂(py-d₀)))
+            = d₁exp(d₂(py-d₀)) (1 - kyᵥ vy)
+
+which has the form of the Hunt & Crossley damping model. See K. H. Hunt and
+F. R. E. Crossley (1975). Coefficient of Restitution Interpreted as Damping in
+Vibroimpact. ASME Journal of Applied Mechanics, pp. 440-445.
+
 
 Friction %Force (x-z plane) \n
 Friction force (a vector because its direction in the x-z plane can change)
 is implemented using a damped linear spring. The elastic and viscous terms
 are given by
 
-        fricElas = -kp*(pxy-p0)
+        fricElas = -kₚ (pxy-p₀)
 
-        fricDamp = -kv*(vxy)
+        fricDamp = -kᵥ vxy
 
 and the total friction force is given by
 
         friction = fricElas + fricDamp
 
-where kp is the spring elasticity, kv is the spring viscosity, pxy is the
-position of the body station projected onto the contact plane, p0 is the
+where kₚ is the spring elasticity, kᵥ is the spring viscosity, pxy is the
+position of the body station projected onto the contact plane, p₀ is the
 current spring zero, which always resides in the contact plane, and vxy is
 the velocity of the body station in the contact plane.
 
-By default, the frictional parameters kp and kv are chosen to result in
+By default, the frictional parameters kₚ and kᵥ are chosen to result in
 critical damping for a specified mass:
 
-        kv = 2.0 * sqrt(kp*mass)
+        kᵥ = 2.0 * sqrt(kₚ*mass)
 
-Valid values of kp can range widely (e.g., kp = 1,000 to kp = 1,000,000)
+Valid values of kₚ can range widely (e.g., kₚ = 1,000 to kₚ = 1,000,000)
 depending on the material properties of the MobilizedBody and the contact
 plane. In addition to being set by the above equation for critical damping,
-kv can be set to 0.0 or to some other independent quantity. In general, the
-higher kp and kv, the smaller the integration step size will need to be in
+kᵥ can be set to 0.0 or to some other independent quantity. In general, the
+higher kₚ and kᵥ, the smaller the integration step size will need to be in
 order to produce an accurate integration.
 
 A Moving Spring Zero\n
 When the computed frictional force exceeds the allowed limit, it is capped at
 the limit (fxyLimit):
 
-       fxyLimit = mu*fy
+       fxyLimit = μ fy
        if(friction.norm() > fxyLimit) {
            friction = fxyLimit * friction.normalize()
        }
@@ -526,21 +533,21 @@ the limit (fxyLimit):
 where mu is the instantaneous coefficient of friction (more below).
 
 If the magnitude of the elastic part of the friction force by itself exceeds
-fxyLimit, a new spring zero (p0) is found such that the magnitude of the
+fxyLimit, a new spring zero is found such that the magnitude of the
 elastic part would be equal to fxyLimit:
 
-       if(fricElas.norm() > fxyLimit)  p0New = pxy + (pxy-p0)/kp
+       if(fricElas.norm() > fxyLimit)  p₀ = pxy + (pxy-p₀)/kₚ
 
-In Simbody, p0 is handled as an Auto Update Discrete State.  Any change
-to p0 is made to the Update Cache (not to the State directly), and the
-integrator swaps this cache value with the actual p0 State after a
+In Simbody, p₀ is handled as an Auto Update Discrete State. Any change
+to p₀ is made to the Update Cache (not to the State directly), and the
+integrator swaps this cache value with the actual p₀ State after a
 successful integration step is obtained.
 
 Coefficients of Friction \n
 Coefficients of kinetic (sliding) and static (fixed) friction can be
 specified for the spring subject to the following constraints:
 
-       0.0 ≤ muk ≤ mus ≤ 1.0
+       0.0 ≤ μₖ ≤ μₛ ≤ 1.0
 
 A continuous state variable (Z = Sliding) is used to characterize the
 sliding state of the spring.
@@ -551,29 +558,29 @@ sliding state of the spring.
 The instantaneous coefficient of friction (mu) is calculated based on the
 value of Sliding:
 
-        mu = mus - Sliding*(mus - muk)
+        μ = μₛ - Sliding*(μₛ - μₖ)
 
 The time derivative of Sliding is used to drive Sliding toward the
 extreme of 0.0 or 1.0, depending on the following criteria:
 
 When the frictional force exceeds its limit, Sliding is driven toward 1:
 
-        if (friction.norm() >= fxyLimit)  SlidingDot = (1.0-Sliding)/tau
+        if (friction.norm() >= fxyLimit)  SlidingDot = (1.0-Sliding)/τ
 
 When vxy falls below some specified "settle" velocity (e.g., 0.01 m/s) AND
 the frictional force is less than its limit, Sliding is driven toward 0:
 
-        else if (vxy.norm < 0.01)  SlidingDot = -Sliding/tau
+        else if (vxy.norm < 0.01)  SlidingDot = -Sliding/τ
 
 Otherwise, no change to the Sliding state is made:
 
         else  SlidingDot = 0.0
 
-In the above equations, tau is the characteristic time it takes for the Sliding
+In the above equations, τ is the characteristic time it takes for the Sliding
 state to rise or decay. The motivation for using a continuous state variable
 for Sliding is that, although the transition between fixed and sliding may
 happen quickly, it does not happen instantaneously.  And, modeling Sliding
-based on a differential equation ensures that mu is continuous.
+based on a differential equation ensures that μ is continuous.
 
 Future Enhancements \n
 Future enhancements might include the capacity to
@@ -587,13 +594,13 @@ coin that is closest to the table.
 STATES
 ------
 PARAMETERS (implemented as discrete states)\n
-    mus = Static coefficient of friction.  0.0  mus ≤ 1.0 \n
-    muk = Kinetic coefficient of friction.  0.0 ≤ muk ≤ mus \n
+    μₛ = Static coefficient of friction.  0.0  μₛ ≤ 1.0 \n
+    μₖ = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ \n
     station = Point on the MobilizedBody expressed in the body frame.
 
 
 AUTO UPDATE DISCRETE STATE\n
-    p0 = Zero of the frictional spring.
+    p₀ = Zero of the frictional spring.
 
 
 CONTINUOUS STATE\n
@@ -626,14 +633,14 @@ public:
     will be applied. The position and velocity of this point relative to
     the contact plane determine the magnitude and direction of the contact
     force.
-    @param mus Initial value of the static coefficient of friction.
-    0.0 ≤ mus ≤ 1.0
-    @param muk Initial value of the kinetic coefficient of friction.
-    0.0 ≤ muk ≤ mus */
+    @param μₛ Initial value of the static coefficient of friction.
+    0.0 ≤ μₛ ≤ 1.0
+    @param μₖ Initial value of the kinetic coefficient of friction.
+    0.0 ≤ μₖ ≤ μₛ */
     ExponentialSpringForce(MultibodySystem& system,
         const Transform& contactPlane,
         const MobilizedBody& body,const Vec3& station,
-        Real mus, Real muk);
+        Real μₛ, Real μₖ);
 
     /** Construct an exponential spring force object with customized
     parameters.
@@ -646,13 +653,13 @@ public:
     will be applied. The position and velocity of this point relative to
     the contact plane determine the magnitude and direction of the contact
     force.
-    @param mus Static coefficient of friction.   0.0 ≤ mus ≤ 1.0
-    @param muk Kinetic coefficient of friction.  0.0 ≤ muk ≤ mus
+    @param μₛ Static coefficient of friction.   0.0 ≤ μₛ ≤ 1.0
+    @param μₖ Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
     @param params Customized parameters. */
     ExponentialSpringForce(MultibodySystem& system,
         const Transform& contactPlane,
         const MobilizedBody& body, const Vec3& station,
-        Real mus, Real muk, const ExponentialSpringParameters& params);
+        Real μₛ, Real μₖ, const ExponentialSpringParameters& params);
 
     /** Set the customizable parameters on this exponential spring instance.
     To do this, create an ExponentialSpringParameters object, set the desired
@@ -677,35 +684,36 @@ public:
     is streamlined. */
     const ExponentialSpringParameters& getParameters() const;
 
-    /** Set the static coefficient of friction (mus) for this exponential
+    /** Set the static coefficient of friction (μₛ) for this exponential
     spring.
-    The value of mus is held in the System's State object. Unlike the
-    parameters managed by ExponentialSpringParameters, mus can be set at any
-    time during a simulation. A change to mus will invalidate the System at
+    The value of μₛ is held in the System's State object. Unlike the
+    parameters managed by ExponentialSpringParameters, μₛ can be set at any
+    time during a simulation. A change to μₛ will invalidate the System at
     Stage::Dynamics.
     @param state State object that will be modified.
-    @param mus New value of the static coefficient of friction.
-    0.0 ≤ mus ≤ 1.0 */
-    void setMuStatic(State& state, const Real& mus);
+    @param μₛ New value of the static coefficient of friction.
+    0.0 ≤ μₛ ≤ 1.0 */
+    void setMuStatic(State& state, const Real& μₛ);
 
-    /** Get the static coefficient of friction (mus) held by the specified
+    /** Get the static coefficient of friction (μₛ) held by the specified
     state for this exponential spring.
-    @param state State object from which to retrieve mus. */
+    @param state State object from which to retrieve μₛ. */
     const Real& getMuStatic(const State& state) const;
  
-    /** Set the kinetic coefficient of friction (muk) for this exponential
+    /** Set the kinetic coefficient of friction (μₖ) for this exponential
     spring.
-    The value of muk is held in the System's State object. Unlike the
-    parameters managed by ExponentialSpringParameters, muk can be set at any
-    time during a simulation. A change to muk will invalidate the System at
-    Stage::Dynamics. @param state State object that will be modified.
-    @param muk New value of the kinetic coefficient of friction.
-    0.0 ≤ muk ≤ mus */
-    void setMuKinetic(State& state, const Real& muk);
+    The value of μₖ is held in the System's State object. Unlike the
+    parameters managed by ExponentialSpringParameters, μₖ can be set at any
+    time during a simulation. A change to μₖ will invalidate the System at
+    Stage::Dynamics.
+    @param state State object that will be modified.
+    @param muk Value of the kinetic coefficient of friction.
+    0.0 ≤ μₖ ≤ μₛ */
+    void setMuKinetic(State& state, const Real& μₖ);
 
-    /** Get the kinetic coefficient of friction (muk) held by the specified
+    /** Get the kinetic coefficient of friction (μₖ) held by the specified
     state for this exponential spring.
-    @param state State object from which to retrieve muk. */
+    @param state State object from which to retrieve μₖ. */
     const Real& getMuKinetic(const State& state) const;
 
     /** Reset the spring zero so that it coincides with the projection of the
