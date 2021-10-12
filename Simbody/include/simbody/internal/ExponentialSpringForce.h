@@ -421,10 +421,10 @@ approach is complex, particularly if there are multiple contact points on the
 body. Another approach is to apply a velocity-dependent frictional force
 that opposes any slide velocity (i.e., f = -kᵥv). This latter approach is
 relatively simple to implement, but will not entirely eliminate drift. By
-making kᵥ very large, the drift velocity can be made negligibly small but it
-cannot be brought exactly to zero. And, unfortunately, as kᵥ is made very
-large, the system equations become stiff, requiring integrator step size to
-be reduced, sometimes considerably (at least in explicit integrators).
+making kᵥ very large, the drift velocity can be made small but it cannot be
+brought to zero. And, unfortunately, as kᵥ is made large, the system equations
+can become stiff, requiring integrator step size to be reduced, sometimes
+considerably (at least in explicit integrators).
 
 Part of the speed-up offered by ExponentialSpringForce derives, not from the
 use of an exponential for the normal force, but from the friction model
@@ -466,7 +466,8 @@ In the equations below, a variable with a "y" suffix (e.g., py or vy) refers
 to a quantity that is normal to the contact plane. A variables with an "xz"
 suffix refers to a quantity that lies in the contact plane.
 
-Normal %Force (positive y-axis) \n
+### Normal Force (positive y-axis)
+
 The elastic part of the normal force is computed using an exponential
 whose shape is a function of three parameters (d₀, d₁, and d₂):
 
@@ -490,8 +491,8 @@ which has the form of the Hunt & Crossley damping model. See K. H. Hunt and
 F. R. E. Crossley (1975). Coefficient of Restitution Interpreted as Damping in
 Vibroimpact. ASME Journal of Applied Mechanics, pp. 440-445.
 
+### Friction Force (x-z plane)
 
-Friction %Force (x-z plane) \n
 Friction force (a vector because its direction in the x-z plane can change)
 is implemented using a damped linear spring. The elastic and viscous terms
 are given by
@@ -521,7 +522,8 @@ kᵥ can be set to 0.0 or to some other independent quantity. In general, the
 higher kₚ and kᵥ, the smaller the integration step size will need to be in
 order to produce an accurate integration.
 
-A Moving Spring Zero\n
+### A Moving Spring Zero
+
 When the computed frictional force exceeds the allowed limit, it is capped at
 the limit (fxyLimit):
 
@@ -530,7 +532,7 @@ the limit (fxyLimit):
            friction = fxyLimit * friction.normalize()
        }
 
-where mu is the instantaneous coefficient of friction (more below).
+where μ is the instantaneous coefficient of friction (more below).
 
 If the magnitude of the elastic part of the friction force by itself exceeds
 fxyLimit, a new spring zero is found such that the magnitude of the
@@ -538,12 +540,14 @@ elastic part would be equal to fxyLimit:
 
        if(fricElas.norm() > fxyLimit)  p₀ = pxy + (pxy-p₀)/kₚ
 
-In Simbody, p₀ is handled as an Auto Update Discrete State. Any change
-to p₀ is made to the Update Cache (not to the State directly), and the
-integrator swaps this cache value with the actual p₀ State after a
-successful integration step is obtained.
+In Simbody, p₀ is handled as an Auto Update Discrete State. See
+State::allocateAutoUpdateDiscreteVariable() for a detailed description. Any
+change to p₀ is made to the Update Cache (not to the State directly), and the
+integrator copies this cache value to the actual p₀ State after a successful
+integration step is obtained.
 
-Coefficients of Friction \n
+### Coefficients of Friction
+
 Coefficients of kinetic (sliding) and static (fixed) friction can be
 specified for the spring subject to the following constraints:
 
@@ -558,31 +562,32 @@ sliding state of the spring.
 The instantaneous coefficient of friction (mu) is calculated based on the
 value of Sliding:
 
-        μ = μₛ - Sliding*(μₛ - μₖ)
+        μ = μₛ - Sliding (μₛ - μₖ)
 
 The time derivative of Sliding is used to drive Sliding toward the
 extreme of 0.0 or 1.0, depending on the following criteria:
 
 When the frictional force exceeds its limit, Sliding is driven toward 1:
 
-        if (friction.norm() >= fxyLimit)  SlidingDot = (1.0-Sliding)/τ
+        if (friction.norm() >= fxyLimit)  SlidingDot = (1.0-Sliding)/tau
 
 When vxy falls below some specified "settle" velocity (e.g., 0.01 m/s) AND
 the frictional force is less than its limit, Sliding is driven toward 0:
 
-        else if (vxy.norm < 0.01)  SlidingDot = -Sliding/τ
+        else if (vxy.norm < 0.01)  SlidingDot = -Sliding/tau
 
 Otherwise, no change to the Sliding state is made:
 
         else  SlidingDot = 0.0
 
-In the above equations, τ is the characteristic time it takes for the Sliding
+In the above equations, tau is the characteristic time it takes for the Sliding
 state to rise or decay. The motivation for using a continuous state variable
 for Sliding is that, although the transition between fixed and sliding may
 happen quickly, it does not happen instantaneously.  And, modeling Sliding
 based on a differential equation ensures that μ is continuous.
 
-Future Enhancements \n
+### Future Enhancements
+
 Future enhancements might include the capacity to
 1) use a polygonal mesh as the contact surface, and
 2) move the specified MobilizedBody Station in manner that adapts to the
@@ -593,26 +598,29 @@ coin that is closest to the table.
 ------
 STATES
 ------
-PARAMETERS (implemented as discrete states)\n
-    μₛ = Static coefficient of friction.  0.0  μₛ ≤ 1.0 \n
-    μₖ = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ \n
-    station = Point on the MobilizedBody expressed in the body frame.
+Each instance of ExponentialSpringForce posseses 6 states. These are listed
+below in the appropriate category:
 
+### DISCRETE STATES (parameters)
+μₛ = Static coefficient of friction.  0.0 ≤ μₛ ≤ 1.0  
+μₖ = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ  
+station = Point (Vec3) expressed in the body frame at which the force is
+exerted on the MobilizedBody.
 
-AUTO UPDATE DISCRETE STATE\n
-    p₀ = Zero of the frictional spring.
+### AUTO UPDATE DISCRETE STATE
+p₀ = Zero point (Vec3) of the frictional spring in the contact plane. p₀
+always lies in the contact plane and is expressed in the frame of the contact
+plane.
 
-
-CONTINUOUS STATE\n
-    Sliding = Indicator of whether the MobilizedBody is sliding
-    relative to the contact plane.
-
+### CONTINUOUS STATE
+Sliding = Indicator of whether the MobilizedBody is sliding relative to the
+contact plane.
 
 ----------
 PARAMETERS
 ----------
-Customizable parameters specifying the characteristics of the exponential
-spring are handled using ExponentialSpringParameters.
+Customizable Topology-stage parameters specifying the characteristics of the
+exponential spring are managed using ExponentialSpringParameters.
 
 ----
 DATA
