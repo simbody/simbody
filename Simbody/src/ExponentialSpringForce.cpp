@@ -37,11 +37,11 @@ public:
     ExponentialSpringForceImpl(const Transform& floor,
         const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
         const ExponentialSpringParameters& params);
-    Subsystem::Guts* cloneImpl() const;
+    Subsystem::Guts* cloneImpl() const override;
     int realizeSubsystemTopologyImpl(State& state) const override;
-    int realizeSubsystemDynamicsImpl(const State& state) const;
-    int realizeSubsystemAccelerationImpl(const State& state) const;
-    Real calcPotentialEnergy(const State& state) const;
+    int realizeSubsystemDynamicsImpl(const State& state) const override;
+    int realizeSubsystemAccelerationImpl(const State& state) const override;
+    Real calcPotentialEnergy(const State& state) const override;
     // Static coefficient of friction
     void setMuStatic(State& state, Real mus);
     const Real& getMuStatic(const State& state) const;
