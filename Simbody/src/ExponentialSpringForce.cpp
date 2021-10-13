@@ -16,6 +16,11 @@
  limitations under the License.
  ----------------------------------------------------------------------------*/
 
+
+#include "SimTKcommon.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/ForceSubsystem.h"
+#include "simbody/internal/ForceSubsystemGuts.h"
 #include "simbody/internal/ExponentialSpringForce.h"
 
 namespace SimTK {
@@ -86,185 +91,6 @@ private:
 using namespace SimTK;
 using std::cout;
 using std::endl;
-
-
-//=============================================================================
-// Class - ExponentialSpringParameters
-//=============================================================================
-//_____________________________________________________________________________
-// Default Constructor
-ExponentialSpringParameters::
-ExponentialSpringParameters() :
-    d0(0.0065905), d1(0.5336), d2(1150.0), kvNorm(0.5),
-    kpFric(2000.0), kvFric(0.0), kTau(100.0), vSettle(0.01) {
-    // The friction viscosity can be set for critical damping of a specified
-    // mass.  By default, this is done for a mass of 1.0 kg.
-    setElasticityAndComputeViscosity(kpFric);
-}
-//_____________________________________________________________________________
-// Copy Constructor
-ExponentialSpringParameters::
-ExponentialSpringParameters(const ExponentialSpringParameters& params) {
-    operator=(params);
-}
-//_____________________________________________________________________________
-// Assignment Operator
-ExponentialSpringParameters&
-ExponentialSpringParameters::
-operator=(const ExponentialSpringParameters& params) {
-    if(&params != this) {
-        d0 = params.d0;
-        d1 = params.d1;
-        d2 = params.d2;
-        kvNorm = params.kvNorm;
-        kpFric = params.kpFric;
-        kvFric = params.kvFric;
-        kTau = params.kTau;
-        vSettle = params.vSettle;
-    }
-    return *this;
-}
-//_____________________________________________________________________________
-// Set the parameters that control the shape of the exponential function.
-void
-ExponentialSpringParameters::
-setShapeParameters(Real d0, Real d1, Real d2) {
-    // d0
-    this->d0 = d0;
-
-    // d1
-    if(d1 <= 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - d1 should be positive!"
-            << endl;
-    } else this->d1 = d1;
-
-    // d2
-    if(d2 <= 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - d2 should be positive!"
-            << endl;
-    } else this->d2 = d2;
-}
-//_____________________________________________________________________________
-// Get the parameters that control the shape of the exponential function.
-void
-ExponentialSpringParameters::
-getShapeParameters(Real &d0, Real& d1, Real& d2) const {
-    d0 = this->d0;
-    d1 = this->d1;
-    d2 = this->d2;
-}
-//_____________________________________________________________________________
-// Set the viscosity of the exponential spring.  This quanitiy only affects
-// the damping in the direction normal to the floor.
-void
-ExponentialSpringParameters::
-setNormalViscosity(Real& kvNorm) {
-    if(kvNorm < 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - kvNorm should be zero "
-            << "or positive!" << endl;
-    } else this->kvNorm = kvNorm;
-}
-//_____________________________________________________________________________
-// Get the viscosity of the exponential spring.  This is the viscosity
-// that applies to velocity in the normal direction.
-Real
-ExponentialSpringParameters::
-getNormalViscosity() const {
-    return kvNorm;
-}
-//_____________________________________________________________________________
-// Set the elasticity and compute the visosity to produce critically
-// damped motion for a specified mass.
-void
-ExponentialSpringParameters::
-setElasticityAndComputeViscosity(Real kp, Real mass) {
-    // Set the elasticity
-    setElasticity(kp);
-
-    // Compute the viscosity
-    if(mass<=0.0) {
-        // An exception should be throw, but for now...
-        cout<<"ExponentialSpringParameters: ERR - mass should be positive!"
-            <<endl;
-    } else this->kvFric = 2.0 * std::sqrt(this->kpFric * mass);
-}
-//_____________________________________________________________________________
-// Set the elasticity of the friction spring.
-void
-ExponentialSpringParameters::
-setElasticity(Real kp) {
-    if(kp <= 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - kpFric should be positive!"
-            << endl;
-    } else this->kpFric = kp;
-}
-//_____________________________________________________________________________
-// Get the elasticity of the friction spring.
-Real
-ExponentialSpringParameters::
-getElasticity() const {
-    return kpFric;
-}
-//_____________________________________________________________________________
-// Set the viscosity of the friction spring.
-void
-ExponentialSpringParameters::
-setViscosity(Real kv) {
-    if(kv < 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - kvFric should be zero or "
-            << "positive!" << endl;
-    } else this->kvFric = kv;
-}
-//_____________________________________________________________________________
-// Get the viscosity of the friction spring.
-Real
-ExponentialSpringParameters::
-getViscosity() const {
-    return kvFric;
-}
-//_____________________________________________________________________________
-// Set the time constant for transitioning between kinetic and static
-// frictional coefficients.
-void
-ExponentialSpringParameters::
-setSlidingTimeConstant(Real tau) {
-    if(tau <= 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - tau should be positive!"
-            << endl;
-    } else this->kTau = 1.0 / tau;
-}
-//_____________________________________________________________________________
-// Get the elasticity of the friction spring.
-Real
-ExponentialSpringParameters::
-getSlidingTimeConstant() const {
-    return 1.0 / kTau;
-}
-//_____________________________________________________________________________
-// Set the velocity for settling into using the static coefficient of friction.
-void
-ExponentialSpringParameters::
-setSettleVelocity(Real vSettle) {
-    if(vSettle<=0.0) {
-        // An exception should be throw, but for now...
-        cout<<"ExponentialSpringParameters: ERR - vSettle should be positive!"
-            <<endl;
-    } else this->vSettle = vSettle;
-}
-//_____________________________________________________________________________
-// Get the elasticity of the friction spring.
-Real
-ExponentialSpringParameters::
-getSettleVelocity() const {
-    return vSettle;
-}
-
 
 //=============================================================================
 // Class - ExponentialSpringData
@@ -458,11 +284,20 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     // Not used to calculate force, but likely useful for visualization
     data.pxz_G = contactPlane.shiftFrameStationToBase(data.pxz);
 
+    // Get all the parameters upfront
+    Real d0, d1, d2;
+    params.getShapeParameters(d0, d1, d2);
+    Real kvNorm = params.getNormalViscosity();
+    Real kpFric = params.getElasticity();
+    Real kvFric = params.getViscosity();
+    Real kTau = 1.0 / params.getSlidingTimeConstant();
+    Real vSettle = params.getSettleVelocity();
+
     // Normal Force (perpendicular to floor) --------------------------------
     // Elastic Part
-    data.fyElas = params.d1*std::exp(-params.d2*(data.py-params.d0));
+    data.fyElas = d1*std::exp(-d2*(data.py-d0));
     // Damping Part
-    data.fyDamp = params.kvNorm * data.vy * data.fyElas;
+    data.fyDamp = kvNorm * data.vy * data.fyElas;
     // Total
     data.fy = data.fyElas-data.fyDamp;
     // Don't allow the normal force to be negative or too large.
@@ -486,10 +321,10 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     p0[1] = 0.0;
     // Elastic part
     Vec3 r = data.pxz - p0;
-    data.fricElas = -params.kpFric * r;
+    data.fricElas = -kpFric * r;
     Real fxyElas = data.fricElas.norm();
     // Viscous part (damping)
-    data.fricDamp = -params.kvFric * data.vxz;
+    data.fricDamp = -kvFric * data.vxz;
     // Total
     data.fric = data.fricElas + data.fricDamp;
     data.fxy = data.fric.norm();
@@ -508,7 +343,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
         // Compute a new spring zero.
         fxyElas = data.fxyLimit;
         fricElasNew = fxyElas * data.fricElas.normalize();
-        p0New = data.pxz + fricElasNew / params.kpFric;
+        p0New = data.pxz + fricElasNew / kpFric;
         // Make sure that p0 is always in the plane of the floor.
         p0New[1] = 0.0;
         // Update the spring zero cache and mark the cache as realized.
@@ -520,8 +355,8 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     // Update SlidingDot
     Real vMag = data.vxz.norm();
     Real slidingDot = 0.0;
-    if (limitReached)  slidingDot = params.kTau*(1.0 - sliding);
-    else if (vMag < params.vSettle)  slidingDot = -params.kTau*sliding;
+    if (limitReached)  slidingDot = kTau*(1.0 - sliding);
+    else if (vMag < vSettle)  slidingDot = -kTau*sliding;
     updSlidingDotInCache(state, slidingDot);
 
     // Total spring force expressed in the floor frame
@@ -563,12 +398,14 @@ calcPotentialEnergy(const State& state) const {
     const ExponentialSpringData& data = getData(state);
 
     // Strain energy in the normal direction (exponential spring)
-    double energy = data.fyElas / params.d2;
+    Real d0, d1, d2;
+    params.getShapeParameters(d0, d1, d2);
+    double energy = data.fyElas / d2;
 
     // Strain energy in the tangent plane (friction spring)
     Vec3 p0 = getSprZero(state);
     Vec3 r = data.pxz - p0;
-    energy += 0.5 * params.kpFric * r.norm() * r.norm();
+    energy += 0.5 * params.getElasticity() * r.norm() * r.norm();
 
     return energy;
 }
