@@ -437,14 +437,14 @@ public:
     will be applied. The position and velocity of this point relative to
     the contact plane determine the magnitude and direction of the contact
     force.
-    @param μₛ Initial value of the static coefficient of friction.
+    @param mus Initial value of the static coefficient of friction.
     0.0 ≤ μₛ ≤ 1.0
-    @param μₖ Initial value of the kinetic coefficient of friction.
+    @param muk Initial value of the kinetic coefficient of friction.
     0.0 ≤ μₖ ≤ μₛ */
     ExponentialSpringForce(MultibodySystem& system,
         const Transform& contactPlane,
         const MobilizedBody& body,const Vec3& station,
-        Real μₛ, Real μₖ);
+        Real mus, Real muk);
 
     /** Construct an exponential spring force object with customized
     parameters.
@@ -457,13 +457,13 @@ public:
     will be applied. The position and velocity of this point relative to
     the contact plane determine the magnitude and direction of the contact
     force.
-    @param μₛ Static coefficient of friction.   0.0 ≤ μₛ ≤ 1.0
-    @param μₖ Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
+    @param mus Static coefficient of friction.   0.0 ≤ μₛ ≤ 1.0
+    @param muk Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
     @param params Customized parameters. */
     ExponentialSpringForce(MultibodySystem& system,
         const Transform& contactPlane,
         const MobilizedBody& body, const Vec3& station,
-        Real μₛ, Real μₖ, const ExponentialSpringParameters& params);
+        Real mus, Real muk, const ExponentialSpringParameters& params);
 
     /** Set the customizable parameters on this exponential spring instance.
     To do this, create an ExponentialSpringParameters object, set the desired
@@ -495,9 +495,9 @@ public:
     time during a simulation. A change to μₛ will invalidate the System at
     Stage::Dynamics.
     @param state State object that will be modified.
-    @param μₛ New value of the static coefficient of friction.
+    @param mus New value of the static coefficient of friction.
     0.0 ≤ μₛ ≤ 1.0 */
-    void setMuStatic(State& state, const Real& μₛ);
+    void setMuStatic(State& state, const Real& mus);
 
     /** Get the static coefficient of friction (μₛ) held by the specified
     state for this exponential spring.
@@ -513,7 +513,7 @@ public:
     @param state State object that will be modified.
     @param muk Value of the kinetic coefficient of friction.
     0.0 ≤ μₖ ≤ μₛ */
-    void setMuKinetic(State& state, const Real& μₖ);
+    void setMuKinetic(State& state, const Real& muk);
 
     /** Get the kinetic coefficient of friction (μₖ) held by the specified
     state for this exponential spring.
