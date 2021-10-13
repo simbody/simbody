@@ -227,6 +227,6 @@ private:
 };
 
 
-} // namespace SimTK
-#endif SimTK_SIMBODY_EXPONENTIAL_SPRING_PARAMETERS_H_
+}  // namespace SimTK
+#endif // SimTK_SIMBODY_EXPONENTIAL_SPRING_PARAMETERS_H_
 

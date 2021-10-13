@@ -547,5 +547,5 @@ public:
 
 
 } // namespace SimTK
-#endif SimTK_SIMBODY_EXPONENTIAL_SPRING_FORCE_H_
+#endif // SimTK_SIMBODY_EXPONENTIAL_SPRING_FORCE_H_
 
