@@ -11,6 +11,10 @@
 # was replaced with C++11 threading in 2018.
 #-----------------------------------------------------------
 
+if (WINDOWS_USE_EXTERNAL_LIBS)
+    return()
+endif()
+
 set(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${CMAKE_HOST_SYSTEM_NAME})
 
 if(WIN32 AND NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
@@ -197,7 +201,7 @@ if(WIN32 AND NOT BUILD_USING_OTHER_LAPACK)
 endif()
 
 # There is just one item in PLATFORM_INCLUDE_DIRECTORIES.
-if(MSVC AND NOT WINDOWS_USE_EXTERNAL_LIBS)
+if(MSVC)
     set(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_ROOT}/include")
 endif()
 # Copy to parent.
