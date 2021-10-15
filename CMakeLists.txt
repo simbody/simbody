@@ -46,6 +46,9 @@ option(INSTALL_DOCS
        "Install documentation."
        ON)
 
+# Declare the option to use external libraries on Windows
+option(WINDOWS_USE_EXTERNAL_LIBS OFF)
+
 # Check compiler version
 if(MSVC)
     if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
@@ -529,7 +532,7 @@ endif()
 # Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
 set(BUILD_USING_OTHER_LAPACK "" CACHE STRING
  "If you have your own Lapack and Blas, put libraries here, separated by semicolons (full paths or paths that are on the (DY)LD_LIBRARY_PATH (UNIX) or PATH (Windows)). See LAPACK_BEING_USED to see what's actually being used.")
-if(WIN32)
+if(WIN32 AND NOT WINDOWS_USE_EXTERNAL_LIBS)
     set(LAPACK_PLATFORM_DEFAULT lapack;blas)
 else()
     find_package(BLAS)
