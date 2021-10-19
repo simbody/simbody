@@ -426,26 +426,6 @@ Stage::Dynamics. The cached data is made accessible via the helper class
 ExponentialSpringData. */
 class SimTK_SIMBODY_EXPORT ExponentialSpringForce : public ForceSubsystem {
 public:
-    /** Construct an exponential spring force object with default values for
-    parameters like elasticity, viscosity, etc.
-    @param system The system being simulated or studied.
-    @param contactPlane Transform specifying the location and orientation of
-    the contact plane. The positive y-axis defines the normal of the contact
-    plane; friction forces occur in the x-z plane.
-    @param body Body that will interact / collide with the contact plane.
-    @param station Point on the specified body at which the contact force
-    will be applied. The position and velocity of this point relative to
-    the contact plane determine the magnitude and direction of the contact
-    force.
-    @param mus Initial value of the static coefficient of friction.
-    0.0 ≤ μₛ ≤ 1.0
-    @param muk Initial value of the kinetic coefficient of friction.
-    0.0 ≤ μₖ ≤ μₛ */
-    ExponentialSpringForce(MultibodySystem& system,
-        const Transform& contactPlane,
-        const MobilizedBody& body,const Vec3& station,
-        Real mus, Real muk);
-
     /** Construct an exponential spring force object with customized
     parameters.
     @param system The system being simulated or studied.
@@ -457,13 +437,15 @@ public:
     will be applied. The position and velocity of this point relative to
     the contact plane determine the magnitude and direction of the contact
     force.
-    @param mus Static coefficient of friction.   0.0 ≤ μₛ ≤ 1.0
-    @param muk Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
+    @param mus Static coefficient of friction. No upper bound. 0.0 ≤ μₛ
+    @param muk Kinetic coefficient of friction. 0.0 ≤ μₖ ≤ μₛ. If μₖ > μₛ,
+    μₖ is set equal to μₛ.
     @param params Customized parameters. */
     ExponentialSpringForce(MultibodySystem& system,
         const Transform& contactPlane,
         const MobilizedBody& body, const Vec3& station,
-        Real mus, Real muk, const ExponentialSpringParameters& params);
+        Real mus, Real muk,
+        ExponentialSpringParameters params = ExponentialSpringParameters());
 
     /** Set the customizable parameters on this exponential spring instance.
     To do this, create an ExponentialSpringParameters object, set the desired
@@ -495,9 +477,9 @@ public:
     time during a simulation. A change to μₛ will invalidate the System at
     Stage::Dynamics.
     @param state State object that will be modified.
-    @param mus New value of the static coefficient of friction.
-    0.0 ≤ μₛ ≤ 1.0 */
-    void setMuStatic(State& state, const Real& mus);
+    @param mus Value of the static coefficient of friction. No upper bound.
+    0.0 ≤ μₛ. If μₛ < μₖ, μₖ is set equal to μₛ. */
+    void setMuStatic(State& state, Real mus);
 
     /** Get the static coefficient of friction (μₛ) held by the specified
     state for this exponential spring.
@@ -511,9 +493,9 @@ public:
     time during a simulation. A change to μₖ will invalidate the System at
     Stage::Dynamics.
     @param state State object that will be modified.
-    @param muk Value of the kinetic coefficient of friction.
-    0.0 ≤ μₖ ≤ μₛ */
-    void setMuKinetic(State& state, const Real& muk);
+    @param muk Value of the kinetic coefficient of friction. No upper bound.
+    0.0 ≤ μₖ. If μₖ > μₛ, μₛ is set equal to μₖ. */
+    void setMuKinetic(State& state, Real muk);
 
     /** Get the kinetic coefficient of friction (μₖ) held by the specified
     state for this exponential spring.

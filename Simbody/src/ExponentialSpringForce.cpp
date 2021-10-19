@@ -31,8 +31,8 @@ namespace SimTK {
 class ExponentialSpringForceImpl : public ForceSubsystem::Guts {
 public:
     // Constuctor for default parameters.
-    ExponentialSpringForceImpl(const Transform& floor,
-        const MobilizedBody& body, const Vec3& station, Real mus, Real muk);
+    //ExponentialSpringForceImpl(const Transform& floor,
+    //    const MobilizedBody& body, const Vec3& station, Real mus, Real muk);
     // Constructor for customized parameters.
     ExponentialSpringForceImpl(const Transform& floor,
         const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
@@ -141,31 +141,25 @@ operator=(const ExponentialSpringData& data) {
     return *this;
 }
 
-//_____________________________________________________________________________
-// Constructor
-ExponentialSpringForceImpl::
-ExponentialSpringForceImpl(const Transform& floor,
-    const MobilizedBody &body, const Vec3& station, Real mus, Real muk) :
-    ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
-    contactPlane(floor), body(body), station(station),
-    defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0.,0.,0.))
-{
-    // Check for valid static coefficient
-    if(defaultMus < 0.0) defaultMus = 0.0;
-    if(defaultMus > 1.0) defaultMus = 1.0;
 
-    // Check for valid kinetic coefficient
-    if(defaultMuk < 0.0) defaultMuk = 0.0;
-    if(defaultMuk > defaultMus) defaultMuk = defaultMus;
-}
 //_____________________________________________________________________________
 // Constructor
 ExponentialSpringForceImpl::
 ExponentialSpringForceImpl(const Transform& floor,
     const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
     const ExponentialSpringParameters& params) :
-    ExponentialSpringForceImpl(floor,body,station,mus,muk)
+    ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
+    contactPlane(floor), body(body), station(station),
+    defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0., 0., 0.))
 {
+    // Check for valid static coefficient
+    if(defaultMus < 0.0) defaultMus = 0.0;
+
+    // Check for valid kinetic coefficient
+    if(defaultMuk < 0.0) defaultMuk = 0.0;
+    if(defaultMuk > defaultMus) defaultMuk = defaultMus;
+
+    // Assign the parameters
     this->params = params;
 }
 //_____________________________________________________________________________
@@ -199,7 +193,7 @@ realizeSubsystemTopologyImpl(State& state) const {
     // (mu*Fnormal).
     // Because the SprZero could potentially need updating after every
     // integration step, it is treated as an AutoUpdate Discrete Variable.
-    cout <<"Topology: allocating auto-update state variable, SprZero."<<endl;
+    //cout <<"Topology: allocating auto-update state variable, SprZero."<<endl;
     // Index to the actual discrete variable
     // Changing the SprZero will invalidate the Dynamics Stage.
     // The SprZero held in Cache depends on realization through the Velocity
@@ -220,7 +214,7 @@ realizeSubsystemTopologyImpl(State& state) const {
     // Simbody terminology), changes in Sliding are made only by setting
     // the value of its time derivative, SlidingDot, which is updated in
     // realizeSubsystemAccelerationImpl().
-    cout << "Topology: allocating Z variable, Sliding." << endl;
+    //cout << "Topology: allocating Z variable, Sliding." << endl;
     Real initialValue = 0.0;
     Vector zInit(1, initialValue);
     indexZ = allocateZ(state, zInit);
@@ -414,15 +408,15 @@ calcPotentialEnergy(const State& state) const {
 // Update the coefficient of static friction for this spring.
 // The specified value must obey the following constraints:
 //
-//        0.0 <= muk <= mus <= 1.0
+//        0.0 <= muk <= mus
 //
-// If mus is out of bounds 0.0 and 1.0, mus is set to the nearest bound.
+// If mus is less than 0.0, mus is set to 0.0.
 // If mus is less than mus, muk is set to mus.
 void
 ExponentialSpringForceImpl::
 setMuStatic(State& state, Real mus) {
+    // Keep mus greter than or equal to 0.0.
     if (mus < 0.0) mus = 0.0;
-    if (mus > 1.0) mus = 1.0;
     Value<Real>::updDowncast(updDiscreteVariable(state, indexMus)) = mus;
 
     // Make sure muk is less than or equal to mus
@@ -444,15 +438,15 @@ getMuStatic(const State& state) const {
 // Update the coefficient of kinetic friction for this spring.
 // The specified value must obey the following constraints:
 //
-//        0.0 <= muk <= mus <= 1.0
+//       0.0 <= muk <= mus
 //
-// If muk is out of bounds 0.0 and 1.0, muk is set to the nearest bound.
+// If muk is less than 0.0, muk is set to 0.0.
 // If muk is greater than mus, mus is set to muk.
 void
 ExponentialSpringForceImpl::
 setMuKinetic(State& state, Real muk) const {
+    // Keep muk >= to zero.
     if (muk < 0.0) muk = 0.0;
-    if (muk > 1.0) muk = 1.0;
     Value<Real>::updDowncast(updDiscreteVariable(state, indexMuk)) = muk;
 
     // Make sure mus is greater than or equal to muk
@@ -676,24 +670,25 @@ ClampAboveZero(Real value, Real max) {
 //=============================================================================
 //_____________________________________________________________________________
 // Constructor for default spring parameters.
-ExponentialSpringForce::
-ExponentialSpringForce(MultibodySystem& system,
-    const Transform& contactPlane,
-    const MobilizedBody& body,const Vec3& station,
-    Real mus, Real muk)
-{
-    adoptSubsystemGuts(
-        new ExponentialSpringForceImpl(contactPlane, body, station,
-            mus, muk));
-    system.addForceSubsystem(*this);
-}
+//ExponentialSpringForce::
+//ExponentialSpringForce(MultibodySystem& system,
+//    const Transform& contactPlane,
+//    const MobilizedBody& body,const Vec3& station,
+//    Real mus, Real muk)
+//{
+//    adoptSubsystemGuts(
+//        new ExponentialSpringForceImpl(contactPlane, body, station,
+//            mus, muk));
+//    system.addForceSubsystem(*this);
+//}
+
 //_____________________________________________________________________________
-// Constructor for non-default spring parameters.
+// Constructor.
 ExponentialSpringForce::
 ExponentialSpringForce(MultibodySystem& system,
     const Transform& contactPlane,
     const MobilizedBody& body, const Vec3& station,
-    Real mus, Real muk, const ExponentialSpringParameters& params)
+    Real mus, Real muk, ExponentialSpringParameters params)
 {
     adoptSubsystemGuts(
         new ExponentialSpringForceImpl(contactPlane, body, station,
@@ -729,7 +724,7 @@ getParameters() const {
 // Set the static coefficient of fricition
 void
 ExponentialSpringForce::
-setMuStatic(State& state, const Real& mus) {
+setMuStatic(State& state, Real mus) {
     updImpl().setMuStatic(state, mus);
 }
 //_____________________________________________________________________________
@@ -744,7 +739,7 @@ getMuStatic(const State& state) const {
 // Set the kinetic coefficient of fricition
 void
 ExponentialSpringForce::
-setMuKinetic(State& state, const Real& muk) {
+setMuKinetic(State& state, Real muk) {
     updImpl().setMuKinetic(state, muk);
 }
 //_____________________________________________________________________________
