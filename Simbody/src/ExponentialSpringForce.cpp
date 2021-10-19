@@ -193,7 +193,7 @@ realizeSubsystemTopologyImpl(State& state) const {
     // (mu*Fnormal).
     // Because the SprZero could potentially need updating after every
     // integration step, it is treated as an AutoUpdate Discrete Variable.
-    //cout <<"Topology: allocating auto-update state variable, SprZero."<<endl;
+
     // Index to the actual discrete variable
     // Changing the SprZero will invalidate the Dynamics Stage.
     // The SprZero held in Cache depends on realization through the Velocity
@@ -214,7 +214,6 @@ realizeSubsystemTopologyImpl(State& state) const {
     // Simbody terminology), changes in Sliding are made only by setting
     // the value of its time derivative, SlidingDot, which is updated in
     // realizeSubsystemAccelerationImpl().
-    //cout << "Topology: allocating Z variable, Sliding." << endl;
     Real initialValue = 0.0;
     Vector zInit(1, initialValue);
     indexZ = allocateZ(state, zInit);
