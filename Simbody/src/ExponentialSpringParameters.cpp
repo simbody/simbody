@@ -43,23 +43,23 @@ ExponentialSpringParameters() :
 //_____________________________________________________________________________
 // Copy Constructor
 ExponentialSpringParameters::
-ExponentialSpringParameters(const ExponentialSpringParameters& params) {
-    operator=(params);
+ExponentialSpringParameters(const ExponentialSpringParameters& source) {
+    operator=(source);
 }
 //_____________________________________________________________________________
 // Assignment Operator
 ExponentialSpringParameters&
 ExponentialSpringParameters::
-operator=(const ExponentialSpringParameters& params) {
-    if(&params != this) {
-        d0 = params.d0;
-        d1 = params.d1;
-        d2 = params.d2;
-        kvNorm = params.kvNorm;
-        kpFric = params.kpFric;
-        kvFric = params.kvFric;
-        tau = params.tau;
-        vSettle = params.vSettle;
+operator=(const ExponentialSpringParameters& source) {
+    if(&source != this) {
+        d0 = source.d0;
+        d1 = source.d1;
+        d2 = source.d2;
+        kvNorm = source.kvNorm;
+        kpFric = source.kpFric;
+        kvFric = source.kvFric;
+        tau = source.tau;
+        vSettle = source.vSettle;
     }
     return *this;
 }
