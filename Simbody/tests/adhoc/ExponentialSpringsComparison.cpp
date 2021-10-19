@@ -121,7 +121,7 @@ int main() {
         bool VisOn = true;
 
         // Specify initial conditions.
-        int condition = 2;
+        int condition = 3;
         // 0 = sitting still
         // 1 = dropped
         // 2 = sliding
@@ -219,7 +219,7 @@ int main() {
             Transform floorXForm(floorTilt, floorOrigin);
             // Modify the default parameters if desired
             ExponentialSpringParameters params;
-            //params.setElasticityAndComputeViscosity(100000.0);
+            params.setElasticityAndComputeViscosity(100000.0);
             // Add an exponential spring at each corner of the block.
             spr1 = new ExponentialSpringForce(system, floorXForm,
                 *blockExp, Vec3(0.1, -0.1, 0.1), mu_s, mu_k, params);
@@ -330,7 +330,26 @@ int main() {
         // both blocks can be seen.
         if (ExpContactOn) {
             // Test modifying cooefficients of friction (states)
-            //spr4->setMuStatic(state, -3.5);
+            // Static
+            Real mus = mu_s;
+            spr1->setMuStatic(state, mus);
+            spr2->setMuStatic(state, mus);
+            spr3->setMuStatic(state, mus);
+            spr4->setMuStatic(state, mus);
+            spr5->setMuStatic(state, mus);
+            spr6->setMuStatic(state, mus);
+            spr7->setMuStatic(state, mus);
+            spr8->setMuStatic(state, mus);
+            // Kinetic
+            Real muk = mu_k;
+            spr1->setMuKinetic(state, muk);
+            spr2->setMuKinetic(state, muk);
+            spr3->setMuKinetic(state, muk);
+            spr4->setMuKinetic(state, muk);
+            spr5->setMuKinetic(state, muk);
+            spr6->setMuKinetic(state, muk);
+            spr7->setMuKinetic(state, muk);
+            spr8->setMuKinetic(state, muk);
             // Sitting Still
             if ((condition == 0) || (condition > 6)) {
                 blockExp->setQToFitRotation(state, R);
