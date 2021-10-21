@@ -25,6 +25,109 @@
 
 namespace SimTK {
 
+//=============================================================================
+/** ExponentialSpringData is an internal data structure used by the
+implementation class ExponentialSpringForceImpl to store and retrieve
+important quantities kept in the State's data cache.
+
+Note - As originally coded, users could access class ExponentialSpringData
+directly via a const reference. To make the exponential spring code less
+brittle, however, class ExponentialSpringData was migrated to being an
+internal data structure that is accessed directly only by class
+ExponentialSpringForceImpl. The data stored in ExponentialSpringData can
+now only be accessed by the typical user via conventional assessor methods
+in class ExponentialSpringForce.
+
+Even though ExponentialSpringData is now used only internally, the
+Doxygen-compliant comments originally written for the class might be helpful
+to developers. The original comments were therefore preserved and follow
+below:
+
+ExponentialSpringData is a helper class that is used to store key
+quantities associated with the ExponentialSpringForce Subsystem during a
+simulation. An instance of this class serves as the data Cache Entry for the
+ExponentialSpringForceImpl Subsystem. All of its member variables are
+guaranteed to be calculated and set once the System has been realized
+to Stage::Dynamics.
+
+To understand what the quantities organized by this class represent, a basic
+description of the contact problem that is solved, along with a description
+of coordinate frame conventions, will be helpful.
+
+Class ExponentialSpringForce computes and applies a contact force at a
+specified point on a MobilizedBody (i.e., a Station) due to interaction of
+that point with a specified contact plane. That plane is typically used to
+model interactions with a floor, but need not be limited to this use case.
+The contact plane can be rotated and displaced relative to the ground frame
+and so can be used to model a wall or ramp, for example.
+
+%Contact force computations are carried out in the frame of the contact plane.
+The positive y-axis of the contact frame defines the normal of the
+contact plane. The positive y-axis is the axis along which a repelling
+normal force (modeled using an exponential) is applied. The x-axis and
+z-axis of the contact frame are tangent to the contact plane. The friction
+force will always lie in x-z plane.
+
+Member variables with a "y" suffix (e.g., py, vy, or fy) indicate that
+these quantities are directed normal to the contact plane.  Member varaibles
+with an "xz" suffix (e.g., pxz, vxz, or fxz) indicate that these quantities
+lie in the contact plane (or tangent to it) and are associated with the
+friction force.
+
+Member variables with a "_G" suffix are expressed in the ground frame. Member
+variables without a "_G" suffix are expressed the contact plane frame. */
+struct ExponentialSpringData {
+    /** Position of the body spring station in the ground frame. */
+    Vec3 p_G;
+    /** Velocity of the body spring station in the ground frame. */
+    Vec3 v_G;
+    /** Position of the body spring station in the frame of the contact
+    plane. */
+    Vec3 p;
+    /** Velocity of the body spring station in the frame of the contact
+    plane. */
+    Vec3 v;
+    /** Displacement of the body spring station normal to the floor expressed
+    in the frame of the contact plane. */
+    Real py;
+    /** Velocity of the body spring station normal to the floor expressed
+    in the frame of the contact plane. */
+    Real vy;
+    /** Position of the body spring station projected onto the floor expressed
+    in the frame of the contact plane. */
+    Vec3 pxz;
+    /** Velocity of the body spring station in the plane of the floor
+    expressed in the frame of the contact plane. */
+    Vec3 vxz;
+    /** Elastic force in the normal direction expressed in the frame of the
+    contact plane. */
+    Real fyElas;
+    /** Damping force in the normal direction expressed in the frame of the
+    contact plane. */
+    Real fyDamp;
+    /** Total normal force expressed in the frame of the contact plane. */
+    Real fy;
+    /** Instantaneous coefficient of friction. */
+    Real mu;
+    /** Limit of the frictional force. */
+    Real fxyLimit;
+    /** Elastic frictional force expressed in the frame of the contact plane.*/
+    Vec3 fricElas;
+    /** Damping frictional force expressed in the frame of the contact plane.*/
+    Vec3 fricDamp;
+    /** Total frictional force (elastic + damping) expressed in the frame of
+    the contact plane. */
+    Vec3 fric;
+    /** Magnitude of the frictional force. */
+    Real fxy;
+    /** Resultant spring force (normal + friction) expressed in the floor
+    frame. */
+    Vec3 f;
+    /** Resultant spring force (normal + friction) expressed in the ground
+    frame. */
+    Vec3 f_G;
+};
+
  //=============================================================================
  // Class Declaration for ExponentialSpringForceImpl
  //=============================================================================
@@ -42,6 +145,12 @@ public:
     int realizeSubsystemDynamicsImpl(const State& state) const override;
     int realizeSubsystemAccelerationImpl(const State& state) const override;
     Real calcPotentialEnergy(const State& state) const override;
+    // Contact Plane.
+    const Transform& getContactPlane() const;
+    // Body.
+    const MobilizedBody& getBody() const;
+    // Spring Station.
+    const Vec3& getStation() const;
     // Static coefficient of friction
     void setMuStatic(State& state, Real mus);
     const Real& getMuStatic(const State& state) const;
@@ -85,62 +194,13 @@ private:
     mutable CacheEntryIndex indexData;
 };
 
+
 } // namespace SimTK
 
 
 using namespace SimTK;
 using std::cout;
 using std::endl;
-
-//=============================================================================
-// Class - ExponentialSpringData
-//=============================================================================
-//_____________________________________________________________________________
-// Default Constructor
-ExponentialSpringData::
-ExponentialSpringData() :
-    p_G(NaN), v_G(NaN), p(NaN), v(NaN),
-    py(NaN), vy(NaN), pxz(NaN), vxz(NaN), pxz_G(NaN),
-    fyElas(NaN), fyDamp(NaN), fy(NaN),
-    mu(NaN), fxyLimit(NaN),
-    fricElas(NaN), fricDamp(NaN), fric(NaN), fxy(NaN),
-    f(NaN), f_G(NaN) {}
-//_____________________________________________________________________________
-// Copy Constructor
-ExponentialSpringData::
-ExponentialSpringData(const ExponentialSpringData& data) {
-    operator=(data);
-}
-//_____________________________________________________________________________
-// Assignment Operator
-ExponentialSpringData&
-ExponentialSpringData::
-operator=(const ExponentialSpringData& data) {
-    if(&data!=this) {
-        p_G = data.p_G;
-        v_G = data.v_G;
-        p = data.p;
-        v = data.v;
-        py = data.py;
-        vy = data.vy;
-        pxz = data.pxz;
-        vxz = data.vxz;
-        pxz_G = data.pxz_G;
-        fyElas = data.fyElas;
-        fyDamp = data.fyDamp;
-        fy = data.fy;
-        mu = data.mu;
-        fxyLimit = data.fxyLimit;
-        fricElas = data.fricElas;
-        fricDamp = data.fricDamp;
-        fric = data.fric;
-        fxy = data.fxy;
-        f = data.f;
-        f_G = data.f_G;
-    }
-    return *this;
-}
-
 
 //_____________________________________________________________________________
 // Constructor
@@ -263,7 +323,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     data.p_G = body.findStationLocationInGround(state, station);
     data.v_G = body.findStationVelocityInGround(state, station);
 
-    // Transform the position and velocity into the floor frame.
+    // Transform the position and velocity into the contact frame.
     data.p = contactPlane.shiftBaseStationToFrame(data.p_G);
     data.v = contactPlane.xformBaseVecToFrame(data.v_G);
 
@@ -274,8 +334,6 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     // Tangent (in plane of Floor)
     data.pxz = data.p;    data.pxz[1] = 0.0;
     data.vxz = data.v;    data.vxz[1] = 0.0;
-    // Not used to calculate force, but likely useful for visualization
-    data.pxz_G = contactPlane.shiftFrameStationToBase(data.pxz);
 
     // Get all the parameters upfront
     Real d0, d1, d2;
@@ -401,6 +459,34 @@ calcPotentialEnergy(const State& state) const {
     energy += 0.5 * params.getElasticity() * r.norm() * r.norm();
 
     return energy;
+}
+
+//_____________________________________________________________________________
+// Get the Transform specifying the location and orientation of the Contact
+// Plane.
+const Transform&
+ExponentialSpringForceImpl::
+getContactPlane() const {
+    return contactPlane;
+}
+
+//_____________________________________________________________________________
+// Get the body (i.e., the MobilizedBody) for which this exponential spring
+// was instantiated.
+const MobilizedBody&
+ExponentialSpringForceImpl::
+getBody() const {
+    return body;
+}
+
+//_____________________________________________________________________________
+// Get the point that interacts with the contact plane and at which the force
+// is applied. The station is expressed in the frame of the body for which
+// this exponential spring was instantiated.
+const Vec3&
+ExponentialSpringForceImpl::
+getStation() const {
+    return station;
 }
 
 //_____________________________________________________________________________
@@ -695,6 +781,32 @@ ExponentialSpringForce(MultibodySystem& system,
     system.addForceSubsystem(*this);
 }
 //_____________________________________________________________________________
+// Get the Transform specifying the location and orientation of the Contact
+// Plane.
+const Transform&
+ExponentialSpringForce::
+getContactPlane() const {
+    return getImpl().getContactPlane();
+}
+//_____________________________________________________________________________
+// Get the point on the body that interacts with the contact plane and at
+// which the contact force is applied.
+const MobilizedBody&
+ExponentialSpringForce::
+getBody() const {
+    return getImpl().getBody();
+}
+//_____________________________________________________________________________
+// Get the point on the body that interacts with the contact plane and at
+// which the contact force is applied.
+const Vec3&
+ExponentialSpringForce::
+getStation() const {
+    return getImpl().getStation();
+}
+
+
+//_____________________________________________________________________________
 // Set new parameters for this exponential spring.
 //
 // Note that the underlying implementation (ExponentialSpringForceImpl) owns
@@ -760,16 +872,54 @@ resetSpringZero(State& state) const {
     getImpl().resetSprZero(state);
 }
 
+//-----------------------------------------------------------------------------
+// Spring Data Accessor Methods
+//-----------------------------------------------------------------------------
 //_____________________________________________________________________________
-// Retrieve access to a const reference to the data cache.  The System
-// should be realized through Stage::Dynamics before a call to this method;
-// an exception will be thrown otherwise.
-const ExponentialSpringData&
+// Get the spring force applied to the MobilizedBody.
+Vec3
 ExponentialSpringForce::
-getData(const State& state) const {
-    return getImpl().getData(state);
+getForce(const State& state, bool inGround) const {
+    Vec3 force;
+    if(inGround) {
+        force = getImpl().getData(state).f_G;
+    } else {
+        force = getImpl().getData(state).f;
+    }
+    return force;
+}
+//_____________________________________________________________________________
+// Get the point at which the spring force is applied to the MobilizedBody.
+Vec3
+ExponentialSpringForce::
+getForcePoint(const State& state, bool inGround) const {
+    Vec3 point;
+    if(inGround) {
+        getImpl().getData(state).p_G;
+    } else {
+       point = getImpl().getData(state).p;
+    }
+    return point;
+}
+//_____________________________________________________________________________
+// Get the position of the spring zero.
+Vec3
+ExponentialSpringForce::
+getSpringZeroPosition(const State& state, bool inGround) const {
+    Vec3 pos;
+    if(inGround) {
+        const Vec3& pxz = getImpl().getData(state).pxz;
+        pos = getContactPlane().shiftFrameStationToBase(pxz);
+    } else {
+        pos = getImpl().getData(state).pxz;
+    }
+    return pos;
 }
 
+
+//-----------------------------------------------------------------------------
+// Implmentation Accesssors
+//-----------------------------------------------------------------------------
 //_____________________________________________________________________________
 // Get a reference to the underlying implementation that will allow changes
 // to be made to underlying parameters and states.
