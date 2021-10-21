@@ -91,8 +91,10 @@ public:
     }
     void handleEvent(const State& state) const override {
         system.realize(state, Stage::Dynamics);
-        const ExponentialSpringData& data = spr.getData(state);
-        cout << state.getTime() << "\tf_G = " << data.f_G << endl;
+        Vec3 f_G = spr.getForce(state);
+        Vec3 p_G = spr.getForcePoint(state);
+        cout << state.getTime() << "\tp_G = " << p_G <<
+            "\tf_G = " << f_G << endl;
     }
 private:
     const MultibodySystem& system;
