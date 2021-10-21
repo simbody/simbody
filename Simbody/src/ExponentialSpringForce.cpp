@@ -23,8 +23,12 @@
 #include "simbody/internal/ForceSubsystemGuts.h"
 #include "simbody/internal/ExponentialSpringForce.h"
 
+
+
 namespace SimTK {
 
+//=============================================================================
+// Struct ExponentialSpringData
 //=============================================================================
 /** ExponentialSpringData is an internal data structure used by the
 implementation class ExponentialSpringForceImpl to store and retrieve
@@ -128,172 +132,139 @@ struct ExponentialSpringData {
     Vec3 f_G;
 };
 
- //=============================================================================
- // Class Declaration for ExponentialSpringForceImpl
- //=============================================================================
+
+ //============================================================================
+ // Class ExponentialSpringForceImpl
+ //============================================================================
 class ExponentialSpringForceImpl : public ForceSubsystem::Guts {
 public:
-    // Constuctor for default parameters.
-    //ExponentialSpringForceImpl(const Transform& floor,
-    //    const MobilizedBody& body, const Vec3& station, Real mus, Real muk);
-    // Constructor for customized parameters.
-    ExponentialSpringForceImpl(const Transform& floor,
-        const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
-        const ExponentialSpringParameters& params);
-    Subsystem::Guts* cloneImpl() const override;
-    int realizeSubsystemTopologyImpl(State& state) const override;
-    int realizeSubsystemDynamicsImpl(const State& state) const override;
-    int realizeSubsystemAccelerationImpl(const State& state) const override;
-    Real calcPotentialEnergy(const State& state) const override;
-    // Contact Plane.
-    const Transform& getContactPlane() const;
-    // Body.
-    const MobilizedBody& getBody() const;
-    // Spring Station.
-    const Vec3& getStation() const;
-    // Static coefficient of friction
-    void setMuStatic(State& state, Real mus);
-    const Real& getMuStatic(const State& state) const;
-    // Kinetic coefficient of friction
-    void setMuKinetic(State& state, Real muk) const;
-    const Real& getMuKinetic(const State& state) const;
-    // Spring Zero
-    void resetSprZero(State& state) const;
-    Vec3& updSprZero(State& state) const;
-    const Vec3& getSprZero(const State& state) const;
-    void updSprZeroInCache(const State& state, const Vec3& setpnt) const;
-    Vec3 getSprZeroInCache(const State& state) const;
-    // Sliding state
-    void updSlidingDotInCache(const State& state, Real slidingDot) const;
-    const Real getSlidingDotInCache(const State& state) const;
-    void realizeSprZeroCache(const State& state) const;
-    // Data
-    ExponentialSpringData& updData(const State& state) const;
-    const ExponentialSpringData& getData(const State& state) const;
-    // Parameters
-    void setParameters(const ExponentialSpringParameters& params);
-    const ExponentialSpringParameters& getParameters() const;
-    // STATIC METHODS
-    static Real Sigma(Real t0, Real tau, Real t);
-    static Real ClampAboveZero(Real value, Real max);
-protected:
-    ExponentialSpringParameters params;
-private:
-    Transform contactPlane;
-    const MobilizedBody& body;
-    Real defaultMus;
-    Real defaultMuk;
-    Vec3 station;
-    Vec3 defaultSprZero;
-    ExponentialSpringData defaultData;
-    mutable DiscreteVariableIndex indexMus;
-    mutable DiscreteVariableIndex indexMuk;
-    mutable DiscreteVariableIndex indexSprZero;
-    mutable CacheEntryIndex indexSprZeroInCache;
-    mutable ZIndex indexZ;
-    mutable CacheEntryIndex indexData;
-};
-
-
-} // namespace SimTK
-
-
-using namespace SimTK;
-using std::cout;
-using std::endl;
-
-//_____________________________________________________________________________
 // Constructor
-ExponentialSpringForceImpl::
 ExponentialSpringForceImpl(const Transform& floor,
-    const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
-    const ExponentialSpringParameters& params) :
-    ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
-    contactPlane(floor), body(body), station(station),
-    defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0., 0., 0.))
-{
+const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
+const ExponentialSpringParameters& params) :
+ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
+contactPlane(floor), body(body), station(station),
+defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0., 0., 0.)) {
     // Check for valid static coefficient
     if(defaultMus < 0.0) defaultMus = 0.0;
-
     // Check for valid kinetic coefficient
     if(defaultMuk < 0.0) defaultMuk = 0.0;
     if(defaultMuk > defaultMus) defaultMuk = defaultMus;
-
     // Assign the parameters
     this->params = params;
 }
+
+//-----------------------------------------------------------------------------
+// Accessors
+//-----------------------------------------------------------------------------
+// SIMPLE
+const Transform& getContactPlane() const { return contactPlane; }
+const MobilizedBody& getBody() const { return body; }
+const Vec3& getStation() const { return station; }
+
+// TOPOLOGY PARAMETERS
+const ExponentialSpringParameters& getParameters() const { return params; }
+void setParameters(const ExponentialSpringParameters& params) {
+    this->params = params;
+    invalidateSubsystemTopologyCache(); }
+
+// DATA CACHE
+ExponentialSpringData& updData(const State& state) const {
+    return Value<ExponentialSpringData>::updDowncast(updCacheEntry(state,
+        indexData)); }
+const ExponentialSpringData& getData(const State& state) const {
+    return Value<ExponentialSpringData>::downcast(getCacheEntry(state,
+        indexData)); }
+
+// SLIDING STATE
+const Real getSlidingDotInCache(const State& state) const {
+    return getZDot(state)[indexZ]; }
+void updSlidingDotInCache(const State& state, Real slidingDot) const {
+    // Does not invalidate the State.
+    updZDot(state)[indexZ] = slidingDot; }
+
+// SPRING ZERO
+const Vec3& getSprZero(const State& state) const {
+    return Value<Vec3>::downcast(getDiscreteVariable(state, indexSprZero)); }
+Vec3& updSprZero(State& state) const {
+    // Update occurs when the elastic force exceeds mu*N.
+    return Value<Vec3>::updDowncast(updDiscreteVariable(state,indexSprZero)); }
+Vec3 getSprZeroInCache(const State& state) const {
+    return Value<Vec3>::downcast(
+        getDiscreteVarUpdateValue(state, indexSprZero));
+}void updSprZeroInCache(const State& state, const Vec3& setpoint) const {
+    // Will not invalidate the State.
+    Value<Vec3>::updDowncast(updDiscreteVarUpdateValue(state, indexSprZero))
+        = setpoint; }
+
+// STATIC COEFFICENT OF FRICTION
+const Real& getMuStatic(const State& state) const {
+    return Value<Real>::downcast(getDiscreteVariable(state, indexMus)); }
+void setMuStatic(State& state, Real mus) {
+    // Keep mus greter than or equal to 0.0.
+    if(mus < 0.0) mus = 0.0;
+    Value<Real>::updDowncast(updDiscreteVariable(state, indexMus)) = mus;
+    // Make sure muk is less than or equal to mus
+    Real muk = getMuKinetic(state);
+    if(muk > mus) {
+        muk = mus;
+        Value<Real>::updDowncast(updDiscreteVariable(state, indexMuk)) = muk;
+    }
+}
+
+// KINETIC COEFFICENT OF FRICTION
+const Real& getMuKinetic(const State& state) const {
+    return Value<Real>::downcast(getDiscreteVariable(state, indexMuk)); }
+void setMuKinetic(State& state, Real muk) const {
+    // Keep muk >= to zero.
+    if(muk < 0.0) muk = 0.0;
+    Value<Real>::updDowncast(updDiscreteVariable(state, indexMuk)) = muk;
+    // Make sure mus is greater than or equal to muk
+    Real mus = getMuStatic(state);
+    if(muk > mus) {
+        Value<Real>::updDowncast(updDiscreteVariable(state, indexMus)) = muk;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// ForceSubsystem Methods (overrides of virtual methods)
+//-----------------------------------------------------------------------------
 //_____________________________________________________________________________
 // Clone
 Subsystem::Guts*
-ExponentialSpringForceImpl::
-cloneImpl() const {
+cloneImpl() const override {
     return new ExponentialSpringForceImpl(contactPlane, body, station,
         defaultMus, defaultMuk, params);
 }
 //_____________________________________________________________________________
-// Realize the system at the Topology Stage.
-// This is where state variables and their associated indices are most often
-// created, the Model stage being the other possibility for things like
-// Q's (i.e., quaternions need 4 Q's).
+// Topology - allocate state variables and the data cache.
 int
-ExponentialSpringForceImpl::
-realizeSubsystemTopologyImpl(State& state) const {
+realizeSubsystemTopologyImpl(State& state) const override {
     // Coefficients of friction: mus and muk
-    // Both are treated as discrete states.  By doing so, mus and muk
-    // can be changed during a simulation.
     indexMus = allocateDiscreteVariable(state,
         Stage::Dynamics, new Value<Real>(defaultMus));
     indexMuk = allocateDiscreteVariable(state,
         Stage::Dynamics, new Value<Real>(defaultMuk));
-
     // SprZero
-    // The spring SprZero is a discrete variable that is auto updated during
-    // the course of a simulation so that the frictional force generated
-    // by a spring is consistent with the spring's theoretical limit
-    // (mu*Fnormal).
-    // Because the SprZero could potentially need updating after every
-    // integration step, it is treated as an AutoUpdate Discrete Variable.
-
-    // Index to the actual discrete variable
-    // Changing the SprZero will invalidate the Dynamics Stage.
-    // The SprZero held in Cache depends on realization through the Velocity
-    // Stage.
     indexSprZero =
         allocateAutoUpdateDiscreteVariable(state, Stage::Dynamics,
-            new Value<Vec3>(defaultSprZero),Stage::Velocity);
-    // Index to the update value that is held in the Cache
+            new Value<Vec3>(defaultSprZero), Stage::Velocity);
     indexSprZeroInCache =
         getDiscreteVarUpdateIndex(state, indexSprZero);
-
     // Sliding
-    // Sliding is a continuous state variable used to model the transition
-    // of a spring between fixed and sliding.
-    //        Sliding = 0        means fully fixed in place (lower bound)
-    //        Sliding = 1        means fully sliding (upper bound)
-    // Because Sliding is a continuous state variable (a Z variable in
-    // Simbody terminology), changes in Sliding are made only by setting
-    // the value of its time derivative, SlidingDot, which is updated in
-    // realizeSubsystemAccelerationImpl().
     Real initialValue = 0.0;
     Vector zInit(1, initialValue);
     indexZ = allocateZ(state, zInit);
-
     // Data
-    // Useful information that is computed during a simulation is organized
-    // in class ExponentialSpringData and stored as a Cache Entry.
     indexData = allocateCacheEntry(state, Stage::Dynamics,
         new Value<ExponentialSpringData>(defaultData));
-
     return 0;
 }
 //_____________________________________________________________________________
-// Realize compuations at the Dynamics Stage.  In other words, compute the
-// forces modeled by this Subsystem.
-//
-// In the code below...
+// Dynamics - compute the forces modeled by this Subsystem.
 //
 // "params" references the configurable parameters that govern the behavior
-// of the exponential spring.  These can be changed by the user, but the
+// of the exponential spring. These can be changed by the user, but the
 // System must be realized at the Topology Stage after any such change.
 //
 // "data" references the key data that are calculated and stored as a
@@ -305,10 +276,9 @@ realizeSubsystemTopologyImpl(State& state) const {
 // 
 // Variables with the _G suffix are expressed in the ground frame.
 //
-// Most everything important happens in this one method.
+// Most every calculation happens in this one method.
 int
-ExponentialSpringForceImpl::
-realizeSubsystemDynamicsImpl(const State& state) const {
+realizeSubsystemDynamicsImpl(const State& state) const override {
     // Get current accumulated forces
     const MultibodySystem& system = MultibodySystem::downcast(getSystem());
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
@@ -346,11 +316,11 @@ realizeSubsystemDynamicsImpl(const State& state) const {
 
     // Normal Force (perpendicular to floor) --------------------------------
     // Elastic Part
-    data.fyElas = d1*std::exp(-d2*(data.py-d0));
+    data.fyElas = d1 * std::exp(-d2 * (data.py - d0));
     // Damping Part
     data.fyDamp = kvNorm * data.vy * data.fyElas;
     // Total
-    data.fy = data.fyElas-data.fyDamp;
+    data.fy = data.fyElas - data.fyDamp;
     // Don't allow the normal force to be negative or too large.
     data.fy = ClampAboveZero(data.fy, 100000.0);
     //if (data.fy < 0.0) data.fy = 0.0;
@@ -380,7 +350,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     data.fric = data.fricElas + data.fricDamp;
     data.fxy = data.fric.norm();
     bool limitReached = false;
-    if (data.fxy > data.fxyLimit) {
+    if(data.fxy > data.fxyLimit) {
         data.fxy = data.fxyLimit;
         data.fric = data.fxy * data.fric.normalize();
         limitReached = true;
@@ -390,7 +360,7 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     // The spring zero is just made to be consistent with the limiting
     // frictional force.
     Vec3 p0New, fricElasNew;
-    if (fxyElas > data.fxyLimit) {
+    if(fxyElas > data.fxyLimit) {
         // Compute a new spring zero.
         fxyElas = data.fxyLimit;
         fricElasNew = fxyElas * data.fricElas.normalize();
@@ -406,8 +376,8 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     // Update SlidingDot
     Real vMag = data.vxz.norm();
     Real slidingDot = 0.0;
-    if (limitReached)  slidingDot = kTau*(1.0 - sliding);
-    else if (vMag < vSettle)  slidingDot = -kTau*sliding;
+    if(limitReached)  slidingDot = kTau * (1.0 - sliding);
+    else if(vMag < vSettle)  slidingDot = -kTau * sliding;
     updSlidingDotInCache(state, slidingDot);
 
     // Total spring force expressed in the floor frame
@@ -423,218 +393,67 @@ realizeSubsystemDynamicsImpl(const State& state) const {
     return 0;
 }
 //_____________________________________________________________________________
-// Realize compuations at the Acceleration Stage,
-// which means compute and update the time derivative of each continuous
-// variable (Q, U, and Z).
-// This spring only has one Z variable -- the Sliding state.
+// Acceleration - compute and update the derivatives of continuous states.
 // Because all of the quantities needed for computing SlidingDot are
 // available in realizeSubsystemDynamicsImpl(), SlidingDot is updated
-// there.  This method does nothing.
+// there. This method at the moment does nothing.
 int
-ExponentialSpringForceImpl::
-realizeSubsystemAccelerationImpl(const State& state) const {
+realizeSubsystemAccelerationImpl(const State& state) const override {
     //Real sliding = getZ(state)[indexZ];
     //Real slidingDot = -sliding / 0.01;
     //updSlidingDotInCache(state, 0.0);
     return 0;
 }
 //_____________________________________________________________________________
-// Calculate the potential energy stored in the spring.
+// Potential Energy - calculate the potential energy stored in the spring.
 // The System should be realized through Stage::Dynamics before a call to
-// this method is made; an exception will be thrown otherwise.
+// this method is made.
 Real
-ExponentialSpringForceImpl::
-calcPotentialEnergy(const State& state) const {
+calcPotentialEnergy(const State& state) const override {
     const MultibodySystem& system = MultibodySystem::downcast(getSystem());
     const ExponentialSpringData& data = getData(state);
-
     // Strain energy in the normal direction (exponential spring)
     Real d0, d1, d2;
     params.getShapeParameters(d0, d1, d2);
     double energy = data.fyElas / d2;
-
     // Strain energy in the tangent plane (friction spring)
     Vec3 p0 = getSprZero(state);
     Vec3 r = data.pxz - p0;
     energy += 0.5 * params.getElasticity() * r.norm() * r.norm();
-
     return energy;
 }
 
+//-----------------------------------------------------------------------------
+// Utility and Static Methods
+//-----------------------------------------------------------------------------
 //_____________________________________________________________________________
-// Get the Transform specifying the location and orientation of the Contact
-// Plane.
-const Transform&
-ExponentialSpringForceImpl::
-getContactPlane() const {
-    return contactPlane;
-}
-
-//_____________________________________________________________________________
-// Get the body (i.e., the MobilizedBody) for which this exponential spring
-// was instantiated.
-const MobilizedBody&
-ExponentialSpringForceImpl::
-getBody() const {
-    return body;
-}
-
-//_____________________________________________________________________________
-// Get the point that interacts with the contact plane and at which the force
-// is applied. The station is expressed in the frame of the body for which
-// this exponential spring was instantiated.
-const Vec3&
-ExponentialSpringForceImpl::
-getStation() const {
-    return station;
-}
-
-//_____________________________________________________________________________
-// Update the coefficient of static friction for this spring.
-// The specified value must obey the following constraints:
-//
-//        0.0 <= muk <= mus
-//
-// If mus is less than 0.0, mus is set to 0.0.
-// If mus is less than mus, muk is set to mus.
+// Project the body spring station onto the contact plane.
 void
-ExponentialSpringForceImpl::
-setMuStatic(State& state, Real mus) {
-    // Keep mus greter than or equal to 0.0.
-    if (mus < 0.0) mus = 0.0;
-    Value<Real>::updDowncast(updDiscreteVariable(state, indexMus)) = mus;
-
-    // Make sure muk is less than or equal to mus
-    Real muk = getMuKinetic(state);
-    if (muk > mus) {
-        muk = mus;
-        Value<Real>::updDowncast(updDiscreteVariable(state, indexMuk)) = muk;
-    }
-}
-//_____________________________________________________________________________
-// Get the coefficient of static friction for this spring.
-const Real&
-ExponentialSpringForceImpl::
-getMuStatic(const State& state) const {
-    return Value<Real>::downcast(getDiscreteVariable(state, indexMus));
-}
-
-//_____________________________________________________________________________
-// Update the coefficient of kinetic friction for this spring.
-// The specified value must obey the following constraints:
-//
-//       0.0 <= muk <= mus
-//
-// If muk is less than 0.0, muk is set to 0.0.
-// If muk is greater than mus, mus is set to muk.
-void
-ExponentialSpringForceImpl::
-setMuKinetic(State& state, Real muk) const {
-    // Keep muk >= to zero.
-    if (muk < 0.0) muk = 0.0;
-    Value<Real>::updDowncast(updDiscreteVariable(state, indexMuk)) = muk;
-
-    // Make sure mus is greater than or equal to muk
-    Real mus = getMuStatic(state);
-    if (muk > mus) {
-        Value<Real>::updDowncast(updDiscreteVariable(state, indexMus)) = muk;
-    }
-}
-//_____________________________________________________________________________
-// Get the coefficient of kinetic friction for this spring.
-const Real&
-ExponentialSpringForceImpl::
-getMuKinetic(const State& state) const {
-    return Value<Real>::downcast(getDiscreteVariable(state, indexMuk));
-}
-
-
-//_____________________________________________________________________________
-// Reset the zero of this spring.
-//
-// This method sets the spring zero to the point on the Floor that coincides
-// with the Station that has been specified on the MobilizedBody.  In this
-// process, the System is realized through the Position Stage.
-void
-ExponentialSpringForceImpl::
 resetSprZero(State& state) const {
     // Realize through to the Position Stage
     const MultibodySystem& system = MultibodySystem::downcast(getSystem());
     system.realize(state, Stage::Position);
-
     // Get position of the spring station in the Ground frame
     Vec3 p_G = body.findStationLocationInGround(state, station);
-
     // Transform the position to the Floor frame.
     Vec3 p_F = contactPlane.shiftBaseStationToFrame(p_G);
-
     // Project into the plane of the Floor
     p_F[1] = 0.0;
-
     // Update the spring zero
     updSprZero(state) = p_F;
 }
 //_____________________________________________________________________________
-// Update the SprZero of this exponential spring.
-// Updating the SprZero will invalidate the state at the Dynamics Stage.
-//
-// The SprZero is the current zero of the spring in the floor plane.  It is
-// the basis for computing the position-dependent portion of the frictional
-// force exerted by the spring.
-// The SprZero should be updated whenever the elastic part of the frictional
-// force exeeds its theoretical limit (i.e., mu*Fnormal).  The new SprZero
-// should be such that the elastic part generates the limit, not more or less.
-// The updated value should not account for the size of the damping force.
-Vec3&
-ExponentialSpringForceImpl::
-updSprZero(State& state) const {
-    return Value<Vec3>::updDowncast(updDiscreteVariable(state, indexSprZero));
-}
-//_____________________________________________________________________________
-// Get the SprZero of this exponential spring.
-// The SprZero is the current zero of the spring in the ground plane.  It is
-// the basis for computing the position-dependent portion of the frictional
-// force exerted by the spring.
-const Vec3&
-ExponentialSpringForceImpl::
-getSprZero(const State& state) const {
-    return Value<Vec3>::downcast(getDiscreteVariable(state, indexSprZero));
-}
-//_____________________________________________________________________________
-// Update the SprZero held in the Cache of this exponential spring.
-// Updating the SprZero held in the Cache will not invalidate the State.
-// Use this method.
-void
-ExponentialSpringForceImpl::
-updSprZeroInCache(const State& state, const Vec3& setpoint) const {
-    Value<Vec3>::updDowncast(updDiscreteVarUpdateValue(state, indexSprZero))
-        = setpoint;
-}
-//_____________________________________________________________________________
-// Get the SprZero of this exponential spring.
-// The SprZero is the current zero of the spring in the ground plane.  It is
-// the basis for computing the position-dependent portion of the frictional
-// force exerted by the spring.
-Vec3
-ExponentialSpringForceImpl::
-getSprZeroInCache(const State& state) const {
-    return Value<Vec3>::downcast(
-        getDiscreteVarUpdateValue(state,indexSprZero) );
-}
-//_____________________________________________________________________________
+// Note - Not really using this method, but keeping it around in case I want
+// a reminder of how cache access works.
 // Realize the SprZero Cache.
 // There needs to be some assurance that the initial value of the SprZero
-// is valid.  Therefore, the first time a getSprZeroInCache() is called
-// a calle to realizeSprZeroCache() is also made.  Once the Cache for
+// is valid. Therefore, the first time a getSprZeroInCache() is called
+// a call to realizeSprZeroCache() is also made.  Once the Cache for
 // the SprZero has been realized, it may be repeatedly accessed with only
 // the cost of the method call and the if statement.
-//
-// Not really using this method, but it might be useful to keep around
-// in case I want a reminder of how cache access works.
 void
-ExponentialSpringForceImpl::
 realizeSprZeroCache(const State& state) const {
-    if (isCacheValueRealized(state, indexSprZeroInCache)) return;
+    if(isCacheValueRealized(state, indexSprZeroInCache)) return;
     Vec3 sprZero = getSprZero(state);
     Real time = state.getTime();
     sprZero[0] = 0.01 * time;
@@ -644,62 +463,13 @@ realizeSprZeroCache(const State& state) const {
     markCacheValueRealized(state, indexSprZeroInCache);
 }
 //_____________________________________________________________________________
-// Update SlidingDot in the Cache of this exponential spring.
-// Updating the value of SlidingDot in the Cache will not invalidate the State.
-void
-ExponentialSpringForceImpl::
-updSlidingDotInCache(const State& state, Real slidingDot) const {
-    updZDot(state)[indexZ] = slidingDot;
+// Clamp a value between zero and a maximum value.
+static Real
+ClampAboveZero(Real value, Real max) {
+    if(value > max) return max;
+    if(value < 0.0) return 0.0;
+    return value;
 }
-//_____________________________________________________________________________
-// Get value of SlidingDot that is held in cashe.
-// SlidingDot is the time derivative of the Sliding state variable.
-const Real
-ExponentialSpringForceImpl::
-getSlidingDotInCache(const State& state) const {
-    return getZDot(state)[indexZ];
-}
-
-//-----------------------------------------------------------------------------
-// DATA
-//-----------------------------------------------------------------------------
-//_____________________________________________________________________________
-// Retrieve a writable reference to the spring data contained in the Cache.
-ExponentialSpringData&
-ExponentialSpringForceImpl::
-updData(const State& state) const {
-    return Value<ExponentialSpringData>::updDowncast(updCacheEntry(state,
-        indexData));
-}
-//_____________________________________________________________________________
-// Retrieve a const reference to the spring data contained in the Cache.
-const ExponentialSpringData&
-ExponentialSpringForceImpl::
-getData(const State& state) const {
-    return Value<ExponentialSpringData>::downcast(getCacheEntry(state,
-        indexData));
-}
-
-
-//-----------------------------------------------------------------------------
-// PARAMETERS
-//-----------------------------------------------------------------------------
-//_____________________________________________________________________________
-// Update the parameters for this exponential spring.
-void
-ExponentialSpringForceImpl::
-setParameters(const ExponentialSpringParameters& params) {
-    this->params = params;
-    invalidateSubsystemTopologyCache();
-}
-//_____________________________________________________________________________
-// Get the parameters for this exponential spring.
-const ExponentialSpringParameters&
-ExponentialSpringForceImpl::
-getParameters() const {
-    return params;
-}
-
 //_____________________________________________________________________________
 // Sigma - a function that transitions smoothly from 0.0 to 1.0 or
 // from 1.0 to 0.0.
@@ -732,41 +502,44 @@ getParameters() const {
 //                    |                   *
 //  ------------------|-----------t0------------*************  t
 //
-Real
-ExponentialSpringForceImpl::
+static Real
 Sigma(Real t0, Real tau, Real t) {
     Real x = (t - t0) / tau;
     Real s = 1.0 / (1.0 + std::exp(x));
     return s;
 }
-//_____________________________________________________________________________
-// Clamp a value between zero and a maximum value.
-Real
-ExponentialSpringForceImpl::
-ClampAboveZero(Real value, Real max) {
-    if (value > max) return max;
-    if (value < 0.0) return 0.0;
-    return value;
-}
 
+
+//-----------------------------------------------------------------------------
+// Data Members
+//-----------------------------------------------------------------------------
+private:
+    ExponentialSpringParameters params;
+    Transform contactPlane;
+    const MobilizedBody& body;
+    Vec3 station;
+    Real defaultMus;
+    Real defaultMuk;
+    Vec3 defaultSprZero;
+    ExponentialSpringData defaultData;
+    mutable DiscreteVariableIndex indexMus;
+    mutable DiscreteVariableIndex indexMuk;
+    mutable DiscreteVariableIndex indexSprZero;
+    mutable CacheEntryIndex indexSprZeroInCache;
+    mutable ZIndex indexZ;
+    mutable CacheEntryIndex indexData;
+};
+
+} // namespace SimTK
+
+
+using namespace SimTK;
+using std::cout;
+using std::endl;
 
 //=============================================================================
-// Class - ExponentialSpringForce
+// Class ExponentialSpringForce
 //=============================================================================
-//_____________________________________________________________________________
-// Constructor for default spring parameters.
-//ExponentialSpringForce::
-//ExponentialSpringForce(MultibodySystem& system,
-//    const Transform& contactPlane,
-//    const MobilizedBody& body,const Vec3& station,
-//    Real mus, Real muk)
-//{
-//    adoptSubsystemGuts(
-//        new ExponentialSpringForceImpl(contactPlane, body, station,
-//            mus, muk));
-//    system.addForceSubsystem(*this);
-//}
-
 //_____________________________________________________________________________
 // Constructor.
 ExponentialSpringForce::
@@ -895,9 +668,9 @@ ExponentialSpringForce::
 getForcePoint(const State& state, bool inGround) const {
     Vec3 point;
     if(inGround) {
-        getImpl().getData(state).p_G;
+        point = getImpl().getData(state).p_G;
     } else {
-       point = getImpl().getData(state).p;
+        point = getImpl().getData(state).p;
     }
     return point;
 }
