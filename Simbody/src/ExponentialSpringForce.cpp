@@ -39,13 +39,12 @@ directly via a const reference. To make the exponential spring code less
 brittle, however, class ExponentialSpringData was migrated to being an
 internal data structure that is accessed directly only by class
 ExponentialSpringForceImpl. The data stored in ExponentialSpringData can
-now only be accessed by the typical user via conventional assessor methods
+now only be accessed by the end user via conventional assessor methods
 in class ExponentialSpringForce.
 
 Even though ExponentialSpringData is now used only internally, the
 Doxygen-compliant comments originally written for the class might be helpful
-to developers. The original comments were therefore preserved and follow
-below:
+to developers. I therefore kept the comments. They follow below:
 
 ExponentialSpringData is a helper class that is used to store key
 quantities associated with the ExponentialSpringForce Subsystem during a
@@ -78,7 +77,7 @@ with an "xz" suffix (e.g., pxz, vxz, or fxz) indicate that these quantities
 lie in the contact plane (or tangent to it) and are associated with the
 friction force.
 
-Member variables with a "_G" suffix are expressed in the ground frame. Member
+Member variables with a "_G" suffix are expressed in the Ground frame. Member
 variables without a "_G" suffix are expressed the contact plane frame. */
 struct ExponentialSpringData {
     /** Position of the body spring station in the ground frame. */
@@ -94,20 +93,18 @@ struct ExponentialSpringData {
     /** Displacement of the body spring station normal to the floor expressed
     in the frame of the contact plane. */
     Real py;
-    /** Velocity of the body spring station normal to the floor expressed
-    in the frame of the contact plane. */
-    Real vy;
-    /** Position of the body spring station projected onto the floor expressed
-    in the frame of the contact plane. */
-    Vec3 pxz;
-    /** Velocity of the body spring station in the plane of the floor
+    /** Velocity of the body spring station normal to the contact plane
     expressed in the frame of the contact plane. */
+    Real vy;
+    /** Position of the body spring station projected onto the contact plane
+    expressed in the frame of the contact plane. */
+    Vec3 pxz;
+    /** Velocity of the body spring station in the contact plane expressed in
+    the frame of the contact plane. */
     Vec3 vxz;
-    /** Elastic force in the normal direction expressed in the frame of the
-    contact plane. */
+    /** Elastic force in the normal direction. */
     Real fyElas;
-    /** Damping force in the normal direction expressed in the frame of the
-    contact plane. */
+    /** Damping force in the normal direction. */
     Real fyDamp;
     /** Total normal force expressed in the frame of the contact plane. */
     Real fy;
@@ -509,7 +506,6 @@ Sigma(Real t0, Real tau, Real t) {
     return s;
 }
 
-
 //-----------------------------------------------------------------------------
 // Data Members
 //-----------------------------------------------------------------------------
@@ -528,7 +524,8 @@ private:
     mutable CacheEntryIndex indexSprZeroInCache;
     mutable ZIndex indexZ;
     mutable CacheEntryIndex indexData;
-};
+
+};  // end of class ExponentialSpringForceImpl
 
 } // namespace SimTK
 
@@ -577,7 +574,6 @@ ExponentialSpringForce::
 getStation() const {
     return getImpl().getStation();
 }
-
 
 //_____________________________________________________________________________
 // Set new parameters for this exponential spring.
@@ -649,6 +645,95 @@ resetSpringZero(State& state) const {
 // Spring Data Accessor Methods
 //-----------------------------------------------------------------------------
 //_____________________________________________________________________________
+// Get the position of the spring station.
+Vec3
+ExponentialSpringForce::
+getStationPosition(const State& state, bool inGround) const {
+    Vec3 pos;
+    if(inGround) {
+        pos = getImpl().getData(state).p_G;
+    } else {
+        pos = getImpl().getData(state).p;
+    }
+    return pos;
+}
+//_____________________________________________________________________________
+// Get the velocity of the spring station.
+Vec3
+ExponentialSpringForce::
+getStationVelocity(const State& state, bool inGround) const {
+    Vec3 vel;
+    if(inGround) {
+        vel = getImpl().getData(state).v_G;
+    } else {
+        vel = getImpl().getData(state).v;
+    }
+    return vel;
+}
+//_____________________________________________________________________________
+// Get the magnitude of the elastic part of the normal force.
+Real
+ExponentialSpringForce::
+getNormalForceElasticMagnitude(const State& state) const {
+    return getImpl().getData(state).fyElas;
+}
+//_____________________________________________________________________________
+// Get the magnitude of the damping part of the normal force.
+Real
+ExponentialSpringForce::
+getNormalForceDampingMagnitude(const State& state) const {
+    return getImpl().getData(state).fyDamp;
+}
+//_____________________________________________________________________________
+// Get the magnitude of the normal force.
+Real
+ExponentialSpringForce::
+getNormalForceMagnitude(const State& state) const {
+    return getImpl().getData(state).fy;
+}
+//_____________________________________________________________________________
+// Get the instantaneous coefficient of friction.
+Real
+ExponentialSpringForce::
+getInstantaneousCoefficientOfFriction(const State& state) const {
+    return getImpl().getData(state).mu;
+}
+//_____________________________________________________________________________
+// Get the friction limit.
+Real
+ExponentialSpringForce::
+getFrictionForceLimit(const State& state) const {
+    return getImpl().getData(state).fxyLimit;
+}
+//_____________________________________________________________________________
+// Get the elastic part of the friction force.
+Vec3
+ExponentialSpringForce::
+getFrictionForceElasticPart(const State& state, bool inGround) const {
+    Vec3 fricElas = getImpl().getData(state).fricElas;;
+    if(inGround) fricElas = getContactPlane().xformFrameVecToBase(fricElas);
+    return fricElas;
+}
+//_____________________________________________________________________________
+// Get the elastic part of the friction force.
+Vec3
+ExponentialSpringForce::
+getFrictionForceDampingPart(const State& state, bool inGround) const {
+    Vec3 fricDamp = getImpl().getData(state).fricDamp;;
+    if(inGround) fricDamp = getContactPlane().xformFrameVecToBase(fricDamp);
+    return fricDamp;
+}
+//_____________________________________________________________________________
+// Get the total friction force.
+Vec3
+ExponentialSpringForce::
+getFrictionForce(const State& state, bool inGround) const {
+    Vec3 fric = getImpl().getData(state).fric;;
+    if(inGround) fric = getContactPlane().xformFrameVecToBase(fric);
+    return fric;
+}
+
+//_____________________________________________________________________________
 // Get the spring force applied to the MobilizedBody.
 Vec3
 ExponentialSpringForce::
@@ -688,6 +773,7 @@ getSpringZeroPosition(const State& state, bool inGround) const {
     }
     return pos;
 }
+
 
 
 //-----------------------------------------------------------------------------

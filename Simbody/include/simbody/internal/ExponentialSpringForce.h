@@ -405,7 +405,63 @@ public:
     ///------------------------------
     /// Accessors for the spring data
     ///------------------------------
-    /** Get the spring force applied to the MobilizedBody.
+    /** Get the position of the spring station.
+    @param state State object from which to retrieve the data.
+    @param inGround Flag for choosing the frame in which the returned
+    quantity will be expressed. If true, the quantity will be expressed in the
+    Ground frame. If false, the quantity will be expressed in the frame of
+    the contact plane. */
+    Vec3 getStationPosition(const State& state, bool inGround = true) const;
+
+    /** Get the velocity of the spring station.
+    @param state State object from which to retrieve the data. */
+    Vec3 getStationVelocity(const State& state, bool inGround = true) const;
+
+    /** Get the magnitude of the elastic part of the normal force.
+    @param state State object from which to retrieve the data. */
+    Real getNormalForceElasticMagnitude(const State& state) const;
+
+    /** Get the magnitude of the damping part of the normal force.
+    @param state State object from which to retrieve the data. */
+    Real getNormalForceDampingMagnitude(const State& state) const;
+
+    /** Get the magnitude of the normal force.
+    @param state State object from which to retrieve the data. */
+    Real getNormalForceMagnitude(const State& state) const;
+
+    /** Get the instantaneous coefficient of friction.
+    @param state State object from which to retrieve the data. */
+    Real getInstantaneousCoefficientOfFriction(const State& state) const;
+
+    /** Get the friction limit.
+    @param state State object from which to retrieve the data. */
+    Real getFrictionForceLimit(const State& state) const;
+
+    /** Get the elastic part of the friction force.
+    @param inGround Flag for choosing the frame in which the returned
+    quantity will be expressed. If true, the quantity will be expressed in the
+    Ground frame. If false, the quantity will be expressed in the frame of
+    the contact plane. */
+    Vec3 getFrictionForceElasticPart(
+        const State& state, bool inGround = true) const;
+
+    /** Get the damping part of the friction force.
+    @param inGround Flag for choosing the frame in which the returned
+    quantity will be expressed. If true, the quantity will be expressed in the
+    Ground frame. If false, the quantity will be expressed in the frame of
+    the contact plane. */
+    Vec3 getFrictionForceDampingPart(
+        const State& state, bool inGround = true) const;
+
+    /** Get the total friction force.
+    @param inGround Flag for choosing the frame in which the returned
+    quantity will be expressed. If true, the quantity will be expressed in the
+    Ground frame. If false, the quantity will be expressed in the frame of
+    the contact plane. */
+    Vec3 getFrictionForce(const State& state, bool inGround = true) const;
+
+    
+    /** Get the total spring force applied to the MobilizedBody.
     @param state State object from which to retrieve the data. 
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
