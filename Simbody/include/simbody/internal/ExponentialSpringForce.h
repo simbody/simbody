@@ -414,6 +414,7 @@ public:
     Vec3 getStationPosition(const State& state, bool inGround = true) const;
 
     /** Get the velocity of the spring station.
+    @param state State object from which to retrieve the data.
     @param state State object from which to retrieve the data. */
     Vec3 getStationVelocity(const State& state, bool inGround = true) const;
 
@@ -438,6 +439,7 @@ public:
     Real getFrictionForceLimit(const State& state) const;
 
     /** Get the elastic part of the friction force.
+    @param state State object from which to retrieve the data.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -446,6 +448,7 @@ public:
         const State& state, bool inGround = true) const;
 
     /** Get the damping part of the friction force.
+    @param state State object from which to retrieve the data.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -454,6 +457,7 @@ public:
         const State& state, bool inGround = true) const;
 
     /** Get the total friction force.
+    @param state State object from which to retrieve the data.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
