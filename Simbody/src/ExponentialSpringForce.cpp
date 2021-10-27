@@ -764,14 +764,11 @@ getForcePoint(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getSpringZeroPosition(const State& state, bool inGround) const {
-    Vec3 pos;
+    Vec3 p0 = getImpl().getSprZero(state);
     if(inGround) {
-        const Vec3& pxz = getImpl().getData(state).pxz;
-        pos = getContactPlane().shiftFrameStationToBase(pxz);
-    } else {
-        pos = getImpl().getData(state).pxz;
+        p0 = getContactPlane().shiftFrameStationToBase(p0);
     }
-    return pos;
+    return p0;
 }
 
 
