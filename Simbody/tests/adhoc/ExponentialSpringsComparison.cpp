@@ -16,8 +16,7 @@
  limitations under the License.
  ------------------------------------------------------------------------------*/
 
-// TestExponentialSprings.cpp
-// Authors: Frank C. Anderson
+// ExponentialSpringsComparison.cpp
 // This file contains the main() function. Program execution begins and ends there.
 //
 
@@ -123,7 +122,7 @@ int main() {
         bool VisOn = true;
 
         // Specify initial conditions.
-        int condition = 3;
+        int condition = 2;
         // 0 = sitting still
         // 1 = dropped
         // 2 = sliding
@@ -221,7 +220,7 @@ int main() {
             Transform floorXForm(floorTilt, floorOrigin);
             // Modify the default parameters if desired
             ExponentialSpringParameters params;
-            params.setElasticityAndComputeViscosity(100000.0);
+            params.setElasticityAndViscosityForCriticalDamping(100000.0);
             // Add an exponential spring at each corner of the block.
             spr1 = new ExponentialSpringForce(system, floorXForm,
                 *blockExp, Vec3(0.1, -0.1, 0.1), mu_s, mu_k, params);
