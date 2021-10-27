@@ -105,12 +105,17 @@ public:
     ExponentialSpringParameters&
         operator=(const ExponentialSpringParameters& source);
 
+    /** Equality operator. All member variables of this object must be
+    equal to the corresponding members of the other object to return true.
+    @param other The other object with which to test equality. */
+    bool operator==(const ExponentialSpringParameters& other) const;
+
     /** Set the parameters that determine the shape of the exponential.
     @param d0 shifts the exponential function up and down with respect to
     the contact plane. Its default value is 0.0065905 m (~7 mm above the
     contact plane). This slight upward shift eliminates significant
-    penetration into the contact plane. d0 can positive, have a value of 0.0,
-    or be negative.
+    penetration into the contact plane. d0 can be positive, have a value of
+    0.0, or be negative.
     @param d1 linearly scales the applied force up or down. Its default
     value is 0.5336 (unitless). d1 should be positive to generate a repulsive
     force.
@@ -149,11 +154,12 @@ public:
     acceleration in a particular direction, so think of this mass as a kind
     of average mass. A default mass of 1.0 kg is used if a mass is not
     specified. */
-    void setElasticityAndComputeViscosity(Real kp, Real mass = 1.0);
+    void setElasticityAndViscosityForCriticalDamping(Real kp, Real mass = 1.0);
 
     /** Set the elasticity of the friction spring associated with an
     exponential spring. A call to this method overrides any value of
-    elasticity previously set by a call to setElasticityAndComputeViscosity().
+    elasticity previously set by a call to
+    setElasticityAndViscosityForCriticalDamping().
     @param kp Elasticity of the friction spring. Its default value is
     2000.0 N/m. kp should be positive. */
     void setElasticity(Real kp);
@@ -167,7 +173,7 @@ public:
 
     /** Set the viscosity of the friction spring. A call to this method
     overrides any value of viscosity previously set by a call to
-    setElasticityAndComputeViscosity(). Setting the viscosity equal
+    setElasticityAndViscosityForCriticalDamping(). Setting the viscosity equal
     to 0.0 is fine, but may not have the expected result.  If a body is not
     sliding, setting kᵥ = 0.0 will simply allow the body to vibrate in place
     indefinitely. If a body is sliding, even if kᵥ = 0.0, the kinetic energy
@@ -185,8 +191,8 @@ public:
 
     /** Get the viscosity of the friction spring. The value of the viscosity
     is the default value (~89.4427 N*s/m) or the value set by a call to either
-    setViscosity() or setElasticityAndComputeViscosity(), whichever was called
-    most recently.
+    setViscosity() or setElasticityAndViscosityForCriticalDamping(), whichever
+    was called most recently.
     @returns Viscosity of the friction spring */
     Real getViscosity() const;
 
@@ -194,9 +200,9 @@ public:
     static and kinetic coefficients of friction. The transition is mediated
     by a rising or falling exponential that is asymptotic to mu static or
     or mu kinetic respectively.
-    @param τ Time constant for sliding transitions. The default value of τ
+    @param tau Time constant (τ) for sliding transitions. The default value of τ
     is 0.01 s. τ must be positive. */
-    void setSlidingTimeConstant(Real τ);
+    void setSlidingTimeConstant(Real tau);
 
     /** Get the time constant for transitioning back and forth between the
     static and kinetic coefficients of friction.
@@ -223,10 +229,8 @@ private:
     Real kvFric;
     Real tau;
     Real vSettle;
-
 };
 
-
-}  // namespace SimTK
-#endif // SimTK_SIMBODY_EXPONENTIAL_SPRING_PARAMETERS_H_
+}       // namespace SimTK
+#endif  // SimTK_SIMBODY_EXPONENTIAL_SPRING_PARAMETERS_H_
 

@@ -38,7 +38,7 @@ ExponentialSpringParameters() :
     kpFric(2000.0), kvFric(0.0), tau(0.01), vSettle(0.01) {
     // The friction viscosity can be set for critical damping of a specified
     // mass.  By default, this is done for a mass of 1.0 kg.
-    setElasticityAndComputeViscosity(kpFric);
+    setElasticityAndViscosityForCriticalDamping(kpFric);
 }
 //_____________________________________________________________________________
 // Copy Constructor
@@ -47,7 +47,7 @@ ExponentialSpringParameters(const ExponentialSpringParameters& source) {
     operator=(source);
 }
 //_____________________________________________________________________________
-// Assignment Operator
+// Copy Assignment Operator
 ExponentialSpringParameters&
 ExponentialSpringParameters::
 operator=(const ExponentialSpringParameters& source) {
@@ -62,6 +62,16 @@ operator=(const ExponentialSpringParameters& source) {
         vSettle = source.vSettle;
     }
     return *this;
+}
+//_____________________________________________________________________________
+// Equality Operator
+bool
+ExponentialSpringParameters::
+operator==(const ExponentialSpringParameters& other) const {
+    if(&other == this) return true;
+    return ((d0 == other.d0) && (d1 == other.d1) && (d2 == other.d2) &&
+        (kvNorm == other.kvNorm) && (kpFric == other.kpFric) &&
+        (tau == other.tau) && (vSettle == other.vSettle));
 }
 //_____________________________________________________________________________
 // Set the parameters that control the shape of the exponential function.
@@ -119,7 +129,7 @@ getNormalViscosity() const {
 // damped motion for a specified mass.
 void
 ExponentialSpringParameters::
-setElasticityAndComputeViscosity(Real kp, Real mass) {
+setElasticityAndViscosityForCriticalDamping(Real kp, Real mass) {
     // Set the elasticity
     setElasticity(kp);
 
