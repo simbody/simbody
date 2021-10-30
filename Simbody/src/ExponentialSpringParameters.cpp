@@ -109,7 +109,7 @@ getShapeParameters(Real &d0, Real& d1, Real& d2) const {
 // the damping in the direction normal to the floor.
 void
 ExponentialSpringParameters::
-setNormalViscosity(Real& kvNorm) {
+setNormalViscosity(Real kvNorm) {
     if(kvNorm < 0.0) {
         // An exception should be throw, but for now...
         cout << "ExponentialSpringParameters: ERR - kvNorm should be zero "

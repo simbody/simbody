@@ -134,7 +134,7 @@ public:
     dissipation due to motion in the normal direction, set kvNorm equal to 0.0.
     @param kvNorm Viscosity of a spring in the normal direction.
     Its default value is 0.5 N*s/m. kvNorm should be positive or zero. */
-    void setNormalViscosity(Real& kvNorm);
+    void setNormalViscosity(Real kvNorm);
 
     /** Get the viscosity of the exponential part of an ExponentialSpringForce.
     The exponential part of the contact force is always normal to the contact
