@@ -366,7 +366,7 @@ public:
     /** Get the static coefficient of friction (μₛ) held by the specified
     state for this exponential spring.
     @param state State object from which to retrieve μₛ. */
-    const Real& getMuStatic(const State& state) const;
+    Real getMuStatic(const State& state) const;
  
     /** Set the kinetic coefficient of friction (μₖ) for this exponential
     spring.
@@ -382,7 +382,11 @@ public:
     /** Get the kinetic coefficient of friction (μₖ) held by the specified
     state for this exponential spring.
     @param state State object from which to retrieve μₖ. */
-    const Real& getMuKinetic(const State& state) const;
+    Real getMuKinetic(const State& state) const;
+
+    /** Get the Sliding state of the spring.
+    @param state State object from which to retrieve Sliding. */
+    Real getSliding(const State& state) const;
 
     /** Reset the spring zero so that it coincides with the projection of the
     spring station onto the contact plane. This step is often needed at the
@@ -393,18 +397,10 @@ public:
     @param state State object on which to base the reset. */
     void resetSpringZero(State& state) const;
 
-    /** Retrieve a const reference to this exponential spring's data cache.
-    Before a call to this method, the System should be realized through
-    Stage::Dynamics; an exception will be thrown otherwise. The returned
-    reference is const to prevent changes to the underlying data cache.
-    Only the underlying implementation (ExponentialSpringForceImpl) has
-    write access to the data cache.
-    @param state State object from which to retrieve the data. */
-    //const ExponentialSpringData& getData(const State& state) const;
     
-    ///------------------------------
-    /// Accessors for the spring data
-    ///------------------------------
+    ///------------------------------------
+    /// Accessors for the spring data cache
+    ///------------------------------------
     /** Get the position of the spring station.
     @param state State object from which to retrieve the data.
     @param inGround Flag for choosing the frame in which the returned
@@ -415,24 +411,42 @@ public:
 
     /** Get the velocity of the spring station.
     @param state State object from which to retrieve the data.
-    @param state State object from which to retrieve the data. */
+    @param inGround Flag for choosing the frame in which the returned
+    quantity will be expressed. If true, the quantity will be expressed in the
+    Ground frame. If false, the quantity will be expressed in the frame of
+    the contact plane. */
     Vec3 getStationVelocity(const State& state, bool inGround = true) const;
 
     /** Get the magnitude of the elastic part of the normal force.
-    @param state State object from which to retrieve the data. */
-    Real getNormalForceElasticMagnitude(const State& state) const;
+    @param state State object from which to retrieve the data.
+    @param inGround Flag for choosing the frame in which the returned
+    quantity will be expressed. If true, the quantity will be expressed in the
+    Ground frame. If false, the quantity will be expressed in the frame of
+    the contact plane. */
+    Vec3 getNormalForceElasticPart(const State& state,
+        bool inGround = true) const;
 
     /** Get the magnitude of the damping part of the normal force.
-    @param state State object from which to retrieve the data. */
-    Real getNormalForceDampingMagnitude(const State& state) const;
+    @param state State object from which to retrieve the data.
+    @param inGround Flag for choosing the frame in which the returned
+    quantity will be expressed. If true, the quantity will be expressed in the
+    Ground frame. If false, the quantity will be expressed in the frame of
+    the contact plane. */
+    Vec3 getNormalForceDampingPart(const State& state,
+        bool inGround = true) const;
 
     /** Get the magnitude of the normal force.
-    @param state State object from which to retrieve the data. */
-    Real getNormalForceMagnitude(const State& state) const;
+    @param state State object from which to retrieve the data.
+    @param inGround Flag for choosing the frame in which the returned
+    quantity will be expressed. If true, the quantity will be expressed in the
+    Ground frame. If false, the quantity will be expressed in the frame of
+    the contact plane.*/
+    Vec3 getNormalForce(const State& state,
+        bool inGround = true) const;
 
     /** Get the instantaneous coefficient of friction.
     @param state State object from which to retrieve the data. */
-    Real getInstantaneousCoefficientOfFriction(const State& state) const;
+    Real getMu(const State& state) const;
 
     /** Get the friction limit.
     @param state State object from which to retrieve the data. */

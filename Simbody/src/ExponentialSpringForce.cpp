@@ -111,7 +111,7 @@ struct ExponentialSpringData {
     /** Instantaneous coefficient of friction. */
     Real mu;
     /** Limit of the frictional force. */
-    Real fxyLimit;
+    Real fxzLimit;
     /** Elastic frictional force expressed in the frame of the contact plane.*/
     Vec3 fricElas;
     /** Damping frictional force expressed in the frame of the contact plane.*/
@@ -120,7 +120,7 @@ struct ExponentialSpringData {
     the contact plane. */
     Vec3 fric;
     /** Magnitude of the frictional force. */
-    Real fxy;
+    Real fxz;
     /** Resultant spring force (normal + friction) expressed in the floor
     frame. */
     Vec3 f;
@@ -174,7 +174,9 @@ const ExponentialSpringData& getData(const State& state) const {
         indexData)); }
 
 // SLIDING STATE
-const Real getSlidingDotInCache(const State& state) const {
+Real getSliding(const State& state) const {
+    return getZ(state)[indexZ]; }
+Real getSlidingDotInCache(const State& state) const {
     return getZDot(state)[indexZ]; }
 void updSlidingDotInCache(const State& state, Real slidingDot) const {
     // Does not invalidate the State.
@@ -286,7 +288,7 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // Most computed quantities are stored in the data cache.
     ExponentialSpringData& data = updData(state);
 
-    // Get position and velocity of the spring station in the ground frame
+    // Get position and velocity of the spring station in Ground
     data.p_G = body.findStationLocationInGround(state, station);
     data.v_G = body.findStationVelocityInGround(state, station);
 
@@ -311,18 +313,18 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     Real kTau = 1.0 / params.getSlidingTimeConstant();
     Real vSettle = params.getSettleVelocity();
 
-    // Normal Force (perpendicular to floor) --------------------------------
+    // Normal Force (perpendicular to contact plane) -------------------------
     // Elastic Part
     data.fyElas = d1 * std::exp(-d2 * (data.py - d0));
     // Damping Part
-    data.fyDamp = kvNorm * data.vy * data.fyElas;
+    data.fyDamp = -kvNorm * data.vy * data.fyElas;
     // Total
-    data.fy = data.fyElas - data.fyDamp;
+    data.fy = data.fyElas + data.fyDamp;
     // Don't allow the normal force to be negative or too large.
-    data.fy = ClampAboveZero(data.fy, 100000.0);
-    //if (data.fy < 0.0) data.fy = 0.0;
+    // Note that conservation of energy will fail if bounds are enforced.
+    data.fy = ClampAboveZero(data.fy, 1000000.0);
 
-    // Friction (in the plane of floor) -------------------------------------
+    // Friction (in the plane of contact plane) ------------------------------
     // Get the sliding state.
     Real sliding = getZ(state)[indexZ];
     // Compute the maximum allowed frictional force based on the current
@@ -330,7 +332,7 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     Real mus = getMuStatic(state);
     Real muk = getMuKinetic(state);
     data.mu = mus - sliding * (mus - muk);
-    data.fxyLimit = data.mu * data.fy;
+    data.fxzLimit = data.mu * data.fy;
     // Access the SprZero from the State.
     Vec3 p0 = getSprZero(state);
     // The SprZero is always expressed in the Floor frame, so its y-component
@@ -340,16 +342,16 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // Elastic part
     Vec3 r = data.pxz - p0;
     data.fricElas = -kpFric * r;
-    Real fxyElas = data.fricElas.norm();
+    Real fxzElas = data.fricElas.norm();
     // Viscous part (damping)
     data.fricDamp = -kvFric * data.vxz;
     // Total
     data.fric = data.fricElas + data.fricDamp;
-    data.fxy = data.fric.norm();
+    data.fxz = data.fric.norm();
     bool limitReached = false;
-    if(data.fxy > data.fxyLimit) {
-        data.fxy = data.fxyLimit;
-        data.fric = data.fxy * data.fric.normalize();
+    if(data.fxz > data.fxzLimit) {
+        data.fxz = data.fxzLimit;
+        data.fric = data.fxz * data.fric.normalize();
         limitReached = true;
     }
     // If the spring is stretched beyond its limit, update the spring zero.
@@ -357,12 +359,12 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // The spring zero is just made to be consistent with the limiting
     // frictional force.
     Vec3 p0New, fricElasNew;
-    if(fxyElas > data.fxyLimit) {
+    if(fxzElas > data.fxzLimit) {
         // Compute a new spring zero.
-        fxyElas = data.fxyLimit;
-        fricElasNew = fxyElas * data.fricElas.normalize();
+        fxzElas = data.fxzLimit;
+        fricElasNew = fxzElas * data.fricElas.normalize();
         p0New = data.pxz + fricElasNew / kpFric;
-        // Make sure that p0 is always in the plane of the floor.
+        // Make sure that p0 is always in the contact plane.
         p0New[1] = 0.0;
         // Update the spring zero cache and mark the cache as realized.
         // Only place that the following two lines are called.
@@ -609,7 +611,7 @@ setMuStatic(State& state, Real mus) {
 }
 //_____________________________________________________________________________
 // Get the static coefficient of fricition
-const Real&
+Real
 ExponentialSpringForce::
 getMuStatic(const State& state) const {
     return getImpl().getMuStatic(state);
@@ -624,10 +626,17 @@ setMuKinetic(State& state, Real muk) {
 }
 //_____________________________________________________________________________
 // Get the kinetic coefficient of fricition
-const Real&
+Real
 ExponentialSpringForce::
 getMuKinetic(const State& state) const {
     return getImpl().getMuKinetic(state);
+}
+//_____________________________________________________________________________
+// Get the value of the Sliding state.
+Real
+ExponentialSpringForce::
+getSliding(const State& state) const {
+    return getImpl().getSliding(state);
 }
 
 //_____________________________________________________________________________
@@ -671,31 +680,40 @@ getStationVelocity(const State& state, bool inGround) const {
     return vel;
 }
 //_____________________________________________________________________________
-// Get the magnitude of the elastic part of the normal force.
-Real
+// Get the elastic part of the normal force.
+Vec3
 ExponentialSpringForce::
-getNormalForceElasticMagnitude(const State& state) const {
-    return getImpl().getData(state).fyElas;
+getNormalForceElasticPart(const State& state, bool inGround) const {
+    Vec3 fyElas(0.);
+    fyElas[1] = getImpl().getData(state).fyElas;
+    if(inGround) fyElas = getContactPlane().xformFrameVecToBase(fyElas);
+    return fyElas;
 }
 //_____________________________________________________________________________
-// Get the magnitude of the damping part of the normal force.
-Real
+// Get the damping part of the normal force.
+Vec3
 ExponentialSpringForce::
-getNormalForceDampingMagnitude(const State& state) const {
-    return getImpl().getData(state).fyDamp;
+getNormalForceDampingPart(const State& state, bool inGround) const {
+    Vec3 fyDamp(0.);
+    fyDamp[1] = getImpl().getData(state).fyDamp;
+    if(inGround) fyDamp = getContactPlane().xformFrameVecToBase(fyDamp);
+    return fyDamp;
 }
 //_____________________________________________________________________________
 // Get the magnitude of the normal force.
-Real
+Vec3
 ExponentialSpringForce::
-getNormalForceMagnitude(const State& state) const {
-    return getImpl().getData(state).fy;
+getNormalForce(const State& state, bool inGround) const {
+    Vec3 fy(0.);
+    fy[1] = getImpl().getData(state).fy;
+    if(inGround) fy = getContactPlane().xformFrameVecToBase(fy);
+    return fy;
 }
 //_____________________________________________________________________________
 // Get the instantaneous coefficient of friction.
 Real
 ExponentialSpringForce::
-getInstantaneousCoefficientOfFriction(const State& state) const {
+getMu(const State& state) const {
     return getImpl().getData(state).mu;
 }
 //_____________________________________________________________________________
@@ -703,7 +721,7 @@ getInstantaneousCoefficientOfFriction(const State& state) const {
 Real
 ExponentialSpringForce::
 getFrictionForceLimit(const State& state) const {
-    return getImpl().getData(state).fxyLimit;
+    return getImpl().getData(state).fxzLimit;
 }
 //_____________________________________________________________________________
 // Get the elastic part of the friction force.
