@@ -91,7 +91,7 @@ public:
     void handleEvent(const State& state) const override {
         system.realize(state, Stage::Dynamics);
         Vec3 f_G = spr.getForce(state);
-        Vec3 p_G = spr.getForcePoint(state);
+        Vec3 p_G = spr.getStationPosition(state);
         cout << state.getTime() << "\tp_G = " << p_G <<
             "\tf_G = " << f_G << endl;
     }

@@ -545,7 +545,7 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
 
         // Check that the point at which the spring force is applied is equal
         // to the spring station when expressed in Ground.
-        Vec3 p_G = spr.getForcePoint(state);
+        Vec3 p_G = spr.getStationPosition(state);
         Vec3 station = spr.getStation();
         Vec3 station_G =
             spr.getBody().findStationLocationInGround(state, station);
