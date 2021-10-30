@@ -29,6 +29,94 @@ using std::endl;
 
 using namespace SimTK;
 
+// Structure for specifying simulation options
+struct SimulationOptions {
+    int condition;  // which set of initial conditions
+    bool damping;   // whether there is damping
+    bool friction;  // whether there is friction
+    bool viz;       // whether to create a visualization window
+    Real tilt;      // tilt of primary contact plane about z-axis
+};
+
+// Declarations
+void testInitialization();
+void testBlockVerticalBounceNoFricNoDamp();
+void simulateBlock(const SimulationOptions &options);
+void checkSpringCalculations(MultibodySystem& system, Real acc,
+    ExponentialSpringForce& spr, const Array_<State>* stateArray);
+void checkConservationOfEnergy(MultibodySystem& system, Real acc,
+    ExponentialSpringForce& spr, const Array_<State>* stateArray);
+
+
+//=============================================================================
+// Event Reporters and the Vizualizer
+//=============================================================================
+//_____________________________________________________________________________
+// This class impmlements an event reported that records the System State at
+// a regular time interval.
+class PeriodicStateRecorder : public PeriodicEventReporter {
+public:
+    PeriodicStateRecorder(Real reportInterval)
+        : PeriodicEventReporter(reportInterval) {
+        storage = new Array_<State>;
+    }
+    ~PeriodicStateRecorder() {
+        delete storage;
+    }
+    void handleEvent(const State& state) const override {
+        storage->push_back(state);
+    }
+    void clearStateArray() {
+        storage->clear();
+    }
+    const Array_<State>* getStateArray() {
+        return storage;
+    }
+private:
+    Array_<State>* storage;
+};
+//_____________________________________________________________________________
+// This class implements an event reported that identifies the minimum and
+// maximum heights reached by a body and records the State at those heights.
+// This reporter is included in the testing to ensure that key events
+// during contact events are not missed.  It is posible that the periodic
+// reporter (see directly above) could step over such events.
+class MinMaxHeightStateRecorder : public TriggeredEventReporter {
+public:
+    MinMaxHeightStateRecorder(const MultibodySystem& system,
+            const MobilizedBody& body) :
+            TriggeredEventReporter(Stage::Velocity),
+            system(system), body(body) {
+        storage = new Array_<State>;
+        getTriggerInfo().setTriggerOnRisingSignTransition(true);
+    }
+    ~MinMaxHeightStateRecorder() {
+        delete storage;
+    }
+    Real getValue(const State& state) const {
+        Vec3 vel = body.getBodyOriginVelocity(state);
+        return vel[1];
+    }
+    void handleEvent(const State& state) const {
+        system.realize(state, Stage::Velocity);
+        Vec3 pos = body.getBodyOriginLocation(state);
+        Vec3 vel = body.getBodyOriginVelocity(state);
+        //cout << state.getTime() << "\tp = " << pos << "\tv = " << vel << endl;
+        storage->push_back(state);
+    }
+    void clearStateArray() {
+        storage->clear();
+    }
+    const Array_<State>* getStateArray() {
+        return storage;
+    }
+
+private:
+    const MultibodySystem& system;
+    const MobilizedBody& body;
+    Array_<State>* storage;
+};
+
 
 //=============================================================================
 // MAIN
@@ -37,14 +125,8 @@ int main() {
     SimTK_START_TEST("TestExponentialSpring");
 
     SimTK_SUBTEST(testInitialization);
-    SimTK_SUBTEST(testBouncingBlockNoDampingNoFriction);
-    SimTK_SUBTEST(testSlidingBlockNoDampingNoFriction);
-    SimTK_SUBTEST(testSpinningBlockNoDampingNoFriction);
-    SimTK_SUBTEST(testTumblingBlockNoDampingNoFriction);
-    SimTK_SUBTEST(testSlidingBlockNoDampingWithFriction);
-    SimTK_SUBTEST(testSlidingBlockWithDampingWithFriction);
-    SimTK_SUBTEST(testHopping3DPendulumWithDampingWithFriction);
-    SimTK_SUBTEST(testMultipleContactPlanes);
+    SimTK_SUBTEST(testBlockVerticalBounceNoFricNoDamp);
+
 
     SimTK_END_TEST();
 }
@@ -53,7 +135,21 @@ int main() {
 //=============================================================================
 // SUB TESTS
 //=============================================================================
+//_____________________________________________________________________________
+// Test the spring force calculations for a block that bounces up and down
+// on the floor without damping or friction.
+void testBlockVerticalBounceNoFricNoDamp() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 1;
+    options.friction = false;
+    options.damping = false;
+    options.viz = false;
+    options.tilt = 0.0;
 
+    // Run the simulation
+    simulateBlock(options);
+}
 //_____________________________________________________________________________
 // Test things that happen before integration.
 // 1. Setting and getting parameters (ExponentialSpringParameters)
@@ -251,126 +347,245 @@ void testInitialization() {
     // Test that the elastic component of the friction force is 0.0
     system.realize(state, Stage::Dynamics);
     Vec3 fElastic = spr.getFrictionForceElasticPart(state);
-    SimTK_TEST_EQ(fElastic,Vec3(0.0, 0.0, 0.0),1);
-}
-
-//_____________________________________________________________________________
-// Test, in a simple case, that energy is conserved and that the strain energy
-// calculation (i.e., the potential energy calculation) is correct.
-// A 10.0 kg body, mobilized by a vertical Slider, is dropped from 1.0 meters.
-// One ExponentialSpringForce, with no damping, acts on the body.
-// The body should bounce back to the height from which it was dropped (within
-// the accuracy of the integrator).
-// In addition, when the body is at its lowest point (i.e., when its kinetic
-// energy is zero), its total potential energy (gravitational + spring strain
-// energy) should equal its initial total potential energy.
-void testBouncingBlockNoDampingNoFriction() {
-
-}
-
-//_____________________________________________________________________________
-void testSlidingBlockNoDampingNoFriction() {
-
-}
-
-//_____________________________________________________________________________
-void testSpinningBlockNoDampingNoFriction() {
-
-}
-
-//_____________________________________________________________________________
-void testTumblingBlockNoDampingNoFriction() {
-
-}
-
-//_____________________________________________________________________________
-void testSlidingBlockNoDampingWithFriction() {
-
-}
-
-//_____________________________________________________________________________
-void testSlidingBlockWithDampingWithFriction() {
-
-}
-
-//_____________________________________________________________________________
-// Test that the spring force calculations are correct or at least internally
-// consistent. The getters for the data cache are checked in this process.
-// A 10 kg body, mobilized by a Free joint, is tossed horizontally from a
-// height of 1.0 meter. One ExponentialSpringForce is placed at a Station that
-// is displaced by 0.2 meters from the body's center of mass. The simulation
-// is long enough for the spring zero to stop sliding. The spring data is
-// sampled and checked every 0.1 seconds.
-void testHopping3DPendulumWithDampingWithFriction() {
-
-}
-
-
-//_____________________________________________________________________________
-void testMultipleContactPlanes() {
-
-}
-
-
-
-//=============================================================================
-// Event Reporters and the Vizualizer
-//=============================================================================
-
-//_____________________________________________________________________________
-// This class impmlements an event reported that stores the System State at
-// regular time intervals.
-class PeriodicStateStorage : public PeriodicEventReporter {
-public:
-    PeriodicStateStorage(const MultibodySystem& system, Real reportInterval)
-        : PeriodicEventReporter(reportInterval) {
-        storage = new Array_<State>;
-    }
-    ~PeriodicStateStorage() {
-        delete storage;
-    }
-    void handleEvent(const State& state) const override {
-        storage->push_back(state);
-    }
-    void clearStateStorage() {
-        storage->clear();
-    }
-    const Array_<State>* getStateStorage() {
-        return storage;
-    }
-private:
-    Array_<State> *storage;
+    SimTK_TEST_EQ(fElastic,Vec3(0., 0., 0.));
 };
 
 
-
-
 //=============================================================================
-/** This class impmlements an event reported that identifies the highest
-position reached by a body.  If energy is conserved, which should
-be the case if there are no damping components of the contact force,
-then the height should be constant across multiple bounces. */
-class MaxHeightReporter : public TriggeredEventReporter {
-public:
-    MaxHeightReporter(const MultibodySystem& system, const MobilizedBody& body)
-        : TriggeredEventReporter(Stage::Velocity), system(system), body(body) {
-        getTriggerInfo().setTriggerOnRisingSignTransition(false);
+// Routines called by Subtests
+//=============================================================================
+//_____________________________________________________________________________
+// Simulate a block bouncing and sliding on the floor. The block has a mass of
+// 10.0 kg and is mobilized by a Free joint. An ExponentialSpringForce acts at
+// each corner of the block. A second contact plane representing a wall is
+// also added to the simulation.
+//
+// Simulation options specify which set of initial conditions are set, whether
+// damping and friction are part of the simulation, and the tilt of the floor
+// plane.  
+void simulateBlock(const SimulationOptions& options) {
+    // Construct the system and basic subsystems.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0., -9.8, 0.));
+
+    // Construct the mobilized body.
+    // The body will slide along the y-axis (up and down)
+    // Rotate the parent frame (F) and body frame (M) so that the x axis up.
+    Body::Rigid bodyProps(MassProperties(10.0, Vec3(0), Inertia(1)));
+    MobilizedBody::Free body(matter.Ground(), bodyProps);
+
+    // Add exponential springs to the block.
+    Transform contactPlane(Rotation(0.0, ZAxis), Vec3(0.));  // No change.
+    Vec3 station(0., 0., 0.);  // Spring acts at center of mass.
+    Real mus = 0.0, muk = 0.0;  // No friction.
+    ExponentialSpringParameters params;
+    params.setNormalViscosity(0.0);  // No damping in the normal direction.
+    params.setViscosity(0.0);  // No damping in the friction spring.
+    ExponentialSpringForce
+        spr(system, contactPlane, body, station, mus, muk, params);
+
+    // Add reporters and visualization
+    PeriodicStateRecorder* periodicRecorder = new PeriodicStateRecorder(0.1);
+    system.addEventReporter(periodicRecorder);
+    MinMaxHeightStateRecorder* minmaxRecorder =
+        new MinMaxHeightStateRecorder(system, body);
+    system.addEventReporter(minmaxRecorder);
+
+    // Realize through Stage::Model (construct the State)
+    system.realizeTopology();
+    State state = system.getDefaultState();
+    system.realizeModel(state);
+
+    // Set the initial states
+    body.setQToFitTranslation(state, Vec3(0.0, 1.0, 0.0));
+    body.setU(state, Vec6(0., 0., 0., 0., 0., 0.));
+    spr.resetSpringZero(state);
+
+    // Simulate
+    RungeKuttaMersonIntegrator integ(system);
+    Real acc = 1.0e-5;
+    integ.setAccuracy(acc);
+    integ.setMaximumStepSize(0.01);
+    TimeStepper ts(system, integ);
+    ts.initialize(state);
+    ts.stepTo(5.0);
+
+    // Get the time histories of states
+    const Array_<State>* periodicArray = periodicRecorder->getStateArray();
+    //cout << "Number of stored state arrays = " << periodicArray->size() << endl;
+    const Array_<State>* minmaxArray = minmaxRecorder->getStateArray();
+    //cout << "Number of stored state arrays = " << minmaxArray->size() << endl;
+
+    // Check the spring force calculations
+    checkSpringCalculations(system, acc, spr, periodicArray);
+    checkSpringCalculations(system, acc, spr, minmaxArray);
+
+    // Check energy conservation
+    if((options.damping == false) && (options.friction == false))
+        checkConservationOfEnergy(system, acc, spr, periodicArray);
+    if((options.damping == false) && (options.friction == false))
+        checkConservationOfEnergy(system, acc, spr, minmaxArray);
+}
+//_____________________________________________________________________________
+// Check that spring forces are internally consistent for a simulation.
+// system       : system being simulated
+// acc          : integrator accuracy
+// spr          : exponential spring
+// stateArray   : time history of states
+void checkSpringCalculations(MultibodySystem& system, Real acc,
+    ExponentialSpringForce& spr, const Array_<State>* stateArray) {
+    // Check for empty state array
+    if(stateArray->size() == 0) return;
+
+    // Check that getting data before Stage::Dynamics has been realized
+    // throws an exception.
+    const State& state = (*stateArray)[0];
+    SimTK_TEST_MUST_THROW(spr.getNormalForce(state));
+
+    // Loop through the recorded states
+    for(unsigned int i = 0; i < stateArray->size(); ++i) {
+
+        const State& state = (*stateArray)[i];
+
+        // Realize through Stage::Dynamics
+        system.realize(state, Stage::Dynamics);
+
+        // Check the normal force when expressed in the contact plane
+        Vec3 fyElas = spr.getNormalForceElasticPart(state, false);
+        Vec3 fyDamp = spr.getNormalForceDampingPart(state, false);
+        Vec3 fy = spr.getNormalForce(state, false);
+        // x components should be 0.0
+        SimTK_TEST(fyElas[0] == 0.0);
+        SimTK_TEST(fyDamp[0] == 0.0);
+        SimTK_TEST(fy[0] == 0.0);
+        // z components should be 0.0
+        SimTK_TEST(fyElas[2] == 0.0);
+        SimTK_TEST(fyDamp[2] == 0.0);
+        SimTK_TEST(fy[2] == 0.0);
+        // sum elastic and damping
+        Vec3 fyCalc = fyElas - fyDamp;
+        // bounds on fy are enforced in realizeSubsystemDynamicsImpl()
+        if(fyCalc[1] < 0.0) fyCalc[1] = 0.0;
+        if(fyCalc[1] > 1000000.0) fyCalc[1] = 1000000.0;
+        //cout << "fyElas= " << fyElas << "  fyDamp= " << fyDamp << "  fy= " << fy << endl;
+        SimTK_TEST_EQ(fyCalc, fy);
+
+        // Check normal force when expressed in Ground
+        Vec3 fyElas_G = spr.getNormalForceElasticPart(state);
+        Vec3 fyDamp_G = spr.getNormalForceDampingPart(state);
+        Vec3 fy_G = spr.getNormalForce(state);
+        Vec3 fyCalc_G = fyElas_G + fyDamp_G;
+        // bounds on fy are enforced in realizeSubsystemDynamicsImpl()
+        if(fyCalc_G[1] < 0.0) fyCalc_G[1] = 0.0;
+        if(fyCalc_G[1] > 1000000.0) fyCalc_G[1] = 1000000.0;
+        //cout << "fyElas= " << fyElas << "  fyDamp= " << fyDamp << "  fy= " << fy << endl;
+        SimTK_TEST_EQ(fyCalc_G, fy);
+
+        // Check magnitude of fy is same in Ground and ContacPlane
+        SimTK_TEST_EQ(fy_G.norm(), fy.norm());
+
+        // Check 0.0 ≤ sliding state ≤ 1.0
+        Real sliding = spr.getSliding(state);
+        //cout << "sliding= " << sliding << endl;
+        SimTK_TEST(sliding < 1.0 + acc);
+        SimTK_TEST(sliding > 0.0 - acc);
+
+        // Check μₖ ≤ μ ≤ μₛ
+        Real mus = spr.getMuStatic(state);
+        Real muk = spr.getMuKinetic(state);
+        Real mu = spr.getMu(state);
+        SimTK_TEST(muk <= mu);
+        SimTK_TEST(mu <= mus);
+
+        // Check friction limit ≤ μ*fy
+        Vec3 mu_fy = mu * fy_G;
+        Real fricLimit = spr.getFrictionForceLimit(state);
+        SimTK_TEST(fricLimit <= mu_fy.norm());
+
+        // Check friction force expressed in the contact plane
+        Vec3 fricElas = spr.getFrictionForceElasticPart(state, false);
+        Vec3 fricDamp = spr.getFrictionForceDampingPart(state, false);
+        Vec3 fric = spr.getFrictionForce(state, false);
+        // y component should be 0.0
+        SimTK_TEST(fricElas[1] == 0.0);
+        SimTK_TEST(fricDamp[1] == 0.0);
+        SimTK_TEST(fric[1] == 0.0);
+        // sum elastic and damping
+        Vec3 fricCalc = fricElas + fricDamp;
+        //cout << "fricElas= " << fricElas << "  fricDamp= " << fricDamp << "  fric= " << fric << endl;
+        SimTK_TEST_EQ(fricCalc, fric);
+
+        // Check friction force expressed in Ground
+        Vec3 fricElas_G = spr.getFrictionForceElasticPart(state);
+        Vec3 fricDamp_G = spr.getFrictionForceDampingPart(state);
+        Vec3 fric_G = spr.getFrictionForce(state);
+        Vec3 fricCalc_G = fricElas_G + fricDamp_G;
+        SimTK_TEST_EQ(fricCalc_G, fric_G);
+
+        // Check magnitude of fric is same in Ground and Contact Plane
+        SimTK_TEST_EQ(fric_G.norm(), fric.norm());
+
+        // Check |friction| ≤ friction limit
+        SimTK_TEST(fric.norm() <= fricLimit);
+
+        // Check total force in Contact Plane
+        Vec3 f = spr.getForce(state, false);
+        Vec3 fCalc = fyCalc + fricCalc;
+        SimTK_TEST_EQ(fCalc, f);
+
+        // Check total force in Ground
+        Vec3 f_G = spr.getForce(state);
+        Vec3 fCalc_G = fyCalc_G + fricCalc_G;
+        SimTK_TEST_EQ(fCalc_G, f_G);
+
+        // Check magnitude of total force is same in Ground and Contact Plane
+        SimTK_TEST_EQ(f_G.norm(), f.norm());
+
+        // Check that the point at which the spring force is applied is equal
+        // to the spring station when expressed in Ground.
+        Vec3 p_G = spr.getForcePoint(state);
+        Vec3 station = spr.getStation();
+        Vec3 station_G =
+            spr.getBody().findStationLocationInGround(state, station);
+        SimTK_TEST_EQ(station_G, p_G);
+
+        // Check that the spring zero lies in the Contact Plane
+        Vec3 p0 = spr.getSpringZeroPosition(state, false);
+        SimTK_TEST(p0[1] == 0.0);
     }
-    Real getValue(const State& state) const {
-        Vec3 vel = body.getBodyOriginVelocity(state);
-        return vel[1];
+}
+
+//_____________________________________________________________________________
+// Check that spring forces are internally consistent for a simulation.
+// system       : system being simulated
+// acc          : integrator accuracy
+// spr          : exponential spring
+// stateArray   : time history of states
+void checkConservationOfEnergy(MultibodySystem& system, Real acc,
+    ExponentialSpringForce& spr, const Array_<State>* stateArray) {
+    // Check for empty state array
+    if(stateArray->size() <= 1) return;
+
+    // Calculate the initial energy of the system
+    const State& state0 = (*stateArray)[0];
+    system.realize(state0, Stage::Dynamics);
+    Real energy0 = system.calcEnergy(state0);
+
+    // Loop through the recorded states
+    for(unsigned int i = 0; i < stateArray->size(); ++i) {
+
+        const State& state = (*stateArray)[i];
+
+        // Realize through Stage::Dynamics
+        system.realize(state, Stage::Dynamics);
+
+        // Check the energy
+        Real energy = system.calcEnergy(state);
+        //cout << "energy= " << energy << "  energy0= " << energy0 << endl;
+        SimTK_TEST_EQ_TOL(energy, energy0, acc*energy0);
     }
-    void handleEvent(const State& state) const {
-        system.realize(state, Stage::Velocity);
-        Vec3 pos = body.getBodyOriginLocation(state);
-        Vec3 vel = body.getBodyOriginVelocity(state);
-        cout << endl;
-        cout << state.getTime() << "\tp = " << pos << "\tv = " << vel << endl;
-        cout << endl;
-    }
-private:
-    const MultibodySystem& system;
-    const MobilizedBody& body;
-};
+}
 
 
