@@ -654,32 +654,6 @@ resetSpringZero(State& state) const {
 // Spring Data Accessor Methods
 //-----------------------------------------------------------------------------
 //_____________________________________________________________________________
-// Get the position of the spring station.
-Vec3
-ExponentialSpringForce::
-getStationPosition(const State& state, bool inGround) const {
-    Vec3 pos;
-    if(inGround) {
-        pos = getImpl().getData(state).p_G;
-    } else {
-        pos = getImpl().getData(state).p;
-    }
-    return pos;
-}
-//_____________________________________________________________________________
-// Get the velocity of the spring station.
-Vec3
-ExponentialSpringForce::
-getStationVelocity(const State& state, bool inGround) const {
-    Vec3 vel;
-    if(inGround) {
-        vel = getImpl().getData(state).v_G;
-    } else {
-        vel = getImpl().getData(state).v;
-    }
-    return vel;
-}
-//_____________________________________________________________________________
 // Get the elastic part of the normal force.
 Vec3
 ExponentialSpringForce::
@@ -765,17 +739,26 @@ getForce(const State& state, bool inGround) const {
     return force;
 }
 //_____________________________________________________________________________
-// Get the point at which the spring force is applied to the MobilizedBody.
+// Get the position of the spring station.
 Vec3
 ExponentialSpringForce::
-getForcePoint(const State& state, bool inGround) const {
-    Vec3 point;
-    if(inGround) {
-        point = getImpl().getData(state).p_G;
-    } else {
-        point = getImpl().getData(state).p;
-    }
-    return point;
+getStationPosition(const State& state, bool inGround) const {
+    Vec3 pos_B = getStation();
+    Vec3 pos_G = getBody().findStationLocationInGround(state, pos_B);
+    if(inGround) return pos_G;
+    Vec3 pos = getContactPlane().shiftBaseStationToFrame(pos_G);
+    return pos;
+}
+//_____________________________________________________________________________
+// Get the velocity of the spring station.
+Vec3
+ExponentialSpringForce::
+getStationVelocity(const State& state, bool inGround) const {
+    Vec3 pos_B = getStation();
+    Vec3 vel_G = getBody().findStationVelocityInGround(state, pos_B);
+    if(inGround) return vel_G;
+    Vec3 vel = getContactPlane().xformBaseVecToFrame(vel_G);
+    return vel;
 }
 //_____________________________________________________________________________
 // Get the position of the spring zero.
