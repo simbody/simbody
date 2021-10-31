@@ -343,35 +343,37 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     Vec3 r = data.pxz - p0;
     data.fricElas = -kpFric * r;
     Real fxzElas = data.fricElas.norm();
-    // Viscous part (damping)
-    data.fricDamp = -kvFric * data.vxz;
-    // Total
-    data.fric = data.fricElas + data.fricDamp;
-    data.fxz = data.fric.norm();
-    bool limitReached = false;
-    if(data.fxz > data.fxzLimit) {
-        data.fxz = data.fxzLimit;
-        data.fric = data.fxz * data.fric.normalize();
-        limitReached = true;
-    }
     // If the spring is stretched beyond its limit, update the spring zero.
     // Note that no discontinuities in the friction force are introduced.
     // The spring zero is just made to be consistent with the limiting
     // frictional force.
-    Vec3 p0New, fricElasNew;
+    bool limitReached = false;
+    Vec3 p0New;
     if(fxzElas > data.fxzLimit) {
+        limitReached = true;
         // Compute a new spring zero.
-        fxzElas = data.fxzLimit;
-        fricElasNew = fxzElas * data.fricElas.normalize();
-        p0New = data.pxz + fricElasNew / kpFric;
+        data.fricElas = data.fxzLimit * data.fricElas.normalize();
+        p0New = data.pxz + data.fricElas / kpFric;
         // Make sure that p0 is always in the contact plane.
         p0New[1] = 0.0;
         // Update the spring zero cache and mark the cache as realized.
         // Only place that the following two lines are called.
         updSprZeroInCache(state, p0New);
         markCacheValueRealized(state, indexSprZeroInCache);
+        // The damping part must be zero!
+        data.fricDamp = 0.0;
+    } else {
+        // Viscous part (damping)
+        data.fricDamp = -kvFric * data.vxz;
     }
-
+    // Total
+    data.fric = data.fricElas + data.fricDamp;
+    data.fxz = data.fric.norm();
+    if(data.fxz > data.fxzLimit) {
+        data.fxz = data.fxzLimit;
+        data.fric = data.fxz * data.fric.normalize();
+    }
+ 
     // Update SlidingDot
     Real vMag = data.vxz.norm();
     Real slidingDot = 0.0;
