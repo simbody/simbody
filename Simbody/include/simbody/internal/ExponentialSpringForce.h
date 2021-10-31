@@ -227,7 +227,7 @@ sliding state of the spring.
 The instantaneous coefficient of friction (mu) is calculated based on the
 value of Sliding:
 
-        μ = μₛ - Sliding (μₛ - μₖ)
+        μ = μₛ - Sliding*(μₛ - μₖ)
 
 The time derivative of Sliding is used to drive Sliding toward the
 extreme of 0.0 or 1.0, depending on the following criteria:
@@ -429,12 +429,15 @@ public:
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane.*/
+    the contact plane. */
     Vec3 getNormalForce(const State& state,
         bool inGround = true) const;
 
-    /** Get the instantaneous coefficient of friction. The system must be
-    realized to Stage::Dynamics to access this data.
+    /** Get the instantaneous coefficient of friction (μ). The system must be
+    realized to Stage::Dynamics to access this data. μ is obtained by using
+    the Sliding state to transition between μₖ and μₛ:
+            μ = μₛ - Sliding*(μₛ - μₖ)
+    Because 0.0 ≤ Sliding ≤ 1.0, μₖ ≤ μ ≤ μₛ.
     @param state State object from which to retrieve the data. */
     Real getMu(const State& state) const;
 
