@@ -207,7 +207,7 @@ void testInitialization() {
     SimTK_TEST_EQ_TOL(d2 - d2Def, delta, tol);
     SimTK_TEST_EQ(params.getNormalViscosity() - kvNormDef, delta);
     SimTK_TEST_EQ_TOL(params.getElasticity() - kpDef, delta, tol);
-    SimTK_TEST_EQ(params.getViscosity() - kvDef, delta);
+    SimTK_TEST_EQ_TOL(params.getViscosity() - kvDef, delta, tol);
     SimTK_TEST_EQ(params.getSlidingTimeConstant() - tauDef, delta);
     SimTK_TEST_EQ(params.getSettleVelocity() - vSettleDef, delta);
 
@@ -266,7 +266,7 @@ void testInitialization() {
     SimTK_TEST_EQ_TOL(d2 - d2Def, delta, tol);
     SimTK_TEST_EQ(p.getNormalViscosity() - kvNormDef, delta);
     SimTK_TEST_EQ_TOL(p.getElasticity() - kpDef, delta, tol);
-    SimTK_TEST_EQ(p.getViscosity() - kvDef, delta);
+    SimTK_TEST_EQ_TOL(p.getViscosity() - kvDef, delta, tol);
     SimTK_TEST_EQ(p.getSlidingTimeConstant() - tauDef, delta);
     SimTK_TEST_EQ(p.getSettleVelocity() - vSettleDef, delta);
 
@@ -376,22 +376,67 @@ void simulateBlock(const SimulationOptions& options) {
     Body::Rigid bodyProps(MassProperties(10.0, Vec3(0), Inertia(1)));
     MobilizedBody::Free body(matter.Ground(), bodyProps);
 
-    // Add exponential springs to the block.
-    Transform contactPlane(Rotation(0.0, ZAxis), Vec3(0.));  // No change.
-    Vec3 station(0., 0., 0.);  // Spring acts at center of mass.
-    Real mus = 0.0, muk = 0.0;  // No friction.
-    ExponentialSpringParameters params;
-    params.setNormalViscosity(0.0);  // No damping in the normal direction.
-    params.setViscosity(0.0);  // No damping in the friction spring.
-    ExponentialSpringForce
-        spr(system, contactPlane, body, station, mus, muk, params);
+    // Define the corners of the block
+    Real hs = 0.1;
+    Vec3 corner[8];
+    corner[0] = Vec3(hs, -hs, hs);
+    corner[1] = Vec3(hs, -hs, -hs);
+    corner[2] = Vec3(-hs, -hs, -hs);
+    corner[3] = Vec3(-hs, -hs, hs);
+    corner[4] = Vec3(hs, hs, hs);
+    corner[5] = Vec3(hs, hs, -hs);
+    corner[6] = Vec3(-hs, hs, -hs);
+    corner[7] = Vec3(-hs, hs, hs);
 
-    // Add reporters and visualization
+    // Parameters
+    // Damping
+    ExponentialSpringParameters params;
+    if(!options.damping) {
+        params.setNormalViscosity(0.0);
+        params.setViscosity(0.0);
+    }
+    // Friction
+    Real muk = 0.25, mus = 0.5;
+    if(!options.friction) {
+        mus = 0.0, muk = 0.0;
+    }
+
+    // Floor Plane
+    Real angle = convertDegreesToRadians(options.tilt);
+    Transform floorPlane(Rotation(angle, ZAxis), Vec3(0.));
+    // Create an exponential spring to each corner of the block.
+    ExponentialSpringForce* sprFloor[8];
+    int i;
+    for(i = 0; i < 8; ++i) {
+        sprFloor[i] = new ExponentialSpringForce(system, floorPlane,
+            body, corner[i], mus, muk, params);
+    }
+
+    // Wall Plane
+    // 1.5 m along the +x axis, but angled by 30 deg to face the
+    // +z axis. The 30 deg angle is so that motion will be generated that is
+    // not perfectly along the coordinate axes.
+    angle = convertDegreesToRadians(30.0);
+    Rotation r;
+    r.setRotationFromTwoAnglesTwoAxes(BodyRotationSequence,
+        Pi/2.0, ZAxis, angle, XAxis);
+    Transform wallPlane(r, Vec3(1.5, 0., 0.));
+    // Create an exponential spring to each corner of the block.
+    ExponentialSpringForce* sprWall[8];
+    for(i = 0; i < 8; ++i) {
+        sprWall[i] = new ExponentialSpringForce(system, wallPlane,
+            body, corner[i], mus, muk, params);
+    }
+
+    // Periodic Reporter
     PeriodicStateRecorder* periodicRecorder = new PeriodicStateRecorder(0.1);
     system.addEventReporter(periodicRecorder);
-    MinMaxHeightStateRecorder* minmaxRecorder =
-        new MinMaxHeightStateRecorder(system, body);
+
+    // Min Max Height Reporter
+    MinMaxHeightStateRecorder* minmaxRecorder = new
+        MinMaxHeightStateRecorder(system, body);
     system.addEventReporter(minmaxRecorder);
+
 
     // Realize through Stage::Model (construct the State)
     system.realizeTopology();
@@ -401,7 +446,12 @@ void simulateBlock(const SimulationOptions& options) {
     // Set the initial states
     body.setQToFitTranslation(state, Vec3(0.0, 1.0, 0.0));
     body.setU(state, Vec6(0., 0., 0., 0., 0., 0.));
-    spr.resetSpringZero(state);
+
+    // Reset the spring zeros
+    for(i = 0; i < 8; ++i) {
+        sprFloor[i]->resetSpringZero(state);
+        sprWall[i]->resetSpringZero(state); 
+    }
 
     // Simulate
     RungeKuttaMersonIntegrator integ(system);
@@ -411,22 +461,47 @@ void simulateBlock(const SimulationOptions& options) {
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(5.0);
-
-    // Get the time histories of states
+ 
+    // Get the recorded state arrays
     const Array_<State>* periodicArray = periodicRecorder->getStateArray();
-    //cout << "Number of stored state arrays = " << periodicArray->size() << endl;
     const Array_<State>* minmaxArray = minmaxRecorder->getStateArray();
-    //cout << "Number of stored state arrays = " << minmaxArray->size() << endl;
 
-    // Check the spring force calculations
-    checkSpringCalculations(system, acc, spr, periodicArray);
-    checkSpringCalculations(system, acc, spr, minmaxArray);
+    // Test that getting data before Stage::Dynamics has been realized
+    // throws an exception.
+    const State& pstate = (*periodicArray)[0];
+    SimTK_TEST_MUST_THROW(sprFloor[0]->getNormalForce(pstate));
 
-    // Check energy conservation
-    if((options.damping == false) && (options.friction == false))
-        checkConservationOfEnergy(system, acc, spr, periodicArray);
-    if((options.damping == false) && (options.friction == false))
-        checkConservationOfEnergy(system, acc, spr, minmaxArray);
+    // Run low level tests for each of the springs
+    cout << " ";
+    for(i = 0; i < 8; ++i) {
+
+        cout << " f"<< i;
+        // periodic floor plane
+        checkSpringCalculations(system, acc, *sprFloor[i], periodicArray);
+        if((options.damping == false) && (options.friction == false))
+            checkConservationOfEnergy(system, acc, *sprFloor[i], minmaxArray);
+        // minmax floor plane
+        checkSpringCalculations(system, acc, *sprFloor[i], periodicArray);
+        if((options.damping == false) && (options.friction == false))
+            checkConservationOfEnergy(system, acc, *sprFloor[i], minmaxArray);
+
+        cout << " w" << i;
+        // periodic wall plane
+        checkSpringCalculations(system, acc, *sprWall[i], periodicArray);
+        if((options.damping == false) && (options.friction == false))
+            checkConservationOfEnergy(system, acc, *sprFloor[i], minmaxArray);
+        // minmax wall plane
+        checkSpringCalculations(system, acc, *sprWall[i], periodicArray);
+        if((options.damping == false) && (options.friction == false))
+            checkConservationOfEnergy(system, acc, *sprFloor[i], minmaxArray);
+    }
+    cout << endl;
+
+    // Clean up
+    for(i = 0; i < 8; ++i) {
+        delete sprFloor[i];
+    }
+
 }
 //_____________________________________________________________________________
 // Check that spring forces are internally consistent for a simulation.
@@ -438,11 +513,6 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
     ExponentialSpringForce& spr, const Array_<State>* stateArray) {
     // Check for empty state array
     if(stateArray->size() == 0) return;
-
-    // Check that getting data before Stage::Dynamics has been realized
-    // throws an exception.
-    const State& state = (*stateArray)[0];
-    SimTK_TEST_MUST_THROW(spr.getNormalForce(state));
 
     // Loop through the recorded states
     for(unsigned int i = 0; i < stateArray->size(); ++i) {
@@ -514,7 +584,7 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         SimTK_TEST(fric[1] == 0.0);
         // sum elastic and damping
         Vec3 fricCalc = fricElas + fricDamp;
-        //cout << "fricElas= " << fricElas << "  fricDamp= " << fricDamp << "  fric= " << fric << endl;
+        cout << "fricElas= " << fricElas << "  fricDamp= " << fricDamp << "  fric= " << fric << endl;
         SimTK_TEST_EQ(fricCalc, fric);
 
         // Check friction force expressed in Ground
@@ -558,7 +628,10 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
 }
 
 //_____________________________________________________________________________
-// Check that spring forces are internally consistent for a simulation.
+// Check that energy is reasonably conserved when there is no damping
+// and no friction, and the only force acting on the system is Gravity.
+// Accounting for dissipative energy losses due to damping and friction
+// would require the damping and friction forces to be integrated over time.
 // system       : system being simulated
 // acc          : integrator accuracy
 // spr          : exponential spring
