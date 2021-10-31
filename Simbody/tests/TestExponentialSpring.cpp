@@ -200,7 +200,7 @@ void testInitialization() {
     SimTK_TEST(params != paramsDef);
     
     // Test the set methods by checking the individual member variables.
-    Real tol = 1.0e-12 * delta;
+    Real tol = 1.0e-10 * delta;
     params.getShapeParameters(d0, d1, d2);
     SimTK_TEST_EQ(d0 - d0Def, delta);
     SimTK_TEST_EQ(d1 - d1Def, delta);
@@ -584,7 +584,7 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         SimTK_TEST(fric[1] == 0.0);
         // sum elastic and damping
         Vec3 fricCalc = fricElas + fricDamp;
-        cout << "fricElas= " << fricElas << "  fricDamp= " << fricDamp << "  fric= " << fric << endl;
+        //cout << "fricElas= " << fricElas << "  fricDamp= " << fricDamp << "  fric= " << fric << endl;
         SimTK_TEST_EQ(fricCalc, fric);
 
         // Check friction force expressed in Ground
