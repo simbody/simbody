@@ -161,7 +161,7 @@ public:
     elasticity previously set by a call to
     setElasticityAndViscosityForCriticalDamping().
     @param kp Elasticity of the friction spring. Its default value is
-    2000.0 N/m. kp should be positive. */
+    20000.0 N/m. kp should be positive. */
     void setElasticity(Real kp);
 
     /** Get the elasticity of the friction spring. The value of the elasticity
@@ -174,16 +174,15 @@ public:
     /** Set the viscosity of the friction spring. A call to this method
     overrides any value of viscosity previously set by a call to
     setElasticityAndViscosityForCriticalDamping(). Setting the viscosity equal
-    to 0.0 is fine, but may not have the expected result.  If a body is not
-    sliding, setting kᵥ = 0.0 will simply allow the body to vibrate in place
+    to 0.0 is fine. Be aware, however, that if a body is not sliding,
+    setting kᵥ = 0.0 will simply allow the body to vibrate in place
     indefinitely. If a body is sliding, even if kᵥ = 0.0, the kinetic energy
-    of the body will still be dissipated because the frictional force will
-    not be zero. (The elastic part of the friction spring is stretched and so
-    still applies a force, but the potential energy stored in the spring is
-    not increased because the spring zero is continually released.) The only
-    way to eliminate energy dissipation entirely is to set the coefficients
-    of friction equal to 0.0, which can be done by a call to
-    ExponentialSpringForce::setMuStatic(0.0).
+    of the body will still be dissipated because the frictional force is
+    directed opposite the sliding velocity, and the elastic part of the
+    friction spring will not store additional potential energy because the
+    spring zero is continually released. The only way to eliminate energy
+    dissipation entirely is to set the coefficients of friction equal to 0.0,
+    which can be done by a call to ExponentialSpringForce::setMuStatic(0.0).
     @param kv Viscosity of the friction spring. Its default value is
     2.0*sqrt(kp*mass) = 2.0*sqrt(2000*1) ~= 89.4427 N*s/m. kv should be 0.0
     or positive. */
