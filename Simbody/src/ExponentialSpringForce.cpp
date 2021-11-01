@@ -348,22 +348,19 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // The spring zero is just made to be consistent with the limiting
     // frictional force.
     bool limitReached = false;
-    Vec3 p0New;
     if(fxzElas > data.fxzLimit) {
         limitReached = true;
         // Compute a new spring zero.
         data.fricElas = data.fxzLimit * data.fricElas.normalize();
-        p0New = data.pxz + data.fricElas / kpFric;
-        // Make sure that p0 is always in the contact plane.
-        p0New[1] = 0.0;
-        // Update the spring zero cache and mark the cache as realized.
-        // Only place that the following two lines are called.
-        updSprZeroInCache(state, p0New);
-        markCacheValueRealized(state, indexSprZeroInCache);
+        p0 = data.pxz + data.fricElas / kpFric;
+        p0[1] = 0.0;
         // The damping part must be zero!
-        data.fricDamp = 0.0;
+        data.fricDamp = Vec3(0.0, 0.0, 0.0);
+    // spring zero does not need to be recalculated, but fricDamp = 0.0
+    } else if(fxzElas == data.fxzLimit) {
+        data.fricDamp = Vec3(0.0, 0.0, 0.0);
+    // calculate fricDamp
     } else {
-        // Viscous part (damping)
         data.fricDamp = -kvFric * data.vxz;
     }
     // Total
@@ -372,7 +369,13 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     if(data.fxz > data.fxzLimit) {
         data.fxz = data.fxzLimit;
         data.fric = data.fxz * data.fric.normalize();
+        data.fricDamp = data.fric - data.fricElas;
     }
+
+    // Update the spring zero cache and mark the cache as realized.
+    // Only place that the following two lines are called.
+    updSprZeroInCache(state, p0);
+    markCacheValueRealized(state, indexSprZeroInCache);
  
     // Update SlidingDot
     Real vMag = data.vxz.norm();
@@ -381,8 +384,8 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     else if(vMag < vSettle)  slidingDot = -kTau * sliding;
     updSlidingDotInCache(state, slidingDot);
 
-    // Total spring force expressed in the floor frame
-    data.f = data.fric;        // The x and z components are friction.
+    // Total spring force expressed in the frame of the Contact Plane.
+    data.f = data.fric;     // The x and z components are friction.
     data.f[1] = data.fy;    // The y component is the normal force.
 
     // Transform the spring forces back to the Ground frame
@@ -418,8 +421,13 @@ calcPotentialEnergy(const State& state) const override {
     params.getShapeParameters(d0, d1, d2);
     double energy = data.fyElas / d2;
     // Strain energy in the tangent plane (friction spring)
-    Vec3 p0 = getSprZero(state);
-    Vec3 r = data.pxz - p0;
+    // Note that the updated spring zero (the one held in cache) needs to be
+    // used, not the one in the state.
+    // In the process of realizing to Stage::Dynamics, the spring zero is
+    // changed when fxzElas > fxzLimit. This change is not reflected in the
+    // state, just in the cache.
+    Vec3 p0Cache = getSprZeroInCache(state);
+    Vec3 r = data.pxz - p0Cache;
     energy += 0.5 * params.getElasticity() * r.norm() * r.norm();
     return energy;
 }
