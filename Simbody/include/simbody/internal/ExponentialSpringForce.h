@@ -475,7 +475,6 @@ public:
     the contact plane. */
     Vec3 getFrictionForce(const State& state, bool inGround = true) const;
 
-    
     /** Get the total spring force applied to the MobilizedBody. The system
     must be realized to Stage::Dynamics to access this data.
     @param state State object from which to retrieve the data. 
