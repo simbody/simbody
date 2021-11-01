@@ -40,7 +40,15 @@ struct SimulationOptions {
 
 // Declarations
 void testInitialization();
-void testBlockVerticalBounceNoFricNoDamp();
+void testBlockVerticalBounceNoDampNoFric();
+void testBlockVerticalBounceNoDampNoFric();
+void testBlockVerticalBounceNoDampWithFric();
+void testBlockVerticalBounceWithDampNoFric();
+void testBlockVerticalBounceWithDampWithFric();
+void testBlockSlideNoDampNoFric();
+void testBlockSlideWithDampWithFric();
+
+// Utility Routines
 void simulateBlock(const SimulationOptions &options);
 void checkSpringCalculations(MultibodySystem& system, Real acc,
     ExponentialSpringForce& spr, const Array_<State>* stateArray);
@@ -125,8 +133,12 @@ int main() {
     SimTK_START_TEST("TestExponentialSpring");
 
     SimTK_SUBTEST(testInitialization);
-    SimTK_SUBTEST(testBlockVerticalBounceNoFricNoDamp);
-
+    SimTK_SUBTEST(testBlockVerticalBounceNoDampNoFric);
+    SimTK_SUBTEST(testBlockVerticalBounceNoDampWithFric);
+    SimTK_SUBTEST(testBlockVerticalBounceWithDampNoFric);
+    SimTK_SUBTEST(testBlockVerticalBounceWithDampWithFric);
+    SimTK_SUBTEST(testBlockSlideNoDampNoFric);
+    SimTK_SUBTEST(testBlockSlideWithDampWithFric);
 
     SimTK_END_TEST();
 }
@@ -138,12 +150,87 @@ int main() {
 //_____________________________________________________________________________
 // Test the spring force calculations for a block that bounces up and down
 // on the floor without damping or friction.
-void testBlockVerticalBounceNoFricNoDamp() {
+void testBlockVerticalBounceNoDampNoFric() {
     // Set Options
     SimulationOptions options;
     options.condition = 1;
-    options.friction = false;
     options.damping = false;
+    options.friction = false;
+    options.viz = false;
+    options.tilt = 0.0;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Test the spring force calculations for a block that bounces up and down
+// on the floor without damping or friction.
+void testBlockVerticalBounceNoDampWithFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 1;
+    options.damping = false;
+    options.friction = true;
+    options.viz = false;
+    options.tilt = 0.0;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Test the spring force calculations for a block that bounces up and down
+// on the floor without damping or friction.
+void testBlockVerticalBounceWithDampNoFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 1;
+    options.damping = true;
+    options.friction = false;
+    options.viz = false;
+    options.tilt = 0.0;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Test the spring force calculations for a block that bounces up and down
+// on the floor without damping or friction.
+void testBlockVerticalBounceWithDampWithFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 1;
+    options.damping = true;
+    options.friction = true;
+    options.viz = false;
+    options.tilt = 0.0;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Test the spring force calculations for a block that bounces up and down
+// on the floor without damping or friction.
+void testBlockSlideNoDampNoFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 2;
+    options.damping = false;
+    options.friction = false;
+    options.viz = false;
+    options.tilt = 0.0;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Test the spring force calculations for a block that bounces up and down
+// on the floor without damping or friction.
+void testBlockSlideWithDampWithFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 2;
+    options.damping = true;
+    options.friction = true;
     options.viz = false;
     options.tilt = 0.0;
 
@@ -402,6 +489,7 @@ void simulateBlock(const SimulationOptions& options) {
     }
 
     // Floor Plane
+    // Same as the Ground plane.
     Real angle = convertDegreesToRadians(options.tilt);
     Transform floorPlane(Rotation(angle, ZAxis), Vec3(0.));
     // Create an exponential spring to each corner of the block.
@@ -437,15 +525,59 @@ void simulateBlock(const SimulationOptions& options) {
         MinMaxHeightStateRecorder(system, body);
     system.addEventReporter(minmaxRecorder);
 
-
     // Realize through Stage::Model (construct the State)
     system.realizeTopology();
     State state = system.getDefaultState();
     system.realizeModel(state);
 
-    // Set the initial states
-    body.setQToFitTranslation(state, Vec3(0.0, 1.0, 0.0));
-    body.setU(state, Vec6(0., 0., 0., 0., 0., 0.));
+    // Set the initial conditions for the block
+    Rotation R; // Rotation
+    Vec3 x;     // Translation
+    Vec3 w;     // Angular velocity
+    Vec6 u;     // Generalized speeds
+    switch(options.condition) {
+    case 1: // Dropped
+        x = Vec3(0.0, 1.0, 0.0);
+        break;
+    case 2: // Sliding            
+        x = Vec3(-0.5, 0.1, 0.0);
+        u = Vec6(0, 0, 0, 4.0, 0, 0);
+        break;
+    case 3: // Spinning
+        x = Vec3(0.5, 0.1, 0.0);
+        w = Vec3(0.0, 8.0, 0.0);
+        break;
+    case 4: // Spinning and Sliding
+        x = Vec3(0.5, 0.1, 0.0);
+        u = Vec6(0, 0, 0, 2.0, 0, 0);
+        w = Vec3(0.0, 12.0, 0.0);
+        break;
+    case 5: // Spinning top
+        R.setRotationFromAngleAboutNonUnitVector(
+            convertDegreesToRadians(54.74), Vec3(1, 0, 1));
+        x = Vec3(0.5, 0.2, 0.0);
+        w = Vec3(0.0, 6.0, 0.0);
+        break;
+    case 6: // Tumbling
+        x = Vec3(-1.0, 1.0, 0.5);
+        u = Vec6(0, 0, 0, 4.0, 0, 0);
+        w = Vec3(-1.0, 0.0, -6.0);
+        break;
+    case 7: // Corner Shot
+        x = Vec3(0.0, 2.5, 1.0);
+        u = Vec6(0, 0, 0, 2.0, 0, -2.0);
+        w = Vec3(-2.0, 0.0, 0.0);
+        break;
+    default:
+        R.setRotationFromAngleAboutUnitVector(0.0, XAxis);  // No rotation
+        x = Vec3(-0.5, 0.0993, 0.5);    // Hair above the floor
+        w = Vec3(0., 0., 0.);           // No angular velocity
+        u = Vec6(0., 0., 0., 0., 0., 0.);    // All speeds = 0.0
+    }
+    body.setQToFitRotation(state, R);
+    body.setQToFitTranslation(state, x);
+    body.setU(state, u);
+    body.setUToFitAngularVelocity(state, w);
 
     // Reset the spring zeros
     for(i = 0; i < 8; ++i) {
@@ -500,8 +632,8 @@ void simulateBlock(const SimulationOptions& options) {
     // Clean up
     for(i = 0; i < 8; ++i) {
         delete sprFloor[i];
+        delete sprWall[i];
     }
-
 }
 //_____________________________________________________________________________
 // Check that spring forces are internally consistent for a simulation.
@@ -522,6 +654,9 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         // Realize through Stage::Dynamics
         system.realize(state, Stage::Dynamics);
 
+        // Set a tolerance for comparisons
+        Real tol = 1.0e-12;
+
         // Check the normal force when expressed in the contact plane
         Vec3 fyElas = spr.getNormalForceElasticPart(state, false);
         Vec3 fyDamp = spr.getNormalForceDampingPart(state, false);
@@ -535,11 +670,12 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         SimTK_TEST(fyDamp[2] == 0.0);
         SimTK_TEST(fy[2] == 0.0);
         // sum elastic and damping
-        Vec3 fyCalc = fyElas - fyDamp;
+        Vec3 fyCalc = fyElas + fyDamp;
         // bounds on fy are enforced in realizeSubsystemDynamicsImpl()
         if(fyCalc[1] < 0.0) fyCalc[1] = 0.0;
         if(fyCalc[1] > 1000000.0) fyCalc[1] = 1000000.0;
-        //cout << "fyElas= " << fyElas << "  fyDamp= " << fyDamp << "  fy= " << fy << endl;
+        //cout << "fyElas= " << fyElas << "  fyDamp= " << fyDamp <<
+        //    "  fy= " << fy << "  fyCalc= " << fyCalc << endl;
         SimTK_TEST_EQ(fyCalc, fy);
 
         // Check normal force when expressed in Ground
@@ -550,9 +686,9 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         // bounds on fy are enforced in realizeSubsystemDynamicsImpl()
         if(fyCalc_G[1] < 0.0) fyCalc_G[1] = 0.0;
         if(fyCalc_G[1] > 1000000.0) fyCalc_G[1] = 1000000.0;
-        //cout << "fyElas= " << fyElas << "  fyDamp= " << fyDamp << "  fy= " << fy << endl;
-        SimTK_TEST_EQ(fyCalc_G, fy);
-
+        //cout << "fyElas= " << fyElas_G << "  fyDamp= " << fyDamp_G <<
+        //    "  fy= " << fy_G << "  fyCalc= " << fyCalc_G << endl;
+        SimTK_TEST_EQ(fyCalc_G, fy_G);
         // Check magnitude of fy is same in Ground and ContacPlane
         SimTK_TEST_EQ(fy_G.norm(), fy.norm());
 
@@ -566,13 +702,14 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         Real mus = spr.getMuStatic(state);
         Real muk = spr.getMuKinetic(state);
         Real mu = spr.getMu(state);
-        SimTK_TEST(muk <= mu);
-        SimTK_TEST(mu <= mus);
+        SimTK_TEST(muk <= (mu+acc));
+        SimTK_TEST(mu <= (mus+acc));
 
         // Check friction limit ≤ μ*fy
-        Vec3 mu_fy = mu * fy_G;
+        Vec3 mufy = mu * fy_G;
         Real fricLimit = spr.getFrictionForceLimit(state);
-        SimTK_TEST(fricLimit <= mu_fy.norm());
+        //cout << "fricLimit= " << fricLimit << "  mu*fy= " << mufy << endl;
+        SimTK_TEST_EQ(fricLimit, mufy.norm());
 
         // Check friction force expressed in the contact plane
         Vec3 fricElas = spr.getFrictionForceElasticPart(state, false);
@@ -584,7 +721,8 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         SimTK_TEST(fric[1] == 0.0);
         // sum elastic and damping
         Vec3 fricCalc = fricElas + fricDamp;
-        //cout << "fricElas= " << fricElas << "  fricDamp= " << fricDamp << "  fric= " << fric << endl;
+        //cout << "fricElas= " << fricElas << "  fricDamp= " << fricDamp <<
+        //    "  fric= " << fric << "  fricCalc= " << fricCalc << endl;
         SimTK_TEST_EQ(fricCalc, fric);
 
         // Check friction force expressed in Ground
@@ -598,7 +736,7 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         SimTK_TEST_EQ(fric_G.norm(), fric.norm());
 
         // Check |friction| ≤ friction limit
-        SimTK_TEST(fric.norm() <= fricLimit);
+        SimTK_TEST(fric.norm() <= (fricLimit+tol));
 
         // Check total force in Contact Plane
         Vec3 f = spr.getForce(state, false);
@@ -655,9 +793,11 @@ void checkConservationOfEnergy(MultibodySystem& system, Real acc,
         system.realize(state, Stage::Dynamics);
 
         // Check the energy
+        Real tol = state.getTime() * acc * energy0;
         Real energy = system.calcEnergy(state);
-        //cout << "energy= " << energy << "  energy0= " << energy0 << endl;
-        SimTK_TEST_EQ_TOL(energy, energy0, acc*energy0);
+        //cout << state.getTime() << "  tol= "<< tol <<
+        //    "  energy= " << energy << "  energy0= " << energy0 << endl;
+        SimTK_TEST_EQ_TOL(energy, energy0, tol);
     }
 }
 
