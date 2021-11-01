@@ -21,6 +21,10 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+
+// WINDOWS STUFF -----------------------------
+// Temporarily added to check for memory leaks
+//--------------------------------------------
 #include "SimTKsimbody.h"
 
 #include <iostream>
@@ -406,6 +410,17 @@ void testInitialization() {
     SimTK_TEST(spr.getMuStatic(state) == 0.0);
     SimTK_TEST(spr.getMuKinetic(state) == 0.0);
 
+    // Set the initial coordinates of the body
+    Rotation R;
+    R.setRotationFromAngleAboutUnitVector(0.0, XAxis);  // No rotation
+    Vec3 x(0.0, 0.2, 0.0);  // Hair above the floor
+    Vec3 w(0.);             // No angular velocity
+    Vec6 u(0.);             // All speeds = 0.0
+    body.setQToFitRotation(state, R);
+    body.setQToFitTranslation(state, x);
+    body.setU(state, u);
+    body.setUToFitAngularVelocity(state, w);
+
     // Test resetting the spring zero
     // Before the reset, the spring zero is the origin of the contact plane,
     // which may be displaced from the Ground origin.
@@ -531,10 +546,11 @@ void simulateBlock(const SimulationOptions& options) {
     system.realizeModel(state);
 
     // Set the initial conditions for the block
-    Rotation R; // Rotation
-    Vec3 x;     // Translation
-    Vec3 w;     // Angular velocity
-    Vec6 u;     // Generalized speeds
+    Rotation R;
+    R.setRotationFromAngleAboutUnitVector(0.0, XAxis);  // No rotation
+    Vec3 x(0.0, 0.110, 0.0);    // Hair above the floor
+    Vec3 w(0.);                 // No angular velocity
+    Vec6 u(0.);                 // All speeds = 0.0
     switch(options.condition) {
     case 1: // Dropped
         x = Vec3(0.0, 1.0, 0.0);
@@ -568,11 +584,6 @@ void simulateBlock(const SimulationOptions& options) {
         u = Vec6(0, 0, 0, 2.0, 0, -2.0);
         w = Vec3(-2.0, 0.0, 0.0);
         break;
-    default:
-        R.setRotationFromAngleAboutUnitVector(0.0, XAxis);  // No rotation
-        x = Vec3(-0.5, 0.0993, 0.5);    // Hair above the floor
-        w = Vec3(0., 0., 0.);           // No angular velocity
-        u = Vec6(0., 0., 0., 0., 0., 0.);    // All speeds = 0.0
     }
     body.setQToFitRotation(state, R);
     body.setQToFitTranslation(state, x);
