@@ -33,6 +33,15 @@ using std::endl;
 
 using namespace SimTK;
 
+// These are the item numbers for the entries on the Run menu.
+static const int RunMenuId = 3, HelpMenuId = 7;
+static const int GoItem = 1, ReplayItem = 2, QuitItem = 3;
+
+// Global flag for turning off visualization.
+// This flag overrides local behavior when it is set to true.
+// Local behavior overrides when it is set to false.
+static const bool VizOff = true;
+
 // Structure for specifying simulation options
 struct SimulationOptions {
     int condition;  // which set of initial conditions
@@ -40,6 +49,7 @@ struct SimulationOptions {
     bool friction;  // whether there is friction
     bool viz;       // whether to create a visualization window
     Real tilt;      // tilt of primary contact plane about z-axis
+    Real tf;        // final time of the simulation
 };
 
 // Declarations
@@ -49,8 +59,15 @@ void testBlockVerticalBounceNoDampNoFric();
 void testBlockVerticalBounceNoDampWithFric();
 void testBlockVerticalBounceWithDampNoFric();
 void testBlockVerticalBounceWithDampWithFric();
+
 void testBlockSlideNoDampNoFric();
 void testBlockSlideWithDampWithFric();
+
+void testBlockSpinNoDampNoFric();
+void testBlockSpinWithDampWithFric();
+
+void testBlockSpinAndSlideNoDampNoFric();
+void testBlockSpinAndSlideWithDampWithFric();
 
 // Utility Routines
 void simulateBlock(const SimulationOptions &options);
@@ -61,7 +78,7 @@ void checkConservationOfEnergy(MultibodySystem& system, Real acc,
 
 
 //=============================================================================
-// Event Reporters and the Vizualizer
+// Reporters
 //=============================================================================
 //_____________________________________________________________________________
 // This class impmlements an event reported that records the System State at
@@ -141,8 +158,16 @@ int main() {
     SimTK_SUBTEST(testBlockVerticalBounceNoDampWithFric);
     SimTK_SUBTEST(testBlockVerticalBounceWithDampNoFric);
     SimTK_SUBTEST(testBlockVerticalBounceWithDampWithFric);
+
     SimTK_SUBTEST(testBlockSlideNoDampNoFric);
     SimTK_SUBTEST(testBlockSlideWithDampWithFric);
+
+    SimTK_SUBTEST(testBlockSpinNoDampNoFric);
+    SimTK_SUBTEST(testBlockSpinWithDampWithFric);
+
+    SimTK_SUBTEST(testBlockSpinAndSlideNoDampNoFric);
+    SimTK_SUBTEST(testBlockSpinAndSlideWithDampWithFric);
+
 
     SimTK_END_TEST();
 }
@@ -160,8 +185,12 @@ void testBlockVerticalBounceNoDampNoFric() {
     options.condition = 1;
     options.damping = false;
     options.friction = false;
-    options.viz = false;
+    options.viz = true;
     options.tilt = 0.0;
+    options.tf = 3.0;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
 
     // Run the simulation
     simulateBlock(options);
@@ -175,8 +204,12 @@ void testBlockVerticalBounceNoDampWithFric() {
     options.condition = 1;
     options.damping = false;
     options.friction = true;
-    options.viz = false;
+    options.viz = true;
     options.tilt = 0.0;
+    options.tf = 3.0;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
 
     // Run the simulation
     simulateBlock(options);
@@ -190,8 +223,12 @@ void testBlockVerticalBounceWithDampNoFric() {
     options.condition = 1;
     options.damping = true;
     options.friction = false;
-    options.viz = false;
+    options.viz = true;
     options.tilt = 0.0;
+    options.tf = 3.0;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
 
     // Run the simulation
     simulateBlock(options);
@@ -205,8 +242,12 @@ void testBlockVerticalBounceWithDampWithFric() {
     options.condition = 1;
     options.damping = true;
     options.friction = true;
-    options.viz = false;
+    options.viz = true;
     options.tilt = 0.0;
+    options.tf = 3.0;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
 
     // Run the simulation
     simulateBlock(options);
@@ -220,8 +261,12 @@ void testBlockSlideNoDampNoFric() {
     options.condition = 2;
     options.damping = false;
     options.friction = false;
-    options.viz = false;
+    options.viz = true;
     options.tilt = 0.0;
+    options.tf = 1.0;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
 
     // Run the simulation
     simulateBlock(options);
@@ -235,222 +280,92 @@ void testBlockSlideWithDampWithFric() {
     options.condition = 2;
     options.damping = true;
     options.friction = true;
-    options.viz = false;
+    options.viz = true;
     options.tilt = 0.0;
+    options.tf = 4.0;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
 
     // Run the simulation
     simulateBlock(options);
 }
 //_____________________________________________________________________________
-// Test things that happen before integration.
-// 1. Setting and getting parameters (ExponentialSpringParameters)
-// 2. Construction with default and non-default parameters
-// 3. Realization, getting and setting μₛ and μₖ, resetting spring zeros
-void testInitialization() {
+// Test the spring force calculations for a block that bounces up and down
+// on the floor without damping or friction.
+void testBlockSpinNoDampNoFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 3;
+    options.damping = false;
+    options.friction = false;
+    options.viz = true;
+    options.tilt = 0.0;
+    options.tf = 2.5;
 
-    //----------------------------------
-    // 1. Setting and getting parameters
-    //----------------------------------
-    // Test Equality Operator
-    ExponentialSpringParameters params, paramsDef;
-    SimTK_TEST(params == paramsDef);
+    // Check global viz flag
+    if(VizOff) options.viz = false;
 
-    // Get the default parameters
-    Real d0Def, d1Def, d2Def;
-    paramsDef.getShapeParameters(d0Def, d1Def, d2Def);
-    Real kvNormDef = paramsDef.getNormalViscosity();
-    Real kpDef = paramsDef.getElasticity();
-    Real kvDef = paramsDef.getViscosity();
-    Real tauDef = paramsDef.getSlidingTimeConstant();
-    Real vSettleDef = paramsDef.getSettleVelocity();
- 
-    // Make up non-default parameters
-    Real delta = 0.1;
-    Real d0 = d0Def + delta;
-    Real d1 = d1Def + delta;
-    Real d2 = d2Def + delta;
-    Real kvNorm = kvNormDef + delta;
-    Real kp = kpDef + delta;
-    Real kv = kvDef + delta;
-    Real tau = tauDef + delta;
-    Real vSettle = vSettleDef + delta;
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Test the spring force calculations for a block that bounces up and down
+// on the floor without damping or friction.
+void testBlockSpinWithDampWithFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 3;
+    options.damping = true;
+    options.friction = true;
+    options.viz = true;
+    options.tilt = 0.0;
+    options.tf = 3.0;
 
-    // Test Equality Operator again by setting non-default parameters on
-    // the non-default params object.
-    params.setShapeParameters(d0, d1, d2);
-    SimTK_TEST(params != paramsDef);
-    params.setNormalViscosity(kvNorm);
-    SimTK_TEST(params != paramsDef);
-    params.setElasticity(kp);
-    SimTK_TEST(params != paramsDef);
-    params.setViscosity(kv);
-    SimTK_TEST(params != paramsDef);
-    params.setSlidingTimeConstant(tau);
-    SimTK_TEST(params != paramsDef);
-    params.setSettleVelocity(vSettle);
-    SimTK_TEST(params != paramsDef);
-    
-    // Test the set methods by checking the individual member variables.
-    Real tol = 1.0e-10 * delta;
-    params.getShapeParameters(d0, d1, d2);
-    SimTK_TEST_EQ(d0 - d0Def, delta);
-    SimTK_TEST_EQ(d1 - d1Def, delta);
-    SimTK_TEST_EQ_TOL(d2 - d2Def, delta, tol);
-    SimTK_TEST_EQ(params.getNormalViscosity() - kvNormDef, delta);
-    SimTK_TEST_EQ_TOL(params.getElasticity() - kpDef, delta, tol);
-    SimTK_TEST_EQ_TOL(params.getViscosity() - kvDef, delta, tol);
-    SimTK_TEST_EQ(params.getSlidingTimeConstant() - tauDef, delta);
-    SimTK_TEST_EQ(params.getSettleVelocity() - vSettleDef, delta);
+    // Check global viz flag
+    if(VizOff) options.viz = false;
 
-    // Test setting viscosity for critical damping,
-    // with a default mass (1.0 kg)
-    Real kp1 = 100000.0;
-    Real kv1 = 2.0 * sqrt(kp1);
-    params.setElasticityAndViscosityForCriticalDamping(kp1);
-    SimTK_TEST_EQ(params.getViscosity(), kv1);
-    // with a non-default mass
-    Real mass = 20.0;
-    kv1 = 2.0 * sqrt(kp1 * mass);
-    params.setElasticityAndViscosityForCriticalDamping(kp1, mass);
-    SimTK_TEST_EQ(params.getViscosity(), kv1);
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Test the spring force calculations for a block that bounces up and down
+// on the floor without damping or friction.
+void testBlockSpinAndSlideNoDampNoFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 4;
+    options.damping = false;
+    options.friction = false;
+    options.viz = true;
+    options.tilt = 0.0;
+    options.tf = 1.2;
 
-    // Return the non-default params to the original non-default values
-    params.setElasticity(kp);
-    params.setViscosity(kv);
+    // Check global viz flag
+    if(VizOff) options.viz = false;
 
-    //------------------------------------------------------------
-    // 2. Test construction with default an non-default parameters
-    //------------------------------------------------------------
-    // Construct the system and subsystems.
-    MultibodySystem system; system.setUseUniformBackground(true);
-    SimbodyMatterSubsystem matter(system);
-    GeneralForceSubsystem forces(system);
-    Force::UniformGravity gravity(forces, matter, Vec3(0., -9.8, 0.));
-    Body::Rigid bodyProps(MassProperties(10.0, Vec3(0), Inertia(1)));
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Test the spring force calculations for a block that bounces up and down
+// on the floor without damping or friction.
+void testBlockSpinAndSlideWithDampWithFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 4;
+    options.damping = true;
+    options.friction = true;
+    options.viz = true;
+    options.tilt = 0.0;
+    options.tf = 5.5;
 
-    // Create a rotation and translation for the contact plane.
-    // Origin is shifted +1 on the x axis.
-    // Plane is titled by +45 deg about the z axis.
-    Real angle = 0.25 * SimTK::Pi;
-    Rotation planeTilt(angle, ZAxis);
-    Vec3 planeOrigin(1., 0., 0.);
+    // Check global viz flag
+    if(VizOff) options.viz = false;
 
-    // Construct several exponential springs.
-    Transform plane(planeTilt, planeOrigin);
-    MobilizedBody::Free body(matter.Ground(), bodyProps);
-    Vec3 station(0.1, -0.1, 0.1);
-    Real mus = 0.7, muk = 0.5;
-    ExponentialSpringForce
-        sprDef0(system, plane, body, station, mus, muk);
-    ExponentialSpringForce
-        sprDef1(system, plane, body, station, mus, muk, paramsDef);
-    ExponentialSpringForce
-        spr(system, plane, body, station, mus, muk, params);
-
-    // Test that the non-default parameter values were set properly.
-    SimTK_TEST(sprDef0.getParameters() == sprDef1.getParameters());
-    SimTK_TEST(spr.getParameters() != sprDef0.getParameters());
-    const ExponentialSpringParameters& p = spr.getParameters();
-    p.getShapeParameters(d0, d1, d2);
-    SimTK_TEST_EQ(d0 - d0Def, delta);
-    SimTK_TEST_EQ(d1 - d1Def, delta);
-    SimTK_TEST_EQ_TOL(d2 - d2Def, delta, tol);
-    SimTK_TEST_EQ(p.getNormalViscosity() - kvNormDef, delta);
-    SimTK_TEST_EQ_TOL(p.getElasticity() - kpDef, delta, tol);
-    SimTK_TEST_EQ_TOL(p.getViscosity() - kvDef, delta, tol);
-    SimTK_TEST_EQ(p.getSlidingTimeConstant() - tauDef, delta);
-    SimTK_TEST_EQ(p.getSettleVelocity() - vSettleDef, delta);
-
-    // Test getting contact plane, body, and station
-    SimTK_TEST(spr.getContactPlane() == plane);
-    SimTK_TEST(spr.getBody().isSameMobilizedBody(body));
-    SimTK_TEST(spr.getStation() == station);
-
-    //------------------------------------------------------------------------
-    // 3. Realization, getting and setting μₛ and μₖ, resetting spring zeros.
-    //------------------------------------------------------------------------
-    // Realize through Stage::Model (construct the state)
-    system.realizeTopology();
-    State state = system.getDefaultState();
-    system.realizeModel(state);
-
-    // Test getting μₛ and μₖ
-    SimTK_TEST(spr.getMuStatic(state) == mus);
-    SimTK_TEST(spr.getMuKinetic(state) == muk);
-
-    // Test setting μₛ and μₖ
-    // μₖ ≤ μₛ
-    Real musNew = mus + 1.0;
-    Real mukNew = muk + 1.0;
-    spr.setMuStatic(state, musNew);
-    spr.setMuKinetic(state, mukNew);
-    SimTK_TEST(spr.getMuStatic(state) == musNew);
-    SimTK_TEST(spr.getMuKinetic(state) == mukNew);
-    // μₖ ≥ μₛ (μₛ should be set to μₖ to maintain μₖ ≤ μₛ)
-    mukNew = musNew + 1.0;
-    spr.setMuKinetic(state, mukNew);
-    SimTK_TEST(spr.getMuStatic(state) == mukNew);
-    SimTK_TEST(spr.getMuKinetic(state) == mukNew);
-    // μₛ ≤ μₖ (μₖ should be set to μₛ to maintain μₖ ≤ μₛ)
-    musNew = musNew - 1.5;
-    spr.setMuStatic(state, musNew);
-    SimTK_TEST(spr.getMuStatic(state) == musNew);
-    SimTK_TEST(spr.getMuKinetic(state) == musNew);
-    // μₖ < 0.0 (μₖ should be set to 0.0; μₛ should not change)
-    mukNew = -0.5;
-    musNew = spr.getMuStatic(state);
-    spr.setMuKinetic(state, mukNew);
-    SimTK_TEST(spr.getMuStatic(state) == musNew);
-    SimTK_TEST(spr.getMuKinetic(state) == 0.0);
-    // μₛ < 0.0 (μₛ and μₖ should both be set to 0.0)
-    musNew = -0.5;
-    mukNew = 0.5;
-    spr.setMuKinetic(state, mukNew);
-    spr.setMuStatic(state, musNew);
-    SimTK_TEST(spr.getMuStatic(state) == 0.0);
-    SimTK_TEST(spr.getMuKinetic(state) == 0.0);
-
-    // Set the initial coordinates of the body
-    Rotation R;
-    R.setRotationFromAngleAboutUnitVector(0.0, XAxis);  // No rotation
-    Vec3 x(0.0, 0.2, 0.0);  // Hair above the floor
-    Vec3 w(0.);             // No angular velocity
-    Vec6 u(0.);             // All speeds = 0.0
-    body.setQToFitRotation(state, R);
-    body.setQToFitTranslation(state, x);
-    body.setU(state, u);
-    body.setUToFitAngularVelocity(state, w);
-
-    // Test resetting the spring zero
-    // Before the reset, the spring zero is the origin of the contact plane,
-    // which may be displaced from the Ground origin.
-    system.realize(state, Stage::Position);
-    Vec3 p0(0.0, 0.0, 0.0);  // expressed in the frame of contact plane
-    Vec3 p0_G = plane.shiftFrameStationToBase(p0);
-    SimTK_TEST(p0 == spr.getSpringZeroPosition(state, false));
-    SimTK_TEST(p0_G == spr.getSpringZeroPosition(state));
-    // Reset
-    // Now the spring zero should coincide with the projection of the
-    // spring station onto the contact plane, which should result in
-    // the elastic component of the frictional force being zero.
-    spr.resetSpringZero(state);
-    // Expected positions after the reset
-    // express spring station in the Ground frame
-    Vec3 s_G = body.findStationLocationInGround(state, station);
-    // express station in the contact plane frame
-    Vec3 s = plane.shiftBaseStationToFrame(s_G);
-    // project onto the contact plane by setting the y-component to 0.0
-    Vec3 p0After = s;  p0After[1] = 0.0;
-    // express in Ground frame after the projection
-    Vec3 p0After_G = plane.shiftFrameStationToBase(p0After);
-    SimTK_TEST(p0After == spr.getSpringZeroPosition(state, false));
-    SimTK_TEST(p0After_G == spr.getSpringZeroPosition(state));
-
-    // Test that the elastic component of the friction force is 0.0
-    system.realize(state, Stage::Dynamics);
-    Vec3 fElastic = spr.getFrictionForceElasticPart(state);
-    SimTK_TEST_EQ(fElastic,Vec3(0., 0., 0.));
-};
+    // Run the simulation
+    simulateBlock(options);
+}
 
 
 //=============================================================================
@@ -466,17 +381,12 @@ void testInitialization() {
 // damping and friction are part of the simulation, and the tilt of the floor
 // plane.  
 void simulateBlock(const SimulationOptions& options) {
+
     // Construct the system and basic subsystems.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0., -9.8, 0.));
-
-    // Construct the mobilized body.
-    // The body will slide along the y-axis (up and down)
-    // Rotate the parent frame (F) and body frame (M) so that the x axis up.
-    Body::Rigid bodyProps(MassProperties(10.0, Vec3(0), Inertia(1)));
-    MobilizedBody::Free body(matter.Ground(), bodyProps);
 
     // Define the corners of the block
     Real hs = 0.1;
@@ -489,6 +399,12 @@ void simulateBlock(const SimulationOptions& options) {
     corner[5] = Vec3(hs, hs, -hs);
     corner[6] = Vec3(-hs, hs, -hs);
     corner[7] = Vec3(-hs, hs, hs);
+    
+    // Construct the mobilized body.
+    Body::Rigid bodyProps(MassProperties(10.0, Vec3(0), Inertia(1)));
+    bodyProps.addDecoration(Transform(),
+        DecorativeBrick(Vec3(hs)).setColor(Blue));
+    MobilizedBody::Free body(matter.Ground(), bodyProps);
 
     // Parameters
     // Damping
@@ -523,13 +439,15 @@ void simulateBlock(const SimulationOptions& options) {
     Rotation r;
     r.setRotationFromTwoAnglesTwoAxes(BodyRotationSequence,
         Pi/2.0, ZAxis, angle, XAxis);
-    Transform wallPlane(r, Vec3(1.5, 0., 0.));
+    Transform wallPlane(r, Vec3(1.55, 0., 0.));
     // Create an exponential spring to each corner of the block.
     ExponentialSpringForce* sprWall[8];
     for(i = 0; i < 8; ++i) {
         sprWall[i] = new ExponentialSpringForce(system, wallPlane,
             body, corner[i], mus, muk, params);
     }
+    matter.Ground().updBody().addDecoration(wallPlane,
+        DecorativeBrick(Vec3(3, 0.1, 3)).setColor(Green).setOpacity(.1));
 
     // Periodic Reporter
     PeriodicStateRecorder* periodicRecorder = new PeriodicStateRecorder(0.1);
@@ -540,6 +458,29 @@ void simulateBlock(const SimulationOptions& options) {
         MinMaxHeightStateRecorder(system, body);
     system.addEventReporter(minmaxRecorder);
 
+    // Add visualization
+     // The visualization is intended to verify that the simulations
+     // are reasonable.  Visualization should be turned off when unit
+     // tests are run.
+    Visualizer* viz = NULL;
+    Visualizer::InputSilo* silo = NULL;
+    if(options.viz) {
+        viz = new Visualizer(system);
+        viz->setShowShadows(true);
+        viz->setShutdownWhenDestructed(true);
+
+        // ----- Run Menu ----
+        silo = new Visualizer::InputSilo();
+        viz->addInputListener(silo);
+        Array_<std::pair<String, int> > runMenuItems;
+        runMenuItems.push_back(std::make_pair("Go", GoItem));
+        runMenuItems.push_back(std::make_pair("Replay", ReplayItem));
+        runMenuItems.push_back(std::make_pair("Quit", QuitItem));
+        viz->addMenu("Run", RunMenuId, runMenuItems);
+
+        system.addEventReporter(new Visualizer::Reporter(*viz, 1. / 60.));
+    }
+
     // Realize through Stage::Model (construct the State)
     system.realizeTopology();
     State state = system.getDefaultState();
@@ -548,30 +489,28 @@ void simulateBlock(const SimulationOptions& options) {
     // Set the initial conditions for the block
     Rotation R;
     R.setRotationFromAngleAboutUnitVector(0.0, XAxis);  // No rotation
-    Vec3 x(0.0, 0.110, 0.0);    // Hair above the floor
+    Vec3 x(0.5, 0.11, 0.0);    // Hair above the floor
     Vec3 w(0.);                 // No angular velocity
     Vec6 u(0.);                 // All speeds = 0.0
     switch(options.condition) {
     case 1: // Dropped
-        x = Vec3(0.0, 1.0, 0.0);
+        x = Vec3(0.5, 1.0, 0.0);
         break;
     case 2: // Sliding            
-        x = Vec3(-0.5, 0.1, 0.0);
+        x = Vec3(-0.5, 0.11, 0.0);
         u = Vec6(0, 0, 0, 4.0, 0, 0);
         break;
     case 3: // Spinning
-        x = Vec3(0.5, 0.1, 0.0);
         w = Vec3(0.0, 8.0, 0.0);
         break;
-    case 4: // Spinning and Sliding
-        x = Vec3(0.5, 0.1, 0.0);
+    case 4: // Sliding and Spinning
         u = Vec6(0, 0, 0, 2.0, 0, 0);
         w = Vec3(0.0, 12.0, 0.0);
         break;
     case 5: // Spinning top
         R.setRotationFromAngleAboutNonUnitVector(
             convertDegreesToRadians(54.74), Vec3(1, 0, 1));
-        x = Vec3(0.5, 0.2, 0.0);
+        x = Vec3(0.5, 0.21, 0.0);
         w = Vec3(0.0, 6.0, 0.0);
         break;
     case 6: // Tumbling
@@ -603,7 +542,7 @@ void simulateBlock(const SimulationOptions& options) {
     integ.setMaximumStepSize(0.01);
     TimeStepper ts(system, integ);
     ts.initialize(state);
-    ts.stepTo(5.0);
+    ts.stepTo(options.tf);
  
     // Get the recorded state arrays
     const Array_<State>* periodicArray = periodicRecorder->getStateArray();
@@ -640,11 +579,35 @@ void simulateBlock(const SimulationOptions& options) {
     }
     cout << endl;
 
+    // Replay Loop
+    if(viz != NULL) {
+        silo->clear(); // forget earlier input
+        while(true) {
+            cout << "Choose Replay to see that again ...\n";
+
+            int menuId, item;
+            silo->waitForMenuPick(menuId, item);
+
+            if(item == QuitItem)
+                break;
+            if(item != ReplayItem) {
+                cout << "\aHuh? Try again.\n";
+                continue;
+            }
+
+            for(double i = 0; i < (int)periodicArray->size(); i++) {
+                viz->report((*periodicArray)[(int)i]);
+            }
+        }
+    }
+
     // Clean up
+    if(viz != NULL) delete viz;
     for(i = 0; i < 8; ++i) {
         delete sprFloor[i];
         delete sprWall[i];
     }
+
 }
 //_____________________________________________________________________________
 // Check that spring forces are internally consistent for a simulation.
@@ -811,5 +774,218 @@ void checkConservationOfEnergy(MultibodySystem& system, Real acc,
         SimTK_TEST_EQ_TOL(energy, energy0, tol);
     }
 }
+
+
+//_____________________________________________________________________________
+// Test things that happen before integration.
+// 1. Setting and getting parameters (ExponentialSpringParameters)
+// 2. Construction with default and non-default parameters
+// 3. Realization, getting and setting μₛ and μₖ, resetting spring zeros
+// This routine is at the very end of the file bcause it is rarely looked at.
+void testInitialization() {
+
+    //----------------------------------
+    // 1. Setting and getting parameters
+    //----------------------------------
+    // Test Equality Operator
+    ExponentialSpringParameters params, paramsDef;
+    SimTK_TEST(params == paramsDef);
+
+    // Get the default parameters
+    Real d0Def, d1Def, d2Def;
+    paramsDef.getShapeParameters(d0Def, d1Def, d2Def);
+    Real kvNormDef = paramsDef.getNormalViscosity();
+    Real kpDef = paramsDef.getElasticity();
+    Real kvDef = paramsDef.getViscosity();
+    Real tauDef = paramsDef.getSlidingTimeConstant();
+    Real vSettleDef = paramsDef.getSettleVelocity();
+
+    // Make up non-default parameters
+    Real delta = 0.1;
+    Real d0 = d0Def + delta;
+    Real d1 = d1Def + delta;
+    Real d2 = d2Def + delta;
+    Real kvNorm = kvNormDef + delta;
+    Real kp = kpDef + delta;
+    Real kv = kvDef + delta;
+    Real tau = tauDef + delta;
+    Real vSettle = vSettleDef + delta;
+
+    // Test Equality Operator again by setting non-default parameters on
+    // the non-default params object.
+    params.setShapeParameters(d0, d1, d2);
+    SimTK_TEST(params != paramsDef);
+    params.setNormalViscosity(kvNorm);
+    SimTK_TEST(params != paramsDef);
+    params.setElasticity(kp);
+    SimTK_TEST(params != paramsDef);
+    params.setViscosity(kv);
+    SimTK_TEST(params != paramsDef);
+    params.setSlidingTimeConstant(tau);
+    SimTK_TEST(params != paramsDef);
+    params.setSettleVelocity(vSettle);
+    SimTK_TEST(params != paramsDef);
+
+    // Test the set methods by checking the individual member variables.
+    Real tol = 1.0e-10 * delta;
+    params.getShapeParameters(d0, d1, d2);
+    SimTK_TEST_EQ(d0 - d0Def, delta);
+    SimTK_TEST_EQ(d1 - d1Def, delta);
+    SimTK_TEST_EQ_TOL(d2 - d2Def, delta, tol);
+    SimTK_TEST_EQ(params.getNormalViscosity() - kvNormDef, delta);
+    SimTK_TEST_EQ_TOL(params.getElasticity() - kpDef, delta, tol);
+    SimTK_TEST_EQ_TOL(params.getViscosity() - kvDef, delta, tol);
+    SimTK_TEST_EQ(params.getSlidingTimeConstant() - tauDef, delta);
+    SimTK_TEST_EQ(params.getSettleVelocity() - vSettleDef, delta);
+
+    // Test setting viscosity for critical damping,
+    // with a default mass (1.0 kg)
+    Real kp1 = 100000.0;
+    Real kv1 = 2.0 * sqrt(kp1);
+    params.setElasticityAndViscosityForCriticalDamping(kp1);
+    SimTK_TEST_EQ(params.getViscosity(), kv1);
+    // with a non-default mass
+    Real mass = 20.0;
+    kv1 = 2.0 * sqrt(kp1 * mass);
+    params.setElasticityAndViscosityForCriticalDamping(kp1, mass);
+    SimTK_TEST_EQ(params.getViscosity(), kv1);
+
+    // Return the non-default params to the original non-default values
+    params.setElasticity(kp);
+    params.setViscosity(kv);
+
+    //------------------------------------------------------------
+    // 2. Test construction with default an non-default parameters
+    //------------------------------------------------------------
+    // Construct the system and subsystems.
+    MultibodySystem system; system.setUseUniformBackground(true);
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0., -9.8, 0.));
+    Body::Rigid bodyProps(MassProperties(10.0, Vec3(0), Inertia(1)));
+
+    // Create a rotation and translation for the contact plane.
+    // Origin is shifted +1 on the x axis.
+    // Plane is titled by +45 deg about the z axis.
+    Real angle = 0.25 * SimTK::Pi;
+    Rotation planeTilt(angle, ZAxis);
+    Vec3 planeOrigin(1., 0., 0.);
+
+    // Construct several exponential springs.
+    Transform plane(planeTilt, planeOrigin);
+    MobilizedBody::Free body(matter.Ground(), bodyProps);
+    Vec3 station(0.1, -0.1, 0.1);
+    Real mus = 0.7, muk = 0.5;
+    ExponentialSpringForce
+        sprDef0(system, plane, body, station, mus, muk);
+    ExponentialSpringForce
+        sprDef1(system, plane, body, station, mus, muk, paramsDef);
+    ExponentialSpringForce
+        spr(system, plane, body, station, mus, muk, params);
+
+    // Test that the non-default parameter values were set properly.
+    SimTK_TEST(sprDef0.getParameters() == sprDef1.getParameters());
+    SimTK_TEST(spr.getParameters() != sprDef0.getParameters());
+    const ExponentialSpringParameters& p = spr.getParameters();
+    p.getShapeParameters(d0, d1, d2);
+    SimTK_TEST_EQ(d0 - d0Def, delta);
+    SimTK_TEST_EQ(d1 - d1Def, delta);
+    SimTK_TEST_EQ_TOL(d2 - d2Def, delta, tol);
+    SimTK_TEST_EQ(p.getNormalViscosity() - kvNormDef, delta);
+    SimTK_TEST_EQ_TOL(p.getElasticity() - kpDef, delta, tol);
+    SimTK_TEST_EQ_TOL(p.getViscosity() - kvDef, delta, tol);
+    SimTK_TEST_EQ(p.getSlidingTimeConstant() - tauDef, delta);
+    SimTK_TEST_EQ(p.getSettleVelocity() - vSettleDef, delta);
+
+    // Test getting contact plane, body, and station
+    SimTK_TEST(spr.getContactPlane() == plane);
+    SimTK_TEST(spr.getBody().isSameMobilizedBody(body));
+    SimTK_TEST(spr.getStation() == station);
+
+    //------------------------------------------------------------------------
+    // 3. Realization, getting and setting μₛ and μₖ, resetting spring zeros.
+    //------------------------------------------------------------------------
+    // Realize through Stage::Model (construct the state)
+    system.realizeTopology();
+    State state = system.getDefaultState();
+    system.realizeModel(state);
+
+    // Test getting μₛ and μₖ
+    SimTK_TEST(spr.getMuStatic(state) == mus);
+    SimTK_TEST(spr.getMuKinetic(state) == muk);
+
+    // Test setting μₛ and μₖ
+    // μₖ ≤ μₛ
+    Real musNew = mus + 1.0;
+    Real mukNew = muk + 1.0;
+    spr.setMuStatic(state, musNew);
+    spr.setMuKinetic(state, mukNew);
+    SimTK_TEST(spr.getMuStatic(state) == musNew);
+    SimTK_TEST(spr.getMuKinetic(state) == mukNew);
+    // μₖ ≥ μₛ (μₛ should be set to μₖ to maintain μₖ ≤ μₛ)
+    mukNew = musNew + 1.0;
+    spr.setMuKinetic(state, mukNew);
+    SimTK_TEST(spr.getMuStatic(state) == mukNew);
+    SimTK_TEST(spr.getMuKinetic(state) == mukNew);
+    // μₛ ≤ μₖ (μₖ should be set to μₛ to maintain μₖ ≤ μₛ)
+    musNew = musNew - 1.5;
+    spr.setMuStatic(state, musNew);
+    SimTK_TEST(spr.getMuStatic(state) == musNew);
+    SimTK_TEST(spr.getMuKinetic(state) == musNew);
+    // μₖ < 0.0 (μₖ should be set to 0.0; μₛ should not change)
+    mukNew = -0.5;
+    musNew = spr.getMuStatic(state);
+    spr.setMuKinetic(state, mukNew);
+    SimTK_TEST(spr.getMuStatic(state) == musNew);
+    SimTK_TEST(spr.getMuKinetic(state) == 0.0);
+    // μₛ < 0.0 (μₛ and μₖ should both be set to 0.0)
+    musNew = -0.5;
+    mukNew = 0.5;
+    spr.setMuKinetic(state, mukNew);
+    spr.setMuStatic(state, musNew);
+    SimTK_TEST(spr.getMuStatic(state) == 0.0);
+    SimTK_TEST(spr.getMuKinetic(state) == 0.0);
+
+    // Set the initial coordinates of the body
+    Rotation R;
+    R.setRotationFromAngleAboutUnitVector(0.0, XAxis);  // No rotation
+    Vec3 x(0.0, 0.2, 0.0);  // 20 cm above the floor
+    Vec3 w(0.);             // No angular velocity
+    Vec6 u(0.);             // All speeds = 0.0
+    body.setQToFitRotation(state, R);
+    body.setQToFitTranslation(state, x);
+    body.setU(state, u);
+    body.setUToFitAngularVelocity(state, w);
+
+    // Test resetting the spring zero
+    // Before the reset, the spring zero is the origin of the contact plane,
+    // which may be displaced from the Ground origin.
+    system.realize(state, Stage::Position);
+    Vec3 p0(0.0, 0.0, 0.0);  // expressed in the frame of contact plane
+    Vec3 p0_G = plane.shiftFrameStationToBase(p0);
+    SimTK_TEST(p0 == spr.getSpringZeroPosition(state, false));
+    SimTK_TEST(p0_G == spr.getSpringZeroPosition(state));
+    // Reset
+    // Now the spring zero should coincide with the projection of the
+    // spring station onto the contact plane, which should result in
+    // the elastic component of the frictional force being zero.
+    spr.resetSpringZero(state);
+    // Expected positions after the reset
+    // express spring station in the Ground frame
+    Vec3 s_G = body.findStationLocationInGround(state, station);
+    // express station in the contact plane frame
+    Vec3 s = plane.shiftBaseStationToFrame(s_G);
+    // project onto the contact plane by setting the y-component to 0.0
+    Vec3 p0After = s;  p0After[1] = 0.0;
+    // express in Ground frame after the projection
+    Vec3 p0After_G = plane.shiftFrameStationToBase(p0After);
+    SimTK_TEST(p0After == spr.getSpringZeroPosition(state, false));
+    SimTK_TEST(p0After_G == spr.getSpringZeroPosition(state));
+
+    // Test that the elastic component of the friction force is 0.0
+    system.realize(state, Stage::Dynamics);
+    Vec3 fElastic = spr.getFrictionForceElasticPart(state);
+    SimTK_TEST_EQ(fElastic, Vec3(0., 0., 0.));
+};
 
 
