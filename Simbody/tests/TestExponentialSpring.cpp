@@ -33,13 +33,13 @@ using std::endl;
 
 using namespace SimTK;
 
-// These are the item numbers for the entries on the Run menu.
+// Item for the visualization menu.
 static const int RunMenuId = 3, HelpMenuId = 7;
 static const int GoItem = 1, ReplayItem = 2, QuitItem = 3;
 
 // Global flag for turning off visualization.
-// This flag overrides local behavior when it is set to true.
-// Local behavior overrides when it is set to false.
+// This flag overrides locally set behavior when it is set to true.
+// BEFORE COMMITTING changes, make sure to set VizOff = true;
 static const bool VizOff = true;
 
 // Structure for specifying simulation options
@@ -65,11 +65,20 @@ void testBlockSlideWithDampWithFric();
 
 void testBlockSpinNoDampNoFric();
 void testBlockSpinWithDampWithFric();
+void testBlockSpinWithDampWithFricTilt15();
 
 void testBlockSpinAndSlideNoDampNoFric();
+void testBlockSpinAndSlideNoDampWithFric();
+void testBlockSpinAndSlideWithDampNoFric();
 void testBlockSpinAndSlideWithDampWithFric();
 
-// Utility Routines
+void testBlockSpinLikeTopNoDampNoFric();
+void testBlockSpinLikeTopWithDampWithFric();
+
+void testBlockTumbleNoDampNoFric();
+void testBlockTumbleWithDampWithFric();
+
+// Lower level routines called by the sub-tests
 void simulateBlock(const SimulationOptions &options);
 void checkSpringCalculations(MultibodySystem& system, Real acc,
     ExponentialSpringForce& spr, const Array_<State>* stateArray);
@@ -154,6 +163,7 @@ int main() {
     SimTK_START_TEST("TestExponentialSpring");
 
     SimTK_SUBTEST(testInitialization);
+
     SimTK_SUBTEST(testBlockVerticalBounceNoDampNoFric);
     SimTK_SUBTEST(testBlockVerticalBounceNoDampWithFric);
     SimTK_SUBTEST(testBlockVerticalBounceWithDampNoFric);
@@ -164,10 +174,18 @@ int main() {
 
     SimTK_SUBTEST(testBlockSpinNoDampNoFric);
     SimTK_SUBTEST(testBlockSpinWithDampWithFric);
+    SimTK_SUBTEST(testBlockSpinWithDampWithFricTilt15);
 
     SimTK_SUBTEST(testBlockSpinAndSlideNoDampNoFric);
+    SimTK_SUBTEST(testBlockSpinAndSlideNoDampWithFric);
+    SimTK_SUBTEST(testBlockSpinAndSlideWithDampNoFric);
     SimTK_SUBTEST(testBlockSpinAndSlideWithDampWithFric);
 
+    SimTK_SUBTEST(testBlockSpinLikeTopNoDampNoFric);
+    SimTK_SUBTEST(testBlockSpinLikeTopWithDampWithFric);
+
+    SimTK_SUBTEST(testBlockTumbleNoDampNoFric);
+    SimTK_SUBTEST(testBlockTumbleWithDampWithFric);
 
     SimTK_END_TEST();
 }
@@ -177,8 +195,7 @@ int main() {
 // SUB TESTS
 //=============================================================================
 //_____________________________________________________________________________
-// Test the spring force calculations for a block that bounces up and down
-// on the floor without damping or friction.
+// Drop, no damp, no fric
 void testBlockVerticalBounceNoDampNoFric() {
     // Set Options
     SimulationOptions options;
@@ -196,8 +213,7 @@ void testBlockVerticalBounceNoDampNoFric() {
     simulateBlock(options);
 }
 //_____________________________________________________________________________
-// Test the spring force calculations for a block that bounces up and down
-// on the floor without damping or friction.
+// Drop, no damp, with fric
 void testBlockVerticalBounceNoDampWithFric() {
     // Set Options
     SimulationOptions options;
@@ -215,8 +231,7 @@ void testBlockVerticalBounceNoDampWithFric() {
     simulateBlock(options);
 }
 //_____________________________________________________________________________
-// Test the spring force calculations for a block that bounces up and down
-// on the floor without damping or friction.
+// Drop, with damp, no fric
 void testBlockVerticalBounceWithDampNoFric() {
     // Set Options
     SimulationOptions options;
@@ -234,8 +249,7 @@ void testBlockVerticalBounceWithDampNoFric() {
     simulateBlock(options);
 }
 //_____________________________________________________________________________
-// Test the spring force calculations for a block that bounces up and down
-// on the floor without damping or friction.
+// Drop, with damp, with fric.
 void testBlockVerticalBounceWithDampWithFric() {
     // Set Options
     SimulationOptions options;
@@ -252,9 +266,9 @@ void testBlockVerticalBounceWithDampWithFric() {
     // Run the simulation
     simulateBlock(options);
 }
+
 //_____________________________________________________________________________
-// Test the spring force calculations for a block that bounces up and down
-// on the floor without damping or friction.
+// Slide, no damp, no fric
 void testBlockSlideNoDampNoFric() {
     // Set Options
     SimulationOptions options;
@@ -272,8 +286,7 @@ void testBlockSlideNoDampNoFric() {
     simulateBlock(options);
 }
 //_____________________________________________________________________________
-// Test the spring force calculations for a block that bounces up and down
-// on the floor without damping or friction.
+// Slide, with damp, with fric
 void testBlockSlideWithDampWithFric() {
     // Set Options
     SimulationOptions options;
@@ -290,9 +303,9 @@ void testBlockSlideWithDampWithFric() {
     // Run the simulation
     simulateBlock(options);
 }
+
 //_____________________________________________________________________________
-// Test the spring force calculations for a block that bounces up and down
-// on the floor without damping or friction.
+// Spin, no damp, no fric
 void testBlockSpinNoDampNoFric() {
     // Set Options
     SimulationOptions options;
@@ -310,8 +323,7 @@ void testBlockSpinNoDampNoFric() {
     simulateBlock(options);
 }
 //_____________________________________________________________________________
-// Test the spring force calculations for a block that bounces up and down
-// on the floor without damping or friction.
+// Spin, with damp, with fric
 void testBlockSpinWithDampWithFric() {
     // Set Options
     SimulationOptions options;
@@ -329,8 +341,26 @@ void testBlockSpinWithDampWithFric() {
     simulateBlock(options);
 }
 //_____________________________________________________________________________
-// Test the spring force calculations for a block that bounces up and down
-// on the floor without damping or friction.
+// Spin, with damp, with fric, tilt = -15 deg about Z
+void testBlockSpinWithDampWithFricTilt15() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 3;
+    options.damping = true;
+    options.friction = true;
+    options.viz = true;
+    options.tilt = -15.0;
+    options.tf = 8.0;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+
+//_____________________________________________________________________________
+// Spin and slide, no damp, no fric
 void testBlockSpinAndSlideNoDampNoFric() {
     // Set Options
     SimulationOptions options;
@@ -348,8 +378,43 @@ void testBlockSpinAndSlideNoDampNoFric() {
     simulateBlock(options);
 }
 //_____________________________________________________________________________
-// Test the spring force calculations for a block that bounces up and down
-// on the floor without damping or friction.
+// Spin and slide, no damp, with fric
+void testBlockSpinAndSlideNoDampWithFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 4;
+    options.damping = false;
+    options.friction = true;
+    options.viz = true;
+    options.tilt = 0.0;
+    options.tf = 5.5;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Spin and slide, with damp, no fric
+void testBlockSpinAndSlideWithDampNoFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 4;
+    options.damping = true;
+    options.friction = false;
+    options.viz = true;
+    options.tilt = 0.0;
+    options.tf = 1.2;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Spin and slide, with damp, with fric
 void testBlockSpinAndSlideWithDampWithFric() {
     // Set Options
     SimulationOptions options;
@@ -359,6 +424,80 @@ void testBlockSpinAndSlideWithDampWithFric() {
     options.viz = true;
     options.tilt = 0.0;
     options.tf = 5.5;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+
+//_____________________________________________________________________________
+// Spin like top, no damp, no fric
+void testBlockSpinLikeTopNoDampNoFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 5;
+    options.damping = false;
+    options.friction = false;
+    options.viz = true;
+    options.tilt = 0.0;
+    options.tf = 4.0;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Spin like top, with damp, with fric
+void testBlockSpinLikeTopWithDampWithFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 5;
+    options.damping = true;
+    options.friction = true;
+    options.viz = true;
+    options.tilt = 0.0;
+    options.tf = 5.5;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+
+//_____________________________________________________________________________
+// Tumble, no damp, no fric
+void testBlockTumbleNoDampNoFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 6;
+    options.damping = false;
+    options.friction = false;
+    options.viz = true;
+    options.tilt = 0.0;
+    options.tf = 3.5;
+
+    // Check global viz flag
+    if(VizOff) options.viz = false;
+
+    // Run the simulation
+    simulateBlock(options);
+}
+//_____________________________________________________________________________
+// Tumble, with damp, with fric
+void testBlockTumbleWithDampWithFric() {
+    // Set Options
+    SimulationOptions options;
+    options.condition = 6;
+    options.damping = true;
+    options.friction = true;
+    options.viz = true;
+    options.tilt = 0.0;
+    options.tf = 10.0;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -384,6 +523,7 @@ void simulateBlock(const SimulationOptions& options) {
 
     // Construct the system and basic subsystems.
     MultibodySystem system;
+    system.setUseUniformBackground(true);
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0., -9.8, 0.));
@@ -430,6 +570,9 @@ void simulateBlock(const SimulationOptions& options) {
         sprFloor[i] = new ExponentialSpringForce(system, floorPlane,
             body, corner[i], mus, muk, params);
     }
+    Transform shiftedFloorPlane(Rotation(angle, ZAxis), Vec3(0.0, -0.1, 0.0));
+    matter.Ground().updBody().addDecoration(shiftedFloorPlane,
+        DecorativeBrick(Vec3(4, 0.1, 4)).setColor(Gray).setOpacity(1.0));
 
     // Wall Plane
     // 1.5 m along the +x axis, but angled by 30 deg to face the
@@ -439,18 +582,19 @@ void simulateBlock(const SimulationOptions& options) {
     Rotation r;
     r.setRotationFromTwoAnglesTwoAxes(BodyRotationSequence,
         Pi/2.0, ZAxis, angle, XAxis);
-    Transform wallPlane(r, Vec3(1.55, 0., 0.));
+    Transform wallPlane(r, Vec3(1.5, 0., 0.));
+    Transform shiftedWallPlane(r, Vec3(1.6, 0., 0.));
     // Create an exponential spring to each corner of the block.
     ExponentialSpringForce* sprWall[8];
     for(i = 0; i < 8; ++i) {
         sprWall[i] = new ExponentialSpringForce(system, wallPlane,
             body, corner[i], mus, muk, params);
     }
-    matter.Ground().updBody().addDecoration(wallPlane,
-        DecorativeBrick(Vec3(3, 0.1, 3)).setColor(Green).setOpacity(.1));
+    matter.Ground().updBody().addDecoration(shiftedWallPlane,
+        DecorativeBrick(Vec3(4, 0.1, 4)).setColor(Vec3(0.9,0.9,0.9)).setOpacity(0.8));
 
     // Periodic Reporter
-    PeriodicStateRecorder* periodicRecorder = new PeriodicStateRecorder(0.1);
+    PeriodicStateRecorder* periodicRecorder = new PeriodicStateRecorder(1.0/60.0);
     system.addEventReporter(periodicRecorder);
 
     // Min Max Height Reporter
@@ -478,7 +622,7 @@ void simulateBlock(const SimulationOptions& options) {
         runMenuItems.push_back(std::make_pair("Quit", QuitItem));
         viz->addMenu("Run", RunMenuId, runMenuItems);
 
-        system.addEventReporter(new Visualizer::Reporter(*viz, 1. / 60.));
+        system.addEventReporter(new Visualizer::Reporter(*viz, 1.0/ 60.0));
     }
 
     // Realize through Stage::Model (construct the State)
@@ -510,8 +654,8 @@ void simulateBlock(const SimulationOptions& options) {
     case 5: // Spinning top
         R.setRotationFromAngleAboutNonUnitVector(
             convertDegreesToRadians(54.74), Vec3(1, 0, 1));
-        x = Vec3(0.5, 0.21, 0.0);
-        w = Vec3(0.0, 6.0, 0.0);
+        x = Vec3(0.5, 0.20, 0.0);
+        w = Vec3(0.0, 12.0, 0.0);
         break;
     case 6: // Tumbling
         x = Vec3(-1.0, 1.0, 0.5);
@@ -627,6 +771,10 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
 
         // Realize through Stage::Dynamics
         system.realize(state, Stage::Dynamics);
+
+        // Debug - print out the vertical position (y) of the spring station
+        //Vec3 s_G = spr.getStationPosition(state);
+        //cout << state.getTime() << "  station_y=" << s_G[1] << endl;
 
         // Set a tolerance for comparisons
         Real tol = 1.0e-12;
