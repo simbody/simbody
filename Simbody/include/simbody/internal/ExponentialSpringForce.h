@@ -48,14 +48,15 @@ contact models, is that it ALWAYS applies a force to the body; there is
 never a time in a simulation when the spring force is not applied. This
 seemingly non-physical feature works because (assuming default parameters are
 in use) the force becomes small (less than 0.01 N) as soon as the body station
-is more than 1.0 cm above the ground and extremely small (less than 0.000001 N) as soon as the body
-station is more than 2.0 cm above the ground. The sizes of these forces are
-likely small compared to the errors made in neglecting air resistance,
-assuming a uniform gravitational field, or estimating inertial parameters.
+is more than 1.0 cm above the contact plane and extremely small (less than
+0.000001 N) as soon as the body station is more than 2.0 cm above the contact
+plane. The sizes of these forces are likely small compared to the errors made
+in neglecting air resistance, assuming a uniform gravitational field, or
+estimating inertial parameters.
 
 As a side note, electrostatic forces, which are the fundamental force from
 which all conventional contact forces arise, are never actually zero either.
-They obey Coulomb's Law (Fe = ke*q1*q2/r^2) which states that an
+They obey Coulomb's Law (Fₑ = kₑ*q₁*q₂/r²) which states that an
 electrostatic force only approaches zero as the distance between two
 charges (r) approaches infinity. It is certainly not the case that exponential
 springs accurately model contact force at the level of fundamental forces; we
@@ -73,7 +74,7 @@ by variable-step explicit integrators are often well-behaved.
 
 One of the challenges in modeling friction is handling the static
 case. When the net force applied to a body in a direction tangent to a contact
-plane is less than the limiting value of the static friction force (μₛ fₙ),
+plane is less than the limiting value of the static friction force (μₛ Fₙ),
 the body should not drift but remain fixed in place. One approach to handling
 this case is to apply conditional constraints that enforce zero acceleration
 of the body in the contact plane. Unfortunately, implementation of this
@@ -95,12 +96,12 @@ and relatively large integration step sizes are maintained.
 
 In initial comparisons, using class ExponentialSpringForce to model
 contact resulted in simulation cpu times that were typically 4 times less
-(and sometimes 50 times less) than when using class CompliantContactSubsystem.
-The simulated motions were similar. These comparisons can be reproduced by
-building and running the Test_Adhoc - ExponentialSpringsComparison project
-that is included with Simbody.
+(and sometimes 50 times less) than when using class CompliantContactSubsystem,
+and yet the simulated motions were similar. These comparisons can be
+reproduced by building and running the Test_Adhoc -
+ExponentialSpringsComparison project that is included with Simbody.
 
-Details of the the exponential spring contact model are available in the
+Details of the exponential spring contact model are available in the
 following publication:
 
         Anderson F.C. and Pandy M.G. (1999). A dynamics optimization
@@ -109,9 +110,9 @@ following publication:
 
 The current class makes several improvements to that contact model, most
 notably including 1) the ability to rotate and translate the contact plane
-and 2) the ability to specify static and kinetic coefficients of friction.
-The computational details of the contact model implemented by this class
-follow below.
+and 2) the ability to specify both a static and a kinetic coefficient of
+friction. The computational details of the contact model implemented by
+this class follow below.
 
 ----------------------------------
 Computations and Coordinate Frames
@@ -171,17 +172,18 @@ and the total friction force is given by
 where kₚ is the spring elasticity, kᵥ is the spring viscosity, pxz is the
 position of the body station projected onto the contact plane, p₀ is the
 current spring zero, which always resides in the contact plane, and vxz is
-the velocity of the body station in the contact plane.
+the velocity of the body station in the contact plane expressed in the
+contact plane.
 
-By default, the frictional parameters kₚ and kᵥ are chosen to result in
-critical damping for a specified mass:
+By default, given a value for kₚ, the value of kᵥ is computed so as to
+result in critical damping for a specified mass:
 
         kᵥ = 2.0 * sqrt(kₚ*mass)
 
 Valid values of kₚ can range widely (e.g., kₚ = 1,000 to kₚ = 1,000,000)
 depending on the material properties of the MobilizedBody and the contact
 plane. In addition to being set by the above equation for critical damping,
-kᵥ can be set to 0.0 or to some other independent quantity. In general, the
+kᵥ can be set to 0.0 or to some other value independent of kₚ. In general, the
 higher kₚ and kᵥ, the smaller the integration step size will need to be in
 order to produce an accurate integration.
 
@@ -232,9 +234,10 @@ value of Sliding:
 The time derivative of Sliding is used to drive Sliding toward the
 extreme of 0.0 or 1.0, depending on the following criteria:
 
-When the frictional force exceeds its limit, Sliding is driven toward 1:
+When the elastic part of the frictional force exceeds its limit,
+Sliding is driven toward 1:
 
-        if (friction.norm() >= fxzLimit)  SlidingDot = (1.0-Sliding)/tau
+        if (fricElas.norm() > fxzLimit)  SlidingDot = (1.0-Sliding)/tau
 
 When vxz falls below some specified "settle" velocity (e.g., 0.01 m/s) AND
 the frictional force is less than its limit, Sliding is driven toward 0:
@@ -267,8 +270,8 @@ Each instance of ExponentialSpringForce posseses 6 states. These are listed
 below in the appropriate category:
 
 ### DISCRETE STATES (parameters)
-μₛ = Static coefficient of friction.  0.0 ≤ μₛ  
-μₖ = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ  
+μₛ = Static coefficient of friction.  0.0 ≤ μₛ <br>
+μₖ = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ <br>
 station = Point (Vec3) expressed in the body frame at which the force is
 exerted on the MobilizedBody.
 
@@ -277,8 +280,8 @@ p₀ = Zero point (Vec3) of the frictional spring in the contact plane. p₀
 always lies in the contact plane.
 
 ### CONTINUOUS STATE
-Sliding = Indicator of whether the MobilizedBody is sliding relative to the
-contact plane.
+Sliding = Indicator of whether the station on the MobilizedBody is sliding
+relative to the contact plane.
 
 ----------
 PARAMETERS
