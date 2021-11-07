@@ -56,7 +56,7 @@ estimating inertial parameters.
 
 As a side note, electrostatic forces, which are the fundamental force from
 which all conventional contact forces arise, are never actually zero either.
-They obey Coulomb's Law (Fₑ = kₑ*q₁*q₂/r²) which states that an
+They obey Coulomb's Law (Fₑ = kₑq₁q₂/r²) which states that an
 electrostatic force only approaches zero as the distance between two
 charges (r) approaches infinity. It is certainly not the case that exponential
 springs accurately model contact force at the level of fundamental forces; we
