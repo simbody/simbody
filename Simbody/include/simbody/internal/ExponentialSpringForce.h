@@ -282,9 +282,9 @@ always lies in the contact plane.
 (sliding) or fixed in the contact plane.  0.0 ≤ Sliding ≤ 1.0.
 The "Sliding" state is used to transition the instantaneous coefficient of
 frction (μ) between μₖ and μₛ. A value of 0.0 indicates that p₀ has been fixed
-in place for some time, in which case μ = μₛ. A value of 1.0 indicates that p₀
-has been sliding for some time, in which case μ = μₖ. A value between 0.0 and
-1.0 indicates that p₀ recently switched between fixed and sliding, in which
+in place for "some time", in which case μ = μₛ. A value of 1.0 indicates that p₀
+has been sliding for "some time", in which case μ = μₖ. A value between 0.0 and
+1.0 indicates that p₀ "recently" switched between fixed and sliding, in which
 case μₖ ≤ μ ≤ μₛ. The sense of time here is relative to the sliding time
 constant tau. By default, tau = 0.01 seconds. "some time" is any a mount of
 time substantially longer than tau; "recently" is any amount of time shorter
