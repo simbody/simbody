@@ -266,22 +266,30 @@ coin that is closest to the table.
 ------
 STATES
 ------
-Each instance of ExponentialSpringForce posseses 6 states. These are listed
+Each instance of ExponentialSpringForce posseses 4 states, which are listed
 below in the appropriate category:
 
 ### DISCRETE STATES (parameters)
-μₛ = Static coefficient of friction.  0.0 ≤ μₛ <br>
-μₖ = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ <br>
-station = Point (Vec3) expressed in the body frame at which the force is
-exerted on the MobilizedBody.
+- μₛ = Static coefficient of friction.  0.0 ≤ μₛ
+- μₖ = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
 
 ### AUTO UPDATE DISCRETE STATE
-p₀ = Zero point (Vec3) of the frictional spring in the contact plane. p₀
+- p₀ = Zero point (Vec3) of the frictional spring in the contact plane. p₀
 always lies in the contact plane.
 
 ### CONTINUOUS STATE
-Sliding = Indicator of whether the station on the MobilizedBody is sliding
-relative to the contact plane.
+- Sliding = Indicator of whether the spring zero (p₀) has been moving
+(sliding) or fixed in the contact plane.  0.0 ≤ Sliding ≤ 1.0.
+The "Sliding" state is used to transition the instantaneous coefficient of
+frction (μ) between μₖ and μₛ. A value of 0.0 indicates that p₀ has been fixed
+in place for some time, in which case μ = μₛ. A value of 1.0 indicates that p₀
+has been sliding for some time, in which case μ = μₖ. A value between 0.0 and
+1.0 indicates that p₀ recently switched between fixed and sliding, in which
+case μₖ ≤ μ ≤ μₛ. The sense of time here is relative to the sliding time
+constant tau. By default, tau = 0.01 seconds. "some time" is any a mount of
+time substantially longer than tau; "recently" is any amount of time shorter
+than tau. See ExponentialSpringParameters::setSlidingTimeConstant().
+. 
 
 ----------
 PARAMETERS
@@ -480,7 +488,7 @@ public:
 
     /** Get the total spring force applied to the MobilizedBody. The system
     must be realized to Stage::Dynamics to access this data.
-    @param state State object from which to retrieve the data. 
+    @param state State object from which to retrieve the data.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
