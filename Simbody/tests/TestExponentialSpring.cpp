@@ -633,7 +633,7 @@ void simulateBlock(const SimulationOptions& options) {
     // Set the initial conditions for the block
     Rotation R;
     R.setRotationFromAngleAboutUnitVector(0.0, XAxis);  // No rotation
-    Vec3 x(0.5, 0.11, 0.0);    // Hair above the floor
+    Vec3 x(0.5, 0.11, 0.0);     // Hair above the floor
     Vec3 w(0.);                 // No angular velocity
     Vec6 u(0.);                 // All speeds = 0.0
     switch(options.condition) {
