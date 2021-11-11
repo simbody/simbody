@@ -68,7 +68,7 @@ The default values of the parameters held by ExponentialSpringParameters
 work well for typical contact interactions, but clearly may not be
 appropriate for simulating many contact interactions. For example, one might
 want to simulate an interaction in which very little energy is dissipated
-during a bounce.
+during a contact event.
 
 The default values of the parameters are expressed in units of Newtons,
 meters, seconds, and kilograms; however, you may use an alternate set of
@@ -110,22 +110,36 @@ public:
     @param other The other object with which to test equality. */
     bool operator==(const ExponentialSpringParameters& other) const;
 
-    /** Set the parameters that determine the shape of the exponential.
-    @param d0 shifts the exponential function up and down with respect to
-    the contact plane. Its default value is 0.0065905 m (~7 mm above the
-    contact plane). This slight upward shift eliminates significant
-    penetration into the contact plane. d0 can be positive, have a value of
-    0.0, or be negative.
+    /** Set the parameters that determine the shape of the exponential. The
+    exponential, which models the elastic response of the spring in the normal
+    direction, is a function of 3 parameters:
+
+            fyElastic = d₁exp(-d₂(py-d₀))
+
+    Note that py is the displacement of the body spring station above
+    (py > 0.0) or below (py < 0.0) the contact plane. The default values of
+    the shape parameters were chosen to maximize integration step size while
+    maintaining a number of constraints (e.g., the normal force must fall
+    below 0.01 Newtons when py > 1.0 cm).
+    @param d0 shifts the exponential function up and down with respect to the
+    contact plane. Its default value is 0.0065905 m (~7 mm above the contact
+    plane). This slight upward shift reduces penetration of the body spring
+    station below the contact plane. That is, unless there is an impact event,
+    the repulsive force applied to the body will generally be large enough to
+    keep py from going negative. There is no issue with py going negative
+    (nothing special happens); the shift just facilitates an interpretation of
+    the contact interaction that is conceptually appealing. d0 can be
+    positive, have a value of 0.0, or be negative.
     @param d1 linearly scales the applied force up or down. Its default
-    value is 0.5336 (unitless). d1 should be positive to generate a repulsive
-    force.
+    value is 0.5336 Newtons. d1 should be positive to generate a repulsive
+    force directed along the positive y axis of the contact plane.
     @param d2 linearly scales the exponent. Its default value is 1150.0 / m.
     Larger values of d2 make the exponential curve rise more rapidly as py
-    gets less than d0. d1 should be positive. */
+    gets small or becomes negative. d1 should be positive. */
     void setShapeParameters(Real d0, Real d1 = 0.5336, Real d2 = 1150.0);
 
-    /** Get the parameters that determine the shape of the exponential.
-    @see setShapeParameters() */
+    /** Get the parameters that determine the shape of the exponential. See
+    setShapeParameters() for a detailed description of these parameters. */
     void getShapeParameters(Real& d0, Real& d1, Real& d2) const;
 
     /** Set the viscosity of the exponential part of an ExponentialSpringForce.
@@ -156,9 +170,8 @@ public:
     specified. */
     void setElasticityAndViscosityForCriticalDamping(Real kp, Real mass = 1.0);
 
-    /** Set the elasticity of the friction spring associated with an
-    exponential spring. A call to this method overrides any value of
-    elasticity previously set by a call to
+    /** Set the elasticity of the friction spring (kₚ). A call to this method
+    overrides any value of elasticity previously set by a call to
     setElasticityAndViscosityForCriticalDamping().
     @param kp Elasticity of the friction spring. Its default value is
     20000.0 N/m. kp should be positive. */
@@ -168,10 +181,10 @@ public:
     is the default value (2000.0 N/m) or the value set by a call to either
     setElasticity() or setElasticityAndComputeVicosity(), whichever was called
     most recently.
-    @returns Elasticity of the friction spring */
+    @returns Elasticity of the friction spring. */
     Real getElasticity() const;
 
-    /** Set the viscosity of the friction spring. A call to this method
+    /** Set the viscosity of the friction spring (kᵥ). A call to this method
     overrides any value of viscosity previously set by a call to
     setElasticityAndViscosityForCriticalDamping(). Setting the viscosity equal
     to 0.0 is fine. Be aware, however, that if a body is not sliding,
@@ -184,15 +197,15 @@ public:
     dissipation entirely is to set the coefficients of friction equal to 0.0,
     which can be done by a call to ExponentialSpringForce::setMuStatic(0.0).
     @param kv Viscosity of the friction spring. Its default value is
-    2.0*sqrt(kp*mass) = 2.0*sqrt(2000*1) ~= 89.4427 N*s/m. kv should be 0.0
+    2.0*sqrt(kp*mass) = 2.0*sqrt(20000*1) ~= 282.8427 N*s/m. kv should be 0.0
     or positive. */
     void setViscosity(Real kv);
 
     /** Get the viscosity of the friction spring. The value of the viscosity
-    is the default value (~89.4427 N*s/m) or the value set by a call to either
+    is the default value (~282.8427 N*s/m) or the value set by a call to either
     setViscosity() or setElasticityAndViscosityForCriticalDamping(), whichever
     was called most recently.
-    @returns Viscosity of the friction spring */
+    @returns Viscosity of the friction spring. */
     Real getViscosity() const;
 
     /** Set the time constant for transitioning back and forth between the
@@ -205,7 +218,7 @@ public:
 
     /** Get the time constant for transitioning back and forth between the
     static and kinetic coefficients of friction.
-    @returns time constant for sliding transitions. */
+    @returns Time constant for sliding transitions. */
     Real getSlidingTimeConstant() const;
 
     /** Set the velocity below which the coefficient of friction transitions

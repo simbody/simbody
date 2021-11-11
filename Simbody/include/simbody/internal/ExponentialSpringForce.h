@@ -133,10 +133,13 @@ suffix refers to a quantity that lies in the contact plane.
 The elastic part of the normal force is computed using an exponential
 whose shape is a function of three parameters (d₀, d₁, and d₂):
 
-        fyElastic = d₁exp(d₂(py-d₀)),
+        fyElastic = d₁exp(-d₂(py-d₀))
 
-where py is the height above the contact plane of the specified Station
-on the MobilizedBody. The damping part is linear in velocity and scaled by the
+Note that py is the displacement of the body spring station above (py > 0.0)
+or below (py < 0.0) the contact plane. The default values of the shape
+parameters were chosen to maximize integration step size while maintaining a
+number of constraints (e.g., the normal force must fall below 0.01 Newtons
+when py > 1.0 cm). The damping part is linear in velocity and scaled by the
 elastic part:
 
         fyDamping = - kyᵥ vy fyElastic,
