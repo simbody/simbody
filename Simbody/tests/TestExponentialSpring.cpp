@@ -102,7 +102,7 @@ public:
         delete storage;
     }
     void handleEvent(const State& state) const override {
-        storage->push_back(state);
+        storage->emplace_back(state);
     }
     void clearStateArray() {
         storage->clear();
