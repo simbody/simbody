@@ -209,20 +209,20 @@ public:
     Real getViscosity() const;
 
     /** Set the time constant for transitioning back and forth between the
-    static and kinetic coefficients of friction. The transition is mediated
-    by a rising or falling exponential that is asymptotic to mu static or
-    or mu kinetic respectively.
+    static (μₛ) and kinetic (μₖ) coefficients of friction. The transition is
+    mediated by a rising or falling exponential that is asymptotic to μₛ or μₖ,
+    respectively.
     @param tau Time constant (τ) for sliding transitions. The default value of τ
     is 0.01 s. τ must be positive. */
     void setSlidingTimeConstant(Real tau);
 
     /** Get the time constant for transitioning back and forth between the
-    static and kinetic coefficients of friction.
+    static (μₛ) and kinetic (μₖ) coefficients of friction.
     @returns Time constant for sliding transitions. */
     Real getSlidingTimeConstant() const;
 
     /** Set the velocity below which the coefficient of friction transitions
-    to the static coefficient of friction.
+    to the static coefficient of friction (μₛ).
     @param vSettle Settle velocity. It's default value is 0.01 m/s. vSettle
     must be positive.*/
     void setSettleVelocity(Real vSettle);
