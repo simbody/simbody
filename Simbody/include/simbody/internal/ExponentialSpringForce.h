@@ -118,39 +118,39 @@ this class follow below.
 Computations and Coordinate Frames
 ----------------------------------
 %Contact force computations are carried out in the frame of the contact plane.
-The positive y-axis of the contact plane defines its normal. The positive
-y-axis is the axis along which the repelling normal force (modeled using an
-exponential) is applied. The x-axis and z-axis of the contact plane together
-define the tangent plane. Friction forces will always be tangent to the x-z
+The positive z-axis of the contact plane defines its normal. The positive
+z-axis is the axis along which the repelling normal force (modeled using an
+exponential) is applied. The x-axis and y-axis of the contact plane together
+define the tangent plane. Friction forces will always be tangent to the x-y
 plane.
 
-In the equations below, a variable with a "y" suffix (e.g., py or vy) refers
-to a quantity that is normal to the contact plane. A variable with an "xz"
+In the equations below, a variable with a "z" suffix (e.g., pz or vz) refers
+to a quantity that is normal to the contact plane. A variable with an "xy"
 suffix refers to a quantity that lies in the contact plane.
 
-### Normal Force (positive y-axis)
+### Normal Force (positive z-axis)
 
 The elastic part of the normal force is computed using an exponential
 whose shape is a function of three parameters (d₀, d₁, and d₂):
 
-        fyElastic = d₁exp(-d₂(py-d₀))
+        fzElastic = d₁exp(-d₂(pz-d₀))
 
-Note that py is the displacement of the body spring station above (py > 0.0)
-or below (py < 0.0) the contact plane. The default values of the shape
+Note that pz is the displacement of the body spring station above (pz > 0.0)
+or below (pz < 0.0) the contact plane. The default values of the shape
 parameters were chosen to maximize integration step size while maintaining a
 number of constraints (e.g., the normal force must fall below 0.01 Newtons
-when py > 1.0 cm). The damping part is linear in velocity and scaled by the
-elastic part:
+when pz > 1.0 cm). The damping part of the normal force is linear in velocity
+and scaled by the elastic part:
 
-        fyDamping = - kyᵥ vy fyElastic,
+        fzDamping = - kzᵥ vz fzElastic,
 
-where vy is the normal component of the velocity of the specified Station and
-kyᵥ is the damping coefficient for the normal direction. All together, the
+where vz is the normal component of the velocity of the specified Station and
+kzᵥ is the damping coefficient for the normal direction. All together, the
 spring force in the normal direction is given by
 
-        fy  = fyElastic + fyDamping
-            = d₁exp(d₂(py-d₀)) - kyᵥ vy d₁exp(d₂(py-d₀)))
-            = d₁exp(d₂(py-d₀)) (1 - kyᵥ vy)
+        fz  = fzElastic + fzDamping
+            = d₁exp(d₂(py-d₀)) - kzᵥ vz d₁exp(d₂(pz-d₀)))
+            = d₁exp(d₂(pz-d₀)) (1 - kzᵥ vz)
 
 which has the form of the Hunt & Crossley damping model:
 
@@ -158,23 +158,24 @@ which has the form of the Hunt & Crossley damping model:
         Interpreted as Damping in Vibroimpact. ASME Journal of Applied
         Mechanics, pp. 440-445.
 
-### Friction Force (x-z plane)
+### Friction Force (x-y plane)
 
-Friction force (a vector because its direction in the x-z plane can change)
-is implemented using a damped linear spring. The elastic and viscous terms
-are given by
+Friction force is implemented using a damped linear spring. Note that the
+friction force cannot be represented by a scalar (like the normal force)
+because the direction of the friction force can change, free to point
+any direction in the xy plane. The elastic and viscous terms are given by
 
-        fricElas = -kₚ (pxz-p₀)
+        fricElas = -kₚ (pxy-p₀)
 
-        fricDamp = -kᵥ vxz
+        fricDamp = -kᵥ vxy
 
-and the total friction force is given by
+and the total friction force is given by the sum
 
         friction = fricElas + fricDamp
 
-where kₚ is the spring elasticity, kᵥ is the spring viscosity, pxz is the
+where kₚ is the spring elasticity, kᵥ is the spring viscosity, pxy is the
 position of the body station projected onto the contact plane, p₀ is the
-current spring zero, which always resides in the contact plane, and vxz is
+current spring zero, which always resides in the contact plane, and vxy is
 the velocity of the body station in the contact plane expressed in the
 contact plane.
 
@@ -186,27 +187,27 @@ result in critical damping for a specified mass:
 Valid values of kₚ can range widely (e.g., kₚ = 1,000 to kₚ = 1,000,000)
 depending on the material properties of the MobilizedBody and the contact
 plane. In addition to being set by the above equation for critical damping,
-kᵥ can be set to 0.0 or to some other value independent of kₚ. In general, the
-higher kₚ and kᵥ, the smaller the integration step size will need to be in
-order to produce an accurate integration.
+kᵥ can be set to 0.0 or to some other positive value, independent of kₚ. In
+general, the higher kₚ and kᵥ, the smaller the integration step size will need
+to be in order to produce an accurate integration.
 
 ### A Moving Spring Zero
 
 When the computed frictional force exceeds the allowed limit, it is capped at
 the limit (fxzLimit):
 
-       fxzLimit = μ fy
-       if(friction.norm() > fxzLimit) {
-           friction = fxzLimit * friction.normalize()
+       fxyLimit = μ fz
+       if(friction.norm() > fxyLimit) {
+           friction = fxyLimit * friction.normalize()
        }
 
 where μ is the instantaneous coefficient of friction (more below).
 
 If the magnitude of the elastic part of the friction force by itself exceeds
-fxzLimit, a new spring zero is found such that the magnitude of the
-elastic part would be equal to fxzLimit:
+fxyLimit, a new spring zero is found such that the magnitude of the
+elastic part would be equal to fxyLimit:
 
-       if(fricElas.norm() > fxzLimit)  p₀ = pxz + (pxz-p₀)/kₚ
+       if(fricElas.norm() > fxyLimit)  p₀ = pxy + (pxy-p₀)/kₚ
 
 In Simbody, p₀ is handled as an Auto Update Discrete State. See
 State::allocateAutoUpdateDiscreteVariable() for a detailed description. Any
@@ -240,12 +241,12 @@ extreme of 0.0 or 1.0, depending on the following criteria:
 When the elastic part of the frictional force exceeds its limit,
 Sliding is driven toward 1:
 
-        if (fricElas.norm() > fxzLimit)  SlidingDot = (1.0-Sliding)/tau
+        if (fricElas.norm() > fxyLimit)  SlidingDot = (1.0-Sliding)/tau
 
-When vxz falls below some specified "settle" velocity (e.g., 0.01 m/s) AND
+When vxy falls below some specified "settle" velocity (e.g., 0.01 m/s) AND
 the frictional force is less than its limit, Sliding is driven toward 0:
 
-        else if (vxz.norm < 0.01)  SlidingDot = -Sliding/tau
+        else if (vxy.norm < 0.01)  SlidingDot = -Sliding/tau
 
 Otherwise, no change to the Sliding state is made:
 
@@ -255,13 +256,14 @@ In the above equations, tau is the characteristic time it takes for the Sliding
 state to rise or decay. The motivation for using a continuous state variable
 for Sliding is that, although the transition between fixed and sliding may
 happen quickly, it does not happen instantaneously.  And, modeling Sliding
-based on a differential equation ensures that μ is smooth.
+based on a differential equation ensures that μ is continuous.
 
 ### Future Enhancements
 
-Future enhancements might include the capacity to
-1) use a polygonal mesh as the contact surface, and
-2) move the specified MobilizedBody Station in manner that adapts to the
+Future enhancements could include the capacity to
+1) fix the contact plane to a body other than ground
+2) use a polygonal mesh as the contact surface, and
+3) move the specified MobilizedBody Station in manner that adapts to the
 contact circumstances. For example, to model a coin rolling on a table
 a small number of stations could be continually moved to the portion of the
 coin that is closest to the table.
@@ -277,8 +279,8 @@ below in the appropriate category:
 - μₖ = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
 
 ### AUTO UPDATE DISCRETE STATE
-- p₀ = Zero point (Vec3) of the frictional spring in the contact plane. p₀
-always lies in the contact plane.
+- p₀ = Zero point (Vec3) of the frictional spring. p₀ always lies in the
+contact plane.
 
 ### CONTINUOUS STATE
 - Sliding = Indicator of whether the spring zero (p₀) has been moving
@@ -312,9 +314,9 @@ public:
     parameters.
     @param system The system being simulated or studied.
     @param contactPlane Transform specifying the location and orientation of
-    the contact plane with respect to the Ground frame. The positive y-axis
+    the contact plane with respect to the Ground frame. The positive z-axis
     defines the normal of the contact plane; friction forces lie in (are
-    tangent to) the x-z plane.
+    tangent to) the x-y plane.
     @param body MobilizedBody that will interact / collide with the contact
     plane.
     @param station Point on the specified body at which the contact force
@@ -335,7 +337,7 @@ public:
     /** Get the Transform specifying the location and orientation of the
      Contact Plane with respect to the Ground frame. This transform can be
      used to transform quantities expressed in the Contact Plane to the Ground
-     frame and vice versa. The y-axis of the contact plane frame specifies the
+     frame and vice versa. The z-axis of the contact plane frame specifies the
      normal. */
     const Transform& getContactPlane() const;
 
@@ -417,9 +419,9 @@ public:
     @param state State object on which to base the reset. */
     void resetSpringZero(State& state) const;
 
-    /** Get the elastic part of the normal force. The system must be realized to
-    Stage::Dynamics to access this data.
-    @param state State object from which to retrieve the data.
+    /** Get the elastic part of the normal force. The system must be realized
+    to Stage::Dynamics to access this data.
+    @param state State object on which to based the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -429,7 +431,7 @@ public:
 
     /** Get the damping part of the normal force. The system must be realized
     to Stage::Dynamics to access this data.
-    @param state State object from which to retrieve the data.
+    @param state State object on which to based the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -439,7 +441,7 @@ public:
 
     /** Get the normal force. The system must be realized to Stage::Dynamics
     to access this data.
-    @param state State object from which to retrieve the data.
+    @param state State object on which to based the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -452,17 +454,17 @@ public:
     the Sliding state to transition between μₖ and μₛ:
             μ = μₛ - Sliding*(μₛ - μₖ)
     Because 0.0 ≤ Sliding ≤ 1.0, μₖ ≤ μ ≤ μₛ.
-    @param state State object from which to retrieve the data. */
+    @param state State object on which to based the calculations. */
     Real getMu(const State& state) const;
 
     /** Get the friction limit. The system must be realized to Stage::Dynamics
     to access this data.
-    @param state State object from which to retrieve the data. */
+    @param state State object on which to based the calculations. */
     Real getFrictionForceLimit(const State& state) const;
 
     /** Get the elastic part of the friction force. The system must be realized
     to Stage::Dynamics to access this data.
-    @param state State object from which to retrieve the data.
+    @param state State object on which to based the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -472,7 +474,7 @@ public:
 
     /** Get the damping part of the friction force. The system must be realized
     to Stage::Dynamics to access this data.
-    @param state State object from which to retrieve the data.
+    @param state State object on which to based the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -482,7 +484,7 @@ public:
 
     /** Get the total friction force. The system must be realized
     to Stage::Dynamics to access this data.
-    @param state State object from which to retrieve the data.
+    @param state State object on which to based the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -491,7 +493,7 @@ public:
 
     /** Get the total spring force applied to the MobilizedBody. The system
     must be realized to Stage::Dynamics to access this data.
-    @param state State object from which to retrieve the data.
+    @param state State object on which to based the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -500,12 +502,12 @@ public:
 
     /** Get the position of the spring station (i.e., the point at which the
     spring force is applied to the body). The system must be realized to
-    Stage::Position to access this data.
-    This method differs from getStation() in terms of the frame in which the
-    station is expressed. getStation() expresses the point in the frame of
-    the MobilizedBody. getStationPosition() expresses the point either in the
-    Ground frame or in the frame of the Contact Plane.
-    @param state State object from which to retrieve the data.
+    Stage::Position to access this data. This method differs from getStation()
+    in terms of the frame in which the station is expressed. getStation()
+    expresses the point in the frame of the MobilizedBody. getStationPosition()
+    expresses the point either in the Ground frame or in the frame of the
+    Contact Plane.
+    @param state State object on which to based the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -514,7 +516,7 @@ public:
 
     /** Get the velocity of the spring station. The system must be realized to
     Stage::Velocity to access this data.
-    @param state State object from which to retrieve the data.
+    @param state State object on which to based the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -523,7 +525,7 @@ public:
 
     /** Get the position of the spring zero. The system must be realized
     to Stage::Dynamics to access this data.
-    @param state State object from which to retrieve the data. 
+    @param state State object on which to based the calculations. 
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of

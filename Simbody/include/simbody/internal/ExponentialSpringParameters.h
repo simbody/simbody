@@ -46,8 +46,8 @@ of that object. For example,
         spr1.setParameters(myParams);
         spr2.setParameters(myParams);
 
-4) Realize the system to Stage::Topology.  When a new set of parameters is
-set on an ExponentialSpringForce instance, as above in step 3, the System will
+4) Realize the system to Stage::Topology. When a new set of parameters is set
+on an ExponentialSpringForce instance, as above in step 3, the System will
 be invalidated at Stage::Topology.  The System must therefore be realized at
 Stage::Topology before a simulation can proceed.
 
@@ -68,10 +68,11 @@ The default values of the parameters held by ExponentialSpringParameters
 work well for typical contact interactions, but clearly may not be
 appropriate for simulating many contact interactions. For example, one might
 want to simulate an interaction in which very little energy is dissipated
-during a contact event.
+during a contact event. To do that, you would reduce the sizes of damping
+cooefficents and reduce the sizes of the coefficients of friction.
 
 The default values of the parameters are expressed in units of Newtons,
-meters, seconds, and kilograms; however, you may use an alternate set of
+meters, seconds, and kilograms. You may use an alternate set of
 self-consistent units by re-specifying all parameters.
 
 Finally, there are 2 quantities not managed by this class that can be used
@@ -114,27 +115,27 @@ public:
     exponential, which models the elastic response of the spring in the normal
     direction, is a function of 3 parameters:
 
-            fyElastic = d₁exp(-d₂(py-d₀))
+            fyElastic = d₁exp(-d₂(pz-d₀))
 
-    Note that py is the displacement of the body spring station above
-    (py > 0.0) or below (py < 0.0) the contact plane. The default values of
+    Note that pz is the displacement of the body spring station above
+    (pz > 0.0) or below (pz < 0.0) the contact plane. The default values of
     the shape parameters were chosen to maximize integration step size while
     maintaining a number of constraints (e.g., the normal force must fall
-    below 0.01 Newtons when py > 1.0 cm).
+    below 0.01 Newtons when pz > 1.0 cm).
     @param d0 shifts the exponential function up and down with respect to the
     contact plane. Its default value is 0.0065905 m (~7 mm above the contact
     plane). This slight upward shift reduces penetration of the body spring
     station below the contact plane. That is, unless there is an impact event,
     the repulsive force applied to the body will generally be large enough to
-    keep py from going negative. There is no issue with py going negative
+    keep pz from going negative. There is no issue with pz going negative
     (nothing special happens); the shift just facilitates an interpretation of
     the contact interaction that is conceptually appealing. d0 can be
     positive, have a value of 0.0, or be negative.
     @param d1 linearly scales the applied force up or down. Its default
     value is 0.5336 Newtons. d1 should be positive to generate a repulsive
-    force directed along the positive y axis of the contact plane.
+    force directed along the positive z axis of the contact plane.
     @param d2 linearly scales the exponent. Its default value is 1150.0 / m.
-    Larger values of d2 make the exponential curve rise more rapidly as py
+    Larger values of d2 make the exponential curve rise more rapidly as pz
     gets small or becomes negative. d1 should be positive. */
     void setShapeParameters(Real d0, Real d1 = 0.5336, Real d2 = 1150.0);
 
@@ -168,7 +169,7 @@ public:
     acceleration in a particular direction, so think of this mass as a kind
     of average mass. A default mass of 1.0 kg is used if a mass is not
     specified. */
-    void setElasticityAndViscosityForCriticalDamping(Real kp, Real mass = 1.0);
+    void setElasticityAndViscosityForCriticalDamping(Real kp, Real mass=1.0);
 
     /** Set the elasticity of the friction spring (kₚ). A call to this method
     overrides any value of elasticity previously set by a call to
@@ -178,7 +179,7 @@ public:
     void setElasticity(Real kp);
 
     /** Get the elasticity of the friction spring. The value of the elasticity
-    is the default value (2000.0 N/m) or the value set by a call to either
+    is the default value (20000.0 N/m) or the value set by a call to either
     setElasticity() or setElasticityAndComputeVicosity(), whichever was called
     most recently.
     @returns Elasticity of the friction spring. */
@@ -187,15 +188,11 @@ public:
     /** Set the viscosity of the friction spring (kᵥ). A call to this method
     overrides any value of viscosity previously set by a call to
     setElasticityAndViscosityForCriticalDamping(). Setting the viscosity equal
-    to 0.0 is fine. Be aware, however, that if a body is not sliding,
-    setting kᵥ = 0.0 will simply allow the body to vibrate in place
-    indefinitely. If a body is sliding, even if kᵥ = 0.0, the kinetic energy
-    of the body will still be dissipated because the frictional force is
-    directed opposite the sliding velocity, and the elastic part of the
-    friction spring will not store additional potential energy because the
-    spring zero is continually released. The only way to eliminate energy
-    dissipation entirely is to set the coefficients of friction equal to 0.0,
-    which can be done by a call to ExponentialSpringForce::setMuStatic(0.0).
+    to 0.0 is fine. Be aware that the friction spring visocity typically has a
+    minor impact on energy dissipation relative to the normal viscosity during
+    impact events and relative to the coefficients of friction when the body
+    is sliding. A non-zero spring viscosity will cause energy dissipation when
+    the body is vibrating in place.
     @param kv Viscosity of the friction spring. Its default value is
     2.0*sqrt(kp*mass) = 2.0*sqrt(20000*1) ~= 282.8427 N*s/m. kv should be 0.0
     or positive. */

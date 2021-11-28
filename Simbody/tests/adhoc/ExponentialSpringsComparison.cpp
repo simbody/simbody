@@ -113,7 +113,7 @@ int main() {
         // basic muster.
 
         // Use compliant Contact?
-        bool CmpContactOn = true;
+        bool CmpContactOn = false;
 
         // Use exponential Spring Contact?
         bool ExpContactOn = true;
@@ -122,7 +122,7 @@ int main() {
         bool VisOn = true;
 
         // Specify initial conditions.
-        int condition = 2;
+        int condition = 1;
         // 0 = sitting still
         // 1 = dropped
         // 2 = sliding
@@ -164,7 +164,6 @@ int main() {
         BodyPropsCmp.addDecoration(Transform(),
             DecorativeBrick(Vec3(0.1)).setColor(Red));
 
-     
         // Add a 6 dof mass that uses the Compliant Contact system.
         // Some constants
         const Vec3 hdim(0.1, 0.1, 0.1);
@@ -214,13 +213,14 @@ int main() {
             blockExp = new MobilizedBody::Free(matter.Ground(), BodyPropsExp);
 
             // Create a Transform representing the floor
-            Real angle = convertDegreesToRadians(0.0);
-            Rotation floorTilt(angle, ZAxis);
+            Real angle = convertDegreesToRadians(-90.0);
+            Rotation floorTilt(angle, XAxis);
             Vec3 floorOrigin(0., -0.004, 0.);
             Transform floorXForm(floorTilt, floorOrigin);
             // Modify the default parameters if desired
             ExponentialSpringParameters params;
             params.setElasticityAndViscosityForCriticalDamping(100000.0);
+            params.setNormalViscosity(0.2);
             // Add an exponential spring at each corner of the block.
             spr1 = new ExponentialSpringForce(system, floorXForm,
                 *blockExp, Vec3(0.1, -0.1, 0.1), mu_s, mu_k, params);
@@ -283,7 +283,7 @@ int main() {
             // Dropped
             if (condition == 1) {
                 blockCmp->setQToFitRotation(state, R);
-                blockCmp->setQToFitTranslation(state, Vec3(-0.5, 4.0, 0.0));
+                blockCmp->setQToFitTranslation(state, Vec3(-0.5, 2.0, 0.0));
                 blockCmp->setU(state, Vec6(0, 0, 0, 0, 0, 0));
                 blockCmp->setUToFitAngularVelocity(state, Vec3(0.0, 0.0, 0.0));
             }
@@ -361,7 +361,7 @@ int main() {
             // Dropped
             if (condition == 1) {
                 blockExp->setQToFitRotation(state, R);
-                blockExp->setQToFitTranslation(state, Vec3(0.5, 4.0, 0.0));
+                blockExp->setQToFitTranslation(state, Vec3(0.5, 2.0, 0.0));
                 blockExp->setU(state, Vec6(0, 0, 0, 0, 0, 0));
                 blockExp->setUToFitAngularVelocity(state, Vec3(0.0, 0.0, 0.0));
             }
