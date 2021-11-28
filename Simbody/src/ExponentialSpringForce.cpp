@@ -65,15 +65,15 @@ The contact plane can be rotated and displaced relative to the ground frame
 and so can be used to model a wall or ramp, for example.
 
 %Contact force computations are carried out in the frame of the contact plane.
-The positive z-axis of the contact frame defines the normal of the
-contact plane. The positive z-axis is the axis along which a repelling
+The positive y-axis of the contact frame defines the normal of the
+contact plane. The positive y-axis is the axis along which a repelling
 normal force (modeled using an exponential) is applied. The x-axis and
-y-axis of the contact frame are tangent to the contact plane. The friction
-force will always lie in x-y plane.
+z-axis of the contact frame are tangent to the contact plane. The friction
+force will always lie in x-z plane.
 
-Member variables with a "z" suffix (e.g., pz, vz, or fz) indicate that
+Member variables with a "y" suffix (e.g., py, vy, or fy) indicate that
 these quantities are directed normal to the contact plane.  Member varaibles
-with an "xy" suffix (e.g., pxy, vxy, or fxy) indicate that these quantities
+with an "xz" suffix (e.g., pxz, vxz, or fxz) indicate that these quantities
 lie in the contact plane (or tangent to it) and are associated with the
 friction force.
 
@@ -92,26 +92,26 @@ struct ExponentialSpringData {
     Vec3 v;
     /** Displacement of the body spring station normal to the floor expressed
     in the frame of the contact plane. */
-    Real pz;
+    Real py;
     /** Velocity of the body spring station normal to the contact plane
     expressed in the frame of the contact plane. */
-    Real vz;
+    Real vy;
     /** Position of the body spring station projected onto the contact plane
     expressed in the frame of the contact plane. */
-    Vec3 pxy;
+    Vec3 pxz;
     /** Velocity of the body spring station in the contact plane expressed in
     the frame of the contact plane. */
-    Vec3 vxy;
+    Vec3 vxz;
     /** Elastic force in the normal direction. */
-    Real fzElas;
+    Real fyElas;
     /** Damping force in the normal direction. */
-    Real fzDamp;
+    Real fyDamp;
     /** Total normal force expressed in the frame of the contact plane. */
-    Real fz;
+    Real fy;
     /** Instantaneous coefficient of friction. */
     Real mu;
     /** Limit of the frictional force. */
-    Real fxyLimit;
+    Real fxzLimit;
     /** Elastic frictional force expressed in the frame of the contact plane.*/
     Vec3 fricElas;
     /** Damping frictional force expressed in the frame of the contact plane.*/
@@ -120,7 +120,7 @@ struct ExponentialSpringData {
     the contact plane. */
     Vec3 fric;
     /** Magnitude of the frictional force. */
-    Real fxy;
+    Real fxz;
     /** Resultant spring force (normal + friction) expressed in the floor
     frame. */
     Vec3 f;
@@ -296,13 +296,13 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     data.p = contactPlane.shiftBaseStationToFrame(data.p_G);
     data.v = contactPlane.xformBaseVecToFrame(data.v_G);
 
-    // Resolve into normal (z) and tangential parts (xy plane)
+    // Resolve into normal (y) and tangential parts (xz plane)
     // Normal (perpendicular to Floor)
-    data.pz = data.p[2];
-    data.vz = data.v[2];
+    data.py = data.p[1];
+    data.vy = data.v[1];
     // Tangent (in plane of Floor)
-    data.pxy = data.p;    data.pxy[2] = 0.0;
-    data.vxy = data.v;    data.vxy[2] = 0.0;
+    data.pxz = data.p;    data.pxz[1] = 0.0;
+    data.vxz = data.v;    data.vxz[1] = 0.0;
 
     // Get all the parameters upfront
     Real d0, d1, d2;
@@ -315,30 +315,14 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
 
     // Normal Force (perpendicular to contact plane) -------------------------
     // Elastic Part
-    data.fzElas = d1 * std::exp(-d2 * (data.pz - d0));
+    data.fyElas = d1 * std::exp(-d2 * (data.py - d0));
     // Damping Part
-    data.fzDamp = -kvNorm * data.vz * data.fzElas;
+    data.fyDamp = -kvNorm * data.vy * data.fyElas;
     // Total
-    data.fz = data.fzElas + data.fzDamp;
-    // Don't allow the normal force to be negative (to pull down on the body).
-    // If this bound is enforced, fzDamp should be altered so that the info in
-    // the data cache is internally consistent.
-    Real fzMin = 0.0;
-    if(data.fz < fzMin) {
-        data.fz = fzMin;
-        data.fzDamp = fzMin - data.fzElas;
-    }
-    // Cap the normal force at some maximum value.
-    // If this bound is enforced, fzElas should be altered (solid is yielding)
-    // so that the info in the data cache is internally consistent.
-    Real fzMax = 1.0e6;
-    if(data.fz > fzMax) {
-        data.fz = fzMax;
-        data.fzElas = fzMax - data.fzDamp;
-    }
-
+    data.fy = data.fyElas + data.fyDamp;
+    // Don't allow the normal force to be negative or too large.
     // Note that conservation of energy will fail if bounds are enforced.
-    //data.fz = ClampAboveZero(data.fz, 1000000.0);
+    data.fy = ClampAboveZero(data.fy, 1000000.0);
 
     // Friction (in the plane of contact plane) ------------------------------
     // Get the sliding state.
@@ -348,43 +332,43 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     Real mus = getMuStatic(state);
     Real muk = getMuKinetic(state);
     data.mu = mus - sliding * (mus - muk);
-    data.fxyLimit = data.mu * data.fz;
+    data.fxzLimit = data.mu * data.fy;
     // Access the SprZero from the State.
     Vec3 p0 = getSprZero(state);
-    // The SprZero is always expressed in the plan of the contact frame, so
-    // its z-component should always be zero. The following statement
-    // shouldn't be necessary but guards against numerical rounding.
-    p0[2] = 0.0;
+    // The SprZero is always expressed in the Floor frame, so its y-component
+    // should always be zero. The following statement shouldn't be necessary,
+    // but rounding is possible
+    p0[1] = 0.0;
     // Elastic part
-    Vec3 r = data.pxy - p0;
+    Vec3 r = data.pxz - p0;
     data.fricElas = -kpFric * r;
-    Real fxyElas = data.fricElas.norm();
+    Real fxzElas = data.fricElas.norm();
     // If the spring is stretched beyond its limit, update the spring zero.
     // Note that no discontinuities in the friction force are introduced.
     // The spring zero is just made to be consistent with the limiting
     // frictional force.
     bool limitReached = false;
-    if(fxyElas > data.fxyLimit) {
+    if(fxzElas > data.fxzLimit) {
         limitReached = true;
         // Compute a new spring zero.
-        data.fricElas = data.fxyLimit * data.fricElas.normalize();
-        p0 = data.pxy + data.fricElas / kpFric;
-        p0[2] = 0.0;
+        data.fricElas = data.fxzLimit * data.fricElas.normalize();
+        p0 = data.pxz + data.fricElas / kpFric;
+        p0[1] = 0.0;
         // The damping part must be zero!
         data.fricDamp = Vec3(0.0, 0.0, 0.0);
     // spring zero does not need to be recalculated, but fricDamp = 0.0
-    } else if(fxyElas == data.fxyLimit) {
+    } else if(fxzElas == data.fxzLimit) {
         data.fricDamp = Vec3(0.0, 0.0, 0.0);
     // calculate fricDamp
     } else {
-        data.fricDamp = -kvFric * data.vxy;
+        data.fricDamp = -kvFric * data.vxz;
     }
     // Total
     data.fric = data.fricElas + data.fricDamp;
-    data.fxy = data.fric.norm();
-    if(data.fxy > data.fxyLimit) {
-        data.fxy = data.fxyLimit;
-        data.fric = data.fxy * data.fric.normalize();
+    data.fxz = data.fric.norm();
+    if(data.fxz > data.fxzLimit) {
+        data.fxz = data.fxzLimit;
+        data.fric = data.fxz * data.fric.normalize();
         data.fricDamp = data.fric - data.fricElas;
     }
 
@@ -394,15 +378,15 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     markCacheValueRealized(state, indexSprZeroInCache);
  
     // Update SlidingDot
-    Real vMag = data.vxy.norm();
+    Real vMag = data.vxz.norm();
     Real slidingDot = 0.0;
     if(limitReached)  slidingDot = kTau * (1.0 - sliding);
     else if(vMag < vSettle)  slidingDot = -kTau * sliding;
     updSlidingDotInCache(state, slidingDot);
 
     // Total spring force expressed in the frame of the Contact Plane.
-    data.f = data.fric;     // The x and y components are friction components.
-    data.f[2] = data.fz;    // The z component is the normal force.
+    data.f = data.fric;     // The x and z components are friction.
+    data.f[1] = data.fy;    // The y component is the normal force.
 
     // Transform the spring forces back to the Ground frame
     data.f_G = contactPlane.xformFrameVecToBase(data.f);
@@ -435,7 +419,7 @@ calcPotentialEnergy(const State& state) const override {
     // Strain energy in the normal direction (exponential spring)
     Real d0, d1, d2;
     params.getShapeParameters(d0, d1, d2);
-    double energy = data.fzElas / d2;
+    double energy = data.fyElas / d2;
     // Strain energy in the tangent plane (friction spring)
     // Note that the updated spring zero (the one held in cache) needs to be
     // used, not the one in the state.
@@ -443,7 +427,7 @@ calcPotentialEnergy(const State& state) const override {
     // changed when fxzElas > fxzLimit. This change is not reflected in the
     // state, just in the cache.
     Vec3 p0Cache = getSprZeroInCache(state);
-    Vec3 r = data.pxy - p0Cache;
+    Vec3 r = data.pxz - p0Cache;
     energy += 0.5 * params.getElasticity() * r.norm() * r.norm();
     return energy;
 }
@@ -463,7 +447,7 @@ resetSprZero(State& state) const {
     // Transform the position to the Floor frame.
     Vec3 p_F = contactPlane.shiftBaseStationToFrame(p_G);
     // Project into the plane of the Floor
-    p_F[2] = 0.0;
+    p_F[1] = 0.0;
     // Update the spring zero
     updSprZero(state) = p_F;
 }
@@ -482,8 +466,8 @@ realizeSprZeroCache(const State& state) const {
     Vec3 sprZero = getSprZero(state);
     Real time = state.getTime();
     sprZero[0] = 0.01 * time;
-    sprZero[1] = 0.01 * time;
-    sprZero[2] = 0.0;
+    sprZero[1] = 0.0;
+    sprZero[2] = 0.01 * time;
     updSprZeroInCache(state, sprZero);
     markCacheValueRealized(state, indexSprZeroInCache);
 }
@@ -684,10 +668,10 @@ resetSpringZero(State& state) const {
 Vec3
 ExponentialSpringForce::
 getNormalForceElasticPart(const State& state, bool inGround) const {
-    Vec3 fzElas(0.);
-    fzElas[2] = getImpl().getData(state).fzElas;
-    if(inGround) fzElas = getContactPlane().xformFrameVecToBase(fzElas);
-    return fzElas;
+    Vec3 fyElas(0.);
+    fyElas[1] = getImpl().getData(state).fyElas;
+    if(inGround) fyElas = getContactPlane().xformFrameVecToBase(fyElas);
+    return fyElas;
 }
 //_____________________________________________________________________________
 // Get the damping part of the normal force.
@@ -695,7 +679,7 @@ Vec3
 ExponentialSpringForce::
 getNormalForceDampingPart(const State& state, bool inGround) const {
     Vec3 fyDamp(0.);
-    fyDamp[2] = getImpl().getData(state).fzDamp;
+    fyDamp[1] = getImpl().getData(state).fyDamp;
     if(inGround) fyDamp = getContactPlane().xformFrameVecToBase(fyDamp);
     return fyDamp;
 }
@@ -704,10 +688,10 @@ getNormalForceDampingPart(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getNormalForce(const State& state, bool inGround) const {
-    Vec3 fz(0.);
-    fz[2] = getImpl().getData(state).fz;
-    if(inGround) fz = getContactPlane().xformFrameVecToBase(fz);
-    return fz;
+    Vec3 fy(0.);
+    fy[1] = getImpl().getData(state).fy;
+    if(inGround) fy = getContactPlane().xformFrameVecToBase(fy);
+    return fy;
 }
 //_____________________________________________________________________________
 // Get the instantaneous coefficient of friction.
@@ -721,7 +705,7 @@ getMu(const State& state) const {
 Real
 ExponentialSpringForce::
 getFrictionForceLimit(const State& state) const {
-    return getImpl().getData(state).fxyLimit;
+    return getImpl().getData(state).fxzLimit;
 }
 //_____________________________________________________________________________
 // Get the elastic part of the friction force.
