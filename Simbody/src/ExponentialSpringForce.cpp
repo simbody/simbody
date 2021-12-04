@@ -24,8 +24,17 @@
 #include "simbody/internal/ExponentialSpringForce.h"
 
 
-
 namespace SimTK {
+
+//=============================================================================
+// Flag for managing SlidingDot.
+//=============================================================================
+enum Transition {
+    Hold = 0,   // Wait for a transition condition to be met.
+    Decay = 1,  // Decay all the way to fixed (Sliding = 0).
+    Rise = 2    // Rise all the way to full slipping (Sliding = 1).
+};
+
 
 //=============================================================================
 // Struct ExponentialSpringData
@@ -92,26 +101,26 @@ struct ExponentialSpringData {
     Vec3 v;
     /** Displacement of the body spring station normal to the floor expressed
     in the frame of the contact plane. */
-    Real py;
+    Real pz;
     /** Velocity of the body spring station normal to the contact plane
     expressed in the frame of the contact plane. */
-    Real vy;
+    Real vz;
     /** Position of the body spring station projected onto the contact plane
     expressed in the frame of the contact plane. */
-    Vec3 pxz;
+    Vec3 pxy;
     /** Velocity of the body spring station in the contact plane expressed in
     the frame of the contact plane. */
-    Vec3 vxz;
+    Vec3 vxy;
     /** Elastic force in the normal direction. */
-    Real fyElas;
+    Real fzElas;
     /** Damping force in the normal direction. */
-    Real fyDamp;
+    Real fzDamp;
     /** Total normal force expressed in the frame of the contact plane. */
-    Real fy;
+    Real fz;
     /** Instantaneous coefficient of friction. */
     Real mu;
     /** Limit of the frictional force. */
-    Real fxzLimit;
+    Real fxyLimit;
     /** Elastic frictional force expressed in the frame of the contact plane.*/
     Vec3 fricElas;
     /** Damping frictional force expressed in the frame of the contact plane.*/
@@ -120,7 +129,9 @@ struct ExponentialSpringData {
     the contact plane. */
     Vec3 fric;
     /** Magnitude of the frictional force. */
-    Real fxz;
+    Real fxy;
+    /** Flag indicating if the frictional limit was exceeded. */
+    bool limitReached;
     /** Resultant spring force (normal + friction) expressed in the floor
     frame. */
     Vec3 f;
@@ -128,6 +139,34 @@ struct ExponentialSpringData {
     frame. */
     Vec3 f_G;
 };
+
+
+//=============================================================================
+// Class SpringZeroRecorder
+//=============================================================================
+/* SpringZeroRecorder provides the average speed of the spring zero during
+a simulation. The spring zero is recorded at a time interval that matches the
+characteristic rise and decay time of the Sliding state (tau). Only the last
+two spring zeros are stored. The average he average speed is computed as
+follows:
+
+        ave speed = (p0_2 - p0_1) / (t2 - t1)
+
+If only one spring zero has been recorded, there is not enough information
+to compute a velocity.  In such a case a speed of 0.0 is returned.
+*/
+class SpringZeroRecorder : public PeriodicEventReporter {
+public:
+    SpringZeroRecorder(const ExponentialSpringForceImpl& spr,
+        Real reportInterval);
+    ~SpringZeroRecorder();
+    void handleEvent(const State& state) const override;
+    Real getSpeed() const;
+private:
+    const ExponentialSpringForceImpl& spr;
+    Real* t;
+    Vec3* p0;
+}; // end of class SpringZeroRecorder
 
 
  //============================================================================
@@ -149,6 +188,8 @@ defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0., 0., 0.)) {
     if(defaultMuk > defaultMus) defaultMuk = defaultMus;
     // Assign the parameters
     this->params = params;
+    // Create the recorder
+    //recorder = new SpringZeroRecorder(*this, this->params.getSlidingTimeConstant());
 }
 
 //-----------------------------------------------------------------------------
@@ -190,8 +231,8 @@ Vec3& updSprZero(State& state) const {
     return Value<Vec3>::updDowncast(updDiscreteVariable(state,indexSprZero)); }
 Vec3 getSprZeroInCache(const State& state) const {
     return Value<Vec3>::downcast(
-        getDiscreteVarUpdateValue(state, indexSprZero));
-}void updSprZeroInCache(const State& state, const Vec3& setpoint) const {
+        getDiscreteVarUpdateValue(state, indexSprZero)); }
+void updSprZeroInCache(const State& state, const Vec3& setpoint) const {
     // Will not invalidate the State.
     Value<Vec3>::updDowncast(updDiscreteVarUpdateValue(state, indexSprZero))
         = setpoint; }
@@ -251,7 +292,7 @@ realizeSubsystemTopologyImpl(State& state) const override {
     indexSprZeroInCache =
         getDiscreteVarUpdateIndex(state, indexSprZero);
     // Sliding
-    Real initialValue = 0.0;
+    Real initialValue = 1.0;
     Vector zInit(1, initialValue);
     indexZ = allocateZ(state, zInit);
     // Data
@@ -262,20 +303,25 @@ realizeSubsystemTopologyImpl(State& state) const override {
 //_____________________________________________________________________________
 // Dynamics - compute the forces modeled by this Subsystem.
 //
-// "params" references the configurable parameters that govern the behavior
-// of the exponential spring. These can be changed by the user, but the
-// System must be realized at the Topology Stage after any such change.
+// "params" references the configurable topology-stage parameters that govern
+// the behavior of the exponential spring. These can be changed by the user,
+// but the System must be realized at the Topology Stage after any such
+// change.
 //
 // "data" references the key data that are calculated and stored as a
 // Cache Entry when the System is realized at the Dynamics Stage.
 // These data can be retrieved during a simulation by a reporter or handler,
 // for example.
 // 
-// Variables without a suffix are expressed in the floor frame.
+// Variables without a suffix are expressed in the frame of the contact plane.
 // 
 // Variables with the _G suffix are expressed in the ground frame.
 //
-// Most every calculation happens in this one method.
+// Most every calculation happens in this one method, the calculations for
+// setting SlidingDot being the notable exception. The conditions that must
+// be met for transitioning to Sliding = 0 (fixed in place) include the
+// acceleration of the body station. Therefore, SlidingDot are computed
+// in 
 int
 realizeSubsystemDynamicsImpl(const State& state) const override {
     // Get current accumulated forces
@@ -285,7 +331,7 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
         system.updRigidBodyForces(state, Stage::Dynamics);
 
     // Retrieve a writable reference to the data cache entry.
-    // Most computed quantities are stored in the data cache.
+    // Many computed quantities are stored in the data cache.
     ExponentialSpringData& data = updData(state);
 
     // Get position and velocity of the spring station in Ground
@@ -295,14 +341,16 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // Transform the position and velocity into the contact frame.
     data.p = contactPlane.shiftBaseStationToFrame(data.p_G);
     data.v = contactPlane.xformBaseVecToFrame(data.v_G);
+    if(abs(data.v[0]) < SignificantReal) data.v[0] = 0.0;
+    if(abs(data.v[1]) < SignificantReal) data.v[1] = 0.0;
 
     // Resolve into normal (y) and tangential parts (xz plane)
-    // Normal (perpendicular to Floor)
-    data.py = data.p[1];
-    data.vy = data.v[1];
-    // Tangent (in plane of Floor)
-    data.pxz = data.p;    data.pxz[1] = 0.0;
-    data.vxz = data.v;    data.vxz[1] = 0.0;
+    // Normal (perpendicular to contact plane)
+    data.pz = data.p[2];
+    data.vz = data.v[2];
+    // Tangent (tangent to contact plane)
+    data.pxy = data.p;    data.pxy[2] = 0.0;
+    data.vxy = data.v;    data.vxy[2] = 0.0;
 
     // Get all the parameters upfront
     Real d0, d1, d2;
@@ -315,78 +363,83 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
 
     // Normal Force (perpendicular to contact plane) -------------------------
     // Elastic Part
-    data.fyElas = d1 * std::exp(-d2 * (data.py - d0));
+    data.fzElas = d1 * std::exp(-d2 * (data.pz - d0));
     // Damping Part
-    data.fyDamp = -kvNorm * data.vy * data.fyElas;
+    data.fzDamp = -kvNorm * data.vz * data.fzElas;
     // Total
-    data.fy = data.fyElas + data.fyDamp;
+    data.fz = data.fzElas + data.fzDamp;
     // Don't allow the normal force to be negative or too large.
     // Note that conservation of energy will fail if bounds are enforced.
-    data.fy = ClampAboveZero(data.fy, 1000000.0);
+    // The upper limit can be justified as a crude model of yielding.
+    data.fz = ClampAboveZero(data.fz, 100000.0);
 
     // Friction (in the plane of contact plane) ------------------------------
-    // Get the sliding state.
+    // Get the sliding state, which is bounded by 0.0 and 1.0.
     Real sliding = getZ(state)[indexZ];
+    if(sliding < 0.0) sliding = 0.0;
+    else if(sliding > 1.0) sliding = 1.0;
     // Compute the maximum allowed frictional force based on the current
     // coefficient of friction.
     Real mus = getMuStatic(state);
     Real muk = getMuKinetic(state);
     data.mu = mus - sliding * (mus - muk);
-    data.fxzLimit = data.mu * data.fy;
-    // Access the SprZero from the State.
+    data.fxyLimit = data.mu * data.fz;
+    // Get the SprZero from the State.
     Vec3 p0 = getSprZero(state);
-    // The SprZero is always expressed in the Floor frame, so its y-component
-    // should always be zero. The following statement shouldn't be necessary,
-    // but rounding is possible
-    p0[1] = 0.0;
-    // Elastic part
-    Vec3 r = data.pxz - p0;
-    data.fricElas = -kpFric * r;
-    Real fxzElas = data.fricElas.norm();
-    // If the spring is stretched beyond its limit, update the spring zero.
-    // Note that no discontinuities in the friction force are introduced.
-    // The spring zero is just made to be consistent with the limiting
-    // frictional force.
-    bool limitReached = false;
-    if(fxzElas > data.fxzLimit) {
-        limitReached = true;
-        // Compute a new spring zero.
-        data.fricElas = data.fxzLimit * data.fricElas.normalize();
-        p0 = data.pxz + data.fricElas / kpFric;
-        p0[1] = 0.0;
-        // The damping part must be zero!
-        data.fricDamp = Vec3(0.0, 0.0, 0.0);
-    // spring zero does not need to be recalculated, but fricDamp = 0.0
-    } else if(fxzElas == data.fxzLimit) {
-        data.fricDamp = Vec3(0.0, 0.0, 0.0);
-    // calculate fricDamp
-    } else {
-        data.fricDamp = -kvFric * data.vxz;
-    }
-    // Total
-    data.fric = data.fricElas + data.fricDamp;
-    data.fxz = data.fric.norm();
-    if(data.fxz > data.fxzLimit) {
-        data.fxz = data.fxzLimit;
-        data.fric = data.fxz * data.fric.normalize();
-        data.fricDamp = data.fric - data.fricElas;
+    
+    // 0.0 < Sliding < 1.0 (transitioning)
+    // Friction is a combination of a linear spring and pure damping.
+    // As Sliding --> 1.0, the elastic term --> 0.0
+    // As Sliding --> 1.0, the damping term --> fricLimit
+
+    // Sliding = 1.0 (sliding)
+    // Friction is the result purely of damping (no elastic term).
+    // To avoid numerical issues, the friction limit is set to zero when
+    // mu*Fn (data.fxyLimit) is less than the constant SimTK::SignificantReal.
+    // If the damping force is greater than data.fxyLimit, the damping force
+    // is capped at data.fxyLimit.
+    Vec3 fricDampSpr = -kvFric * data.vxy;
+    Vec3 fricLimit;
+    if(data.fxyLimit < SignificantReal) fricLimit = 0.0;
+    else {
+        fricLimit = fricDampSpr;
+        if(fricLimit.norm() > data.fxyLimit)
+            fricLimit = data.fxyLimit * fricLimit.normalize();
     }
 
-    // Update the spring zero cache and mark the cache as realized.
-    // Only place that the following two lines are called.
+    // Sliding = 0.0 (fixed in place)
+    // Friction is modeled as a linear spring.
+    // The elastic component prevents drift while maintaining good integrator
+    // step sizes, at least compared to increasing the damping coefficient.
+    data.limitReached = false;
+    Vec3 fricElasSpr = -kpFric * (data.pxy - p0);
+    Vec3 fricSpr = fricElasSpr + fricDampSpr;
+    Real fxySpr = fricSpr.norm();
+    if(fxySpr > data.fxyLimit) {
+        data.limitReached = true;
+        Real scale = data.fxyLimit / fxySpr;
+        fricElasSpr *= scale;
+        fricDampSpr *= scale;
+        fricSpr = fricElasSpr + fricDampSpr;
+    }
+
+    // Blend the two extremes according to the Sliding state
+    // As Sliding --> 1, damping dominates
+    // As Sliding --> 0, the spring model dominates
+    data.fricElas = fricElasSpr * (1.0 - sliding);
+    data.fricDamp = fricDampSpr + (fricLimit - fricDampSpr) * sliding;
+    data.fric = data.fricElas + data.fricDamp;
+    data.fxy = data.fric.norm();
+
+    // Update the spring zero
+    p0 = data.pxy + data.fricElas / kpFric;
+    p0[2] = 0.0;  // Make sure p0 lies in the contact plane.
     updSprZeroInCache(state, p0);
     markCacheValueRealized(state, indexSprZeroInCache);
- 
-    // Update SlidingDot
-    Real vMag = data.vxz.norm();
-    Real slidingDot = 0.0;
-    if(limitReached)  slidingDot = kTau * (1.0 - sliding);
-    else if(vMag < vSettle)  slidingDot = -kTau * sliding;
-    updSlidingDotInCache(state, slidingDot);
 
     // Total spring force expressed in the frame of the Contact Plane.
     data.f = data.fric;     // The x and z components are friction.
-    data.f[1] = data.fy;    // The y component is the normal force.
+    data.f[2] = data.fz;    // The y component is the normal force.
 
     // Transform the spring forces back to the Ground frame
     data.f_G = contactPlane.xformFrameVecToBase(data.f);
@@ -394,18 +447,160 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // Apply the force
     body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
 
+
+/* SAVE.  First blending attempt.
+This code scales the damping term down as sliding --> 1.0,
+the opposite of what should happen.
+The elastic term should be scaled down!
+    // Raw Parts (parts before limits are applied)
+    Vec3 fxyElasRaw = -kpFric * (data.pxy - p0);
+    Vec3 fxyDampRaw = -kvFric * data.vxy;
+    Vec3 fxyRaw = fxyElasRaw + fxyDampRaw;
+    // Compute the Limit
+    Vec3 fxyLimit(0.0);
+    Real fxyRawMag = fxyRaw.norm();
+    if(fxyRawMag > SignificantReal)
+        fxyLimit = data.fxyLimit * fxyRaw.normalize();
+
+    // Compute the ratio of the raw spring force size to the limit
+    Real ratio = 0.0;
+    if(data.fxyLimit < SignificantReal) ratio = 1.0;
+    else ratio = fxyRawMag / data.fxyLimit;
+    if(ratio > 1.0) ratio = 1.0;
+
+    // Scale by the ratio
+    // As ratio --> 1.0, fricElas --> fxyLimit and fricDamp --> 0.0
+    // This does not change the direction of total friction force.
+    data.fricElas = fxyElasRaw + (fxyLimit - fxyElasRaw) * ratio;
+    data.fricDamp = fxyDampRaw * (1.0 - ratio);
+    data.fric = data.fricElas + data.fricDamp;
+    data.fxy = data.fric.norm();
+
+    // Compute a new spring zero.
+    Vec3 p0New = p0;
+    if(ratio == 1.0) {
+        p0New = data.pxy + data.fricElas / kpFric;
+        p0New[2] = 0.0;
+    }
+
+    // Update the spring zero cache and mark the cache as realized.
+    // Only place that the following two lines are called.
+    updSprZeroInCache(state, p0New);
+    markCacheValueRealized(state, indexSprZeroInCache);
+
+    // Compute and update SlidingDot
+    // SlidingDot should key off of average velocity.
+    //Real vMag = data.vxy.norm();
+    //Real slidingDot = 0.0;
+    ////slidingDot = kTau * (Sigma(0.8,0.05,ratio) - sliding);
+    //if((ratio>=1.0)&&(vMag>vSettle)) slidingDot = kTau * (1.0 - sliding);
+    //else if((ratio<1.0)&&(vMag<vSettle)) slidingDot = -kTau * sliding;
+    //slidingDot = 0.0;
+    //updSlidingDotInCache(state, slidingDot);
+    //std::cout << "t= " << state.getTime() << "  s= " << sliding << ", " << slidingDot << std::endl;
+ */
+
+
+/* SAVE - Very old code, prior to the blending idea.
+    // If the spring is stretched beyond its limit, update the spring zero.
+    // Note that no discontinuities in the friction force are introduced.
+    // The spring zero is just made to be consistent with the limiting
+    // frictional force.
+    bool limitReached = false;
+    if(fxyElas > data.fxyLimit) {
+        limitReached = true;
+        // Compute a new spring zero.
+        data.fricElas = data.fxyLimit * data.fricElas.normalize();
+        p0 = data.pxy + data.fricElas / kpFric;
+        p0[2] = 0.0;
+        // The damping part must be zero!
+        data.fricDamp = Vec3(0.0, 0.0, 0.0);
+    // spring zero does not need to be recalculated, but fricDamp = 0.0
+    } else if(fxyElas == data.fxyLimit) {
+        limitReached = true;
+        data.fricDamp = Vec3(0.0, 0.0, 0.0);
+    // calculate fricDamp
+    } else {
+        data.fricDamp = -kvFric * data.vxy;
+    }
+    // Total
+    data.fric = data.fricElas + data.fricDamp;
+    data.fxy = data.fric.norm();
+    if(data.fxy > data.fxyLimit) {
+        data.fxy = data.fxyLimit;
+        data.fric = data.fxy * data.fric.normalize();
+        data.fricDamp = data.fric - data.fricElas;
+    }
+
+    // Update value for the spring zero
+    updSprZeroInCache(state, p0);
+    markCacheValueRealized(state, indexSprZeroInCache);
+
+    // Update SlidingDot
+    Real vMag = data.vxy.norm();
+    Real slidingDot = 0.0;
+    if(limitReached && (vMag>vSettle))  slidingDot = kTau * (1.0 - sliding);
+    else if(!limitReached && (vMag<=vSettle))  slidingDot = -kTau * sliding;
+    //slidingDot = 0.0;
+    updSlidingDotInCache(state, slidingDot);
+*/
+
+/* Repeat of what's above.  Just wanted the following lines up next to
+the active code.
+
+    // Total spring force expressed in the frame of the Contact Plane.
+    data.f = data.fric;     // The x and z components are friction.
+    data.f[2] = data.fz;    // The y component is the normal force.
+
+    // Transform the spring forces back to the Ground frame
+    data.f_G = contactPlane.xformFrameVecToBase(data.f);
+
+    // Apply the force
+    body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
+*/
     return 0;
 }
 //_____________________________________________________________________________
 // Acceleration - compute and update the derivatives of continuous states.
-// Because all of the quantities needed for computing SlidingDot are
-// available in realizeSubsystemDynamicsImpl(), SlidingDot is updated
-// there. This method at the moment does nothing.
 int
 realizeSubsystemAccelerationImpl(const State& state) const override {
-    //Real sliding = getZ(state)[indexZ];
-    //Real slidingDot = -sliding / 0.01;
-    //updSlidingDotInCache(state, 0.0);
+    // Parameters
+    Real kTau = 1.0 / params.getSlidingTimeConstant();
+    Real vSettle = params.getSettleVelocity();
+    
+    // Current Sliding State
+    Real sliding = getZ(state)[indexZ];
+ 
+    // Writable reference to the data cache
+    // Values are updated during System::realize(Stage::Dynamics) (see above)
+    const ExponentialSpringData& data = getData(state);
+
+    // Initialize SlidingDot
+    Real slidingDot = 0.0;
+
+    // Conditions for transitioning to "fixed" (Sliding --> 0.0)
+    // Basically, static equilibrium.
+    // 1. fxy < fxyLimit, AND
+    // 2. |v| < vSettle  (Note that v must be small in ALL directions), AND
+    // 3. |a| < aSettle  (Note that a must be small in ALL directions)
+    Vec3 a = body.MobilizedBody::
+        findStationAccelerationInGround(state, station);
+    Real aMag = a.norm();
+    if(!data.limitReached &&
+        (data.vxy.norm() < 0.001) && (abs(data.vz) < 0.001))
+        slidingDot = -kTau * sliding;
+
+    // Conditions for transitioning to "sliding" (Sliding --> 1.0)
+    // 1. limitReached = true, OR
+    // 2. fz < SimTK::SignificantReal (when not "touching" contact plane)
+    if(data.limitReached || (data.fz < SignificantReal))
+        slidingDot = kTau * (1.0 - sliding);
+
+    // Update
+    //slidingDot = 0.0;
+    updSlidingDotInCache(state, slidingDot);
+    //std::cout << "t= " << state.getTime() << "  s= " << sliding << ", " << slidingDot << std::endl;
+ 
     return 0;
 }
 //_____________________________________________________________________________
@@ -419,7 +614,7 @@ calcPotentialEnergy(const State& state) const override {
     // Strain energy in the normal direction (exponential spring)
     Real d0, d1, d2;
     params.getShapeParameters(d0, d1, d2);
-    double energy = data.fyElas / d2;
+    double energy = data.fzElas / d2;
     // Strain energy in the tangent plane (friction spring)
     // Note that the updated spring zero (the one held in cache) needs to be
     // used, not the one in the state.
@@ -427,7 +622,7 @@ calcPotentialEnergy(const State& state) const override {
     // changed when fxzElas > fxzLimit. This change is not reflected in the
     // state, just in the cache.
     Vec3 p0Cache = getSprZeroInCache(state);
-    Vec3 r = data.pxz - p0Cache;
+    Vec3 r = data.pxy - p0Cache;
     energy += 0.5 * params.getElasticity() * r.norm() * r.norm();
     return energy;
 }
@@ -444,15 +639,15 @@ resetSprZero(State& state) const {
     system.realize(state, Stage::Position);
     // Get position of the spring station in the Ground frame
     Vec3 p_G = body.findStationLocationInGround(state, station);
-    // Transform the position to the Floor frame.
-    Vec3 p_F = contactPlane.shiftBaseStationToFrame(p_G);
-    // Project into the plane of the Floor
-    p_F[1] = 0.0;
+    // Express the position in the contact plane.
+    Vec3 p = contactPlane.shiftBaseStationToFrame(p_G);
+    // Project onto the contact plane.
+    p[2] = 0.0;
     // Update the spring zero
-    updSprZero(state) = p_F;
+    updSprZero(state) = p;
 }
 //_____________________________________________________________________________
-// Note - Not really using this method, but keeping it around in case I want
+// Note - Not using this method, but keeping it around in case I want
 // a reminder of how cache access works.
 // Realize the SprZero Cache.
 // There needs to be some assurance that the initial value of the SprZero
@@ -466,8 +661,8 @@ realizeSprZeroCache(const State& state) const {
     Vec3 sprZero = getSprZero(state);
     Real time = state.getTime();
     sprZero[0] = 0.01 * time;
-    sprZero[1] = 0.0;
-    sprZero[2] = 0.01 * time;
+    sprZero[1] = 0.01 * time; 
+    sprZero[2] = 0.0;
     updSprZeroInCache(state, sprZero);
     markCacheValueRealized(state, indexSprZeroInCache);
 }
@@ -484,7 +679,7 @@ ClampAboveZero(Real value, Real max) {
 // from 1.0 to 0.0.
 //
 //   f(t) = 1.0 / {1.0 + exp[(t - t0) / tau]}
-//   t0 - time about which the transition is centered.F(t0) = 0.5.
+//   t0 - time about which the transition is centered.  F(t0) = 0.5.
 //   tau - time constant modifying the rate of the transiton occurs.
 //   tau < 0.0 generates a step up
 //   tau > 0.0 generates a step down
@@ -523,13 +718,14 @@ Sigma(Real t0, Real tau, Real t) {
 //-----------------------------------------------------------------------------
 private:
     ExponentialSpringParameters params;
+    ExponentialSpringData defaultData;
+    //SpringZeroRecorder* recorder;
     Transform contactPlane;
     const MobilizedBody& body;
     Vec3 station;
     Real defaultMus;
     Real defaultMuk;
     Vec3 defaultSprZero;
-    ExponentialSpringData defaultData;
     mutable DiscreteVariableIndex indexMus;
     mutable DiscreteVariableIndex indexMuk;
     mutable DiscreteVariableIndex indexSprZero;
@@ -547,6 +743,55 @@ using std::cout;
 using std::endl;
 
 //=============================================================================
+// Class SpringZeroRecorder
+//=============================================================================
+/* SpringZeroRecorder provides the average speed of the spring zero during
+a simulation. The spring zero is recorded at a time interval that matches the
+characteristic rise and decay time of the Sliding state (tau). Only the last
+two spring zeros are stored. The average he average speed is computed as
+follows:
+
+        ave speed = (p0_2 - p0_1) / (t2 - t1)
+
+If only one spring zero has been recorded, there is not enough information
+to compute a velocity.  In such a case a speed of 0.0 is returned.
+*/
+//_____________________________________________________________________________
+SpringZeroRecorder::
+SpringZeroRecorder(const ExponentialSpringForceImpl& spr, Real reportInterval)
+        : PeriodicEventReporter(reportInterval), spr(spr) {
+        t = new Real[2];
+        p0 = new Vec3[2];
+        t[0] = NaN;
+        t[1] = NaN;
+    }
+//_____________________________________________________________________________
+SpringZeroRecorder::
+~SpringZeroRecorder() {
+    delete t;
+    delete p0;
+}
+//_____________________________________________________________________________
+void
+SpringZeroRecorder::
+handleEvent(const State& state) const {
+    t[0] = t[1];
+    t[1] = state.getTime();
+
+    p0[0] = p0[1];
+    p0[1] = spr.getSprZero(state);
+}
+//_____________________________________________________________________________
+Real
+SpringZeroRecorder::getSpeed() const {
+    Real dt = t[1] - t[0];
+    if(isNaN(dt)) return 0.0;
+    Real delta = (p0[1] - p0[0]).norm();
+    return delta / dt;
+}
+
+
+//=============================================================================
 // Class ExponentialSpringForce
 //=============================================================================
 //_____________________________________________________________________________
@@ -561,6 +806,7 @@ ExponentialSpringForce(MultibodySystem& system,
         new ExponentialSpringForceImpl(contactPlane, body, station,
             mus, muk, params));
     system.addForceSubsystem(*this);
+    //getImpl().addSpringZeroRecorder(system);
 }
 //_____________________________________________________________________________
 // Get the Transform specifying the location and orientation of the Contact
@@ -668,30 +914,30 @@ resetSpringZero(State& state) const {
 Vec3
 ExponentialSpringForce::
 getNormalForceElasticPart(const State& state, bool inGround) const {
-    Vec3 fyElas(0.);
-    fyElas[1] = getImpl().getData(state).fyElas;
-    if(inGround) fyElas = getContactPlane().xformFrameVecToBase(fyElas);
-    return fyElas;
+    Vec3 fzElas(0.);
+    fzElas[2] = getImpl().getData(state).fzElas;
+    if(inGround) fzElas = getContactPlane().xformFrameVecToBase(fzElas);
+    return fzElas;
 }
 //_____________________________________________________________________________
 // Get the damping part of the normal force.
 Vec3
 ExponentialSpringForce::
 getNormalForceDampingPart(const State& state, bool inGround) const {
-    Vec3 fyDamp(0.);
-    fyDamp[1] = getImpl().getData(state).fyDamp;
-    if(inGround) fyDamp = getContactPlane().xformFrameVecToBase(fyDamp);
-    return fyDamp;
+    Vec3 fzDamp(0.);
+    fzDamp[2] = getImpl().getData(state).fzDamp;
+    if(inGround) fzDamp = getContactPlane().xformFrameVecToBase(fzDamp);
+    return fzDamp;
 }
 //_____________________________________________________________________________
 // Get the magnitude of the normal force.
 Vec3
 ExponentialSpringForce::
 getNormalForce(const State& state, bool inGround) const {
-    Vec3 fy(0.);
-    fy[1] = getImpl().getData(state).fy;
-    if(inGround) fy = getContactPlane().xformFrameVecToBase(fy);
-    return fy;
+    Vec3 fz(0.);
+    fz[2] = getImpl().getData(state).fz;
+    if(inGround) fz = getContactPlane().xformFrameVecToBase(fz);
+    return fz;
 }
 //_____________________________________________________________________________
 // Get the instantaneous coefficient of friction.
@@ -705,7 +951,7 @@ getMu(const State& state) const {
 Real
 ExponentialSpringForce::
 getFrictionForceLimit(const State& state) const {
-    return getImpl().getData(state).fxzLimit;
+    return getImpl().getData(state).fxyLimit;
 }
 //_____________________________________________________________________________
 // Get the elastic part of the friction force.
@@ -772,6 +1018,7 @@ getStationVelocity(const State& state, bool inGround) const {
 }
 //_____________________________________________________________________________
 // Get the position of the spring zero.
+// ? Should I be returning the spring zero that is stored in the Cache?
 Vec3
 ExponentialSpringForce::
 getSpringZeroPosition(const State& state, bool inGround) const {
