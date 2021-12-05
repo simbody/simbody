@@ -40,7 +40,7 @@ static const int GoItem = 1, ReplayItem = 2, QuitItem = 3;
 // Global flag for turning off visualization.
 // This flag overrides locally set behavior when it is set to true.
 // BEFORE COMMITTING changes, make sure to set VizOff = true;
-static const bool VizOff = true;
+static const bool VizOff = false;
 
 // Structure for specifying simulation options
 struct SimulationOptions {
@@ -140,7 +140,7 @@ public:
         Vec3 pos = body.getBodyOriginLocation(state);
         Vec3 vel = body.getBodyOriginVelocity(state);
         //cout << state.getTime() << "\tp = " << pos << "\tv = " << vel << endl;
-        storage->push_back(state);
+        storage->emplace_back(state);
     }
     void clearStateArray() {
         storage->clear();
@@ -560,36 +560,47 @@ void simulateBlock(const SimulationOptions& options) {
     }
 
     // Floor Plane
-    // Same as the Ground plane.
-    Real angle = convertDegreesToRadians(options.tilt);
-    Transform floorPlane(Rotation(angle, ZAxis), Vec3(0.));
-    // Create an exponential spring to each corner of the block.
+    // First point the z-axis up, then rotate about the ground z
+    Real angle1 = convertDegreesToRadians(-90.0);
+    Real angle2 = convertDegreesToRadians(options.tilt);
+    Rotation R;
+    R.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence,
+        angle1, XAxis, angle2, ZAxis);
+    Transform floorPlane(R, Vec3(0.));
+    // Create an exponential spring at each corner of the block.
     ExponentialSpringForce* sprFloor[8];
     int i;
     for(i = 0; i < 8; ++i) {
         sprFloor[i] = new ExponentialSpringForce(system, floorPlane,
             body, corner[i], mus, muk, params);
     }
-    Transform shiftedFloorPlane(Rotation(angle, ZAxis), Vec3(0.0, -0.1, 0.0));
+    Rotation RDecor(angle2, ZAxis);
+    Transform shiftedFloorPlane(RDecor, Vec3(0.0, -0.1, 0.0));
     matter.Ground().updBody().addDecoration(shiftedFloorPlane,
         DecorativeBrick(Vec3(4, 0.1, 4)).setColor(Gray).setOpacity(1.0));
 
     // Wall Plane
-    // 1.5 m along the +x axis, but angled by 30 deg to face the
-    // +z axis. The 30 deg angle is so that motion will be generated that is
+    // 1.5 m along the +x axis, but angled to face the Ground +z axis.
+    // The 30 deg angle is so that motion will be generated that is
     // not perfectly along the coordinate axes.
-    angle = convertDegreesToRadians(30.0);
+    Real angle = convertDegreesToRadians(-60.0);
     Rotation r;
-    r.setRotationFromTwoAnglesTwoAxes(BodyRotationSequence,
-        Pi/2.0, ZAxis, angle, XAxis);
+    r.setRotationFromAngleAboutY(angle);
     Transform wallPlane(r, Vec3(1.5, 0., 0.));
-    Transform shiftedWallPlane(r, Vec3(1.6, 0., 0.));
     // Create an exponential spring to each corner of the block.
     ExponentialSpringForce* sprWall[8];
     for(i = 0; i < 8; ++i) {
+        sprWall[i] = NULL;
         sprWall[i] = new ExponentialSpringForce(system, wallPlane,
             body, corner[i], mus, muk, params);
     }
+    angle1 = convertDegreesToRadians(90.0);
+    angle2 = convertDegreesToRadians(30.0);
+    // Add decoration
+    Rotation rDecor;
+    rDecor.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence,
+        angle1, ZAxis, angle2, YAxis);
+    Transform shiftedWallPlane(rDecor, Vec3(1.6, 0., 0.));
     matter.Ground().updBody().addDecoration(shiftedWallPlane,
         DecorativeBrick(Vec3(4, 0.1, 4)).setColor(Vec3(0.9,0.9,0.9)).setOpacity(0.8));
 
@@ -631,7 +642,6 @@ void simulateBlock(const SimulationOptions& options) {
     system.realizeModel(state);
 
     // Set the initial conditions for the block
-    Rotation R;
     R.setRotationFromAngleAboutUnitVector(0.0, XAxis);  // No rotation
     Vec3 x(0.5, 0.11, 0.0);     // Hair above the floor
     Vec3 w(0.);                 // No angular velocity
@@ -772,47 +782,50 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         // Realize through Stage::Dynamics
         system.realize(state, Stage::Dynamics);
 
-        // Debug - print out the vertical position (y) of the spring station
+        // Debug - print out the vertical position (z) of the spring station
         //Vec3 s_G = spr.getStationPosition(state);
-        //cout << state.getTime() << "  station_y=" << s_G[1] << endl;
+        //cout << state.getTime() << "  station_y=" << s_G[2] << endl;
 
         // Set a tolerance for comparisons
         Real tol = 1.0e-12;
 
         // Check the normal force when expressed in the contact plane
-        Vec3 fyElas = spr.getNormalForceElasticPart(state, false);
-        Vec3 fyDamp = spr.getNormalForceDampingPart(state, false);
-        Vec3 fy = spr.getNormalForce(state, false);
+        Vec3 fzElas = spr.getNormalForceElasticPart(state, false);
+        Vec3 fzDamp = spr.getNormalForceDampingPart(state, false);
+        Vec3 fz = spr.getNormalForce(state, false);
         // x components should be 0.0
-        SimTK_TEST(fyElas[0] == 0.0);
-        SimTK_TEST(fyDamp[0] == 0.0);
-        SimTK_TEST(fy[0] == 0.0);
+        SimTK_TEST(fzElas[0] == 0.0);
+        SimTK_TEST(fzDamp[0] == 0.0);
+        SimTK_TEST(fz[0] == 0.0);
         // z components should be 0.0
-        SimTK_TEST(fyElas[2] == 0.0);
-        SimTK_TEST(fyDamp[2] == 0.0);
-        SimTK_TEST(fy[2] == 0.0);
+        SimTK_TEST(fzElas[1] == 0.0);
+        SimTK_TEST(fzDamp[1] == 0.0);
+        SimTK_TEST(fz[1] == 0.0);
         // sum elastic and damping
-        Vec3 fyCalc = fyElas + fyDamp;
+        Vec3 fzCalc = fzElas + fzDamp;
         // bounds on fy are enforced in realizeSubsystemDynamicsImpl()
-        if(fyCalc[1] < 0.0) fyCalc[1] = 0.0;
-        if(fyCalc[1] > 1000000.0) fyCalc[1] = 1000000.0;
+        //if(fzCalc[2] < 0.0) fzCalc[2] = 0.0;
+        //if(fzCalc[2] > 1000000.0) fzCalc[2] = 1000000.0;
         //cout << "fyElas= " << fyElas << "  fyDamp= " << fyDamp <<
         //    "  fy= " << fy << "  fyCalc= " << fyCalc << endl;
-        SimTK_TEST_EQ(fyCalc, fy);
+        SimTK_TEST_EQ(fzCalc, fz);
 
         // Check normal force when expressed in Ground
-        Vec3 fyElas_G = spr.getNormalForceElasticPart(state);
-        Vec3 fyDamp_G = spr.getNormalForceDampingPart(state);
-        Vec3 fy_G = spr.getNormalForce(state);
-        Vec3 fyCalc_G = fyElas_G + fyDamp_G;
-        // bounds on fy are enforced in realizeSubsystemDynamicsImpl()
-        if(fyCalc_G[1] < 0.0) fyCalc_G[1] = 0.0;
-        if(fyCalc_G[1] > 1000000.0) fyCalc_G[1] = 1000000.0;
-        //cout << "fyElas= " << fyElas_G << "  fyDamp= " << fyDamp_G <<
-        //    "  fy= " << fy_G << "  fyCalc= " << fyCalc_G << endl;
-        SimTK_TEST_EQ(fyCalc_G, fy_G);
-        // Check magnitude of fy is same in Ground and ContacPlane
-        SimTK_TEST_EQ(fy_G.norm(), fy.norm());
+        Vec3 fzElas_G = spr.getNormalForceElasticPart(state);
+        Vec3 fzDamp_G = spr.getNormalForceDampingPart(state);
+        Vec3 fz_G = spr.getNormalForce(state);
+        Vec3 fzCalc_G = fzElas_G + fzDamp_G;
+        // Bounds checking doesn't work after the forces have been
+        // expressed in the Ground frame!
+        // bounds on fz are enforced in realizeSubsystemDynamicsImpl()
+        //if(fzCalc_G[2] < 0.0) fzCalc_G[2] = 0.0;
+        //if(fzCalc_G[2] > 1000000.0) fzCalc_G[2] = 1000000.0;
+        //cout << "fzElas= " << fzElas_G << "  fzDamp= " << fzDamp_G <<
+        //    "  fz= " << fz_G << "  fzCalc= " << fzCalc_G << endl;
+        SimTK_TEST_EQ(fzCalc_G, fz_G);
+
+        // Check magnitude of fz is same in Ground and ContacPlane
+        SimTK_TEST_EQ(fz_G.norm(), fz.norm());
 
         // Check 0.0 ≤ sliding state ≤ 1.0
         Real sliding = spr.getSliding(state);
@@ -828,19 +841,19 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         SimTK_TEST(mu <= (mus+acc));
 
         // Check friction limit ≤ μ*fy
-        Vec3 mufy = mu * fy_G;
+        Vec3 mufz = mu * fz_G;
         Real fricLimit = spr.getFrictionForceLimit(state);
-        //cout << "fricLimit= " << fricLimit << "  mu*fy= " << mufy << endl;
-        SimTK_TEST_EQ(fricLimit, mufy.norm());
+        //cout << "fricLimit= " << fricLimit << "  mu*fz= " << mufz << endl;
+        SimTK_TEST_EQ_TOL(fricLimit, mufz.norm(), tol);
 
         // Check friction force expressed in the contact plane
         Vec3 fricElas = spr.getFrictionForceElasticPart(state, false);
         Vec3 fricDamp = spr.getFrictionForceDampingPart(state, false);
         Vec3 fric = spr.getFrictionForce(state, false);
-        // y component should be 0.0
-        SimTK_TEST(fricElas[1] == 0.0);
-        SimTK_TEST(fricDamp[1] == 0.0);
-        SimTK_TEST(fric[1] == 0.0);
+        // z component should be 0.0
+        SimTK_TEST(fricElas[2] == 0.0);
+        SimTK_TEST(fricDamp[2] == 0.0);
+        SimTK_TEST(fric[2] == 0.0);
         // sum elastic and damping
         Vec3 fricCalc = fricElas + fricDamp;
         //cout << "fricElas= " << fricElas << "  fricDamp= " << fricDamp <<
@@ -860,14 +873,14 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         // Check |friction| ≤ friction limit
         SimTK_TEST(fric.norm() <= (fricLimit+tol));
 
-        // Check total force in Contact Plane
+        // Check total force when expressed in Contact Plane
         Vec3 f = spr.getForce(state, false);
-        Vec3 fCalc = fyCalc + fricCalc;
+        Vec3 fCalc = fzCalc + fricCalc;
         SimTK_TEST_EQ(fCalc, f);
 
-        // Check total force in Ground
+        // Check total force when expressed in Ground
         Vec3 f_G = spr.getForce(state);
-        Vec3 fCalc_G = fyCalc_G + fricCalc_G;
+        Vec3 fCalc_G = fzCalc_G + fricCalc_G;
         SimTK_TEST_EQ(fCalc_G, f_G);
 
         // Check magnitude of total force is same in Ground and Contact Plane
@@ -883,7 +896,7 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
 
         // Check that the spring zero lies in the Contact Plane
         Vec3 p0 = spr.getSpringZeroPosition(state, false);
-        SimTK_TEST(p0[1] == 0.0);
+        SimTK_TEST(p0[2] == 0.0);
     }
 }
 
@@ -1123,8 +1136,8 @@ void testInitialization() {
     Vec3 s_G = body.findStationLocationInGround(state, station);
     // express station in the contact plane frame
     Vec3 s = plane.shiftBaseStationToFrame(s_G);
-    // project onto the contact plane by setting the y-component to 0.0
-    Vec3 p0After = s;  p0After[1] = 0.0;
+    // project onto the contact plane by setting the z-component to 0.0
+    Vec3 p0After = s;  p0After[2] = 0.0;
     // express in Ground frame after the projection
     Vec3 p0After_G = plane.shiftFrameStationToBase(p0After);
     SimTK_TEST(p0After == spr.getSpringZeroPosition(state, false));
