@@ -185,7 +185,7 @@ int main() {
     SimTK_SUBTEST(testBlockSpinLikeTopWithDampWithFric);
 
     SimTK_SUBTEST(testBlockTumbleNoDampNoFric);
-    //SimTK_SUBTEST(testBlockTumbleWithDampWithFric);
+    SimTK_SUBTEST(testBlockTumbleWithDampWithFric);
 
     SimTK_END_TEST();
 }
@@ -803,11 +803,8 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         SimTK_TEST(fz[1] == 0.0);
         // sum elastic and damping
         Vec3 fzCalc = fzElas + fzDamp;
-        // bounds on fy are enforced in realizeSubsystemDynamicsImpl()
-        //if(fzCalc[2] < 0.0) fzCalc[2] = 0.0;
-        //if(fzCalc[2] > 1000000.0) fzCalc[2] = 1000000.0;
-        //cout << "fyElas= " << fyElas << "  fyDamp= " << fyDamp <<
-        //    "  fy= " << fy << "  fyCalc= " << fyCalc << endl;
+        //cout << "fzElas= " << fzElas << "  fzDamp= " << fzDamp <<
+        //    "  fz= " << fz << "  fzCalc= " << fzCalc << endl;
         SimTK_TEST_EQ(fzCalc, fz);
 
         // Check normal force when expressed in Ground
@@ -815,11 +812,6 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         Vec3 fzDamp_G = spr.getNormalForceDampingPart(state);
         Vec3 fz_G = spr.getNormalForce(state);
         Vec3 fzCalc_G = fzElas_G + fzDamp_G;
-        // Bounds checking doesn't work after the forces have been
-        // expressed in the Ground frame!
-        // bounds on fz are enforced in realizeSubsystemDynamicsImpl()
-        //if(fzCalc_G[2] < 0.0) fzCalc_G[2] = 0.0;
-        //if(fzCalc_G[2] > 1000000.0) fzCalc_G[2] = 1000000.0;
         //cout << "fzElas= " << fzElas_G << "  fzDamp= " << fzDamp_G <<
         //    "  fz= " << fz_G << "  fzCalc= " << fzCalc_G << endl;
         SimTK_TEST_EQ(fzCalc_G, fz_G);
