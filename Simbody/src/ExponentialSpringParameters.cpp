@@ -35,7 +35,7 @@ using std::endl;
 ExponentialSpringParameters::
 ExponentialSpringParameters() :
     d0(0.0065905), d1(0.5336), d2(1150.0), kvNorm(0.5),
-    kpFric(20000.0), kvFric(0.0), tau(0.01), vSettle(0.01) {
+    kpFric(20000.0), kvFric(0.0), tau(0.01), vSettle(0.001) {
     // The friction viscosity can be set for critical damping of a specified
     // mass.  By default, this is done for a mass of 1.0 kg.
     setElasticityAndViscosityForCriticalDamping(kpFric);
