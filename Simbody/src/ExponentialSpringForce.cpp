@@ -367,6 +367,9 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // Transform the position and velocity into the contact frame.
     data.p = contactPlane.shiftBaseStationToFrame(data.p_G);
     data.v = contactPlane.xformBaseVecToFrame(data.v_G);
+    // The following lines produce inaccuracies.
+    // eg, initial contions, which should produce no rotation
+    // because of symmetry, lead to rotation.
     //if(abs(data.v[0]) < SignificantReal) data.v[0] = 0.0;
     //if(abs(data.v[1]) < SignificantReal) data.v[1] = 0.0;
 
@@ -395,9 +398,16 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // Total
     data.fz = data.fzElas + data.fzDamp;
     // Don't allow the normal force to be negative or too large.
-    // Note that conservation of energy will fail if bounds are enforced.
-    // The upper limit can be justified as a crude model of yielding.
-    data.fz = ClampAboveZero(data.fz, 100000.0);
+    // The upper limit can be justified as a crude model of material yielding.
+    // Note that conservation of energy may fail if bounds are enforced.
+    // Make sure that any change in fz is accompanied by an adjustment
+    // in fzElas and fzDamp. 'fz = fzElas + fzDamp' must remain true.
+    if(data.fz < 0.0) {
+        data.fz = 0.0;
+        data.fzDamp = -data.fzElas; }
+    if(data.fz > 100000.0) {
+        data.fz = 100000.0;
+        data.fzElas = data.fz - data.fzDamp; }
 
     // Friction (in the plane of contact plane) ------------------------------
     // Get the sliding state, which is bounded by 0.0 and 1.0.
