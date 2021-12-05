@@ -70,9 +70,9 @@ public:
         system.realize(state, Stage::Velocity);
         Vec3 pos = body.getBodyOriginLocation(state);
         Vec3 vel = body.getBodyOriginVelocity(state);
-        cout << endl;
-        cout << state.getTime() << "\tp = " << pos << "\tv = " << vel << endl;
-        cout << endl;
+        //cout << endl;
+        //cout << state.getTime() << "\tp = " << pos << "\tv = " << vel << endl;
+        //cout << endl;
     }
 private:
     const MultibodySystem& system;
@@ -91,9 +91,9 @@ public:
     void handleEvent(const State& state) const override {
         system.realize(state, Stage::Dynamics);
         Vec3 f_G = spr.getForce(state);
-        Vec3 p_G = spr.getStationPosition(state);
-        cout << state.getTime() << "\tp_G = " << p_G <<
-            "\tf_G = " << f_G << endl;
+        Real sliding = spr.getSliding(state);
+        cout << state.getTime() << "\tSliding= "<< sliding << "\tf_G= " << f_G << endl;
+
     }
 private:
     const MultibodySystem& system;
@@ -113,16 +113,16 @@ int main() {
         // basic muster.
 
         // Use compliant Contact?
-        bool CmpContactOn = true;
+        bool CmpContactOn = false;
 
         // Use exponential Spring Contact?
         bool ExpContactOn = true;
 
         // Run with the vizualizer?
-        bool VisOn = true;
+        bool VisOn = false;
 
         // Specify initial conditions.
-        int condition = 2;
+        int condition = 5;
         // 0 = sitting still
         // 1 = dropped
         // 2 = sliding
@@ -214,13 +214,13 @@ int main() {
             blockExp = new MobilizedBody::Free(matter.Ground(), BodyPropsExp);
 
             // Create a Transform representing the floor
-            Real angle = convertDegreesToRadians(0.0);
-            Rotation floorTilt(angle, ZAxis);
+            Real angle = convertDegreesToRadians(-90.0);
+            Rotation floorTilt(angle, XAxis);
             Vec3 floorOrigin(0., -0.004, 0.);
             Transform floorXForm(floorTilt, floorOrigin);
             // Modify the default parameters if desired
             ExponentialSpringParameters params;
-            params.setElasticityAndViscosityForCriticalDamping(100000.0);
+            params.setElasticityAndViscosityForCriticalDamping(20000.0);
             // Add an exponential spring at each corner of the block.
             spr1 = new ExponentialSpringForce(system, floorXForm,
                 *blockExp, Vec3(0.1, -0.1, 0.1), mu_s, mu_k, params);
@@ -255,14 +255,14 @@ int main() {
             runMenuItems.push_back(std::make_pair("Replay", ReplayItem));
             viz->addMenu("Run", RunMenuId, runMenuItems);
 
-            system.addEventReporter(new MyReporter(system, 1./120.));
-            system.addEventReporter(new Visualizer::Reporter(*viz, 1./120.));
+            system.addEventReporter(new MyReporter(system, 1./30.));
+            system.addEventReporter(new Visualizer::Reporter(*viz, 1./30.));
             if(blockExp!=NULL)
                 //system.addEventReporter(
                 //new MaxHeightReporter(system, *blockExp));
             if (spr1 != NULL)
                 system.addEventReporter(
-                    new ExpSprForceReporter(system, *spr3, 0.1));
+                    new ExpSprForceReporter(system, *spr3, 0.01));
         }
 
         // Initialize the system and state.
