@@ -27,16 +27,6 @@
 namespace SimTK {
 
 //=============================================================================
-// Flag for managing SlidingDot.
-//=============================================================================
-enum Transition {
-    Hold = 0,   // Wait for a transition condition to be met.
-    Decay = 1,  // Decay all the way to fixed (Sliding = 0).
-    Rise = 2    // Rise all the way to full slipping (Sliding = 1).
-};
-
-
-//=============================================================================
 // Struct ExponentialSpringData
 //=============================================================================
 /** ExponentialSpringData is an internal data structure used by the
@@ -174,13 +164,23 @@ private:
  //============================================================================
 class ExponentialSpringForceImpl : public ForceSubsystem::Guts {
 public:
+
+// Flag for managing the Sliding state and SlidingDot.
+enum SlidingAction {
+    Decay = 0,  // Decay all the way to fully fixed (Sliding = 0).
+    Rise = 1,   // Rise all the way to fully slipping (Sliding = 1).
+    Check = 2   // Check if a transition condition is met.
+};
+
+
 // Constructor
 ExponentialSpringForceImpl(const Transform& floor,
 const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
 const ExponentialSpringParameters& params) :
 ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
 contactPlane(floor), body(body), station(station),
-defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0., 0., 0.)) {
+defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0., 0., 0.)),
+defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0) {
     // Check for valid static coefficient
     if(defaultMus < 0.0) defaultMus = 0.0;
     // Check for valid kinetic coefficient
@@ -223,19 +223,36 @@ void updSlidingDotInCache(const State& state, Real slidingDot) const {
     // Does not invalidate the State.
     updZDot(state)[indexZ] = slidingDot; }
 
+// SLIDING ACTION
+int getSlidingAction(const State& state) const {
+    return Value<int>::
+        downcast(getDiscreteVariable(state, indexSlidingAction)); }
+int& updSlidingAction(State& state) const {
+    return Value<int>::
+        updDowncast(updDiscreteVariable(state, indexSlidingAction)); }
+int getSlidingActionInCache(const State& state) const {
+    return Value<int>::
+        downcast(getDiscreteVarUpdateValue(state, indexSlidingAction)); }
+void updSlidingActionInCache(const State& state, int action) const {
+    // Will not invalidate the State.
+    Value<int>::updDowncast(
+        updDiscreteVarUpdateValue(state, indexSlidingAction)) = action;
+}
+
 // SPRING ZERO
 const Vec3& getSprZero(const State& state) const {
-    return Value<Vec3>::downcast(getDiscreteVariable(state, indexSprZero)); }
+    return Value<Vec3>::
+        downcast(getDiscreteVariable(state, indexSprZero)); }
 Vec3& updSprZero(State& state) const {
-    // Update occurs when the elastic force exceeds mu*N.
-    return Value<Vec3>::updDowncast(updDiscreteVariable(state,indexSprZero)); }
+    return Value<Vec3>::
+        updDowncast(updDiscreteVariable(state,indexSprZero)); }
 Vec3 getSprZeroInCache(const State& state) const {
     return Value<Vec3>::downcast(
         getDiscreteVarUpdateValue(state, indexSprZero)); }
 void updSprZeroInCache(const State& state, const Vec3& setpoint) const {
     // Will not invalidate the State.
-    Value<Vec3>::updDowncast(updDiscreteVarUpdateValue(state, indexSprZero))
-        = setpoint; }
+    Value<Vec3>::updDowncast(
+        updDiscreteVarUpdateValue(state, indexSprZero)) = setpoint; }
 
 // STATIC COEFFICENT OF FRICTION
 const Real& getMuStatic(const State& state) const {
@@ -285,16 +302,25 @@ realizeSubsystemTopologyImpl(State& state) const override {
         Stage::Dynamics, new Value<Real>(defaultMus));
     indexMuk = allocateDiscreteVariable(state,
         Stage::Dynamics, new Value<Real>(defaultMuk));
+
     // SprZero
     indexSprZero =
         allocateAutoUpdateDiscreteVariable(state, Stage::Dynamics,
             new Value<Vec3>(defaultSprZero), Stage::Velocity);
     indexSprZeroInCache =
         getDiscreteVarUpdateIndex(state, indexSprZero);
+
+    // SlidingAction
+    indexSlidingAction =
+        allocateAutoUpdateDiscreteVariable(state, Stage::Acceleration,
+            new Value<int>(defaultSlidingAction), Stage::Dynamics);
+    indexSlidingActionInCache =
+        getDiscreteVarUpdateIndex(state, indexSlidingAction);
+
     // Sliding
-    Real initialValue = 1.0;
-    Vector zInit(1, initialValue);
+    Vector zInit(1, defaultSliding);
     indexZ = allocateZ(state, zInit);
+
     // Data
     indexData = allocateCacheEntry(state, Stage::Dynamics,
         new Value<ExponentialSpringData>(defaultData));
@@ -341,8 +367,8 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // Transform the position and velocity into the contact frame.
     data.p = contactPlane.shiftBaseStationToFrame(data.p_G);
     data.v = contactPlane.xformBaseVecToFrame(data.v_G);
-    if(abs(data.v[0]) < SignificantReal) data.v[0] = 0.0;
-    if(abs(data.v[1]) < SignificantReal) data.v[1] = 0.0;
+    //if(abs(data.v[0]) < SignificantReal) data.v[0] = 0.0;
+    //if(abs(data.v[1]) < SignificantReal) data.v[1] = 0.0;
 
     // Resolve into normal (y) and tangential parts (xz plane)
     // Normal (perpendicular to contact plane)
@@ -447,117 +473,6 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // Apply the force
     body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
 
-
-/* SAVE.  First blending attempt.
-This code scales the damping term down as sliding --> 1.0,
-the opposite of what should happen.
-The elastic term should be scaled down!
-    // Raw Parts (parts before limits are applied)
-    Vec3 fxyElasRaw = -kpFric * (data.pxy - p0);
-    Vec3 fxyDampRaw = -kvFric * data.vxy;
-    Vec3 fxyRaw = fxyElasRaw + fxyDampRaw;
-    // Compute the Limit
-    Vec3 fxyLimit(0.0);
-    Real fxyRawMag = fxyRaw.norm();
-    if(fxyRawMag > SignificantReal)
-        fxyLimit = data.fxyLimit * fxyRaw.normalize();
-
-    // Compute the ratio of the raw spring force size to the limit
-    Real ratio = 0.0;
-    if(data.fxyLimit < SignificantReal) ratio = 1.0;
-    else ratio = fxyRawMag / data.fxyLimit;
-    if(ratio > 1.0) ratio = 1.0;
-
-    // Scale by the ratio
-    // As ratio --> 1.0, fricElas --> fxyLimit and fricDamp --> 0.0
-    // This does not change the direction of total friction force.
-    data.fricElas = fxyElasRaw + (fxyLimit - fxyElasRaw) * ratio;
-    data.fricDamp = fxyDampRaw * (1.0 - ratio);
-    data.fric = data.fricElas + data.fricDamp;
-    data.fxy = data.fric.norm();
-
-    // Compute a new spring zero.
-    Vec3 p0New = p0;
-    if(ratio == 1.0) {
-        p0New = data.pxy + data.fricElas / kpFric;
-        p0New[2] = 0.0;
-    }
-
-    // Update the spring zero cache and mark the cache as realized.
-    // Only place that the following two lines are called.
-    updSprZeroInCache(state, p0New);
-    markCacheValueRealized(state, indexSprZeroInCache);
-
-    // Compute and update SlidingDot
-    // SlidingDot should key off of average velocity.
-    //Real vMag = data.vxy.norm();
-    //Real slidingDot = 0.0;
-    ////slidingDot = kTau * (Sigma(0.8,0.05,ratio) - sliding);
-    //if((ratio>=1.0)&&(vMag>vSettle)) slidingDot = kTau * (1.0 - sliding);
-    //else if((ratio<1.0)&&(vMag<vSettle)) slidingDot = -kTau * sliding;
-    //slidingDot = 0.0;
-    //updSlidingDotInCache(state, slidingDot);
-    //std::cout << "t= " << state.getTime() << "  s= " << sliding << ", " << slidingDot << std::endl;
- */
-
-
-/* SAVE - Very old code, prior to the blending idea.
-    // If the spring is stretched beyond its limit, update the spring zero.
-    // Note that no discontinuities in the friction force are introduced.
-    // The spring zero is just made to be consistent with the limiting
-    // frictional force.
-    bool limitReached = false;
-    if(fxyElas > data.fxyLimit) {
-        limitReached = true;
-        // Compute a new spring zero.
-        data.fricElas = data.fxyLimit * data.fricElas.normalize();
-        p0 = data.pxy + data.fricElas / kpFric;
-        p0[2] = 0.0;
-        // The damping part must be zero!
-        data.fricDamp = Vec3(0.0, 0.0, 0.0);
-    // spring zero does not need to be recalculated, but fricDamp = 0.0
-    } else if(fxyElas == data.fxyLimit) {
-        limitReached = true;
-        data.fricDamp = Vec3(0.0, 0.0, 0.0);
-    // calculate fricDamp
-    } else {
-        data.fricDamp = -kvFric * data.vxy;
-    }
-    // Total
-    data.fric = data.fricElas + data.fricDamp;
-    data.fxy = data.fric.norm();
-    if(data.fxy > data.fxyLimit) {
-        data.fxy = data.fxyLimit;
-        data.fric = data.fxy * data.fric.normalize();
-        data.fricDamp = data.fric - data.fricElas;
-    }
-
-    // Update value for the spring zero
-    updSprZeroInCache(state, p0);
-    markCacheValueRealized(state, indexSprZeroInCache);
-
-    // Update SlidingDot
-    Real vMag = data.vxy.norm();
-    Real slidingDot = 0.0;
-    if(limitReached && (vMag>vSettle))  slidingDot = kTau * (1.0 - sliding);
-    else if(!limitReached && (vMag<=vSettle))  slidingDot = -kTau * sliding;
-    //slidingDot = 0.0;
-    updSlidingDotInCache(state, slidingDot);
-*/
-
-/* Repeat of what's above.  Just wanted the following lines up next to
-the active code.
-
-    // Total spring force expressed in the frame of the Contact Plane.
-    data.f = data.fric;     // The x and z components are friction.
-    data.f[2] = data.fz;    // The y component is the normal force.
-
-    // Transform the spring forces back to the Ground frame
-    data.f_G = contactPlane.xformFrameVecToBase(data.f);
-
-    // Apply the force
-    body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
-*/
     return 0;
 }
 //_____________________________________________________________________________
@@ -570,36 +485,72 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
     
     // Current Sliding State
     Real sliding = getZ(state)[indexZ];
+    int action = getSlidingAction(state);
+    //if(action != SlidingAction::Check) {
+    //    std::cout << "action = " << action << std::endl;
+    //}
  
     // Writable reference to the data cache
     // Values are updated during System::realize(Stage::Dynamics) (see above)
     const ExponentialSpringData& data = getData(state);
 
-    // Initialize SlidingDot
-    Real slidingDot = 0.0;
+    // Decision tree for managing SlidingDot.
+    // 1) Assign target to 0.0 or 1.0.
+    // 2) Assign next action to Check, Rise, or Decay.
+    Real target = 1.0;
+    if(action == SlidingAction::Check) {
+ 
+        // Conditions for Rise (Sliding --> 1.0)
+        // 1. limitReached = true, OR
+        // 2. fz < SimTK::SignificantReal (when not "touching" contact plane)
+        if((data.limitReached || (data.fz < SignificantReal)) &&
+            (sliding < 0.95)) {
+            action = SlidingAction::Rise;
 
-    // Conditions for transitioning to "fixed" (Sliding --> 0.0)
-    // Basically, static equilibrium.
-    // 1. fxy < fxyLimit, AND
-    // 2. |v| < vSettle  (Note that v must be small in ALL directions), AND
-    // 3. |a| < aSettle  (Note that a must be small in ALL directions)
-    Vec3 a = body.MobilizedBody::
-        findStationAccelerationInGround(state, station);
-    Real aMag = a.norm();
-    if(!data.limitReached &&
-        (data.vxy.norm() < 0.001) && (abs(data.vz) < 0.001))
-        slidingDot = -kTau * sliding;
+        // Conditions for Decay (Sliding --> 0.0)
+        // The requirement is basically static equilibrium.
+        // 1. Friction limit not reached, AND
+        // 2. |v| < vSettle  (Note: v must be small in ALL directions), AND
+        // 3. |a| < aSettle  (Note: a must be small in ALL directions)
+        } else {
 
-    // Conditions for transitioning to "sliding" (Sliding --> 1.0)
-    // 1. limitReached = true, OR
-    // 2. fz < SimTK::SignificantReal (when not "touching" contact plane)
-    if(data.limitReached || (data.fz < SignificantReal))
-        slidingDot = kTau * (1.0 - sliding);
+            if(!data.limitReached && (data.v_G.norm() < vSettle) &&
+                (sliding > 0.05)) {
+                // Using another tier of the conditional to avoid computing
+                // the acceleration if possible.
+                // Computing acceleration takes 48 flops.
+                // Computing norm takes ?? flops.
+                Vec3 a = body.findStationAccelerationInGround(state, station);
+                if(a.norm() < 0.1) {
+                    target = 0.0;
+                    action = SlidingAction::Decay;
+                }
+            }
+        }
+
+        // If the action is still StateAction::Check, finish transitioning
+        // to the current target.
+        if((action == SlidingAction::Check) && (sliding < 0.06)) target = 0.0;
+
+    // Rise
+    } else if(action == SlidingAction::Rise) {
+        if(sliding >= 0.95) action = SlidingAction::Check;
+
+    // Decay
+    } else if(action == SlidingAction::Decay) {
+        target = 0.0;
+        if(sliding <= 0.05) action = SlidingAction::Check;
+    }
 
     // Update
+    updSlidingActionInCache(state, action);
+    markCacheValueRealized(state, indexSlidingActionInCache);
     //slidingDot = 0.0;
+    Real slidingDot = kTau * (target - sliding);
     updSlidingDotInCache(state, slidingDot);
-    //std::cout << "t= " << state.getTime() << "  s= " << sliding << ", " << slidingDot << std::endl;
+    //std::cout << "t= " << state.getTime() <<
+    //    "  s= " << sliding << ", " << slidingDot <<
+    //    "  action= " << action << std::endl;
  
     return 0;
 }
@@ -726,10 +677,14 @@ private:
     Real defaultMus;
     Real defaultMuk;
     Vec3 defaultSprZero;
+    int defaultSlidingAction;
+    Real defaultSliding;
     mutable DiscreteVariableIndex indexMus;
     mutable DiscreteVariableIndex indexMuk;
     mutable DiscreteVariableIndex indexSprZero;
     mutable CacheEntryIndex indexSprZeroInCache;
+    mutable DiscreteVariableIndex indexSlidingAction;
+    mutable CacheEntryIndex indexSlidingActionInCache;
     mutable ZIndex indexZ;
     mutable CacheEntryIndex indexData;
 
