@@ -400,6 +400,11 @@ public:
     @param state State object from which to retrieve μₖ. */
     Real getMuKinetic(const State& state) const;
 
+    /** Set the Sliding state of the spring.
+    @param state State object on which the new value will be set
+    @param sliding New value of Sliding.  0.0 ≤ sliding ≤ 1.0 */
+    void setSliding(State& state, Real sliding);
+
     /** Get the Sliding state of the spring.
     @param state State object from which to retrieve Sliding. */
     Real getSliding(const State& state) const;

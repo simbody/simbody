@@ -215,13 +215,15 @@ const ExponentialSpringData& getData(const State& state) const {
         indexData)); }
 
 // SLIDING STATE
+void setSliding(State& state, Real sliding) {
+    sliding = ClampAboveZero(sliding, 1.0);
+    updZ(state)[indexZ] = sliding; }
 Real getSliding(const State& state) const {
     return getZ(state)[indexZ]; }
 Real getSlidingDotInCache(const State& state) const {
     return getZDot(state)[indexZ]; }
 void updSlidingDotInCache(const State& state, Real slidingDot) const {
-    // Does not invalidate the State.
-    updZDot(state)[indexZ] = slidingDot; }
+    updZDot(state)[indexZ] = slidingDot; /* Doesn't invalidate the State. */ }
 
 // SLIDING ACTION
 int getSlidingAction(const State& state) const {
@@ -851,6 +853,13 @@ Real
 ExponentialSpringForce::
 getMuKinetic(const State& state) const {
     return getImpl().getMuKinetic(state);
+}
+//_____________________________________________________________________________
+// Set the value of the Sliding state.
+void
+ExponentialSpringForce::
+setSliding(State& state, Real sliding) {
+    updImpl().setSliding(state, sliding);
 }
 //_____________________________________________________________________________
 // Get the value of the Sliding state.
