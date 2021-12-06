@@ -113,16 +113,16 @@ int main() {
         // basic muster.
 
         // Use compliant Contact?
-        bool CmpContactOn = false;
+        bool CmpContactOn = true;
 
         // Use exponential Spring Contact?
         bool ExpContactOn = true;
 
         // Run with the vizualizer?
-        bool VisOn = false;
+        bool VisOn = true;
 
         // Specify initial conditions.
-        int condition = 5;
+        int condition = 4;
         // 0 = sitting still
         // 1 = dropped
         // 2 = sliding
@@ -130,44 +130,24 @@ int main() {
         // 4 = spinning & sliding
         // 5 = spinning like a top
         // 6 = tumbling
-        // 7 = titled plane 5.71 deg
-        // 8 = titled plane 24.2 deg
-        // 9 = titled plane 26.6 deg
-        // 10 = titled plane 36.87 deg
         
         // Create the system.
+        Real hs = 0.1;
         MultibodySystem system; system.setUseUniformBackground(true);
         SimbodyMatterSubsystem matter(system);
         GeneralForceSubsystem forces(system);
-        // tilt = 0 deg
-        if(condition < 7) Force::UniformGravity
-            gravity(forces, matter, Vec3(0., -9.8, 0.));
-        // tilt=5.71 deg, mu=0.10 slips
-        if(condition == 7) Force::UniformGravity
-            gravity(forces, matter, Vec3(0.9750, -9.7514, 0.));
-        // tilt=24.2 deg, mu=0.45 slips
-        if(condition == 8) Force::UniformGravity
-            gravity(forces, matter, Vec3(4.0172, -8.9388, 0.));
-        // tilt=26.6 deg, mu=0.5008 slips
-        if(condition == 9) Force::UniformGravity
-            gravity(forces, matter, Vec3(4.3880, -8.7627, 0.));
-        // tilt=36.87 deg, mu=0.75 slips
-        if(condition == 10) Force::UniformGravity
-            gravity(forces, matter, Vec3(5.0385, -7.8400, 0.));
-        // tilt = 31.0 deg, mu = 0.60
-        //if (condition == 10) Force::UniformGravity
-        //gravity(forces, matter, Vec3(5.0385, -8.4055, 0.));
+        Force::UniformGravity gravity(forces, matter, Vec3(0., -9.8, 0.));
         Body::Rigid BodyPropsExp(MassProperties(10.0, Vec3(0), Inertia(1)));
         BodyPropsExp.addDecoration(Transform(),
-            DecorativeBrick(Vec3(0.1)).setColor(Blue));
+            DecorativeBrick(Vec3(hs)).setColor(Blue));
         Body::Rigid BodyPropsCmp(MassProperties(10.0, Vec3(0), Inertia(1)));
         BodyPropsCmp.addDecoration(Transform(),
-            DecorativeBrick(Vec3(0.1)).setColor(Red));
+            DecorativeBrick(Vec3(hs)).setColor(Red));
 
      
         // Add a 6 dof mass that uses the Compliant Contact system.
         // Some constants
-        const Vec3 hdim(0.1, 0.1, 0.1);
+        const Vec3 hdim(hs, hs, hs);
         const Real mu_s = 0.7; // static coefficient of friction
         const Real mu_k = 0.5; // kinetic (or dynamic) coefficient of friction
         const Real fDis = .55; // to turn off dissipation
@@ -202,42 +182,36 @@ int main() {
 
         // Add a 6 dof mass that uses exponential springs for contact (new)
         MobilizedBody::Free* blockExp = NULL;
-        ExponentialSpringForce* spr1 = NULL;
-        ExponentialSpringForce* spr2 = NULL;
-        ExponentialSpringForce* spr3 = NULL;
-        ExponentialSpringForce* spr4 = NULL;
-        ExponentialSpringForce* spr5 = NULL;
-        ExponentialSpringForce* spr6 = NULL;
-        ExponentialSpringForce* spr7 = NULL;
-        ExponentialSpringForce* spr8 = NULL;
+        ExponentialSpringForce* spr[8];
+        int i;
+        for(i = 0; i < 8; ++i) spr[i] = NULL;
+        // Define the corners of the block
+        Vec3 corner[8];
+        corner[0] = Vec3(hs, -hs, hs);
+        corner[1] = Vec3(hs, -hs, -hs);
+        corner[2] = Vec3(-hs, -hs, -hs);
+        corner[3] = Vec3(-hs, -hs, hs);
+        corner[4] = Vec3(hs, hs, hs);
+        corner[5] = Vec3(hs, hs, -hs);
+        corner[6] = Vec3(-hs, hs, -hs);
+        corner[7] = Vec3(-hs, hs, hs);
         if(ExpContactOn) {
             blockExp = new MobilizedBody::Free(matter.Ground(), BodyPropsExp);
 
-            // Create a Transform representing the floor
-            Real angle = convertDegreesToRadians(-90.0);
-            Rotation floorTilt(angle, XAxis);
+            // Create a Transform representing the contact plane.
+            // The ZAxis of contact plane should point up.
+            Real angle = convertDegreesToRadians(90.0);
+            Rotation floorRot(-angle, XAxis);
             Vec3 floorOrigin(0., -0.004, 0.);
-            Transform floorXForm(floorTilt, floorOrigin);
+            Transform floorXForm(floorRot, floorOrigin);
             // Modify the default parameters if desired
             ExponentialSpringParameters params;
             params.setElasticityAndViscosityForCriticalDamping(20000.0);
             // Add an exponential spring at each corner of the block.
-            spr1 = new ExponentialSpringForce(system, floorXForm,
-                *blockExp, Vec3(0.1, -0.1, 0.1), mu_s, mu_k, params);
-            spr2 = new ExponentialSpringForce(system, floorXForm,
-                *blockExp, Vec3(0.1, -0.1, -0.1), mu_s, mu_k, params);
-            spr3 = new ExponentialSpringForce(system, floorXForm,
-                *blockExp, Vec3(-0.1, -0.1, 0.1), mu_s, mu_k, params);
-            spr4 = new ExponentialSpringForce(system, floorXForm,
-                *blockExp, Vec3(-0.1, -0.1, -0.1), mu_s, mu_k, params);
-            spr5 = new ExponentialSpringForce(system, floorXForm,
-                *blockExp, Vec3(0.1, 0.1, 0.1), mu_s, mu_k, params);
-            spr6 = new ExponentialSpringForce(system, floorXForm,
-                *blockExp, Vec3(0.1, 0.1, -0.1), mu_s, mu_k, params);
-            spr7 = new ExponentialSpringForce(system, floorXForm,
-                *blockExp, Vec3(-0.1, 0.1, 0.1), mu_s, mu_k, params);
-            spr8 = new ExponentialSpringForce(system, floorXForm,
-                *blockExp, Vec3(-0.1, 0.1, -0.1), mu_s, mu_k, params);
+            for(i = 0; i < 8; ++i) {
+                spr[i] = new ExponentialSpringForce(system, floorXForm, *blockExp,
+                    corner[i], mu_s, mu_k, params);
+            }
         }
 
         // Add reporting and visualization
@@ -260,9 +234,9 @@ int main() {
             if(blockExp!=NULL)
                 //system.addEventReporter(
                 //new MaxHeightReporter(system, *blockExp));
-            if (spr1 != NULL)
+            if (spr[0] != NULL)
                 system.addEventReporter(
-                    new ExpSprForceReporter(system, *spr3, 0.01));
+                    new ExpSprForceReporter(system, *spr[0], 0.01));
         }
 
         // Initialize the system and state.
@@ -333,24 +307,11 @@ int main() {
             // Test modifying cooefficients of friction (states)
             // Static
             Real mus = mu_s;
-            spr1->setMuStatic(state, mus);
-            spr2->setMuStatic(state, mus);
-            spr3->setMuStatic(state, mus);
-            spr4->setMuStatic(state, mus);
-            spr5->setMuStatic(state, mus);
-            spr6->setMuStatic(state, mus);
-            spr7->setMuStatic(state, mus);
-            spr8->setMuStatic(state, mus);
-            // Kinetic
             Real muk = mu_k;
-            spr1->setMuKinetic(state, muk);
-            spr2->setMuKinetic(state, muk);
-            spr3->setMuKinetic(state, muk);
-            spr4->setMuKinetic(state, muk);
-            spr5->setMuKinetic(state, muk);
-            spr6->setMuKinetic(state, muk);
-            spr7->setMuKinetic(state, muk);
-            spr8->setMuKinetic(state, muk);
+            for(i = 0; i < 8; ++i) {
+                spr[i]->setMuStatic(state, mus);
+                spr[i]->setMuKinetic(state, muk);
+            }
             // Sitting Still
             if ((condition == 0) || (condition > 6)) {
                 blockExp->setQToFitRotation(state, R);
@@ -405,14 +366,9 @@ int main() {
             // Reset the spring zeros
             // The spring zeros are set to the point on the Floor that
             // coincices with the Station that was specified on the Body.
-            if (spr1 != NULL) spr1->resetSpringZero(state);
-            if (spr2 != NULL) spr2->resetSpringZero(state);
-            if (spr3 != NULL) spr3->resetSpringZero(state);
-            if (spr4 != NULL) spr4->resetSpringZero(state);
-            if (spr5 != NULL) spr5->resetSpringZero(state);
-            if (spr6 != NULL) spr6->resetSpringZero(state);
-            if (spr7 != NULL) spr7->resetSpringZero(state);
-            if (spr8 != NULL) spr8->resetSpringZero(state);
+            for(i = 0; i < 8; ++i) {
+                if(spr[i] != NULL) spr[i]->resetSpringZero(state);
+            }
         }
 
         // Run Menu and storage for Replay
