@@ -30,6 +30,8 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+using std::unique_ptr;
+using std::make_unique;
 
 using namespace SimTK;
 
@@ -96,10 +98,7 @@ class PeriodicStateRecorder : public PeriodicEventReporter {
 public:
     PeriodicStateRecorder(Real reportInterval)
         : PeriodicEventReporter(reportInterval) {
-        storage = new Array_<State>;
-    }
-    ~PeriodicStateRecorder() {
-        delete storage;
+        storage = make_unique<Array_<State>>();
     }
     void handleEvent(const State& state) const override {
         storage->emplace_back(state);
@@ -108,10 +107,10 @@ public:
         storage->clear();
     }
     const Array_<State>* getStateArray() {
-        return storage;
+        return storage.get();
     }
 private:
-    Array_<State>* storage;
+    unique_ptr<Array_<State>> storage;
 };
 //_____________________________________________________________________________
 // This class implements an event reported that identifies the minimum and
@@ -125,11 +124,10 @@ public:
             const MobilizedBody& body) :
             TriggeredEventReporter(Stage::Velocity),
             system(system), body(body) {
-        storage = new Array_<State>;
+        storage = make_unique<Array_<State>>();
         getTriggerInfo().setTriggerOnRisingSignTransition(true);
     }
     ~MinMaxHeightStateRecorder() {
-        delete storage;
     }
     Real getValue(const State& state) const {
         Vec3 vel = body.getBodyOriginVelocity(state);
@@ -146,13 +144,13 @@ public:
         storage->clear();
     }
     const Array_<State>* getStateArray() {
-        return storage;
+        return storage.get();
     }
 
 private:
     const MultibodySystem& system;
     const MobilizedBody& body;
-    Array_<State>* storage;
+    unique_ptr<Array_<State>> storage;
 };
 
 
@@ -204,7 +202,7 @@ void testBlockVerticalBounceNoDampNoFric() {
     options.friction = false;
     options.viz = true;
     options.tilt = 0.0;
-    options.tf = 3.0;
+    options.tf = 2.4;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -222,7 +220,7 @@ void testBlockVerticalBounceNoDampWithFric() {
     options.friction = true;
     options.viz = true;
     options.tilt = 0.0;
-    options.tf = 3.0;
+    options.tf = 2.4;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -295,7 +293,7 @@ void testBlockSlideWithDampWithFric() {
     options.friction = true;
     options.viz = true;
     options.tilt = 0.0;
-    options.tf = 4.0;
+    options.tf = 3.0;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -314,7 +312,7 @@ void testBlockSpinNoDampNoFric() {
     options.friction = false;
     options.viz = true;
     options.tilt = 0.0;
-    options.tf = 2.5;
+    options.tf = 2.0;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -369,7 +367,7 @@ void testBlockSpinAndSlideNoDampNoFric() {
     options.friction = false;
     options.viz = true;
     options.tilt = 0.0;
-    options.tf = 1.2;
+    options.tf = 0.8;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -387,7 +385,7 @@ void testBlockSpinAndSlideNoDampWithFric() {
     options.friction = true;
     options.viz = true;
     options.tilt = 0.0;
-    options.tf = 5.5;
+    options.tf = 1.6;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -405,7 +403,7 @@ void testBlockSpinAndSlideWithDampNoFric() {
     options.friction = false;
     options.viz = true;
     options.tilt = 0.0;
-    options.tf = 1.2;
+    options.tf = 1.6;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -442,7 +440,7 @@ void testBlockSpinLikeTopNoDampNoFric() {
     options.friction = false;
     options.viz = true;
     options.tilt = 0.0;
-    options.tf = 4.0;
+    options.tf = 2.0;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -460,7 +458,7 @@ void testBlockSpinLikeTopWithDampWithFric() {
     options.friction = true;
     options.viz = true;
     options.tilt = 0.0;
-    options.tf = 5.5;
+    options.tf = 2.0;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -479,7 +477,7 @@ void testBlockTumbleNoDampNoFric() {
     options.friction = false;
     options.viz = true;
     options.tilt = 0.0;
-    options.tf = 3.5;
+    options.tf = 2.2;
 
     // Check global viz flag
     if(VizOff) options.viz = false;
@@ -568,11 +566,11 @@ void simulateBlock(const SimulationOptions& options) {
         angle1, XAxis, angle2, ZAxis);
     Transform floorPlane(R, Vec3(0.));
     // Create an exponential spring at each corner of the block.
-    ExponentialSpringForce* sprFloor[8];
+    unique_ptr<ExponentialSpringForce> sprFloor[8];
     int i;
     for(i = 0; i < 8; ++i) {
-        sprFloor[i] = new ExponentialSpringForce(system, floorPlane,
-            body, corner[i], mus, muk, params);
+        sprFloor[i] = make_unique<ExponentialSpringForce>(system,
+            floorPlane, body, corner[i], mus, muk, params);
     }
     Rotation RDecor(angle2, ZAxis);
     Transform shiftedFloorPlane(RDecor, Vec3(0.0, -0.1, 0.0));
@@ -588,11 +586,10 @@ void simulateBlock(const SimulationOptions& options) {
     r.setRotationFromAngleAboutY(angle);
     Transform wallPlane(r, Vec3(1.5, 0., 0.));
     // Create an exponential spring to each corner of the block.
-    ExponentialSpringForce* sprWall[8];
+    unique_ptr<ExponentialSpringForce> sprWall[8];
     for(i = 0; i < 8; ++i) {
-        sprWall[i] = NULL;
-        sprWall[i] = new ExponentialSpringForce(system, wallPlane,
-            body, corner[i], mus, muk, params);
+        sprWall[i] = make_unique<ExponentialSpringForce>(system,
+            wallPlane, body, corner[i], mus, muk, params);
     }
     angle1 = convertDegreesToRadians(90.0);
     angle2 = convertDegreesToRadians(30.0);
@@ -602,10 +599,12 @@ void simulateBlock(const SimulationOptions& options) {
         angle1, ZAxis, angle2, YAxis);
     Transform shiftedWallPlane(rDecor, Vec3(1.6, 0., 0.));
     matter.Ground().updBody().addDecoration(shiftedWallPlane,
-        DecorativeBrick(Vec3(4, 0.1, 4)).setColor(Vec3(0.9,0.9,0.9)).setOpacity(0.8));
+        DecorativeBrick(Vec3(4, 0.1, 4)).setColor(Vec3(0.9,0.9,0.9)).
+        setOpacity(0.8));
 
     // Periodic Reporter
-    PeriodicStateRecorder* periodicRecorder = new PeriodicStateRecorder(1.0/60.0);
+    PeriodicStateRecorder* periodicRecorder =
+        new PeriodicStateRecorder(1.0/60.0);
     system.addEventReporter(periodicRecorder);
 
     // Min Max Height Reporter
@@ -614,13 +613,14 @@ void simulateBlock(const SimulationOptions& options) {
     system.addEventReporter(minmaxRecorder);
 
     // Add visualization
-     // The visualization is intended to verify that the simulations
-     // are reasonable.  Visualization should be turned off when unit
-     // tests are run.
-    Visualizer* viz = NULL;
-    Visualizer::InputSilo* silo = NULL;
+    // The visualization is intended to verify that the simulations
+    // are reasonable.  Visualization should be turned off when unit
+    // tests are run, so before committing changes to GitHub.
+    unique_ptr<Visualizer> viz;
+    unique_ptr<Visualizer::Reporter> vizReporter;
+    Visualizer::InputSilo* silo;
     if(options.viz) {
-        viz = new Visualizer(system);
+        viz = make_unique<Visualizer>(system);
         viz->setShowShadows(true);
         viz->setShutdownWhenDestructed(true);
 
@@ -633,7 +633,7 @@ void simulateBlock(const SimulationOptions& options) {
         runMenuItems.push_back(std::make_pair("Quit", QuitItem));
         viz->addMenu("Run", RunMenuId, runMenuItems);
 
-        system.addEventReporter(new Visualizer::Reporter(*viz, 1.0/ 60.0));
+        system.addEventReporter(new Visualizer::Reporter(*viz, 1.0 / 60.0));
     }
 
     // Realize through Stage::Model (construct the State)
@@ -734,7 +734,7 @@ void simulateBlock(const SimulationOptions& options) {
     cout << endl;
 
     // Replay Loop
-    if(viz != NULL) {
+    if(options.viz) {
         silo->clear(); // forget earlier input
         while(true) {
             cout << "Choose Replay to see that again ...\n";
@@ -754,14 +754,6 @@ void simulateBlock(const SimulationOptions& options) {
             }
         }
     }
-
-    // Clean up
-    if(viz != NULL) delete viz;
-    for(i = 0; i < 8; ++i) {
-        delete sprFloor[i];
-        delete sprWall[i];
-    }
-
 }
 //_____________________________________________________________________________
 // Check that spring forces are internally consistent for a simulation.
