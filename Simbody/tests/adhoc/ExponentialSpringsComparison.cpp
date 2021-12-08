@@ -26,6 +26,8 @@
 using namespace SimTK;
 using std::endl;
 using std::cout;
+using std::unique_ptr;
+using std::make_unique;
 
 Array_<State> saveEm;
 
@@ -159,12 +161,13 @@ int main() {
             Transform(Vec3(0, -0.5, 0)),
             DecorativeBrick(Vec3(2, 0.5, 2)).setColor(Green).setOpacity(.1));
         // Compliant contact infrastructure -------
-        ContactTrackerSubsystem* tracker = NULL;
-        CompliantContactSubsystem* contactForces = NULL;
-        MobilizedBody::Free* blockCmp = NULL;
+        unique_ptr<ContactTrackerSubsystem> tracker;
+        unique_ptr<CompliantContactSubsystem> contactForces;
+        unique_ptr<MobilizedBody::Free> blockCmp;
         if (CmpContactOn == true) { 
-            tracker = new ContactTrackerSubsystem(system);
-            contactForces = new CompliantContactSubsystem(system, *tracker);
+            tracker = make_unique<ContactTrackerSubsystem>(system);
+            contactForces =
+                make_unique<CompliantContactSubsystem>(system, *tracker);
             contactForces->setTrackDissipatedEnergy(true);
             contactForces->setTransitionVelocity(1.0e-3);
             // Ground
@@ -177,14 +180,14 @@ int main() {
                 BodyPropsCmp.addContactSurface(Transform(),
                     ContactSurface(ContactGeometry::Brick(hdim),
                         ContactMaterial(fK, fDis, mu_s, mu_k, fVis)));
-            blockCmp = new MobilizedBody::Free(matter.Ground(), BodyPropsCmp);
+            blockCmp = make_unique<MobilizedBody::Free>(
+                matter.Ground(), BodyPropsCmp);
         }
 
         // Add a 6 dof mass that uses exponential springs for contact (new)
-        MobilizedBody::Free* blockExp = NULL;
-        ExponentialSpringForce* spr[8];
+        unique_ptr<MobilizedBody::Free> blockExp;
+        unique_ptr<ExponentialSpringForce> spr[8];
         int i;
-        for(i = 0; i < 8; ++i) spr[i] = NULL;
         // Define the corners of the block
         Vec3 corner[8];
         corner[0] = Vec3(hs, -hs, hs);
@@ -196,7 +199,8 @@ int main() {
         corner[6] = Vec3(-hs, hs, -hs);
         corner[7] = Vec3(-hs, hs, hs);
         if(ExpContactOn) {
-            blockExp = new MobilizedBody::Free(matter.Ground(), BodyPropsExp);
+            blockExp = make_unique<MobilizedBody::Free>(
+                    matter.Ground(), BodyPropsExp);
 
             // Create a Transform representing the contact plane.
             // The ZAxis of contact plane should point up.
@@ -209,16 +213,16 @@ int main() {
             params.setElasticityAndViscosityForCriticalDamping(20000.0);
             // Add an exponential spring at each corner of the block.
             for(i = 0; i < 8; ++i) {
-                spr[i] = new ExponentialSpringForce(system, floorXForm, *blockExp,
-                    corner[i], mu_s, mu_k, params);
+                spr[i] = make_unique<ExponentialSpringForce>(system,
+                    floorXForm, *blockExp, corner[i], mu_s, mu_k, params);
             }
         }
 
         // Add reporting and visualization
-        Visualizer* viz = NULL;
-        Visualizer::InputSilo* silo = NULL;
+        unique_ptr<Visualizer> viz;
+        Visualizer::InputSilo* silo;
         if (VisOn) {
-            viz = new Visualizer(system);
+            viz = make_unique<Visualizer>(system);
             viz->setShowShadows(true);
 
             // ----- Run Menu ----
@@ -229,14 +233,14 @@ int main() {
             runMenuItems.push_back(std::make_pair("Replay", ReplayItem));
             viz->addMenu("Run", RunMenuId, runMenuItems);
 
-            system.addEventReporter(new MyReporter(system, 1./30.));
+            system.addEventReporter(new MyReporter(system, 1.0/30.0));
             system.addEventReporter(new Visualizer::Reporter(*viz, 1./30.));
-            if(blockExp!=NULL)
+            if(ExpContactOn) {
                 //system.addEventReporter(
                 //new MaxHeightReporter(system, *blockExp));
-            if (spr[0] != NULL)
                 system.addEventReporter(
                     new ExpSprForceReporter(system, *spr[0], 0.01));
+            }
         }
 
         // Initialize the system and state.
@@ -366,13 +370,11 @@ int main() {
             // Reset the spring zeros
             // The spring zeros are set to the point on the Floor that
             // coincices with the Station that was specified on the Body.
-            for(i = 0; i < 8; ++i) {
-                if(spr[i] != NULL) spr[i]->resetSpringZero(state);
-            }
+            for(i = 0; i < 8; ++i) spr[i]->resetSpringZero(state);
         }
 
         // Run Menu and storage for Replay
-        if (viz != NULL) {
+        if (VisOn) {
             saveEm.reserve(50000);
             cout << "\nChoose 'Go' from Run menu to simulate:\n";
             int menuId, item;
@@ -403,7 +405,7 @@ int main() {
         cout << "real time taken = " << realDuration << " sec" << endl;
 
         // Replay Loop
-        if (viz != NULL) {
+        if (VisOn) {
             silo->clear(); // forget earlier input
             while (true) {
                 cout << "Choose Replay to see that again ...\n";
