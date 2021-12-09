@@ -383,14 +383,13 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     data.pxy = data.p;    data.pxy[2] = 0.0;
     data.vxy = data.v;    data.vxy[2] = 0.0;
 
-    // Get all the parameters upfront
+    // Get the relevant parameters upfront
     Real d0, d1, d2;
     params.getShapeParameters(d0, d1, d2);
     Real kvNorm = params.getNormalViscosity();
     Real kpFric = params.getElasticity();
     Real kvFric = params.getViscosity();
     Real kTau = 1.0 / params.getSlidingTimeConstant();
-    Real vSettle = params.getSettleVelocity();
 
     // Normal Force (perpendicular to contact plane) -------------------------
     // Elastic Part
@@ -447,8 +446,9 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
 
     // Sliding = 0.0 (fixed in place)
     // Friction is modeled as a linear spring.
-    // The elastic component prevents drift while maintaining good integrator
-    // step sizes, at least compared to increasing the damping coefficient.
+    // The elastic component prevents drift while maintaining reasonable
+    // integrator step sizes, at least compared to increasing the damping
+    // coefficient.
     data.limitReached = false;
     Vec3 fricElasSpr = -kpFric * (data.pxy - p0);
     Vec3 fricSpr = fricElasSpr + fricDampSpr;
@@ -494,6 +494,7 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
     // Parameters
     Real kTau = 1.0 / params.getSlidingTimeConstant();
     Real vSettle = params.getSettleVelocity();
+    Real aSettle = params.getSettleAcceleration();
     
     // Current Sliding State
     Real sliding = getZ(state)[indexZ];
@@ -506,7 +507,7 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
     // Values are updated during System::realize(Stage::Dynamics) (see above)
     const ExponentialSpringData& data = getData(state);
 
-    // Decision tree for managing SlidingDot.
+    // Decision tree for managing SlidingDot. Two things happen:
     // 1) Assign target to 0.0 or 1.0.
     // 2) Assign next action to Check, Rise, or Decay.
     Real target = 1.0;
@@ -514,7 +515,7 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
  
         // Conditions for Rise (Sliding --> 1.0)
         // 1. limitReached = true, OR
-        // 2. fz < SimTK::SignificantReal (when not "touching" contact plane)
+        // 2. fz < SimTK::SignificantReal (not "touching" contact plane)
         if((data.limitReached || (data.fz < SignificantReal)) &&
             (sliding < 0.95)) {
             action = SlidingAction::Rise;
@@ -533,7 +534,7 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
                 // Computing acceleration takes 48 flops.
                 // Computing norm takes ?? flops.
                 Vec3 a = body.findStationAccelerationInGround(state, station);
-                if(a.norm() < 0.1) {
+                if(a.norm() < aSettle) {
                     target = 0.0;
                     action = SlidingAction::Decay;
                 }

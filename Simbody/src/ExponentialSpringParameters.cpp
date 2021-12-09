@@ -35,9 +35,9 @@ using std::endl;
 ExponentialSpringParameters::
 ExponentialSpringParameters() :
     d0(0.0065905), d1(0.5336), d2(1150.0), kvNorm(0.5),
-    kpFric(20000.0), kvFric(0.0), tau(0.01), vSettle(0.001) {
-    // The friction viscosity can be set for critical damping of a specified
-    // mass.  By default, this is done for a mass of 1.0 kg.
+    kpFric(20000.0), kvFric(0.0),
+    tau(0.01), vSettle(0.001), aSettle(0.1) {
+
     setElasticityAndViscosityForCriticalDamping(kpFric);
 }
 //_____________________________________________________________________________
@@ -60,6 +60,7 @@ operator=(const ExponentialSpringParameters& source) {
         kvFric = source.kvFric;
         tau = source.tau;
         vSettle = source.vSettle;
+        aSettle = source.aSettle;
     }
     return *this;
 }
@@ -71,7 +72,8 @@ operator==(const ExponentialSpringParameters& other) const {
     if(&other == this) return true;
     return ((d0 == other.d0) && (d1 == other.d1) && (d2 == other.d2) &&
         (kvNorm == other.kvNorm) && (kpFric == other.kpFric) &&
-        (tau == other.tau) && (vSettle == other.vSettle));
+        (tau == other.tau) &&
+        (vSettle == other.vSettle) && (aSettle == other.aSettle));
 }
 //_____________________________________________________________________________
 // Set the parameters that control the shape of the exponential function.
@@ -207,10 +209,29 @@ setSettleVelocity(Real vSettle) {
     } else this->vSettle = vSettle;
 }
 //_____________________________________________________________________________
-// Get the elasticity of the friction spring.
+// Get the settle velocity.
 Real
 ExponentialSpringParameters::
 getSettleVelocity() const {
     return vSettle;
+}
+//_____________________________________________________________________________
+// Set the acceleration for settling into using the static coefficient of
+// friction.
+void
+ExponentialSpringParameters::
+setSettleAcceleration(Real aSettle) {
+    if(aSettle <= 0.0) {
+        // An exception should be throw, but for now...
+        cout << "ExponentialSpringParameters: ERR - aSettle should be positive!"
+            << endl;
+    } else this->aSettle = aSettle;
+}
+//_____________________________________________________________________________
+// Get the settle acceleration.
+Real
+ExponentialSpringParameters::
+getSettleAcceleration() const {
+    return aSettle;
 }
 

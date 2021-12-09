@@ -56,7 +56,7 @@ Stage::Topology before a simulation can proceed.
 Note that each ExponentialSpringForce instance owns its own private
 ExponentialSpringParameters object. The myParams object is just used to set
 the desired parameter values of the privately owned parameters object. It is
-fine for objects like myParams to go out out of scope or for myParams objects
+fine for objects like myParams to go out of scope or for myParams objects
 allocated from the heap to be deleted.
 
 Therefore, also note that the parameter values possessed by an
@@ -68,7 +68,8 @@ The default values of the parameters held by ExponentialSpringParameters
 work well for typical contact interactions, but clearly may not be
 appropriate for simulating many contact interactions. For example, one might
 want to simulate an interaction in which very little energy is dissipated
-during a contact event.
+during a contact event, in which case you'd reduce the normal visocsity and
+spring viscosity, as well as the coefficients of friction. 
 
 The default values of the parameters are expressed in units of Newtons,
 meters, seconds, and kilograms; however, you may use an alternate set of
@@ -223,14 +224,25 @@ public:
 
     /** Set the velocity below which the coefficient of friction transitions
     to the static coefficient of friction (μₛ).
-    @param vSettle Settle velocity. It's default value is 0.01 m/s. vSettle
+    @param vSettle Settle velocity. It's default value is 0.001 m/s. vSettle
     must be positive.*/
     void setSettleVelocity(Real vSettle);
 
-    /** Get the velocity below which the coefficient of friction transitions
-    to the static coefficient of friction.
+    /** Get the velocity magnitude below which the coefficient of friction
+    transitions to the static coefficient of friction.
     @returns Settle velocity */
     Real getSettleVelocity() const;
+
+    /** Set the acceleration magnitude below which the coefficient of friction
+    transitions to the static coefficient of friction (μₛ).
+    @param aSettle Settle acceleration. It's default value is 0.1 m/s².
+    aSettle must be positive.*/
+    void setSettleAcceleration(Real aSettle);
+
+    /** Get the acceleration magnitude below which the coefficient of friction
+    transitions to the static coefficient of friction.
+    @returns Settle acceleration. */
+    Real getSettleAcceleration() const;
 
 private:
     Real d0;
@@ -241,6 +253,7 @@ private:
     Real kvFric;
     Real tau;
     Real vSettle;
+    Real aSettle;
 };
 
 }       // namespace SimTK
