@@ -132,13 +132,20 @@ int main() {
         // 4 = spinning & sliding
         // 5 = spinning like a top
         // 6 = tumbling
+        // 7 = non-vertical gravity (simple way to create a sideways force)
         
         // Create the system.
         Real hs = 0.1;
         MultibodySystem system; system.setUseUniformBackground(true);
         SimbodyMatterSubsystem matter(system);
         GeneralForceSubsystem forces(system);
-        Force::UniformGravity gravity(forces, matter, Vec3(0., -9.8, 0.));
+        Vec3 g(0., -9.8, 0.);
+        if(condition == 7) {
+            // An angle of 90 deg is vertical. 80 is 10 deg short of vert.
+            Real angle = convertDegreesToRadians(80.0);
+            g = Vec3(9.8 * cos(angle), -9.8 * sin(angle), 0.0);
+        }
+        Force::UniformGravity gravity(forces, matter, g);
         Body::Rigid BodyPropsExp(MassProperties(10.0, Vec3(0), Inertia(1)));
         BodyPropsExp.addDecoration(Transform(),
             DecorativeBrick(Vec3(hs)).setColor(Blue));
@@ -315,8 +322,10 @@ int main() {
             for(i = 0; i < 8; ++i) {
                 spr[i]->setMuStatic(state, mus);
                 spr[i]->setMuKinetic(state, muk);
+                if((condition == 0) || (condition == 7))
+                    spr[i]->setSliding(state, 0.0);
             }
-            // Sitting Still
+            // Sitting Still or Non-Vertical Force
             if ((condition == 0) || (condition > 6)) {
                 blockExp->setQToFitRotation(state, R);
                 blockExp->setQToFitTranslation(state, Vec3(-0.5, 0.0993, 0.5));
