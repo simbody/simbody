@@ -111,7 +111,15 @@ struct ExponentialSpringData {
     Real mu;
     /** Limit of the frictional force. */
     Real fxyLimit;
-    /** Elastic frictional force expressed in the frame of the contact plane.*/
+    /** Limit of the frictional force as a vector. */
+    Vec3 fricLimit;
+    /** Elastic part of the frictional spring force. */
+    Vec3 fricElasSpr;
+    /** Damping part of the frictional spring force. */
+    Vec3 fricDampSpr;
+    /** Total frictional spring force. */
+    Vec3 fricSpr;
+    /** Elastic frictional force after blending.*/
     Vec3 fricElas;
     /** Damping frictional force expressed in the frame of the contact plane.*/
     Vec3 fricDamp;
@@ -423,49 +431,41 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     data.fxyLimit = data.mu * data.fz;
     // Get the SprZero from the State.
     Vec3 p0 = getSprZero(state);
-    
-    // 0.0 < Sliding < 1.0 (transitioning)
-    // Friction is a combination of a linear spring and pure damping.
-    // As Sliding --> 1.0, the elastic term --> 0.0
-    // As Sliding --> 1.0, the damping term --> fricLimit
-
-    // Sliding = 1.0 (sliding)
+    // Sliding = 1.0 (fully sliding; pure damping model)
     // Friction is the result purely of damping (no elastic term).
     // To avoid numerical issues, the friction limit is set to zero when
     // mu*Fn (data.fxyLimit) is less than the constant SimTK::SignificantReal.
     // If the damping force is greater than data.fxyLimit, the damping force
     // is capped at data.fxyLimit.
-    Vec3 fricDampSpr = -kvFric * data.vxy;
-    Vec3 fricLimit;
-    if(data.fxyLimit < SignificantReal) fricLimit = 0.0;
+    data.fricDampSpr = -kvFric * data.vxy;
+    if(data.fxyLimit < SignificantReal) data.fricLimit = 0.0;
     else {
-        fricLimit = fricDampSpr;
-        if(fricLimit.norm() > data.fxyLimit)
-            fricLimit = data.fxyLimit * fricLimit.normalize();
+        data.fricLimit = data.fricDampSpr;
+        if(data.fricLimit.norm() > data.fxyLimit)
+            data.fricLimit = data.fxyLimit * data.fricLimit.normalize();
     }
-
-    // Sliding = 0.0 (fixed in place)
+    // Sliding = 0.0 (fixed in place; spring model)
     // Friction is modeled as a linear spring.
     // The elastic component prevents drift while maintaining reasonable
     // integrator step sizes, at least compared to increasing the damping
     // coefficient.
     data.limitReached = false;
-    Vec3 fricElasSpr = -kpFric * (data.pxy - p0);
-    Vec3 fricSpr = fricElasSpr + fricDampSpr;
-    Real fxySpr = fricSpr.norm();
+    data.fricElasSpr = -kpFric * (data.pxy - p0);
+    data.fricSpr = data.fricElasSpr + data.fricDampSpr;
+    Real fxySpr = data.fricSpr.norm();
     if(fxySpr > data.fxyLimit) {
         data.limitReached = true;
         Real scale = data.fxyLimit / fxySpr;
-        fricElasSpr *= scale;
-        fricDampSpr *= scale;
-        fricSpr = fricElasSpr + fricDampSpr;
+        data.fricElasSpr *= scale;
+        data.fricDampSpr *= scale;
+        data.fricSpr = data.fricElasSpr + data.fricDampSpr;
     }
-
     // Blend the two extremes according to the Sliding state
-    // As Sliding --> 1, damping dominates
-    // As Sliding --> 0, the spring model dominates
-    data.fricElas = fricElasSpr * (1.0 - sliding);
-    data.fricDamp = fricDampSpr + (fricLimit - fricDampSpr) * sliding;
+    // As Sliding --> 1, pure damping model dominates
+    // As Sliding --> 0, spring model dominates
+    data.fricElas = data.fricElasSpr * (1.0 - sliding);
+    data.fricDamp = data.fricDampSpr +
+        (data.fricLimit - data.fricDampSpr) * sliding;
     data.fric = data.fricElas + data.fricDamp;
     data.fxy = data.fric.norm();
 
