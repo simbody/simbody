@@ -188,7 +188,8 @@ const ExponentialSpringParameters& params) :
 ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
 contactPlane(floor), body(body), station(station),
 defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0., 0., 0.)),
-defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0) {
+defaultSlidingAction(SlidingAction::Check),
+defaultSliding(1.0) {
     // Check for valid static coefficient
     if(defaultMus < 0.0) defaultMus = 0.0;
     // Check for valid kinetic coefficient
@@ -234,14 +235,14 @@ void updSlidingDotInCache(const State& state, Real slidingDot) const {
     updZDot(state)[indexZ] = slidingDot; /* Doesn't invalidate the State. */ }
 
 // SLIDING ACTION
-int getSlidingAction(const State& state) const {
-    return Value<int>::
+SlidingAction getSlidingAction(const State& state) const {
+    return Value<SlidingAction>::
         downcast(getDiscreteVariable(state, indexSlidingAction)); }
 int& updSlidingAction(State& state) const {
     return Value<int>::
         updDowncast(updDiscreteVariable(state, indexSlidingAction)); }
-int getSlidingActionInCache(const State& state) const {
-    return Value<int>::
+SlidingAction getSlidingActionInCache(const State& state) const {
+    return Value<SlidingAction>::
         downcast(getDiscreteVarUpdateValue(state, indexSlidingAction)); }
 void updSlidingActionInCache(const State& state, int action) const {
     // Will not invalidate the State.
@@ -323,7 +324,7 @@ realizeSubsystemTopologyImpl(State& state) const override {
     // SlidingAction
     indexSlidingAction =
         allocateAutoUpdateDiscreteVariable(state, Stage::Acceleration,
-            new Value<int>(defaultSlidingAction), Stage::Dynamics);
+            new Value<SlidingAction>(defaultSlidingAction), Stage::Dynamics);
     indexSlidingActionInCache =
         getDiscreteVarUpdateIndex(state, indexSlidingAction);
 
@@ -498,7 +499,7 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
     
     // Current Sliding State
     Real sliding = getZ(state)[indexZ];
-    int action = getSlidingAction(state);
+    SlidingAction action = getSlidingAction(state);
     //if(action != SlidingAction::Check) {
     //    std::cout << "action = " << action << std::endl;
     //}
@@ -690,7 +691,7 @@ private:
     Real defaultMus;
     Real defaultMuk;
     Vec3 defaultSprZero;
-    int defaultSlidingAction;
+    SlidingAction defaultSlidingAction;
     Real defaultSliding;
     mutable DiscreteVariableIndex indexMus;
     mutable DiscreteVariableIndex indexMuk;
