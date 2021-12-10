@@ -205,15 +205,16 @@ void updSlidingDotInCache(const State& state, Real slidingDot) const {
 SlidingAction getSlidingAction(const State& state) const {
     return Value<SlidingAction>::
         downcast(getDiscreteVariable(state, indexSlidingAction)); }
-int& updSlidingAction(State& state) const {
-    return Value<int>::
+SlidingAction& updSlidingAction(State& state) const {
+    return Value<SlidingAction>::
         updDowncast(updDiscreteVariable(state, indexSlidingAction)); }
 SlidingAction getSlidingActionInCache(const State& state) const {
     return Value<SlidingAction>::
         downcast(getDiscreteVarUpdateValue(state, indexSlidingAction)); }
-void updSlidingActionInCache(const State& state, int action) const {
+void updSlidingActionInCache(const State& state,
+    SlidingAction action) const {
     // Will not invalidate the State.
-    Value<int>::updDowncast(
+    Value<SlidingAction>::updDowncast(
         updDiscreteVarUpdateValue(state, indexSlidingAction)) = action;
 }
 
