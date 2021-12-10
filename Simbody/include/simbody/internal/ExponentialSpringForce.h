@@ -162,11 +162,11 @@ which has the form of the Hunt & Crossley damping model:
 The friction force is computed by blending two different friction models.
 The blending is performed based on the Sliding State of the
 ExponentialSpringForce class. Sliding is a continuous state variable (a Z in
-Simbody vocabulary) that characterizes whether static or kinetic conditions
-are present.
+Simbody vocabulary) that characterizes the extent to which either static or
+kinetic conditions are present.
 
-        Sliding = 0.0     means static- fully fixed in place (lower bound)
-        Sliding = 1.0     means kinetic- fully sliding (upper bound)
+        Sliding = 0.0     static- fully fixed in place (lower bound)
+        Sliding = 1.0     kinetic- fully sliding (upper bound)
 
 More details about the Sliding State are given in sections below.
 
@@ -183,38 +183,37 @@ total frictional force is not allowed to exceed the frictional limit:
         fricLimit = - μ fz vxy / |vxy|
         if (|fricDamp| > |fricLimit|) fricDamp = fricLimit
 
-where μ is the instantaneous coefficient of friction (more below). This
-model is thus consistent with a common Couloub Friction model.
+where μ is the instantaneous coefficient of friction (more below). Thus, this
+model is consistent with a common Couloub Friction model.
 
 #### Friction Model 2 - Dampled Linear Spring (Sliding = 0.0)
 When a spring station is fixed with respect to its contact plane, the friction
 force is represented by a damped linear spring. The viscous term is given by
 the same damping expression as above:
 
-        fricViscSpr = -kᵥ vxy
+        fricDampSpr = -kᵥ vxy
 
 and the elastic term is given by
 
         fricElasSpr = -kₚ (pxy-p₀)
 
 where kₚ is the spring elasticity, pxy is the position of the body station
-projected onto the contact plane, p₀ is the current spring zero, which always
-resides in the contact plane, and vxy is the velocity of the body station in
-the contact plane expressed in the contact plane.
+projected onto the contact plane, and p₀ is the current spring zero, which always
+resides in the contact plane.
 
 The total friction spring force is then given by the sum of the elastic and
 viscous terms:
 
-        fricSpr = fricElasSpr + fricViscSpr
+        fricSpr = fricElasSpr + fricDampSpr
 
 If magnitude of the fricSpr exceeds the magnitude of the friction limit,
 the terms are scaled down:
 
         if(|fricSpr| > |fricLimit|)
             scaleFactor = [fricLimit| / |fricSpr|
-            fricViscSpr = scaleFactor * fricViscSpr
+            fricDampSpr = scaleFactor * fricDampSpr
             fricElasSpr = scaleFactor * fricElasSpr
-            fricSpr = fricElasSpr + fricViscSpr
+            fricSpr = fricElasSpr + fricDampSpr
 
 Note that scaling down the friction spring force does not alter its direction.
 
@@ -223,14 +222,14 @@ Blending Model 1 and Model 2 is accomplished using linear expressions of the
 Sliding State:
 
         fricElasBlend = fricElasSpr * (1.0 - Sliding)
-        fricDampBlend = fricViscSpr + (fricDamp - fricViscSpr)*Sliding
+        fricDampBlend = fricDampSpr + (fricDamp - fricDampSpr)*Sliding
         fricBlend = fricElasBlend + fricDampBlend
 
 Regarding the elastic term, when Sliding = 0.0, fricElasBlend is given
 entirely by fricElasSpr, and, as Sliding → 1.0, fricElasBlend → 0.0.
 Regarding the damping term, when Sliding = 0.0, fricDampBlend is
-given entirely by fricViscSpr, and, as Sliding → 1.0, fricDampBlend →
-fricDamp. Any difference between fricViscSpr and fricDamp is due to the
+given entirely by fricDampSpr, and, as Sliding → 1.0, fricDampBlend →
+fricDamp. Any difference between fricDampSpr and fricDamp is due to the
 difference in the ways the friction limit is enforced.
 
 Thus, Model 1 (Pure Damping) dominates as Sliding → 1.0, and
@@ -244,10 +243,11 @@ the blended elastic force (fricElasBlend):
         p₀ = pxy + fricElasBlend / kpFric;
         p₀[2] = 0.0;  // p₀ always lies in the contact plane
 
-When fricElasBlend = 0.0, notice that p₀ = pxy, p₀[2] = 0.0 (i.e., p₀ is the
-spring station projected onto the contact plane).
+When fricElasBlend = 0.0, notice that p₀ = pxy, p₀[2] = 0.0. In other words,
+when Sliding = 1.0, p₀ is simply the spring station projected onto the contact
+plane.
 
-In Simbody, p₀ is handled as an Auto Update Discrete State. See
+In Simbody, p₀ is handled as an Auto Update Discrete %State. See
 State::allocateAutoUpdateDiscreteVariable() for a detailed description. Any
 change to p₀ is made to the Update Cache (not to the State directly), and the
 integrator copies this cache value to the actual p₀ State after a successful
@@ -313,17 +313,17 @@ Each instance of ExponentialSpringForce posseses 5 states, which are listed
 below in the appropriate category:
 
 ### DISCRETE STATES (parameters)
-- μₛ = Static coefficient of friction.  0.0 ≤ μₛ
-- μₖ = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
+- μₛ (Real) = Static coefficient of friction.  0.0 ≤ μₛ
+- μₖ (Real) = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
 
 ### AUTO UPDATE DISCRETE STATES
-- p₀ = Zero point (Vec3) of the frictional spring. p₀ always lies in the
+- p₀ (Vec3) = Zero point  of the frictional spring. p₀ always lies in the
 contact plane.
-- SlidingAction = Action to take when setting SlidingDot = Check, Rise, or
-Decay.
+- SlidingAction (int) = Action to take when setting SlidingDot = Check, Rise,
+or Decay.
 
 ### CONTINUOUS STATE
-- Sliding = Indicator of whether the spring zero (p₀) has been moving
+- Sliding (Real) = Indicator of whether the spring zero (p₀) has been moving
 (sliding) or fixed in the contact plane.  0.0 ≤ Sliding ≤ 1.0.
 The "Sliding" state is used to transition the instantaneous coefficient of
 frction (μ) between μₖ and μₛ. A value of 0.0 indicates that p₀ is fixed in
