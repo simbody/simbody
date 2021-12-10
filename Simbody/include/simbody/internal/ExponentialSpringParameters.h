@@ -69,7 +69,14 @@ work well for typical contact interactions, but clearly may not be
 appropriate for simulating many contact interactions. For example, one might
 want to simulate an interaction in which very little energy is dissipated
 during a contact event, in which case you'd reduce the normal visocsity and
-spring viscosity, as well as the coefficients of friction. 
+fricition spring viscosity, as well as decreasing the coefficients of
+friction. Valid values of the friction spring elasticity and viscosity (kₚ and
+kᵥ) can range widely (e.g., kₚ = 1,000 to kₚ = 1,000,000) depending on the
+material properties of the objects represented by a particular MobilizedBody
+and contact plane (e.g., bare feet on a yoga mat vs. a steel bearing
+on a marble floor). In general, the higher kₚ and kᵥ, the smaller the
+integration step size will need to be in order to produce an accurate
+integration.
 
 The default values of the parameters are expressed in units of Newtons,
 meters, seconds, and kilograms; however, you may use an alternate set of

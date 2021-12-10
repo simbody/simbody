@@ -40,8 +40,8 @@ each of those points. For example, if the body were a cube, you would likely
 choose to place an exponential spring at each corner of the cube. The contact
 plane is typically used to model interactions with a floor, but need not be
 limited to this use case. The contact plane can be rotated and displaced
-relative to the ground frame and so can be used to model a wall or ramp, for
-example.
+relative to the ground frame and so can be used to model a wall, ramp, or
+some other planar structure.
 
 A distinguishing feature of the exponential spring, relative to other
 contact models, is that it ALWAYS applies a force to the body; there is
@@ -95,24 +95,24 @@ includes a velocity-depending (damping) term AND a position-dependent
 and relatively large integration step sizes are maintained.
 
 In initial comparisons, using class ExponentialSpringForce to model
-contact resulted in simulation cpu times that were typically 4 times less
-(and sometimes 50 times less) than when using class CompliantContactSubsystem,
-and yet the simulated motions were similar. These comparisons can be
-reproduced by building and running the Test_Adhoc -
+contact resulted in simulation cpu times that were typically 8 times less
+(and sometimes 100+ times less) than when using class
+CompliantContactSubsystem, and yet the simulated motions were similar.
+These comparisons can be reproduced by building and running the Test_Adhoc -
 ExponentialSpringsComparison project that is included with Simbody.
 
-Details of the exponential spring contact model are available in the
-following publication:
+Aspects of the exponential spring contact model are described in the following
+publication:
 
         Anderson F.C. and Pandy M.G. (1999). A dynamics optimization
         solution for vertical jumping in three dimensions. Computer Methods
         in Biomechanics and Biomedical Engineering 2(3):201-231.
 
 The current class makes several improvements to that contact model, most
-notably including 1) the ability to rotate and translate the contact plane
-and 2) the ability to specify both a static and a kinetic coefficient of
-friction. The computational details of the contact model implemented by
-this class follow below.
+notably including 1) the ability to rotate and translate the contact plane and
+2) the ability to specify both a static and a kinetic coefficient of friction. 
+The computational details of the contact model implemented by this class
+follow below.
 
 ----------------------------------
 Computations and Coordinate Frames
@@ -134,7 +134,7 @@ whose shape is a function of three parameters (d₀, d₁, and d₂):
 
         fzElastic = d₁exp(-d₂(pz-d₀))
 
--Note that pz is the displacement of the body spring station above (pz > 0.0)
+Note that pz is the displacement of the body spring station above (pz > 0.0)
 or below (pz < 0.0) the contact plane. The default values of the shape
 parameters were chosen to maximize integration step size while maintaining a
 number of constraints (e.g., the normal force must fall below 0.01 Newtons
@@ -159,53 +159,93 @@ which has the form of the Hunt & Crossley damping model:
 
 ### Friction Force (x-y plane)
 
-Friction force is implemented using a damped linear spring. Note that the
-friction force cannot be represented by a scalar (like the normal force)
-because it is free to point any direction in the xy plane. The elastic and
-viscous terms are given by
+The friction force is computed by blending two different friction models.
+The blending is performed based on the Sliding State of the
+ExponentialSpringForce class. Sliding is a continuous state variable (a Z in
+Simbody vocabulary) that characterizes whether static or kinetic conditions
+are present.
 
-        fricElas = -kₚ (pxy-p₀)
+        Sliding = 0.0     means static- fully fixed in place (lower bound)
+        Sliding = 1.0     means kinetic- fully sliding (upper bound)
+
+More details about the Sliding State are given in sections below.
+
+#### Friction Model 1 - Pure Damping (Sliding = 1.0)
+When a spring station is moving with respect to its contact plane,
+the friction force is computed using a simple damping term:
 
         fricDamp = -kᵥ vxy
 
-and the total friction force is given by
+where kᵥ is the damping coefficient and vxy is the velocity of the spring
+station in the contact plane expressed in the contact plane. However, the
+total frictional force is not allowed to exceed the frictional limit:
 
-        friction = fricElas + fricDamp
+        fricLimit = - μ fz vxy / |vxy|
+        if (|fricDamp| > |fricLimit|) fricDamp = fricLimit
 
-where kₚ is the spring elasticity, kᵥ is the spring viscosity, pxy is the
-position of the body station projected onto the contact plane, p₀ is the
-current spring zero, which always resides in the contact plane, and vxy is
-the velocity of the body station in the contact plane expressed in the
-contact plane.
+where μ is the instantaneous coefficient of friction (more below). This
+model is thus consistent with a common Couloub Friction model.
 
-By default, given a value for kₚ, the value of kᵥ is computed so as to
-result in critical damping for a specified mass:
+#### Friction Model 2 - Dampled Linear Spring (Sliding = 0.0)
+When a spring station is fixed with respect to its contact plane, the friction
+force is represented by a damped linear spring. The viscous term is given by
+the same damping expression as above:
 
-        kᵥ = 2.0 * sqrt(kₚ*mass)
+        fricViscSpr = -kᵥ vxy
 
-Valid values of kₚ can range widely (e.g., kₚ = 1,000 to kₚ = 1,000,000)
-depending on the material properties of the MobilizedBody and the contact
-plane. In addition to being set by the above equation for critical damping,
-kᵥ can be set to any positive value, independent of kₚ. In general, the higher
-kₚ and kᵥ, the smaller the integration step size will need to be in order to
-produce an accurate integration.
+and the elastic term is given by
 
-### A Moving Spring Zero
+        fricElasSpr = -kₚ (pxy-p₀)
 
-When the computed frictional force exceeds the allowed limit, it is capped at
-the limit (fxzLimit):
+where kₚ is the spring elasticity, pxy is the position of the body station
+projected onto the contact plane, p₀ is the current spring zero, which always
+resides in the contact plane, and vxy is the velocity of the body station in
+the contact plane expressed in the contact plane.
 
-        fxyLimit = μ fz
-        if(friction.norm() > fxyLimit) {
-        friction = fxyLimit * friction.normalize()
+The total friction spring force is then given by the sum of the elastic and
+viscous terms:
 
-where μ is the instantaneous coefficient of friction (more below).
+        fricSpr = fricElasSpr + fricViscSpr
 
-If the magnitude of the elastic part of the friction force by itself exceeds
-fxyLimit, a new spring zero is found such that the magnitude of the
-elastic part would be equal to fxyLimit:
+If magnitude of the fricSpr exceeds the magnitude of the friction limit,
+the terms are scaled down:
 
-        if(fricElas.norm() > fxyLimit)  p₀ = pxy + (pxy-p₀)/kₚ
+        if(|fricSpr| > |fricLimit|)
+            scaleFactor = [fricLimit| / |fricSpr|
+            fricViscSpr = scaleFactor * fricViscSpr
+            fricElasSpr = scaleFactor * fricElasSpr
+            fricSpr = fricElasSpr + fricViscSpr
+
+Note that scaling down the friction spring force does not alter its direction.
+
+#### Blending the Friction Models
+Blending Model 1 and Model 2 is accomplished using linear expressions of the
+Sliding State:
+
+        fricElasBlend = fricElasSpr * (1.0 - Sliding)
+        fricDampBlend = fricViscSpr + (fricDamp - fricViscSpr)*Sliding
+        fricBlend = fricElasBlend + fricDampBlend
+
+Regarding the elastic term, when Sliding = 0.0, fricElasBlend is given
+entirely by fricElasSpr, and, as Sliding → 1.0, fricElasBlend → 0.0.
+Regarding the damping term, when Sliding = 0.0, fricDampBlend is
+given entirely by fricViscSpr, and, as Sliding → 1.0, fricDampBlend →
+fricDamp. Any difference between fricViscSpr and fricDamp is due to the
+difference in the ways the friction limit is enforced.
+
+Thus, Model 1 (Pure Damping) dominates as Sliding → 1.0, and
+Model 2 (Damped Linear Spring) dominates as Sliding → 0.0. The blending is
+well behaved and smooth for all values of Sliding between 0.0 and 1.0.
+
+#### Moving the Spring Zero
+The spring zero (p₀) is always made to be consistent with the final value of
+the blended elastic force (fricElasBlend):
+
+        p₀ = pxy + fricElasBlend / kpFric;
+        p₀[2] = 0.0;  // p₀ always lies in the contact plane
+
+When fricElasBlend = 0.0, notice that p₀ = pxy, p₀[2] = 0.0 (i.e., p₀ is the
+spring station projected onto the contact plane).
 
 In Simbody, p₀ is handled as an Auto Update Discrete State. See
 State::allocateAutoUpdateDiscreteVariable() for a detailed description. Any
@@ -213,48 +253,48 @@ change to p₀ is made to the Update Cache (not to the State directly), and the
 integrator copies this cache value to the actual p₀ State after a successful
 integration step is obtained.
 
-### Coefficients of Friction
-
+#### Coefficients of Friction and SlidingDot
 Coefficients of kinetic (sliding) and static (fixed) friction can be
-specified for the spring subject to the following constraints:
+separately specified for the spring subject to the following constraints:
 
-       0.0 ≤ μₖ ≤ μₛ
+        0.0 ≤ μₖ ≤ μₛ
 
-Note that there is no upper bound on μₛ.
-
-A continuous state variable (Z = Sliding) is used to characterize the
-sliding state of the spring.
-
-        Sliding = 0     means fully fixed in place (lower bound)
-        Sliding = 1     means fully sliding (upper bound)
-
-The instantaneous coefficient of friction (mu) is calculated based on the
-value of Sliding:
+Note that there is no upper bound on μₛ. The instantaneous coefficient of
+friction (μ) is calculated based on the value of the Sliding State:
 
         μ = μₛ - Sliding*(μₛ - μₖ)
 
-The time derivative of Sliding is used to drive Sliding toward the
-extreme of 0.0 or 1.0, depending on the following criteria:
+The time derivative of Sliding, SlidingDot, is used to drive Sliding toward
+the extremes of 0.0 or 1.0, depending on the following criteria:
 
-When the elastic part of the frictional force exceeds its limit,
-Sliding is driven toward 1:
+If the frictional spring force (fricSpr) exceeded the frictional limit at any
+point during its calculation or if the normal force is very small
+(|fz| < SimTK::SignificantReal), Sliding is driven toward 1.0 (rise):
 
-        if (fricElas.norm() > fxyLimit)  SlidingDot = (1.0-Sliding)/tau
+        SlidingDot = (1.0-Sliding)/tau
 
-When vxy falls below some specified "settle" velocity (e.g., 0.01 m/s) AND
-the frictional force is less than its limit, Sliding is driven toward 0:
+If the frictional spring force (fricSpr) does not exceed the frictional
+limit at any point during its calculation and if the kinematics of the spring
+station are near static equilibrium, Sliding is driven toward 0.0 (decay):
 
-        else if (vxy.norm < 0.01)  SlidingDot = -Sliding/tau
+        SlidingDot = -Sliding/tau
 
-Otherwise, no change to the Sliding state is made:
+The threashold for being "near" static equlibrium is estabilished by two
+parameters, vSettle and aSettle. When the velocity and acceleration of the
+spring station relative to the contact plane are below vSettle and aSettle,
+respectively, static equilibrium is considered effectively reached.
 
-        else  SlidingDot = 0.0
+During a simulation, once a rise or decay is triggered, the rise or decay
+continues uninterrupted until Sliding crosses 0.95 or 0.05, respectively. Once
+these thresholds have been crossed, the criteria for rise and decay are again
+monitored.
 
-In the above equations, tau is the characteristic time it takes for the Sliding
-state to rise or decay. The motivation for using a continuous state variable
-for Sliding is that, although the transition between fixed and sliding may
-happen quickly, it does not happen instantaneously.  And, modeling Sliding
-based on a differential equation ensures that μ is continuous.
+In the above equations for SlidingDot, tau is the characteristic time it takes
+for the Sliding State to rise or decay. The default value of tau is 0.01 sec.
+The motivation for using a continuous state variable is that, although the
+transition between static and kinetic may happen quickly, it does not happen
+instantaneously. Evolving Sliding based on a differential equation ensures
+that μ is continuous and that the blending of friction models is well behaved.
 
 ### Future Enhancements
 
@@ -269,16 +309,18 @@ coin that is closest to the table.
 ------
 STATES
 ------
-Each instance of ExponentialSpringForce posseses 4 states, which are listed
+Each instance of ExponentialSpringForce posseses 5 states, which are listed
 below in the appropriate category:
 
 ### DISCRETE STATES (parameters)
 - μₛ = Static coefficient of friction.  0.0 ≤ μₛ
 - μₖ = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
 
-### AUTO UPDATE DISCRETE STATE
+### AUTO UPDATE DISCRETE STATES
 - p₀ = Zero point (Vec3) of the frictional spring. p₀ always lies in the
 contact plane.
+- SlidingAction = Action to take when setting SlidingDot = Check, Rise, or
+Decay.
 
 ### CONTINUOUS STATE
 - Sliding = Indicator of whether the spring zero (p₀) has been moving
