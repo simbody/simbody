@@ -138,35 +138,6 @@ struct ExponentialSpringData {
     Vec3 f_G;
 };
 
-
-//=============================================================================
-// Class SpringZeroRecorder
-//=============================================================================
-/* SpringZeroRecorder provides the average speed of the spring zero during
-a simulation. The spring zero is recorded at a time interval that matches the
-characteristic rise and decay time of the Sliding state (tau). Only the last
-two spring zeros are stored. The average he average speed is computed as
-follows:
-
-        ave speed = (p0_2 - p0_1) / (t2 - t1)
-
-If only one spring zero has been recorded, there is not enough information
-to compute a velocity.  In such a case a speed of 0.0 is returned.
-*/
-class SpringZeroRecorder : public PeriodicEventReporter {
-public:
-    SpringZeroRecorder(const ExponentialSpringForceImpl& spr,
-        Real reportInterval);
-    ~SpringZeroRecorder();
-    void handleEvent(const State& state) const override;
-    Real getSpeed() const;
-private:
-    const ExponentialSpringForceImpl& spr;
-    Real* t;
-    Vec3* p0;
-}; // end of class SpringZeroRecorder
-
-
  //============================================================================
  // Class ExponentialSpringForceImpl
  //============================================================================
@@ -188,18 +159,14 @@ const ExponentialSpringParameters& params) :
 ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
 contactPlane(floor), body(body), station(station),
 defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0., 0., 0.)),
-defaultSlidingAction(SlidingAction::Check),
-defaultSliding(1.0) {
+defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0) {
     // Check for valid static coefficient
     if(defaultMus < 0.0) defaultMus = 0.0;
     // Check for valid kinetic coefficient
     if(defaultMuk < 0.0) defaultMuk = 0.0;
     if(defaultMuk > defaultMus) defaultMuk = defaultMus;
     // Assign the parameters
-    this->params = params;
-    // Create the recorder
-    //recorder = new SpringZeroRecorder(*this, this->params.getSlidingTimeConstant());
-}
+    this->params = params;}
 
 //-----------------------------------------------------------------------------
 // Accessors
@@ -684,7 +651,6 @@ Sigma(Real t0, Real tau, Real t) {
 private:
     ExponentialSpringParameters params;
     ExponentialSpringData defaultData;
-    //SpringZeroRecorder* recorder;
     Transform contactPlane;
     const MobilizedBody& body;
     Vec3 station;
@@ -711,54 +677,6 @@ using namespace SimTK;
 using std::cout;
 using std::endl;
 
-//=============================================================================
-// Class SpringZeroRecorder
-//=============================================================================
-/* SpringZeroRecorder provides the average speed of the spring zero during
-a simulation. The spring zero is recorded at a time interval that matches the
-characteristic rise and decay time of the Sliding state (tau). Only the last
-two spring zeros are stored. The average he average speed is computed as
-follows:
-
-        ave speed = (p0_2 - p0_1) / (t2 - t1)
-
-If only one spring zero has been recorded, there is not enough information
-to compute a velocity.  In such a case a speed of 0.0 is returned.
-*/
-//_____________________________________________________________________________
-SpringZeroRecorder::
-SpringZeroRecorder(const ExponentialSpringForceImpl& spr, Real reportInterval)
-        : PeriodicEventReporter(reportInterval), spr(spr) {
-        t = new Real[2];
-        p0 = new Vec3[2];
-        t[0] = NaN;
-        t[1] = NaN;
-    }
-//_____________________________________________________________________________
-SpringZeroRecorder::
-~SpringZeroRecorder() {
-    delete t;
-    delete p0;
-}
-//_____________________________________________________________________________
-void
-SpringZeroRecorder::
-handleEvent(const State& state) const {
-    t[0] = t[1];
-    t[1] = state.getTime();
-
-    p0[0] = p0[1];
-    p0[1] = spr.getSprZero(state);
-}
-//_____________________________________________________________________________
-Real
-SpringZeroRecorder::getSpeed() const {
-    Real dt = t[1] - t[0];
-    if(isNaN(dt)) return 0.0;
-    Real delta = (p0[1] - p0[0]).norm();
-    return delta / dt;
-}
-
 
 //=============================================================================
 // Class ExponentialSpringForce
@@ -775,7 +693,6 @@ ExponentialSpringForce(MultibodySystem& system,
         new ExponentialSpringForceImpl(contactPlane, body, station,
             mus, muk, params));
     system.addForceSubsystem(*this);
-    //getImpl().addSpringZeroRecorder(system);
 }
 //_____________________________________________________________________________
 // Get the Transform specifying the location and orientation of the Contact
