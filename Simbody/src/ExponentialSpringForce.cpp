@@ -159,7 +159,8 @@ const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
 const ExponentialSpringParameters& params) :
 ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
 contactPlane(floor), body(body), station(station),
-defaultMus(mus), defaultMuk(muk), defaultSprZero(Vec3(0., 0., 0.)),
+defaultMus(mus), defaultMuk(muk), useBlended(true),
+defaultSprZero(Vec3(0., 0., 0.)),
 defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0) {
     // Check for valid static coefficient
     if(defaultMus < 0.0) defaultMus = 0.0;
@@ -383,12 +384,14 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // in fzElas and fzDamp. 'fz = fzElas + fzDamp' must remain true.
     if(data.fz < 0.0) {
         data.fz = 0.0;
-        data.fzDamp = -data.fzElas; }
+        data.fzDamp = -data.fzElas;
+    }
     if(data.fz > 100000.0) {
         data.fz = 100000.0;
-        data.fzElas = data.fz - data.fzDamp; }
+        data.fzElas = data.fz - data.fzDamp;
+    }
 
-    // Friction (in the plane of contact plane) ------------------------------
+    // Friction (in the plane of contact plane) -------------------------------
     // Get the sliding state, which is bounded by 0.0 and 1.0.
     Real sliding = getZ(state)[indexZ];
     if(sliding < 0.0) sliding = 0.0;
@@ -399,6 +402,9 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     Real muk = getMuKinetic(state);
     data.mu = mus - sliding * (mus - muk);
     data.fxyLimit = data.mu * data.fz;
+
+    // -------------------- BLENDED OPTION --------------------
+    if(useBlended) {
     // Model 1: Pure Damping (Sliding = 1.0)
     // Friction is the result purely of damping (no elastic term).
     // To avoid numerical issues, the damping force is set to zero when mu*Fn
@@ -435,12 +441,61 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
         (data.fricDampMod1 - data.fricDampMod2) * sliding;
     data.fric = data.fricElas + data.fricDamp;
     data.fxy = data.fric.norm();
-
     // Update the spring zero
     p0 = data.pxy + data.fricElas / kpFric;
     p0[2] = 0.0;  // Make sure p0 lies in the contact plane.
     updSprZeroInCache(state, p0);
     markCacheValueRealized(state, indexSprZeroInCache);
+    
+    // ------------------  SPRING ONLY OPTION ------------------
+    } else {
+    // Zero out stuff used for the Blended Option
+    data.fricDampMod1 = data.fricDampMod2 = 0.0;
+    data.fricElasMod2 = 0.0;
+    data.fricMod1 = data.fricMod2 = 0.0;
+    // Some initializations
+    Vec3 p0 = getSprZero(state);
+    data.limitReached = false;
+    // fxyLimit is very small, so set the friction force to zero.
+    if(data.fxyLimit < SignificantReal) {
+        data.fricDamp = 0.0;
+        data.fricElas = 0.0;
+        data.fric = 0.0;
+        p0 = data.pxy; p0[2] = 0.0;
+        data.limitReached = true;
+    // fxyLimit is large enough to do some calculations
+    } else {
+        // Elastic part
+        // Note that the spring zero is only changed if the elastic part
+        // is stretched too far.
+        data.fricElas = -kpFric * (data.pxy - p0); /*
+        if(data.fricElas.norm() > data.fxyLimit) {
+            data.fricElas = data.fxyLimit * data.fricElas.normalize();
+            p0 = data.pxy + data.fricElas / kpFric;
+            p0[2] = 0.0;
+            data.limitReached = true;
+        }*/
+        // Damping part
+        data.fricDamp = -kvFric * data.vxy; /*
+        if(data.fricDamp.norm() > data.fxyLimit) {
+            data.fricDamp = data.fxyLimit * data.fricDamp.normalize();
+        }*/
+        // Total
+        data.fric = data.fricElas + data.fricDamp;
+        data.fxy = data.fric.norm();
+        if(data.fxy > data.fxyLimit) {
+            Real scale = data.fxyLimit / data.fxy;
+            data.fricElas *= scale;
+            data.fricDamp *= scale;
+            data.fric = data.fricElas + data.fricDamp;
+            data.limitReached = true;
+        }
+    }
+    p0 = data.pxy + data.fricElas / kpFric;
+    p0[2] = 0.0;
+    updSprZeroInCache(state, p0);
+    markCacheValueRealized(state, indexSprZeroInCache);
+    } // end SPRING ONLY OPTION
 
     // Total spring force expressed in the frame of the Contact Plane.
     data.f = data.fric;     // The x and z components are friction.
@@ -493,9 +548,8 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
         // 2. |v| < vSettle  (Note: v must be small in ALL directions), AND
         // 3. |a| < aSettle  (Note: a must be small in ALL directions)
         } else {
-
             if(!data.limitReached && (data.v_G.norm() < vSettle) &&
-                (sliding > 0.05)) {
+                (data.fz >= SignificantReal) && (sliding > 0.05)) {
                 // Using another tier of the conditional to avoid computing
                 // the acceleration if possible.
                 // Computing acceleration takes 48 flops.
@@ -510,7 +564,8 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
 
         // If the action is still StateAction::Check, finish transitioning
         // to the current target.
-        if((action == SlidingAction::Check) && (sliding < 0.06)) target = 0.0;
+        if((action == SlidingAction::Check) && (sliding < 0.06))
+            target = 0.0;
 
     // Rise
     } else if(action == SlidingAction::Rise) {
@@ -650,6 +705,7 @@ Sigma(Real t0, Real tau, Real t) {
 private:
     ExponentialSpringParameters params;
     ExponentialSpringData defaultData;
+    bool useBlended;
     Transform contactPlane;
     const MobilizedBody& body;
     Vec3 station;
