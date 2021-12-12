@@ -94,7 +94,10 @@ public:
         system.realize(state, Stage::Dynamics);
         Vec3 f_G = spr.getForce(state);
         Real sliding = spr.getSliding(state);
-        cout << state.getTime() << "\tSliding= "<< sliding << "\tf_G= " << f_G << endl;
+        Vec3 fric = f_G; fric[1] = 0.0;
+        //cout << state.getTime() << "\tSliding= "<< sliding <<
+        //    "  \tmu= "<< fric.norm() / f_G[1] <<
+        //    "  \tf_G= " << f_G << endl;
 
     }
 private:
@@ -109,10 +112,8 @@ int main() {
         "modeled with exponential springs." << endl;
     try {
         // I should probably make the following options command line
-        // areguments,
-        // but since this code is part of the build environment, it is easy to
-        // recomplile.  I'll refine once the exponential spring classes pass
-        // basic muster.
+        // areguments, but since this code is part of the build environment,
+        // it is easy to recomplile.
 
         // Use compliant Contact?
         bool CmpContactOn = true;
