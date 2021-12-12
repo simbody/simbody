@@ -129,8 +129,6 @@ struct ExponentialSpringData {
     Vec3 fricDamp;
     /** Total frictional force after blending. */
     Vec3 fric;
-    /** Magnitude of the frictional force. */
-    Real fxy;
     /** Resultant spring force (normal + friction) expressed in the floor
     frame. */
     Vec3 f;
@@ -484,7 +482,6 @@ calcFrictionForceBlended(const State& state) const {
         data.fricDamp = data.fricDampMod2 +
             (data.fricDampMod1 - data.fricDampMod2) * sliding;
         data.fric = data.fricElas + data.fricDamp;
-        data.fxy = data.fric.norm();
     }
 
     // Update the spring zero
@@ -546,9 +543,9 @@ calcFrictionForceSpringOnly(const State& state) const {
         }*/
         // Total
         data.fric = data.fricElas + data.fricDamp;
-        data.fxy = data.fric.norm();
-        if(data.fxy > data.fxyLimit) {
-            Real scale = data.fxyLimit / data.fxy;
+        Real fxy = data.fric.norm();
+        if(fxy > data.fxyLimit) {
+            Real scale = data.fxyLimit / fxy;
             data.fricElas *= scale;
             data.fricDamp *= scale;
             data.fric = data.fricElas + data.fricDamp;
