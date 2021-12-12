@@ -583,14 +583,17 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
     // Decision tree for managing SlidingDot. Two things happen:
     // 1) Assign target to 0.0 or 1.0.
     // 2) Assign next action to Check, Rise, or Decay.
+    // Note that the reason for the 0.05 and 0.95 thresholds are because it
+    // taks a LONG time for Sliding to decay all the way to 0.0 or rise all
+    // the way to 1.0 (i.e., much longer than tau). Checking can resume when
+    // Sliding gets reasonably close to its target.
     Real target = 1.0;
     if(action == SlidingAction::Check) {
  
         // Conditions for Rise (Sliding --> 1.0)
         // 1. limitReached = true, OR
         // 2. fz < SimTK::SignificantReal (not "touching" contact plane)
-        if((data.limitReached || (data.fz < SignificantReal)) &&
-            (sliding < 0.95)) {
+        if((data.limitReached) && (sliding < 0.95)) {
             action = SlidingAction::Rise;
 
         // Conditions for Decay (Sliding --> 0.0)
@@ -600,7 +603,7 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
         // 3. |a| < aSettle  (Note: a must be small in ALL directions)
         } else {
             if(!data.limitReached && (data.v_G.norm() < vSettle) &&
-                (data.fz >= SignificantReal) && (sliding > 0.05)) {
+                (sliding > 0.05)) {
                 // Using another tier of the conditional to avoid computing
                 // the acceleration if possible.
                 // Computing acceleration takes 48 flops.
