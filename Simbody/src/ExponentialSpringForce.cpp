@@ -427,57 +427,66 @@ calcNormalForce(const State& state) const {
 // Key quantities are saved in the data cache.
 void
 calcFrictionForceBlended(const State& state) const {
-    // Retrieve a writable reference to the data cache entry.
-    ExponentialSpringData& data = updData(state);
-    // The the friction parameters
-    Real kpFric = params.getElasticity();
-    Real kvFric = params.getViscosity();
-    // Get the sliding state, which is bounded by 0.0 and 1.0.
+    // Initializations
+    ExponentialSpringData& data = updData(state);  // data cache
+    Real kpFric = params.getElasticity();   // elasticity
+    Real kvFric = params.getViscosity();    // viscosity
+    Vec3 p0 = getSprZero(state);            // spring zero
+    data.limitReached = false;              // true if force limit exceeded
+
+    // Bounded Sliding by 0.0 and 1.0.
     Real sliding = getZ(state)[indexZ];
     if(sliding < 0.0) sliding = 0.0;
     else if(sliding > 1.0) sliding = 1.0;
-    // Compute the maximum allowed frictional force based on the current
-    // coefficient of friction.
+
+    // Compute max friction force based on the instantaneous mu.
     Real mus = getMuStatic(state);
     Real muk = getMuKinetic(state);
     data.mu = mus - sliding * (mus - muk);
     data.fxyLimit = data.mu * data.fz;
-    // Model 1: Pure Damping (when Sliding = 1.0)
-    // Friction is the result purely of damping (no elastic term).
-    // To avoid numerical issues, the damping force is set to zero when mu*Fn
-    // (data.fxyLimit) is less than the constant SimTK::SignificantReal.
-    // If the damping force is greater than data.fxyLimit, the damping force
-    // is capped at data.fxyLimit.
-    data.fricDampMod1 = data.fricDampMod2 = -kvFric * data.vxy;
-    if(data.fxyLimit < SignificantReal) data.fricDampMod1 = 0.0;
-    else {
-        if(data.fricDampMod1.norm() > data.fxyLimit)
-            data.fricDampMod1 = data.fxyLimit * data.fricDampMod1.normalize();
-    }
-    // Model 2: Damped Linear Spring (when Sliding = 0.0)
-    // The elastic component prevents drift while maintaining reasonable
-    // integrator step sizes, at least when compared to just increasing the
-    // damping coefficient.
-    data.limitReached = false;
-    Vec3 p0 = getSprZero(state);
-    data.fricElasMod2 = -kpFric * (data.pxy - p0);
-    data.fricMod2 = data.fricElasMod2 + data.fricDampMod2;
-    Real fxyMod2 = data.fricMod2.norm();
-    if(fxyMod2 > data.fxyLimit) {
+
+    // Friction limit is too small. Set all forces to 0.0.
+    if(data.fxyLimit < SignificantReal) {
+        data.fricMod1 = data.fricDampMod1 = 0.0;
+        data.fricMod2 = data.fricDampMod2 = data.fricElasMod2 = 0.0;
+        data.fric = data.fricDamp = data.fricElas = 0.0;
         data.limitReached = true;
-        Real scale = data.fxyLimit / fxyMod2;
-        data.fricElasMod2 *= scale;
-        data.fricDampMod2 *= scale;
+
+    // Friction limit is large enough for meaningful calculations.
+    } else {
+        // Model 1: Pure Damping (when Sliding = 1.0)
+        // Friction is the result purely of damping (no elastic term).
+        // If damping force is greater than data.fxyLimit, the damping force
+        // is capped at data.fxyLimit.
+        data.fricDampMod1 = data.fricDampMod2 = -kvFric * data.vxy;
+        if(data.fricDampMod1.norm() > data.fxyLimit) {
+            data.fricDampMod1 = data.fxyLimit * data.fricDampMod1.normalize();
+            data.limitReached = true;
+        }
+        // Model 2: Damped Linear Spring (when Sliding = 0.0)
+        // The elastic component prevents drift while maintaining reasonable
+        // integrator step sizes, at least when compared to just increasing the
+        // damping coefficient.
+        data.fricElasMod2 = -kpFric * (data.pxy - p0);
         data.fricMod2 = data.fricElasMod2 + data.fricDampMod2;
+        Real fxyMod2 = data.fricMod2.norm();
+        if(fxyMod2 > data.fxyLimit) {
+            Real scale = data.fxyLimit / fxyMod2;
+            data.fricElasMod2 *= scale;
+            data.fricDampMod2 *= scale;
+            data.fricMod2 = data.fricElasMod2 + data.fricDampMod2;
+            data.limitReached = true;
+        }
+        // Blend Model 1 and Model 2 according to the Sliding state
+        // As Sliding --> 1.0, Model 1 dominates
+        // As Sliding --> 0.0, Model 2 dominates
+        data.fricElas = data.fricElasMod2 * (1.0 - sliding);
+        data.fricDamp = data.fricDampMod2 +
+            (data.fricDampMod1 - data.fricDampMod2) * sliding;
+        data.fric = data.fricElas + data.fricDamp;
+        data.fxy = data.fric.norm();
     }
-    // Blend Model 1 and Model 2 according to the Sliding state
-    // As Sliding --> 1.0, Model 1 dominates
-    // As Sliding --> 0.0, Model 2 dominates
-    data.fricElas = data.fricElasMod2 * (1.0 - sliding);
-    data.fricDamp = data.fricDampMod2 +
-        (data.fricDampMod1 - data.fricDampMod2) * sliding;
-    data.fric = data.fricElas + data.fricDamp;
-    data.fxy = data.fric.norm();
+
     // Update the spring zero
     p0 = data.pxy + data.fricElas / kpFric;
     p0[2] = 0.0;  // Make sure p0 lies in the contact plane.
