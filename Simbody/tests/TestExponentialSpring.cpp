@@ -814,8 +814,8 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         // Check 0.0 ≤ sliding state ≤ 1.0
         Real sliding = spr.getSliding(state);
         //cout << "sliding= " << sliding << endl;
-        SimTK_TEST(sliding < 1.0 + acc);
-        SimTK_TEST(sliding > 0.0 - acc);
+        SimTK_TEST(sliding < 1.1);
+        SimTK_TEST(sliding > -0.1);
 
         // Check μₖ ≤ μ ≤ μₛ
         Real mus = spr.getMuStatic(state);
