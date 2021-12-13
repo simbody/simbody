@@ -59,15 +59,16 @@ which all conventional contact forces arise, are never actually zero either.
 They obey Coulomb's Law (Fₑ = kₑq₁q₂/r²) which states that an
 electrostatic force only approaches zero as the distance between two
 charges (r) approaches infinity. It is certainly not the case that exponential
-springs accurately model contact force at the level of fundamental forces; we
-only suggest that the use of a force field that acts over a great distance is
-reasonable as long as the force gets sufficiently small sufficiently quickly.
+springs accurately model contact force at the level of electrostatic forces;
+we only suggest that the use of a contact force field that acts over a great
+distance is reasonable as long as the force gets sufficiently small
+sufficiently quickly.
 
 Introducing any additional modeling approximation into a simulation is hard to
 justify, however, unless there are significant benefits. In the case of
 exponential springs there are two: simplicity and speed. With exponential
-springs, there is no need to search for body intersections (the number active
-of springs does not change during a simulation) and there is no need to
+springs, there is no need to search for body intersections (the number of
+active springs does not change during a simulation) and there is no need to
 find the precise time of contact. In addition, because the function
 describing the contact force is smooth, the integration step sizes taken
 by variable-step explicit integrators are often well-behaved.
@@ -90,13 +91,13 @@ considerably (at least in explicit integrators).
 Part of the speed-up offered by ExponentialSpringForce derives, not from the
 use of an exponential for the normal force, but from the friction model
 employed. ExponentialSpringForce uses a spring-based frictional model that
-includes a velocity-depending (damping) term AND a position-dependent
+includes a velocity-dependent (damping) term AND a position-dependent
 (elastic) term. By including the elastic term, drift is entirely eliminated
 and relatively large integration step sizes are maintained.
 
 In initial comparisons, using class ExponentialSpringForce to model
-contact resulted in simulation cpu times that were typically 8 times less
-(and sometimes 100+ times less) than when using class
+contact resulted in simulation cpu times that were typically 8 times faster
+(and sometimes 100+ times faster) than when using class
 CompliantContactSubsystem, and yet the simulated motions were similar.
 These comparisons can be reproduced by building and running the Test_Adhoc -
 ExponentialSpringsComparison project that is included with Simbody.
@@ -125,7 +126,7 @@ plane.
 
 In the equations below, a variable with a "z" suffix (e.g., pz or vz) refers
 to a quantity that is normal to the contact plane. A variable with an "xy"
-suffix refers to a quantity that lies in the contact plane.
+suffix refers to a quantity that lies in or is tangent to the contact plane.
 
 ### Normal Force (positive z-axis)
 
@@ -160,8 +161,8 @@ which has the form of the Hunt & Crossley damping model:
 ### Friction Force (x-y plane)
 
 The friction force is computed by blending two different friction models.
-The blending is performed based on the Sliding State of the
-ExponentialSpringForce class. Sliding is a continuous state variable (a Z in
+The blending is performed based on the 'Sliding' State of the
+ExponentialSpringForce class. 'Sliding' is a continuous state variable (a Z in
 Simbody vocabulary) that characterizes the extent to which either static or
 kinetic conditions are present.
 
@@ -183,10 +184,12 @@ total frictional force is not allowed to exceed the frictional limit:
         fricLimit = - μ fz vxy / |vxy|
         if (|fricDamp| > |fricLimit|) fricDamp = fricLimit
 
-where μ is the instantaneous coefficient of friction (more below). Thus, this
-model is consistent with a common Couloub Friction model.
+where μ is the instantaneous coefficient of friction (more below). Thus, for
+velocities above some threshold velocity, which is typically small (i.e., less
+than 0.1 m/s), this model is consistent with a standard Coulomb Friction
+model.
 
-#### Friction Model 2 - Dampled Linear Spring (Sliding = 0.0)
+#### Friction Model 2 - Damped Linear Spring (Sliding = 0.0)
 When a spring station is fixed with respect to its contact plane, the friction
 force is represented by a damped linear spring. The viscous term is given by
 the same damping expression as above:
@@ -198,8 +201,8 @@ and the elastic term is given by
         fricElasSpr = -kₚ (pxy-p₀)
 
 where kₚ is the spring elasticity, pxy is the position of the body station
-projected onto the contact plane, and p₀ is the current spring zero, which always
-resides in the contact plane.
+projected onto the contact plane, and p₀ is the current spring zero, which
+always resides in the contact plane.
 
 The total friction spring force is then given by the sum of the elastic and
 viscous terms:
@@ -254,8 +257,8 @@ integrator copies this cache value to the actual p₀ State after a successful
 integration step is obtained.
 
 #### Coefficients of Friction and SlidingDot
-Coefficients of kinetic (sliding) and static (fixed) friction can be
-separately specified for the spring subject to the following constraints:
+Coefficients of kinetic (sliding) and static (fixed) friction can be specified
+separately for the spring, subject to the following constraints:
 
         0.0 ≤ μₖ ≤ μₛ
 
@@ -267,19 +270,18 @@ friction (μ) is calculated based on the value of the Sliding State:
 The time derivative of Sliding, SlidingDot, is used to drive Sliding toward
 the extremes of 0.0 or 1.0, depending on the following criteria:
 
-If the frictional spring force (fricSpr) exceeded the frictional limit at any
-point during its calculation or if the normal force is very small
-(|fz| < SimTK::SignificantReal), Sliding is driven toward 1.0 (rise):
+- If the frictional spring force (fricSpr) exceeded the frictional limit at
+any point during its calculation, Sliding is driven toward 1.0 (rise):
 
         SlidingDot = (1.0-Sliding)/tau
 
-If the frictional spring force (fricSpr) does not exceed the frictional
+- If the frictional spring force (fricSpr) does not exceed the frictional
 limit at any point during its calculation and if the kinematics of the spring
 station are near static equilibrium, Sliding is driven toward 0.0 (decay):
 
         SlidingDot = -Sliding/tau
 
-The threashold for being "near" static equlibrium is estabilished by two
+The threshold for being "near" static equilibrium is established by two
 parameters, vSettle and aSettle. When the velocity and acceleration of the
 spring station relative to the contact plane are below vSettle and aSettle,
 respectively, static equilibrium is considered effectively reached.
@@ -309,28 +311,33 @@ coin that is closest to the table.
 ------
 STATES
 ------
-Each instance of ExponentialSpringForce posseses 5 states, which are listed
+Each instance of ExponentialSpringForce possesses 5 states, which are listed
 below in the appropriate category:
 
 ### DISCRETE STATES (parameters)
 - μₛ (Real) = Static coefficient of friction.  0.0 ≤ μₛ
 - μₖ (Real) = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
+As discrete states, μₛ and μₖ can be changed during the course of a simulation
+without invalidating the System topology. This feature allows μₛ and μₖ to be
+altered during a simulation to model, for example, a slippery spot on the
+floor.
 
 ### AUTO UPDATE DISCRETE STATES
 - p₀ (Vec3) = Zero point  of the frictional spring. p₀ always lies in the
 contact plane.
-- SlidingAction (int) = Action to take when setting SlidingDot = Check, Rise,
-or Decay.
+- SlidingAction (int) = Action to take when setting SlidingDot. Possible
+actions are Check, Rise, or Decay.
 
 ### CONTINUOUS STATE
-- Sliding (Real) = Indicator of whether the spring zero (p₀) has been moving
-(sliding) or fixed in the contact plane.  0.0 ≤ Sliding ≤ 1.0.
+- Sliding (Real) = Indicator of whether the spring zero (p₀) is moving or
+fixed in the contact plane.  0.0 ≤ Sliding ≤ 1.0.
 The "Sliding" state is used to transition the instantaneous coefficient of
-frction (μ) between μₖ and μₛ. A value of 0.0 indicates that p₀ is fixed in
+friction (μ) between μₖ and μₛ. A value of 0.0 indicates that p₀ is fixed in
 place, in which case μ = μₛ. A value of 1.0 indicates that p₀ is sliding, in
 which case μ = μₖ. A value between 0.0 and 1.0 indicates that a transition
-from sliding to fixed or from fixed to sliding is undwerway, in which case
-μₖ ≤ μ ≤ μₛ.
+from sliding to fixed or from fixed to sliding is underway, in which case
+μₖ ≤ μ ≤ μₛ. Sliding is also used to blend between friction Model 1 and Model 2
+(see above for details).
 
 ----------
 PARAMETERS
@@ -351,8 +358,8 @@ public:
     @param system The system being simulated or studied.
     @param contactPlane Transform specifying the location and orientation of
     the contact plane with respect to the Ground frame. The positive z-axis
-    defines the normal of the contact plane; friction forces lie in (are
-    tangent to) the x-y plane.
+    of the contact plane defines the normal direction; the x- and y-axes
+    define the tangent (or friction) plane.
     @param body MobilizedBody that will interact / collide with the contact
     plane.
     @param station Point on the specified body at which the contact force
@@ -373,8 +380,7 @@ public:
     /** Get the Transform specifying the location and orientation of the
      Contact Plane with respect to the Ground frame. This transform can be
      used to transform quantities expressed in the Contact Plane to the Ground
-     frame and vice versa. The z-axis of the contact plane frame specifies the
-     normal. */
+     frame and vice versa. */
     const Transform& getContactPlane() const;
 
     /** Get the body (i.e., the MobilizedBody) for which this exponential
@@ -388,24 +394,24 @@ public:
     const Vec3& getStation() const;
 
     /** Set the customizable Topology-stage parameters on this exponential
-    spring instance. To do this, create an ExponentialSpringParameters object,
-    set the desired parameters on that object, and then call this method to
-    modify the parameter values owned by this ExponentialSpringForce instance.
-    Calling this method will invalidate the System at Stage::Topology;
-    therefore, following a call to this method, System::realizeTopology() must
-    be called before simulation can proceed.
+    spring instance. To set the customizable Topology-stage parameters, create
+    an ExponentialSpringParameters object, set the desired parameters on that
+    object, and then call this method to modify the parameter values owned by
+    this ExponentialSpringForce instance. Calling this method will invalidate
+    the System at Stage::Topology; therefore, following a call to this method,
+    System::realizeTopology() must be called before simulation can proceed.
     @param params Parameters object. */
     void setParameters(const ExponentialSpringParameters& params);
 
     /** Get a const reference to the parameters object owned by this
     exponential spring. The returned reference can be used to inspect the
-    current values of the parameters or to create a copy of the paramters that
-    is not owned by this exponential spring. The returned reference can also be
-    used as the argument to setParameters() on a different spring object in
-    order to assign its parameters to the values of this one. A non-const
-    reference is not made available to the user in order to hinder casual
-    changes made directly to the parameters owned this subsystem. All changes
-    made to the parameters owned by this subsystem must go through
+    current values of the parameters or to create a copy of the parameters
+    that is not owned by this exponential spring. The returned reference can
+    also be used as the argument to setParameters() on a different spring
+    object in order to assign its parameters to the values of this one. A
+    non-const reference is not made available to the user in order to hinder
+    casual changes made directly to the parameters owned by this subsystem.
+    All changes made to the parameters owned by this subsystem must go through
     setParameters(). In this way, managing when system needs to be re-realized
     at Stage::Topology is streamlined. */
     const ExponentialSpringParameters& getParameters() const;
@@ -443,7 +449,7 @@ public:
     Real getMuKinetic(const State& state) const;
 
     /** Set the Sliding state of the spring.
-    @param state State object on which the new value will be set
+    @param state State object on which the new value will be set.
     @param sliding New value of Sliding.  0.0 ≤ sliding ≤ 1.0 */
     void setSliding(State& state, Real sliding);
 
@@ -460,9 +466,9 @@ public:
     @param state State object on which to base the reset. */
     void resetSpringZero(State& state) const;
 
-    /** Get the elastic part of the normal force. The system must be realized to
-    Stage::Dynamics to access this data.
-    @param state State object on which to based the calculations.
+    /** Get the elastic part of the normal force. The system must be realized
+    to Stage::Dynamics to access this data.
+    @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -472,7 +478,7 @@ public:
 
     /** Get the damping part of the normal force. The system must be realized
     to Stage::Dynamics to access this data.
-    @param state State object on which to based the calculations.
+    @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -482,7 +488,7 @@ public:
 
     /** Get the normal force. The system must be realized to Stage::Dynamics
     to access this data.
-    @param state State object on which to based the calculations.
+    @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -493,19 +499,21 @@ public:
     /** Get the instantaneous coefficient of friction (μ). The system must be
     realized to Stage::Dynamics to access this data. μ is obtained by using
     the Sliding state to transition between μₖ and μₛ:
+
             μ = μₛ - Sliding*(μₛ - μₖ)
+    
     Because 0.0 ≤ Sliding ≤ 1.0, μₖ ≤ μ ≤ μₛ.
-    @param state State object on which to based the calculations. */
+    @param state State object on which to base the calculations. */
     Real getMu(const State& state) const;
 
     /** Get the friction limit. The system must be realized to Stage::Dynamics
     to access this data.
-    @param state State object on which to based the calculations. */
+    @param state State object on which to base the calculations. */
     Real getFrictionForceLimit(const State& state) const;
 
-    /** Get the elastic part of the friction force. The system must be realized
-    to Stage::Dynamics to access this data.
-    @param state State object on which to based the calculations.
+    /** Get the elastic part of the friction force. The system must be
+    realized to Stage::Dynamics to access this data.
+    @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -513,9 +521,9 @@ public:
     Vec3 getFrictionForceElasticPart(
         const State& state, bool inGround = true) const;
 
-    /** Get the damping part of the friction force. The system must be realized
-    to Stage::Dynamics to access this data.
-    @param state State object on which to based the calculations.
+    /** Get the damping part of the friction force. The system must be
+    realized to Stage::Dynamics to access this data.
+    @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -525,7 +533,7 @@ public:
 
     /** Get the total friction force. The system must be realized
     to Stage::Dynamics to access this data.
-    @param state State object on which to based the calculations.
+    @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -534,7 +542,7 @@ public:
 
     /** Get the total spring force applied to the MobilizedBody. The system
     must be realized to Stage::Dynamics to access this data.
-    @param state State object on which to based the calculations.
+    @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -548,7 +556,7 @@ public:
     station is expressed. getStation() expresses the point in the frame of
     the MobilizedBody. getStationPosition() expresses the point either in the
     Ground frame or in the frame of the Contact Plane.
-    @param state State object on which to based the calculations.
+    @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -557,7 +565,7 @@ public:
 
     /** Get the velocity of the spring station. The system must be realized to
     Stage::Velocity to access this data.
-    @param state State object on which to based the calculations.
+    @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
@@ -571,7 +579,7 @@ public:
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
     the contact plane. */
-    Vec3 getSpringZeroPosition(const State& state, bool inGround = true) const;
+    Vec3 getSpringZeroPosition(const State& state, bool inGround=true) const;
 
 private:
     /** Retrieve a writable reference to the underlying implementation. */

@@ -14,11 +14,11 @@
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  See the License for the specific language governing permissions and
  limitations under the License.
- ------------------------------------------------------------------------------*/
+ ------------------------------------------------------------------------------
+ */
 
 // ExponentialSpringsComparison.cpp
-// This file contains the main() function. Program execution begins and ends there.
-//
+// This file contains the main() function.
 
 #include "Simbody.h"
 #include <iostream>

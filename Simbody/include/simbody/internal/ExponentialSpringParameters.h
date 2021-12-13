@@ -25,10 +25,10 @@ namespace SimTK {
 
 //=============================================================================
 /** ExponentialSpringParameters is a helper class used to customize the
-characteristics of an ExponentialSpringForce instance. It manages all
-parameters that are implemented as Stage::Topology variables. To customize any
-of the Topology-stage parameters on an ExponentialSpringForce instance, the
-user should
+characteristics of an ExponentialSpringForce instance.
+ExponentialSpringParameters manages all parameters that are implemented as
+Stage::Topology variables. To customize any of the Topology-stage parameters
+on an ExponentialSpringForce instance, you should
 
 1) Create an ExponentialSpringParameters object. For example,
 
@@ -46,10 +46,10 @@ of that object. For example,
         spr1.setParameters(myParams);
         spr2.setParameters(myParams);
 
-4) Realize the system to Stage::Topology.  When a new set of parameters is
+4) Realize the system to Stage::Topology. When a new set of parameters is
 set on an ExponentialSpringForce instance, as above in step 3, the System will
 be invalidated at Stage::Topology.  The System must therefore be realized at
-Stage::Topology before a simulation can proceed.
+Stage::Topology (and hence Stage::Model) before a simulation can proceed.
 
         system.realizeTopology();
 
@@ -68,15 +68,14 @@ The default values of the parameters held by ExponentialSpringParameters
 work well for typical contact interactions, but clearly may not be
 appropriate for simulating many contact interactions. For example, one might
 want to simulate an interaction in which very little energy is dissipated
-during a contact event, in which case you'd reduce the normal visocsity and
-fricition spring viscosity, as well as decreasing the coefficients of
+during a contact event, in which case you'd reduce the normal viscosity and
+friction spring viscosity, as well as decrease the coefficients of
 friction. Valid values of the friction spring elasticity and viscosity (kₚ and
 kᵥ) can range widely (e.g., kₚ = 1,000 to kₚ = 1,000,000) depending on the
 material properties of the objects represented by a particular MobilizedBody
 and contact plane (e.g., bare feet on a yoga mat vs. a steel bearing
-on a marble floor). In general, the higher kₚ and kᵥ, the smaller the
-integration step size will need to be in order to produce an accurate
-integration.
+on a marble floor). In general, higher values of kₚ and kᵥ will result in
+smaller integration step sizes.
 
 The default values of the parameters are expressed in units of Newtons,
 meters, seconds, and kilograms; however, you may use an alternate set of
@@ -122,27 +121,27 @@ public:
     exponential, which models the elastic response of the spring in the normal
     direction, is a function of 3 parameters:
 
-            fyElastic = d₁exp(-d₂(py-d₀))
+            fzElastic = d₁exp(-d₂(pz-d₀))
 
-    Note that py is the displacement of the body spring station above
-    (py > 0.0) or below (py < 0.0) the contact plane. The default values of
+    Note that pz is the displacement of the body spring station above
+    (pz > 0.0) or below (pz < 0.0) the contact plane. The default values of
     the shape parameters were chosen to maximize integration step size while
     maintaining a number of constraints (e.g., the normal force must fall
-    below 0.01 Newtons when py > 1.0 cm).
+    below 0.01 Newtons when pz > 1.0 cm).
     @param d0 shifts the exponential function up and down with respect to the
     contact plane. Its default value is 0.0065905 m (~7 mm above the contact
     plane). This slight upward shift reduces penetration of the body spring
     station below the contact plane. That is, unless there is an impact event,
     the repulsive force applied to the body will generally be large enough to
-    keep py from going negative. There is no issue with py going negative
+    keep pz from going negative. There is no issue with pz going negative
     (nothing special happens); the shift just facilitates an interpretation of
     the contact interaction that is conceptually appealing. d0 can be
     positive, have a value of 0.0, or be negative.
     @param d1 linearly scales the applied force up or down. Its default
     value is 0.5336 Newtons. d1 should be positive to generate a repulsive
-    force directed along the positive y axis of the contact plane.
+    force directed along the positive z-axis of the contact plane.
     @param d2 linearly scales the exponent. Its default value is 1150.0 / m.
-    Larger values of d2 make the exponential curve rise more rapidly as py
+    Larger values of d2 make the exponential curve rise more rapidly as pz
     gets small or becomes negative. d1 should be positive. */
     void setShapeParameters(Real d0, Real d1 = 0.5336, Real d2 = 1150.0);
 
@@ -172,11 +171,11 @@ public:
     setViscosity().
     @param kp Elasticity of the friction spring. kp should be positive.
     @param mass Mass of the body for which critical damping would be achieved.
-    Articulated bodies generally don't have a constant mass as it relates to
-    acceleration in a particular direction, so think of this mass as a kind
-    of average mass. A default mass of 1.0 kg is used if a mass is not
-    specified. */
-    void setElasticityAndViscosityForCriticalDamping(Real kp, Real mass = 1.0);
+    Articulated bodies generally don't have an effective mass that is constant
+    as it relates to acceleration in a particular direction, so think of this
+    mass as a kind of average mass. A default mass of 1.0 kg is used if a mass
+    is not specified. */
+    void setElasticityAndViscosityForCriticalDamping(Real kp, Real mass=1.0);
 
     /** Set the elasticity of the friction spring (kₚ). A call to this method
     overrides any value of elasticity previously set by a call to
@@ -202,8 +201,8 @@ public:
     directed opposite the sliding velocity, and the elastic part of the
     friction spring will not store additional potential energy because the
     spring zero is continually released. The only way to eliminate energy
-    dissipation entirely is to set the coefficients of friction equal to 0.0,
-    which can be done by a call to ExponentialSpringForce::setMuStatic(0.0).
+    dissipation entirely is to also set the coefficients of friction equal to
+    0.0.
     @param kv Viscosity of the friction spring. Its default value is
     2.0*sqrt(kp*mass) = 2.0*sqrt(20000*1) ~= 282.8427 N*s/m. kv should be 0.0
     or positive. */
@@ -218,10 +217,10 @@ public:
 
     /** Set the time constant for transitioning back and forth between the
     static (μₛ) and kinetic (μₖ) coefficients of friction. The transition is
-    mediated by a rising or falling exponential that is asymptotic to μₛ or μₖ,
-    respectively.
-    @param tau Time constant (τ) for sliding transitions. The default value of τ
-    is 0.01 s. τ must be positive. */
+    mediated by a rising or decaying exponential that is asymptotic to μₛ or
+    μₖ, respectively.
+    @param tau Time constant (τ) for sliding transitions. The default value of
+    τ is 0.01 s. τ must be positive. */
     void setSlidingTimeConstant(Real tau);
 
     /** Get the time constant for transitioning back and forth between the
@@ -231,8 +230,8 @@ public:
 
     /** Set the velocity below which the coefficient of friction transitions
     to the static coefficient of friction (μₛ).
-    @param vSettle Settle velocity. It's default value is 0.001 m/s. vSettle
-    must be positive.*/
+    @param vSettle Settle velocity. It's default value is 0.01 m/s. vSettle
+    must be positive. */
     void setSettleVelocity(Real vSettle);
 
     /** Get the velocity magnitude below which the coefficient of friction
@@ -242,7 +241,7 @@ public:
 
     /** Set the acceleration magnitude below which the coefficient of friction
     transitions to the static coefficient of friction (μₛ).
-    @param aSettle Settle acceleration. It's default value is 0.1 m/s².
+    @param aSettle Settle acceleration. It's default value is 1.0 m/s².
     aSettle must be positive.*/
     void setSettleAcceleration(Real aSettle);
 
