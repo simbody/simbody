@@ -22,6 +22,7 @@
 
 #include "Simbody.h"
 #include <iostream>
+#include <stdlib.h>
 
 using namespace SimTK;
 using std::endl;
@@ -92,12 +93,15 @@ public:
     }
     void handleEvent(const State& state) const override {
         system.realize(state, Stage::Dynamics);
-        Vec3 f_G = spr.getForce(state);
+        Vec3 f = spr.getForce(state,false);
         Real sliding = spr.getSliding(state);
-        Vec3 fric = f_G; fric[1] = 0.0;
+        Real mu = spr.getMu(state);
+        Vec3 fric = f; fric[2] = 0.0;
+        Real ratio = fric.norm() / f[2];
+        // Everything is in the frame of the contact plane.
         //cout << state.getTime() << "\tSliding= "<< sliding <<
-        //    "  \tmu= "<< fric.norm() / f_G[1] <<
-        //    "  \tf_G= " << f_G << endl;
+        //    "  \tmu= " << mu << "  \tratio= "<< ratio <<
+        //    "  \tf= " << f << endl;
 
     }
 private:

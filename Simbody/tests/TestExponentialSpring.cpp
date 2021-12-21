@@ -26,8 +26,9 @@
 // Temporarily added to check for memory leaks
 //--------------------------------------------
 #include "SimTKsimbody.h"
-
 #include <iostream>
+#include <stdlib.h>
+#include <memory>
 using std::cout;
 using std::endl;
 using std::unique_ptr;
