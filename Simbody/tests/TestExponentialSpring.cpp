@@ -32,7 +32,6 @@
 using std::cout;
 using std::endl;
 using std::unique_ptr;
-using std::make_unique;
 
 using namespace SimTK;
 
@@ -99,7 +98,7 @@ class PeriodicStateRecorder : public PeriodicEventReporter {
 public:
     PeriodicStateRecorder(Real reportInterval)
         : PeriodicEventReporter(reportInterval) {
-        storage = make_unique<Array_<State>>();
+        storage = unique_ptr<Array_<State>>(new Array_<State>());
     }
     void handleEvent(const State& state) const override {
         storage->emplace_back(state);
@@ -125,7 +124,7 @@ public:
             const MobilizedBody& body) :
             TriggeredEventReporter(Stage::Velocity),
             system(system), body(body) {
-        storage = make_unique<Array_<State>>();
+        storage = unique_ptr<Array_<State>>(new Array_<State>());
         getTriggerInfo().setTriggerOnRisingSignTransition(true);
     }
     ~MinMaxHeightStateRecorder() {
@@ -569,8 +568,9 @@ void simulateBlock(const SimulationOptions& options) {
     unique_ptr<ExponentialSpringForce> sprFloor[8];
     int i;
     for(i = 0; i < 8; ++i) {
-        sprFloor[i] = make_unique<ExponentialSpringForce>(system,
-            floorPlane, body, corner[i], mus, muk, params);
+        sprFloor[i] = unique_ptr<ExponentialSpringForce>(
+            new ExponentialSpringForce(system, floorPlane, body, corner[i],
+                mus, muk, params));
     }
     Rotation RDecor(angle2, ZAxis);
     Transform shiftedFloorPlane(RDecor, Vec3(0.0, -0.1, 0.0));
@@ -588,8 +588,11 @@ void simulateBlock(const SimulationOptions& options) {
     // Create an exponential spring to each corner of the block.
     unique_ptr<ExponentialSpringForce> sprWall[8];
     for(i = 0; i < 8; ++i) {
-        sprWall[i] = make_unique<ExponentialSpringForce>(system,
-            wallPlane, body, corner[i], mus, muk, params);
+        //sprWall[i] = make_unique<ExponentialSpringForce>(system,
+        //    wallPlane, body, corner[i], mus, muk, params);
+        sprWall[i] = unique_ptr<ExponentialSpringForce>(
+            new ExponentialSpringForce(system, wallPlane, body, corner[i],
+                mus, muk, params));
     }
     angle1 = convertDegreesToRadians(90.0);
     angle2 = convertDegreesToRadians(30.0);
@@ -620,7 +623,7 @@ void simulateBlock(const SimulationOptions& options) {
     unique_ptr<Visualizer::Reporter> vizReporter;
     Visualizer::InputSilo* silo;
     if(options.viz) {
-        viz = make_unique<Visualizer>(system);
+        viz = unique_ptr<Visualizer>(new Visualizer(system));
         viz->setShowShadows(true);
         viz->setShutdownWhenDestructed(true);
 

@@ -28,7 +28,6 @@ using namespace SimTK;
 using std::endl;
 using std::cout;
 using std::unique_ptr;
-using std::make_unique;
 
 Array_<State> saveEm;
 
@@ -94,14 +93,15 @@ public:
     void handleEvent(const State& state) const override {
         system.realize(state, Stage::Dynamics);
         Vec3 f = spr.getForce(state,false);
+        Vec3 p0 = spr.getSpringZeroPosition(state);
         Real sliding = spr.getSliding(state);
         Real mu = spr.getMu(state);
         Vec3 fric = f; fric[2] = 0.0;
         Real ratio = fric.norm() / f[2];
         // Everything is in the frame of the contact plane.
-        //cout << state.getTime() << "\tSliding= "<< sliding <<
-        //    "  \tmu= " << mu << "  \tratio= "<< ratio <<
-        //    "  \tf= " << f << endl;
+        cout << state.getTime() << "\tSliding= "<< sliding <<
+            "  \tmu= " << mu << "  \tratio= "<< ratio <<
+            "  \tp0= " << p0 << "  \tf= " << f << endl;
 
     }
 private:
@@ -129,7 +129,7 @@ int main() {
         bool VisOn = true;
 
         // Specify initial conditions.
-        int condition = 4;
+        int condition = 5;
         // 0 = sitting still
         // 1 = dropped
         // 2 = sliding
@@ -177,9 +177,11 @@ int main() {
         unique_ptr<CompliantContactSubsystem> contactForces;
         unique_ptr<MobilizedBody::Free> blockCmp;
         if (CmpContactOn == true) { 
-            tracker = make_unique<ContactTrackerSubsystem>(system);
+            tracker = unique_ptr<ContactTrackerSubsystem>(
+                new ContactTrackerSubsystem(system));
             contactForces =
-                make_unique<CompliantContactSubsystem>(system, *tracker);
+                unique_ptr<CompliantContactSubsystem>(
+                    new CompliantContactSubsystem(system, *tracker));
             contactForces->setTrackDissipatedEnergy(true);
             contactForces->setTransitionVelocity(1.0e-3);
             // Ground
@@ -192,8 +194,8 @@ int main() {
                 BodyPropsCmp.addContactSurface(Transform(),
                     ContactSurface(ContactGeometry::Brick(hdim),
                         ContactMaterial(fK, fDis, mu_s, mu_k, fVis)));
-            blockCmp = make_unique<MobilizedBody::Free>(
-                matter.Ground(), BodyPropsCmp);
+            blockCmp = unique_ptr<MobilizedBody::Free>(
+                new MobilizedBody::Free(matter.Ground(), BodyPropsCmp));
         }
 
         // Add a 6 dof mass that uses exponential springs for contact (new)
@@ -211,8 +213,8 @@ int main() {
         corner[6] = Vec3(-hs, hs, -hs);
         corner[7] = Vec3(-hs, hs, hs);
         if(ExpContactOn) {
-            blockExp = make_unique<MobilizedBody::Free>(
-                    matter.Ground(), BodyPropsExp);
+            blockExp = unique_ptr<MobilizedBody::Free>(
+                new MobilizedBody::Free(matter.Ground(), BodyPropsExp));
 
             // Create a Transform representing the contact plane.
             // The ZAxis of contact plane should point up.
@@ -225,8 +227,9 @@ int main() {
             params.setElasticityAndViscosityForCriticalDamping(20000.0);
             // Add an exponential spring at each corner of the block.
             for(i = 0; i < 8; ++i) {
-                spr[i] = make_unique<ExponentialSpringForce>(system,
-                    floorXForm, *blockExp, corner[i], mu_s, mu_k, params);
+                spr[i] = unique_ptr<ExponentialSpringForce>(
+                    new ExponentialSpringForce(system, floorXForm, *blockExp,
+                        corner[i], mu_s, mu_k, params));
             }
         }
 
@@ -234,7 +237,7 @@ int main() {
         unique_ptr<Visualizer> viz;
         Visualizer::InputSilo* silo;
         if (VisOn) {
-            viz = make_unique<Visualizer>(system);
+            viz = unique_ptr<Visualizer>(new Visualizer(system));
             viz->setShowShadows(true);
 
             // ----- Run Menu ----
