@@ -230,10 +230,10 @@ Vec3& updSprZero(State& state) const {
 Vec3 getSprZeroInCache(const State& state) const {
     return Value<Vec3>::downcast(
         getDiscreteVarUpdateValue(state, indexSprZero)); }
-void updSprZeroInCache(const State& state, const Vec3& setpoint) const {
+void updSprZeroInCache(const State& state, const Vec3& p0) const {
     // Will not invalidate the State.
     Value<Vec3>::updDowncast(
-        updDiscreteVarUpdateValue(state, indexSprZero)) = setpoint; }
+        updDiscreteVarUpdateValue(state, indexSprZero)) = p0; }
 
 // STATIC COEFFICENT OF FRICTION
 const Real& getMuStatic(const State& state) const {
@@ -287,7 +287,7 @@ realizeSubsystemTopologyImpl(State& state) const override {
     // SprZero
     indexSprZero =
         allocateAutoUpdateDiscreteVariable(state, Stage::Dynamics,
-            new Value<Vec3>(defaultSprZero), Stage::Velocity);
+            new Value<Vec3>(defaultSprZero), Stage::Dynamics);
     indexSprZeroInCache =
         getDiscreteVarUpdateIndex(state, indexSprZero);
 
@@ -340,10 +340,8 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // Perform the kinematic and force calculations.
     calcStationKinematics(state);
     calcNormalForce(state);
-    if(useBlended)
-        calcFrictionForceBlended(state);
-    else
-        calcFrictionForceSpringOnly(state);
+    calcFrictionForceBlended(state);
+    //calcFrictionForceSpringOnly(state);
  
     // The kinematic and force calculations were just stored in the data cache.
     ExponentialSpringData& data = updData(state);
@@ -432,10 +430,22 @@ calcFrictionForceBlended(const State& state) const {
     Vec3 p0 = getSprZero(state);            // spring zero
     data.limitReached = false;              // true if force limit exceeded
 
-    // Bounded Sliding by 0.0 and 1.0.
+    // Bound Sliding by 0.0 and 1.0.
     Real sliding = getZ(state)[indexZ];
     if(sliding < 0.0) sliding = 0.0;
     else if(sliding > 1.0) sliding = 1.0;
+
+    // A different take on Sliding... (experimental)
+    // Sliding should really be a function of the velocity of the
+    // MobilizedBody relative to the contact plane.
+    // It doesn't really make sense for Sliding to have rise and decay
+    // rates that are independent of the body dynamics.
+    //Real vSettle = params.getSettleVelocity();
+    //Real tau = params.getSlidingTimeConstant();
+    //Real speed = data.vxy.norm();
+    //sliding = Sigma(0.01, -0.001, speed);
+    //if(sliding < 0.0) sliding = 0.0;
+    //else if(sliding > 1.0) sliding = 1.0;
 
     // Compute max friction force based on the instantaneous mu.
     Real mus = getMuStatic(state);
@@ -445,9 +455,11 @@ calcFrictionForceBlended(const State& state) const {
 
     // Friction limit is too small. Set all forces to 0.0.
     if(data.fxyLimit < SignificantReal) {
-        data.fricMod1 = data.fricDampMod1 = 0.0;
-        data.fricMod2 = data.fricDampMod2 = data.fricElasMod2 = 0.0;
-        data.fric = data.fricDamp = data.fricElas = 0.0;
+        Vec3 zero(0.0);
+        data.fricMod1 = data.fricDampMod1 = zero;
+        data.fricMod2 = data.fricDampMod2 = data.fricElasMod2 = zero;
+        data.fric = data.fricDamp = data.fricElas = zero;
+        p0 = data.pxy;
         data.limitReached = true;
 
     // Friction limit is large enough for meaningful calculations.
@@ -482,13 +494,12 @@ calcFrictionForceBlended(const State& state) const {
         data.fricDamp = data.fricDampMod2 +
             (data.fricDampMod1 - data.fricDampMod2) * sliding;
         data.fric = data.fricElas + data.fricDamp;
+        p0 = data.pxy + data.fricElas / kpFric;  p0[2] = 0.0;
     }
 
     // Update the spring zero
-    p0 = data.pxy + data.fricElas / kpFric;
-    p0[2] = 0.0;  // Make sure p0 lies in the contact plane.
     updSprZeroInCache(state, p0);
-    markCacheValueRealized(state, indexSprZeroInCache);
+    markDiscreteVarUpdateValueRealized(state, indexSprZero);
 }
 //_____________________________________________________________________________
 // Calculate the friction force using the Spring Only Option.
@@ -630,7 +641,7 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
 
     // Update
     updSlidingActionInCache(state, action);
-    markCacheValueRealized(state, indexSlidingActionInCache);
+    markDiscreteVarUpdateValueRealized(state, indexSlidingAction);
     Real slidingDot = kTau * (target - sliding);
     updSlidingDotInCache(state, slidingDot);
     //std::cout << "t= " << state.getTime() <<
@@ -1017,10 +1028,12 @@ getStationVelocity(const State& state, bool inGround) const {
 //_____________________________________________________________________________
 // Get the position of the spring zero.
 // ? Should I be returning the spring zero that is stored in the Cache?
+// YES! Only the updated value in the cache is guaranteed to be consistent
+// with a state.
 Vec3
 ExponentialSpringForce::
 getSpringZeroPosition(const State& state, bool inGround) const {
-    Vec3 p0 = getImpl().getSprZero(state);
+    Vec3 p0 = getImpl().getSprZeroInCache(state);
     if(inGround) {
         p0 = getContactPlane().shiftFrameStationToBase(p0);
     }

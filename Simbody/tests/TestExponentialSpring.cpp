@@ -588,8 +588,6 @@ void simulateBlock(const SimulationOptions& options) {
     // Create an exponential spring to each corner of the block.
     unique_ptr<ExponentialSpringForce> sprWall[8];
     for(i = 0; i < 8; ++i) {
-        //sprWall[i] = make_unique<ExponentialSpringForce>(system,
-        //    wallPlane, body, corner[i], mus, muk, params);
         sprWall[i] = unique_ptr<ExponentialSpringForce>(
             new ExponentialSpringForce(system, wallPlane, body, corner[i],
                 mus, muk, params));
@@ -1105,19 +1103,22 @@ void testInitialization() {
     body.setU(state, u);
     body.setUToFitAngularVelocity(state, w);
 
+    // Test that an exception is through when trying to get the position
+    // of the spring zero before Stage::Dynamics has been realized.
+    // A valid value of the spring zero cannot be obtained until the System
+    // is realized through Stage::Dyanmics.
+    // Before the reset and after realizing through Stage::Dynamics, the
+    // spring zero is made to be consistent with the frictional limit of the
+    // spring, but it is not necessarily coincident with the projection of
+    // the spring station onto the contact plane.
+    system.realize(state, Stage::Velocity);
+    SimTK_TEST_MUST_THROW(spr.getSpringZeroPosition(state, false));
+    SimTK_TEST_MUST_THROW(spr.getSpringZeroPosition(state));
+
     // Test resetting the spring zero
-    // Before the reset, the spring zero is the origin of the contact plane,
-    // which may be displaced from the Ground origin.
-    system.realize(state, Stage::Position);
-    Vec3 p0(0.0, 0.0, 0.0);  // expressed in the frame of contact plane
-    Vec3 p0_G = plane.shiftFrameStationToBase(p0);
-    SimTK_TEST(p0 == spr.getSpringZeroPosition(state, false));
-    SimTK_TEST(p0_G == spr.getSpringZeroPosition(state));
-    // Reset
-    // Now the spring zero should coincide with the projection of the
-    // spring station onto the contact plane, which should result in
-    // the elastic component of the frictional force being zero.
-    spr.resetSpringZero(state);
+    // After the reset the spring zero should coincide with the projection of
+    // the spring station onto the contact plane, which should result in the
+    // elastic component of the frictional force being zero.
     // Expected positions after the reset
     // express spring station in the Ground frame
     Vec3 s_G = body.findStationLocationInGround(state, station);
@@ -1127,11 +1128,12 @@ void testInitialization() {
     Vec3 p0After = s;  p0After[2] = 0.0;
     // express in Ground frame after the projection
     Vec3 p0After_G = plane.shiftFrameStationToBase(p0After);
+    // Now reset
+    spr.resetSpringZero(state);
+    system.realize(state, Stage::Dynamics);
     SimTK_TEST(p0After == spr.getSpringZeroPosition(state, false));
     SimTK_TEST(p0After_G == spr.getSpringZeroPosition(state));
-
     // Test that the elastic component of the friction force is 0.0
-    system.realize(state, Stage::Dynamics);
     Vec3 fElastic = spr.getFrictionForceElasticPart(state);
     SimTK_TEST_EQ(fElastic, Vec3(0., 0., 0.));
 };
