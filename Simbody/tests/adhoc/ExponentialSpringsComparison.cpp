@@ -92,16 +92,19 @@ public:
     }
     void handleEvent(const State& state) const override {
         system.realize(state, Stage::Dynamics);
+        // Everything is in the frame of the contact plane.
         Vec3 f = spr.getForce(state,false);
-        Vec3 p0 = spr.getSpringZeroPosition(state);
+        Vec3 p0 = spr.getSpringZeroPosition(state,false);
+        Vec3 station = spr.getStationPosition(state,false);
         Real sliding = spr.getSliding(state);
         Real mu = spr.getMu(state);
         Vec3 fric = f; fric[2] = 0.0;
         Real ratio = fric.norm() / f[2];
-        // Everything is in the frame of the contact plane.
-        cout << state.getTime() << "\tSliding= "<< sliding <<
-            "  \tmu= " << mu << "  \tratio= "<< ratio <<
-            "  \tp0= " << p0 << "  \tf= " << f << endl;
+        //cout << state.getTime() << "\tSliding= "<< sliding <<
+        //    "  \tmu= " << mu << "  \tratio= "<< ratio <<
+        //    "  \tp0= " << p0 << "  \tf= " << f << endl;
+        //cout << state.getTime() << "\tSliding= " << sliding <<
+        //    "  \tp0= " << p0 << "  \tpxy= " << station << endl;
 
     }
 private:
