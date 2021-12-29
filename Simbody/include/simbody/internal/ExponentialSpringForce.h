@@ -81,10 +81,10 @@ this case is to apply conditional constraints that enforce zero acceleration
 of the body in the contact plane. Unfortunately, implementation of this
 approach is complex, particularly if there are multiple contact points on the
 body. Another approach is to apply a velocity-dependent frictional force
-that opposes any slide velocity (i.e., f = -kᵥv). This latter approach is
+that opposes any slide velocity (i.e., f = -cv). This latter approach is
 relatively simple to implement, but will not entirely eliminate drift. By
-making kᵥ very large, the drift velocity can be made small but it cannot be
-brought to zero. And, unfortunately, as kᵥ is made large, the system equations
+making c very large, the drift velocity can be made small but it cannot be
+brought to zero. And, unfortunately, as dc is made large, the system equations
 can become stiff, requiring integrator step size to be reduced, sometimes
 considerably (at least in explicit integrators).
 
@@ -133,7 +133,7 @@ suffix refers to a quantity that lies in or is tangent to the contact plane.
 The elastic part of the normal force is computed using an exponential
 whose shape is a function of three parameters (d₀, d₁, and d₂):
 
-        fzElastic = d₁exp(-d₂(pz-d₀))
+        fzElastic = d₁exp(−d₂(pz−d₀))
 
 Note that pz is the displacement of the body spring station above (pz > 0.0)
 or below (pz < 0.0) the contact plane. The default values of the shape
@@ -142,15 +142,15 @@ number of constraints (e.g., the normal force must fall below 0.01 Newtons
 when pz > 1.0 cm). The damping part of the normal force is linear in velocity
 and scaled by the elastic part:
 
-        fzDamping = - kzᵥ vz fzElastic,
+        fzDamping = −cz vz fzElastic,
 
 where vz is the normal component of the velocity of the specified Station and
-kzᵥ is the damping coefficient for the normal direction. All together, the
+cz is the damping coefficient for the normal direction. All together, the
 spring force in the normal direction is given by
 
         fz  = fzElastic + fzDamping
-            = d₁exp(d₂(py-d₀)) - kzᵥ vz d₁exp(d₂(pz-d₀)))
-            = d₁exp(d₂(pz-d₀)) (1 - kzᵥ vz)
+            = d₁exp(d₂(py−d₀)) − cz vz d₁exp(d₂(pz−d₀)))
+            = d₁exp(d₂(pz−d₀)) (1 − cz vz)
 
 which has the form of the Hunt & Crossley damping model:
 
@@ -175,13 +175,13 @@ More details about the Sliding State are given in sections below.
 When a spring station is moving with respect to its contact plane,
 the friction force is computed using a simple damping term:
 
-        fricDamp = -kᵥ vxy
+        fricDamp = −c vxy
 
-where kᵥ is the damping coefficient and vxy is the velocity of the spring
-station in the contact plane expressed in the contact plane. However, the
-total frictional force is not allowed to exceed the frictional limit:
+where c is the damping coefficient in the xy plane and vxy is the velocity
+of the spring station in the contact plane expressed in the contact plane.
+However, the total frictional force is not allowed to exceed the frictional limit:
 
-        fricLimit = - μ fz vxy / |vxy|
+        fricLimit = −μ fz vxy / |vxy|
         if (|fricDamp| > |fricLimit|) fricDamp = fricLimit
 
 where μ is the instantaneous coefficient of friction (more below). Thus, for
@@ -194,13 +194,13 @@ When a spring station is fixed with respect to its contact plane, the friction
 force is represented by a damped linear spring. The viscous term is given by
 the same damping expression as above:
 
-        fricDampSpr = -kᵥ vxy
+        fricDampSpr = −c vxy
 
 and the elastic term is given by
 
-        fricElasSpr = -kₚ (pxy-p₀)
+        fricElasSpr = −k (pxy−p₀)
 
-where kₚ is the spring elasticity, pxy is the position of the body station
+where k is the spring elasticity, pxy is the position of the body station
 projected onto the contact plane, and p₀ is the current spring zero, which
 always resides in the contact plane.
 
@@ -224,8 +224,8 @@ Note that scaling down the friction spring force does not alter its direction.
 Blending Model 1 and Model 2 is accomplished using linear expressions of the
 Sliding State:
 
-        fricElasBlend = fricElasSpr * (1.0 - Sliding)
-        fricDampBlend = fricDampSpr + (fricDamp - fricDampSpr)*Sliding
+        fricElasBlend = fricElasSpr * (1.0 − Sliding)
+        fricDampBlend = fricDampSpr + (fricDamp − fricDampSpr)*Sliding
         fricBlend = fricElasBlend + fricDampBlend
 
 Regarding the elastic term, when Sliding = 0.0, fricElasBlend is given
@@ -243,7 +243,7 @@ well behaved and smooth for all values of Sliding between 0.0 and 1.0.
 The spring zero (p₀) is always made to be consistent with the final value of
 the blended elastic force (fricElasBlend):
 
-        p₀ = pxy + fricElasBlend / kpFric;
+        p₀ = pxy + fricElasBlend / k;
         p₀[2] = 0.0;  // p₀ always lies in the contact plane
 
 When fricElasBlend = 0.0, notice that p₀ = pxy, p₀[2] = 0.0. In other words,
@@ -253,7 +253,7 @@ plane.
 In Simbody, p₀ is handled as an Auto Update Discrete %State. See
 State::allocateAutoUpdateDiscreteVariable() for a detailed description. Any
 change to p₀ is made to the Update Cache (not to the State directly), and the
-integrator copies this cache value to the actual p₀ State after a successful
+integrator moves this cache value to the actual p₀ State after a successful
 integration step is obtained.
 
 #### Coefficients of Friction and SlidingDot
@@ -265,7 +265,7 @@ separately for the spring, subject to the following constraints:
 Note that there is no upper bound on μₛ. The instantaneous coefficient of
 friction (μ) is calculated based on the value of the Sliding State:
 
-        μ = μₛ - Sliding*(μₛ - μₖ)
+        μ = μₛ − Sliding*(μₛ − μₖ)
 
 The time derivative of Sliding, SlidingDot, is used to drive Sliding toward
 the extremes of 0.0 or 1.0, depending on the following criteria:
@@ -273,13 +273,13 @@ the extremes of 0.0 or 1.0, depending on the following criteria:
 - If the frictional spring force (fricSpr) exceeded the frictional limit at
 any point during its calculation, Sliding is driven toward 1.0 (rise):
 
-        SlidingDot = (1.0-Sliding)/tau
+        SlidingDot = (1.0 − Sliding)/tau
 
 - If the frictional spring force (fricSpr) does not exceed the frictional
 limit at any point during its calculation and if the kinematics of the spring
 station are near static equilibrium, Sliding is driven toward 0.0 (decay):
 
-        SlidingDot = -Sliding/tau
+        SlidingDot = −Sliding/tau
 
 The threshold for being "near" static equilibrium is established by two
 parameters, vSettle and aSettle. When the velocity and acceleration of the
@@ -574,7 +574,7 @@ public:
 
     /** Get the position of the spring zero. The system must be realized
     to Stage::Dynamics to access this data.
-    @param state State object from which to retrieve the data. 
+    @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned
     quantity will be expressed. If true, the quantity will be expressed in the
     Ground frame. If false, the quantity will be expressed in the frame of
