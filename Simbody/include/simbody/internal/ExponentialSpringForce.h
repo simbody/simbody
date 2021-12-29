@@ -84,7 +84,7 @@ body. Another approach is to apply a velocity-dependent frictional force
 that opposes any slide velocity (i.e., f = -cv). This latter approach is
 relatively simple to implement, but will not entirely eliminate drift. By
 making c very large, the drift velocity can be made small but it cannot be
-brought to zero. And, unfortunately, as dc is made large, the system equations
+brought to zero. And, unfortunately, as c is made large, the system equations
 can become stiff, requiring integrator step size to be reduced, sometimes
 considerably (at least in explicit integrators).
 
