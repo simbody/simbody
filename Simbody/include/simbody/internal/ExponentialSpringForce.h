@@ -179,15 +179,18 @@ the friction force is computed using a simple damping term:
 
 where c is the damping coefficient in the xy plane and vxy is the velocity
 of the spring station in the contact plane expressed in the contact plane.
-However, the total frictional force is not allowed to exceed the frictional limit:
+However, the magnitude of the total frictional force is not allowed to exceed
+the frictional limit:
 
-        fricLimit = −μ fz vxy / |vxy|
-        if (|fricDamp| > |fricLimit|) fricDamp = fricLimit
+        fricLimit = μ fz
+        if (|fricDamp| > fricLimit)
+            fricDamp = −fricLimit vxy / |vxy| = −μ fz vxy / |vxy|
 
-where μ is the instantaneous coefficient of friction (more below). Thus, for
-velocities above some threshold velocity, which is typically small (i.e., less
-than 0.1 m/s), this model is consistent with a standard Coulomb Friction
-model.
+where μ is the instantaneous coefficient of friction (more below). Note that
+fz is always positive and so fricLimit is a positive scalar. Thus, for
+velocities in the contact plane above some threshold velocity, which is
+typically small (i.e., less than 0.1 m/s), this model is consistent with a
+standard Coulomb Friction model.
 
 #### Friction Model 2 - Damped Linear Spring (Sliding = 0.0)
 When a spring station is fixed with respect to its contact plane, the friction
@@ -201,8 +204,8 @@ and the elastic term is given by
         fricElasSpr = −k (pxy−p₀)
 
 where k is the spring elasticity, pxy is the position of the body station
-projected onto the contact plane, and p₀ is the current spring zero, which
-always resides in the contact plane.
+projected onto the contact plane, and p₀ is the current spring zero (i.e.,
+the elastic anchor point), which always resides in the contact plane.
 
 The total friction spring force is then given by the sum of the elastic and
 viscous terms:
@@ -212,8 +215,8 @@ viscous terms:
 If magnitude of the fricSpr exceeds the magnitude of the friction limit,
 the terms are scaled down:
 
-        if(|fricSpr| > |fricLimit|)
-            scaleFactor = [fricLimit| / |fricSpr|
+        if(|fricSpr| > fricLimit)
+            scaleFactor = fricLimit / |fricSpr|
             fricDampSpr = scaleFactor * fricDampSpr
             fricElasSpr = scaleFactor * fricElasSpr
             fricSpr = fricElasSpr + fricDampSpr
@@ -239,16 +242,16 @@ Thus, Model 1 (Pure Damping) dominates as Sliding → 1.0, and
 Model 2 (Damped Linear Spring) dominates as Sliding → 0.0. The blending is
 well behaved and smooth for all values of Sliding between 0.0 and 1.0.
 
-#### Moving the Spring Zero
-The spring zero (p₀) is always made to be consistent with the final value of
-the blended elastic force (fricElasBlend):
+#### Moving the Friciton Spring Zero
+The friction spring zero (p₀) is always made to be consistent with the final
+value of the blended elastic force (fricElasBlend):
 
         p₀ = pxy + fricElasBlend / k;
         p₀[2] = 0.0;  // p₀ always lies in the contact plane
 
 When fricElasBlend = 0.0, notice that p₀ = pxy, p₀[2] = 0.0. In other words,
-when Sliding = 1.0, p₀ is simply the spring station projected onto the contact
-plane.
+when Sliding = 1.0, p₀ is simply the position of the body station projected
+onto the contact plane.
 
 In Simbody, p₀ is handled as an Auto Update Discrete %State. See
 State::allocateAutoUpdateDiscreteVariable() for a detailed description. Any
@@ -381,7 +384,7 @@ public:
      Contact Plane with respect to the Ground frame. This transform can be
      used to transform quantities expressed in the Contact Plane to the Ground
      frame and vice versa. */
-    const Transform& getContactPlane() const;
+    const Transform& getContactPlaneTransform() const;
 
     /** Get the body (i.e., the MobilizedBody) for which this exponential
     spring was instantiated. */
@@ -431,7 +434,7 @@ public:
     state for this exponential spring.
     @param state State object from which to retrieve μₛ. */
     Real getMuStatic(const State& state) const;
- 
+
     /** Set the kinetic coefficient of friction (μₖ) for this exponential
     spring.
     The value of μₖ is held in the System's State object. Unlike the
@@ -461,7 +464,7 @@ public:
     spring station onto the contact plane. This step is often needed at the
     beginning of a simulation to ensure that a simulation does not begin with
     large friction forces. After this call, the elastic portion of the
-    friction force (fxzElas) should be 0.0. Calling this method will
+    friction force (fxyElas) should be 0.0. Calling this method will
     invalidate the System at Stage::Dynamics.
     @param state State object on which to base the reset. */
     void resetSpringZero(State& state) const;
@@ -469,30 +472,30 @@ public:
     /** Get the elastic part of the normal force. The system must be realized
     to Stage::Dynamics to access this data.
     @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned
-    quantity will be expressed. If true, the quantity will be expressed in the
-    Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane. */
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
     Vec3 getNormalForceElasticPart(const State& state,
         bool inGround = true) const;
 
     /** Get the damping part of the normal force. The system must be realized
     to Stage::Dynamics to access this data.
     @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned
-    quantity will be expressed. If true, the quantity will be expressed in the
-    Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane. */
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
     Vec3 getNormalForceDampingPart(const State& state,
         bool inGround = true) const;
 
     /** Get the normal force. The system must be realized to Stage::Dynamics
     to access this data.
     @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned
-    quantity will be expressed. If true, the quantity will be expressed in the
-    Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane. */
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
     Vec3 getNormalForce(const State& state,
         bool inGround = true) const;
 
@@ -501,7 +504,7 @@ public:
     the Sliding state to transition between μₖ and μₛ:
 
             μ = μₛ - Sliding*(μₛ - μₖ)
-    
+
     Because 0.0 ≤ Sliding ≤ 1.0, μₖ ≤ μ ≤ μₛ.
     @param state State object on which to base the calculations. */
     Real getMu(const State& state) const;
@@ -514,78 +517,88 @@ public:
     /** Get the elastic part of the friction force. The system must be
     realized to Stage::Dynamics to access this data.
     @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned
-    quantity will be expressed. If true, the quantity will be expressed in the
-    Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane. */
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
     Vec3 getFrictionForceElasticPart(
         const State& state, bool inGround = true) const;
 
     /** Get the damping part of the friction force. The system must be
     realized to Stage::Dynamics to access this data.
     @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned
-    quantity will be expressed. If true, the quantity will be expressed in the
-    Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane. */
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
     Vec3 getFrictionForceDampingPart(
         const State& state, bool inGround = true) const;
 
-    /** Get the total friction force. The system must be realized
-    to Stage::Dynamics to access this data.
+    /** Get the total friction force. The total frictional force is always
+    just the sum of the elastic part and the damping part of the frictional
+    force, which may be obtained separately by calling
+    getFrictionalForceElasticPart() and getFrictionalForceDampingPart().
+    The system must be realized to Stage::Dynamics to access this data.
     @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned
-    quantity will be expressed. If true, the quantity will be expressed in the
-    Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane. */
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
     Vec3 getFrictionForce(const State& state, bool inGround = true) const;
 
-    /** Get the total spring force applied to the MobilizedBody. The system
-    must be realized to Stage::Dynamics to access this data.
+    /** Get the total force applied to the body by this
+    ExponentialSpringForce instance. The total force is the vector sum of the
+    friction force, which may be obtained by a call to getFrictionForce(), and
+    the normal force, which may be obtained by a call to getNormalForce().
+    The system must be realized to Stage::Dynamics to access this data.
     @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned
-    quantity will be expressed. If true, the quantity will be expressed in the
-    Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane. */
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
     Vec3 getForce(const State& state, bool inGround = true) const;
 
-    /** Get the position of the spring station (i.e., the point at which the
-    spring force is applied to the body). The system must be realized to
-    Stage::Position to access this data.
+    /** Get the position of the station (i.e., the point at which the force
+    generated by this ExponentialSpringForce instance is applied to the body).
+    The system must be realized to Stage::Position to access this data.
     This method differs from getStation() in terms of the frame in which the
     station is expressed. getStation() expresses the point in the frame of
     the MobilizedBody. getStationPosition() expresses the point either in the
     Ground frame or in the frame of the Contact Plane.
     @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned
-    quantity will be expressed. If true, the quantity will be expressed in the
-    Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane. */
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
     Vec3 getStationPosition(const State& state, bool inGround = true) const;
 
-    /** Get the velocity of the spring station. The system must be realized to
-    Stage::Velocity to access this data.
+    /** Get the velocity of the station (i.e., the point at which the force
+    generated by this ExponentialSpringForce instance is applied to the body).
+    The system must be realized to Stage::Velocity to access this data.
     @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned
-    quantity will be expressed. If true, the quantity will be expressed in the
-    Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane. */
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
     Vec3 getStationVelocity(const State& state, bool inGround = true) const;
 
-    /** Get the position of the spring zero. The system must be realized
+    /** Get the position of the friction spring zero (p₀), which will always
+    lie in the Contact Plane. p₀ is the elastic anchor point of the damped
+    linear spring used in Friction Model 2. The system must be realized
     to Stage::Dynamics to access this data.
     @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned
-    quantity will be expressed. If true, the quantity will be expressed in the
-    Ground frame. If false, the quantity will be expressed in the frame of
-    the contact plane. */
-    Vec3 getSpringZeroPosition(const State& state, bool inGround=true) const;
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
+    Vec3 getFrictionSpringZeroPosition(const State& state,
+        bool inGround=true) const;
 
 private:
-    /** Retrieve a writable reference to the underlying implementation. */
+    // Retrieve a writable reference to the underlying implementation.
     ExponentialSpringForceImpl& updImpl();
 
-    /** Retrieve a read-only reference to the underlying implementation. */
+    // Retrieve a read-only reference to the underlying implementation.
     const ExponentialSpringForceImpl& getImpl() const;
 };
 

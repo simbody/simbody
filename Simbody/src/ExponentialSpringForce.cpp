@@ -174,7 +174,7 @@ defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0) {
 // Accessors
 //-----------------------------------------------------------------------------
 // SIMPLE
-const Transform& getContactPlane() const { return contactPlane; }
+const Transform& getContactPlaneTransform() const { return contactPlane; }
 const MobilizedBody& getBody() const { return body; }
 const Vec3& getStation() const { return station; }
 
@@ -815,8 +815,8 @@ ExponentialSpringForce(MultibodySystem& system,
 // Plane.
 const Transform&
 ExponentialSpringForce::
-getContactPlane() const {
-    return getImpl().getContactPlane();
+getContactPlaneTransform() const {
+    return getImpl().getContactPlaneTransform();
 }
 //_____________________________________________________________________________
 // Get the point on the body that interacts with the contact plane and at
@@ -925,7 +925,8 @@ ExponentialSpringForce::
 getNormalForceElasticPart(const State& state, bool inGround) const {
     Vec3 fzElas(0.);
     fzElas[2] = getImpl().getData(state).fzElas;
-    if(inGround) fzElas = getContactPlane().xformFrameVecToBase(fzElas);
+    if(inGround) fzElas =
+        getContactPlaneTransform().xformFrameVecToBase(fzElas);
     return fzElas;
 }
 //_____________________________________________________________________________
@@ -935,7 +936,8 @@ ExponentialSpringForce::
 getNormalForceDampingPart(const State& state, bool inGround) const {
     Vec3 fzDamp(0.);
     fzDamp[2] = getImpl().getData(state).fzDamp;
-    if(inGround) fzDamp = getContactPlane().xformFrameVecToBase(fzDamp);
+    if(inGround) fzDamp =
+        getContactPlaneTransform().xformFrameVecToBase(fzDamp);
     return fzDamp;
 }
 //_____________________________________________________________________________
@@ -945,7 +947,7 @@ ExponentialSpringForce::
 getNormalForce(const State& state, bool inGround) const {
     Vec3 fz(0.);
     fz[2] = getImpl().getData(state).fz;
-    if(inGround) fz = getContactPlane().xformFrameVecToBase(fz);
+    if(inGround) fz = getContactPlaneTransform().xformFrameVecToBase(fz);
     return fz;
 }
 //_____________________________________________________________________________
@@ -968,7 +970,8 @@ Vec3
 ExponentialSpringForce::
 getFrictionForceElasticPart(const State& state, bool inGround) const {
     Vec3 fricElas = getImpl().getData(state).fricElas;;
-    if(inGround) fricElas = getContactPlane().xformFrameVecToBase(fricElas);
+    if(inGround) fricElas =
+        getContactPlaneTransform().xformFrameVecToBase(fricElas);
     return fricElas;
 }
 //_____________________________________________________________________________
@@ -977,7 +980,8 @@ Vec3
 ExponentialSpringForce::
 getFrictionForceDampingPart(const State& state, bool inGround) const {
     Vec3 fricDamp = getImpl().getData(state).fricDamp;;
-    if(inGround) fricDamp = getContactPlane().xformFrameVecToBase(fricDamp);
+    if(inGround) fricDamp =
+        getContactPlaneTransform().xformFrameVecToBase(fricDamp);
     return fricDamp;
 }
 //_____________________________________________________________________________
@@ -986,7 +990,7 @@ Vec3
 ExponentialSpringForce::
 getFrictionForce(const State& state, bool inGround) const {
     Vec3 fric = getImpl().getData(state).fric;;
-    if(inGround) fric = getContactPlane().xformFrameVecToBase(fric);
+    if(inGround) fric = getContactPlaneTransform().xformFrameVecToBase(fric);
     return fric;
 }
 
@@ -1011,7 +1015,7 @@ getStationPosition(const State& state, bool inGround) const {
     Vec3 pos_B = getStation();
     Vec3 pos_G = getBody().findStationLocationInGround(state, pos_B);
     if(inGround) return pos_G;
-    Vec3 pos = getContactPlane().shiftBaseStationToFrame(pos_G);
+    Vec3 pos = getContactPlaneTransform().shiftBaseStationToFrame(pos_G);
     return pos;
 }
 //_____________________________________________________________________________
@@ -1022,7 +1026,7 @@ getStationVelocity(const State& state, bool inGround) const {
     Vec3 pos_B = getStation();
     Vec3 vel_G = getBody().findStationVelocityInGround(state, pos_B);
     if(inGround) return vel_G;
-    Vec3 vel = getContactPlane().xformBaseVecToFrame(vel_G);
+    Vec3 vel = getContactPlaneTransform().xformBaseVecToFrame(vel_G);
     return vel;
 }
 //_____________________________________________________________________________
@@ -1032,10 +1036,10 @@ getStationVelocity(const State& state, bool inGround) const {
 // with a state.
 Vec3
 ExponentialSpringForce::
-getSpringZeroPosition(const State& state, bool inGround) const {
+getFrictionSpringZeroPosition(const State& state, bool inGround) const {
     Vec3 p0 = getImpl().getSprZeroInCache(state);
     if(inGround) {
-        p0 = getContactPlane().shiftFrameStationToBase(p0);
+        p0 = getContactPlaneTransform().shiftFrameStationToBase(p0);
     }
     return p0;
 }

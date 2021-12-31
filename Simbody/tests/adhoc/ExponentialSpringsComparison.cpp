@@ -94,7 +94,7 @@ public:
         system.realize(state, Stage::Dynamics);
         // Everything is in the frame of the contact plane.
         Vec3 f = spr.getForce(state,false);
-        Vec3 p0 = spr.getSpringZeroPosition(state,false);
+        Vec3 p0 = spr.getFrictionSpringZeroPosition(state,false);
         Vec3 station = spr.getStationPosition(state,false);
         Real sliding = spr.getSliding(state);
         Real mu = spr.getMu(state);

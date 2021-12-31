@@ -880,7 +880,7 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         SimTK_TEST_EQ(station_G, p_G);
 
         // Check that the spring zero lies in the Contact Plane
-        Vec3 p0 = spr.getSpringZeroPosition(state, false);
+        Vec3 p0 = spr.getFrictionSpringZeroPosition(state, false);
         SimTK_TEST(p0[2] == 0.0);
     }
 }
@@ -1044,7 +1044,7 @@ void testInitialization() {
     SimTK_TEST_EQ(p.getSettleVelocity() - vSettleDef, delta);
 
     // Test getting contact plane, body, and station
-    SimTK_TEST(spr.getContactPlane() == plane);
+    SimTK_TEST(spr.getContactPlaneTransform() == plane);
     SimTK_TEST(spr.getBody().isSameMobilizedBody(body));
     SimTK_TEST(spr.getStation() == station);
 
@@ -1112,8 +1112,8 @@ void testInitialization() {
     // spring, but it is not necessarily coincident with the projection of
     // the spring station onto the contact plane.
     system.realize(state, Stage::Velocity);
-    SimTK_TEST_MUST_THROW(spr.getSpringZeroPosition(state, false));
-    SimTK_TEST_MUST_THROW(spr.getSpringZeroPosition(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionSpringZeroPosition(state, false));
+    SimTK_TEST_MUST_THROW(spr.getFrictionSpringZeroPosition(state));
 
     // Test resetting the spring zero
     // After the reset the spring zero should coincide with the projection of
@@ -1131,8 +1131,8 @@ void testInitialization() {
     // Now reset
     spr.resetSpringZero(state);
     system.realize(state, Stage::Dynamics);
-    SimTK_TEST(p0After == spr.getSpringZeroPosition(state, false));
-    SimTK_TEST(p0After_G == spr.getSpringZeroPosition(state));
+    SimTK_TEST(p0After == spr.getFrictionSpringZeroPosition(state, false));
+    SimTK_TEST(p0After_G == spr.getFrictionSpringZeroPosition(state));
     // Test that the elastic component of the friction force is 0.0
     Vec3 fElastic = spr.getFrictionForceElasticPart(state);
     SimTK_TEST_EQ(fElastic, Vec3(0., 0., 0.));
