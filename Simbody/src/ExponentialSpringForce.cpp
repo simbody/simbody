@@ -16,7 +16,6 @@
  limitations under the License.
  ----------------------------------------------------------------------------*/
 
-
 #include "SimTKcommon.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/ForceSubsystem.h"
@@ -26,116 +25,81 @@
 
 namespace SimTK {
 
+// Begin anonymous namespace for ExponentialSpringData.
+// Keeps ExponentialSpringData from being exposed in the SimTK namespace
+// and limits the scope of ExponentialSpringData to this file.
+namespace {
+
 //=============================================================================
 // Struct ExponentialSpringData
 //=============================================================================
-/** ExponentialSpringData is an internal data structure used by the
+/* ExponentialSpringData is an internal data structure used by the
 implementation class ExponentialSpringForceImpl to store and retrieve
-important quantities kept in the State's data cache.
+important quantities kept in the State's data cache. End-user access to these
+quantities is provided by ExponentialSpringForce's API.
 
-Note - As originally coded, users could access class ExponentialSpringData
-directly via a const reference. To make the exponential spring code less
-brittle, however, class ExponentialSpringData was migrated to being an
-internal data structure that is accessed directly only by class
-ExponentialSpringForceImpl. The data stored in ExponentialSpringData can
-now only be accessed by the end user via conventional assessor methods
-in class ExponentialSpringForce.
-
-Even though ExponentialSpringData is now used only internally, the
-Doxygen-compliant comments originally written for the class might be helpful
-to developers. I therefore kept the comments. They follow below:
-
-ExponentialSpringData is a helper class that is used to store key
-quantities associated with the ExponentialSpringForce Subsystem during a
-simulation. An instance of this class serves as the data Cache Entry for the
-ExponentialSpringForceImpl Subsystem. All of its member variables are
-guaranteed to be calculated and set once the System has been realized
-to Stage::Dynamics.
-
-To understand what the quantities organized by this class represent, a basic
-description of the contact problem that is solved, along with a description
-of coordinate frame conventions, will be helpful.
-
-Class ExponentialSpringForce computes and applies a contact force at a
-specified point on a MobilizedBody (i.e., a Station) due to interaction of
-that point with a specified contact plane. That plane is typically used to
-model interactions with a floor, but need not be limited to this use case.
-The contact plane can be rotated and displaced relative to the ground frame
-and so can be used to model a wall or ramp, for example.
-
-%Contact force computations are carried out in the frame of the contact plane.
-The positive y-axis of the contact frame defines the normal of the
-contact plane. The positive y-axis is the axis along which a repelling
-normal force (modeled using an exponential) is applied. The x-axis and
-z-axis of the contact frame are tangent to the contact plane. The friction
-force will always lie in x-z plane.
-
-Member variables with a "y" suffix (e.g., py, vy, or fy) indicate that
-these quantities are directed normal to the contact plane.  Member varaibles
-with an "xz" suffix (e.g., pxz, vxz, or fxz) indicate that these quantities
-lie in the contact plane (or tangent to it) and are associated with the
-friction force.
-
-Member variables with a "_G" suffix are expressed in the Ground frame. Member
-variables without a "_G" suffix are expressed the contact plane frame. */
+Note that member variables with a "_G" suffix are expressed in the
+Ground frame. Member variables without a "_G" suffix are expressed the
+contact plane frame. */
 struct ExponentialSpringData {
-    /** Position of the body spring station in the ground frame. */
+    // Position of the body station in the ground frame.
     Vec3 p_G;
-    /** Velocity of the body spring station in the ground frame. */
+    // Velocity of the body station in the ground frame.
     Vec3 v_G;
-    /** Position of the body spring station in the frame of the contact
-    plane. */
+    // Position of the body station in the frame of the contact plane.
     Vec3 p;
-    /** Velocity of the body spring station in the frame of the contact
-    plane. */
+    // Velocity of the body station in the frame of the contact plane.
     Vec3 v;
-    /** Displacement of the body spring station normal to the floor expressed
-    in the frame of the contact plane. */
+    // Displacement of the body station normal to the floor expressed in the
+    // frame of the contact plane.
     Real pz;
-    /** Velocity of the body spring station normal to the contact plane
-    expressed in the frame of the contact plane. */
+    // Velocity of the body station normal to the contact plane expressed
+    // in the frame of the contact plane.
     Real vz;
-    /** Position of the body spring station projected onto the contact plane
-    expressed in the frame of the contact plane. */
+    // Position of the body station projected onto the contact plane
+    // expressed in the frame of the contact plane.
     Vec3 pxy;
-    /** Velocity of the body spring station in the contact plane expressed in
-    the frame of the contact plane. */
+    // Velocity of the body station in the contact plane expressed in
+    // the frame of the contact plane.
     Vec3 vxy;
-    /** Elastic force in the normal direction. */
+    // Elastic force in the normal direction.
     Real fzElas;
-    /** Damping force in the normal direction. */
+    // Damping force in the normal direction.
     Real fzDamp;
-    /** Total normal force expressed in the frame of the contact plane. */
+    // Total normal force expressed in the frame of the contact plane.
     Real fz;
-    /** Instantaneous coefficient of friction. */
+    // Instantaneous coefficient of friction.
     Real mu;
-    /** Limit of the frictional force. */
+    // Limit of the friction force.
     Real fxyLimit;
-    /** Flag indicating if the frictional limit was exceeded. */
+    // Flag indicating if the friction limit was exceeded.
     bool limitReached;
-    /** Damping part of the frictional spring force in Model 1. */
+    // Damping part of the friction force in Model 1.
     Vec3 fricDampMod1;
-    /** Total frictional spring force in Model 1. */
+    // Total friction force in Model 1.
     Vec3 fricMod1;
-    /** Elastic part of the frictional spring force in Model 2. */
+    // Elastic part of the friction spring force in Model 2.
     Vec3 fricElasMod2;
-    /** Damping part of the frictional spring force in Model 2. */
+    // Damping part of the friction spring force in Model 2.
     Vec3 fricDampMod2;
-    /** Total frictional spring force in Model 2. */
+    // Total friction spring force in Model 2.
     Vec3 fricMod2;
-    /** Elastic frictional force after blending.*/
+    // Elastic friction force after blending.
     Vec3 fricElas;
-    /** Damping frictional force after blending.*/
+    // Damping friction force after blending.
     Vec3 fricDamp;
-    /** Total frictional force after blending. */
+    // Total friction force after blending.
     Vec3 fric;
-    /** Resultant spring force (normal + friction) expressed in the floor
-    frame. */
+    // Resultant force (normal + friction) expressed in the frame of the
+    // contact frame. This is the force that will be applied to the body
+    // after expressing it in the appropriate frame.
     Vec3 f;
-    /** Resultant spring force (normal + friction) expressed in the ground
-    frame. */
+    // Resultant force (normal + friction) expressed in the Ground frame.
+    // This is the force applied to the body.
     Vec3 f_G;
 };
+} // End anonymous namespace for ExponentialSpringData
+
 
  //============================================================================
  // Class ExponentialSpringForceImpl
@@ -143,15 +107,14 @@ struct ExponentialSpringData {
 class ExponentialSpringForceImpl : public ForceSubsystem::Guts {
 public:
 
-// Flag for managing the Sliding state and SlidingDot.
-// An auto update discrete state is used to store the sliding action
-// for successive integration steps.
-enum SlidingAction {
-    Decay = 0,  // Decay all the way to fully fixed (Sliding = 0).
-    Rise = 1,   // Rise all the way to fully slipping (Sliding = 1).
-    Check = 2   // Check if a transition condition is met.
-};
-
+    // Flag for managing the Sliding state and SlidingDot.
+    // An auto update discrete state is used to store the sliding action
+    // for successive integration steps.
+    enum SlidingAction {
+        Decay = 0,  // Decay all the way to fully fixed (Sliding = 0).
+        Rise = 1,   // Rise all the way to fully slipping (Sliding = 1).
+        Check = 2   // Check if a transition condition is met.
+    };
 
 // Constructor
 ExponentialSpringForceImpl(const Transform& floor,
@@ -168,7 +131,8 @@ defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0) {
     if(defaultMuk < 0.0) defaultMuk = 0.0;
     if(defaultMuk > defaultMus) defaultMuk = defaultMus;
     // Assign the parameters
-    this->params = params;}
+    this->params = params;
+}
 
 //-----------------------------------------------------------------------------
 // Accessors
@@ -194,8 +158,7 @@ const ExponentialSpringData& getData(const State& state) const {
 
 // SLIDING STATE
 void setSliding(State& state, Real sliding) {
-    sliding = ClampAboveZero(sliding, 1.0);
-    updZ(state)[indexZ] = sliding; }
+    updZ(state)[indexZ] = clampInPlace(0.0, sliding, 1.0); }
 Real getSliding(const State& state) const {
     return getZ(state)[indexZ]; }
 Real getSlidingDotInCache(const State& state) const {
@@ -217,8 +180,7 @@ void updSlidingActionInCache(const State& state,
     SlidingAction action) const {
     // Will not invalidate the State.
     Value<SlidingAction>::updDowncast(
-        updDiscreteVarUpdateValue(state, indexSlidingAction)) = action;
-}
+        updDiscreteVarUpdateValue(state, indexSlidingAction)) = action; }
 
 // SPRING ZERO
 const Vec3& getSprZero(const State& state) const {
@@ -278,33 +240,38 @@ cloneImpl() const override {
 // Topology - allocate state variables and the data cache.
 int
 realizeSubsystemTopologyImpl(State& state) const override {
+    // Create a mutableThis
+    ExponentialSpringForceImpl* mutableThis =
+        const_cast<ExponentialSpringForceImpl*>(this);
+
     // Coefficients of friction: mus and muk
-    indexMus = allocateDiscreteVariable(state,
+    mutableThis->indexMus = allocateDiscreteVariable(state,
         Stage::Dynamics, new Value<Real>(defaultMus));
-    indexMuk = allocateDiscreteVariable(state,
+    mutableThis->indexMuk = allocateDiscreteVariable(state,
         Stage::Dynamics, new Value<Real>(defaultMuk));
 
     // SprZero
-    indexSprZero =
+    mutableThis->indexSprZero =
         allocateAutoUpdateDiscreteVariable(state, Stage::Dynamics,
             new Value<Vec3>(defaultSprZero), Stage::Dynamics);
-    indexSprZeroInCache =
+    mutableThis->indexSprZeroInCache =
         getDiscreteVarUpdateIndex(state, indexSprZero);
 
     // SlidingAction
-    indexSlidingAction =
+    mutableThis->indexSlidingAction =
         allocateAutoUpdateDiscreteVariable(state, Stage::Acceleration,
             new Value<SlidingAction>(defaultSlidingAction), Stage::Dynamics);
-    indexSlidingActionInCache =
+    mutableThis->indexSlidingActionInCache =
         getDiscreteVarUpdateIndex(state, indexSlidingAction);
 
     // Sliding
-    Vector zInit(1, defaultSliding);
-    indexZ = allocateZ(state, zInit);
+    const Vector zInit(1, defaultSliding);
+    mutableThis->indexZ = allocateZ(state, zInit);
 
     // Data
-    indexData = allocateCacheEntry(state, Stage::Dynamics,
+    mutableThis->indexData = allocateCacheEntry(state, Stage::Dynamics,
         new Value<ExponentialSpringData>(defaultData));
+
     return 0;
 }
 //_____________________________________________________________________________
@@ -443,7 +410,7 @@ calcFrictionForceBlended(const State& state) const {
     //Real vSettle = params.getSettleVelocity();
     //Real tau = params.getSlidingTimeConstant();
     //Real speed = data.vxy.norm();
-    //sliding = Sigma(0.01, -0.001, speed);
+    //sliding = sigma(0.01, -0.001, speed);
     //if(sliding < 0.0) sliding = 0.0;
     //else if(sliding > 1.0) sliding = 1.0;
 
@@ -579,11 +546,11 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
     Real kTau = 1.0 / params.getSlidingTimeConstant();
     Real vSettle = params.getSettleVelocity();
     Real aSettle = params.getSettleAcceleration();
-    
+
     // Current Sliding State
     Real sliding = getZ(state)[indexZ];
     SlidingAction action = getSlidingAction(state);
- 
+
     // Writable reference to the data cache
     // Values are updated during System::realize(Stage::Dynamics) (see above)
     const ExponentialSpringData& data = getData(state);
@@ -647,7 +614,7 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
     //std::cout << "t= " << state.getTime() <<
     //    "  s= " << sliding << ", " << slidingDot <<
     //    "  action= " << action << std::endl;
- 
+
     return 0;
 }
 //_____________________________________________________________________________
@@ -714,16 +681,15 @@ realizeSprZeroCache(const State& state) const {
     markCacheValueRealized(state, indexSprZeroInCache);
 }
 //_____________________________________________________________________________
-// Clamp a value between zero and a maximum value.
-static Real
-ClampAboveZero(Real value, Real max) {
-    if(value > max) return max;
-    if(value < 0.0) return 0.0;
-    return value;
-}
-//_____________________________________________________________________________
-// Sigma - a function that transitions smoothly from 0.0 to 1.0 or
+// sigma() - a function that transitions smoothly from 0.0 to 1.0 or
 // from 1.0 to 0.0.
+//
+// Note that this function does essentially the same thing as SimTK::stepUp()
+// and SimTK::stepDown(). I (FC Anderson) added this sigma() function for
+// the sake of comparison to past implementations of an exponential spring
+// contact model. Currently, sigma() is not being used in class
+// ExponentialSpringForce; however, it might be of use in making future improvements to
+// the ExponentialSpringForce class.
 //
 //   f(t) = 1.0 / {1.0 + exp[(t - t0) / tau]}
 //   t0 - time about which the transition is centered.  F(t0) = 0.5.
@@ -754,7 +720,7 @@ ClampAboveZero(Real value, Real max) {
 //  ------------------|-----------t0------------*************  t
 //
 static Real
-Sigma(Real t0, Real tau, Real t) {
+sigma(Real t0, Real tau, Real t) {
     Real x = (t - t0) / tau;
     Real s = 1.0 / (1.0 + std::exp(x));
     return s;
@@ -775,14 +741,14 @@ private:
     Vec3 defaultSprZero;
     SlidingAction defaultSlidingAction;
     Real defaultSliding;
-    mutable DiscreteVariableIndex indexMus;
-    mutable DiscreteVariableIndex indexMuk;
-    mutable DiscreteVariableIndex indexSprZero;
-    mutable CacheEntryIndex indexSprZeroInCache;
-    mutable DiscreteVariableIndex indexSlidingAction;
-    mutable CacheEntryIndex indexSlidingActionInCache;
-    mutable ZIndex indexZ;
-    mutable CacheEntryIndex indexData;
+    DiscreteVariableIndex indexMus;
+    DiscreteVariableIndex indexMuk;
+    DiscreteVariableIndex indexSprZero;
+    CacheEntryIndex indexSprZeroInCache;
+    DiscreteVariableIndex indexSlidingAction;
+    CacheEntryIndex indexSlidingActionInCache;
+    ZIndex indexZ;
+    CacheEntryIndex indexData;
 
 };  // end of class ExponentialSpringForceImpl
 
