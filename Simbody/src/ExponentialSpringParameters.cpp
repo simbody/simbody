@@ -41,30 +41,6 @@ ExponentialSpringParameters() :
     setElasticityAndViscosityForCriticalDamping(kpFric);
 }
 //_____________________________________________________________________________
-// Copy Constructor
-ExponentialSpringParameters::
-ExponentialSpringParameters(const ExponentialSpringParameters& source) {
-    operator=(source);
-}
-//_____________________________________________________________________________
-// Copy Assignment Operator
-ExponentialSpringParameters&
-ExponentialSpringParameters::
-operator=(const ExponentialSpringParameters& source) {
-    if(&source != this) {
-        d0 = source.d0;
-        d1 = source.d1;
-        d2 = source.d2;
-        kvNorm = source.kvNorm;
-        kpFric = source.kpFric;
-        kvFric = source.kvFric;
-        tau = source.tau;
-        vSettle = source.vSettle;
-        aSettle = source.aSettle;
-    }
-    return *this;
-}
-//_____________________________________________________________________________
 // Equality Operator
 bool
 ExponentialSpringParameters::
@@ -133,7 +109,7 @@ void
 ExponentialSpringParameters::
 setElasticityAndViscosityForCriticalDamping(Real kp, Real mass) {
     // Set the elasticity
-    setElasticity(kp);
+    setFrictionElasticity(kp);
 
     // Compute the viscosity
     if(mass<=0.0) {
@@ -146,7 +122,7 @@ setElasticityAndViscosityForCriticalDamping(Real kp, Real mass) {
 // Set the elasticity of the friction spring.
 void
 ExponentialSpringParameters::
-setElasticity(Real kp) {
+setFrictionElasticity(Real kp) {
     if(kp <= 0.0) {
         // An exception should be throw, but for now...
         cout << "ExponentialSpringParameters: ERR - kpFric should be positive!"
@@ -157,14 +133,14 @@ setElasticity(Real kp) {
 // Get the elasticity of the friction spring.
 Real
 ExponentialSpringParameters::
-getElasticity() const {
+getFrictionElasticity() const {
     return kpFric;
 }
 //_____________________________________________________________________________
 // Set the viscosity of the friction spring.
 void
 ExponentialSpringParameters::
-setViscosity(Real kv) {
+setFrictionViscosity(Real kv) {
     if(kv < 0.0) {
         // An exception should be throw, but for now...
         cout << "ExponentialSpringParameters: ERR - kvFric should be zero or "
@@ -175,7 +151,7 @@ setViscosity(Real kv) {
 // Get the viscosity of the friction spring.
 Real
 ExponentialSpringParameters::
-getViscosity() const {
+getFrictionViscosity() const {
     return kvFric;
 }
 //_____________________________________________________________________________

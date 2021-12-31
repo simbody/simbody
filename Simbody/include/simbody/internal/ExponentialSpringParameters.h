@@ -104,13 +104,14 @@ public:
     /** Copy constructor. Member variables are initialized to the values of
     the specified source object.
     @param source Const reference to the source object to be copied. */
-    ExponentialSpringParameters(const ExponentialSpringParameters& source);
+    ExponentialSpringParameters(const ExponentialSpringParameters& source)
+        = default;
 
     /** Copy assignment operator.
     @param source Const reference to the source object to which this instance
     should be assigned. */
     ExponentialSpringParameters&
-        operator=(const ExponentialSpringParameters& source);
+        operator=(const ExponentialSpringParameters& source) = default;
 
     /** Equality operator. All member variables of this object must be
     equal to the corresponding members of the other object to return true.
@@ -182,14 +183,14 @@ public:
     setElasticityAndViscosityForCriticalDamping().
     @param k Elasticity of the friction spring. Its default value is
     20000.0 N/m. kp should be positive. */
-    void setElasticity(Real k);
+    void setFrictionElasticity(Real k);
 
     /** Get the elasticity of the friction spring. The value of the elasticity
     is the default value (2000.0 N/m) or the value set by a call to either
     setElasticity() or setElasticityAndComputeVicosity(), whichever was called
     most recently.
     @returns Elasticity of the friction spring. */
-    Real getElasticity() const;
+    Real getFrictionElasticity() const;
 
     /** Set the viscosity of the friction spring (c). A call to this method
     overrides any value of viscosity previously set by a call to
@@ -206,14 +207,14 @@ public:
     @param c Viscosity of the friction spring. Its default value is
     2.0*sqrt(k*mass) = 2.0*sqrt(20000*1) ~= 282.8427 N*s/m. c should be 0.0
     or positive. */
-    void setViscosity(Real c);
+    void setFrictionViscosity(Real c);
 
     /** Get the viscosity of the friction spring. The value of the viscosity
     is the default value (~282.8427 N*s/m) or the value set by a call to either
     setViscosity() or setElasticityAndViscosityForCriticalDamping(), whichever
     was called most recently.
     @returns Viscosity of the friction spring. */
-    Real getViscosity() const;
+    Real getFrictionViscosity() const;
 
     /** Set the time constant for transitioning back and forth between the
     static (μₛ) and kinetic (μₖ) coefficients of friction. The transition is

@@ -548,7 +548,7 @@ void simulateBlock(const SimulationOptions& options) {
     ExponentialSpringParameters params;
     if(!options.damping) {
         params.setNormalViscosity(0.0);
-        params.setViscosity(0.0);
+        params.setFrictionViscosity(0.0);
     }
     // Friction
     Real muk = 0.25, mus = 0.5;
@@ -941,8 +941,8 @@ void testInitialization() {
     Real d0Def, d1Def, d2Def;
     paramsDef.getShapeParameters(d0Def, d1Def, d2Def);
     Real kvNormDef = paramsDef.getNormalViscosity();
-    Real kpDef = paramsDef.getElasticity();
-    Real kvDef = paramsDef.getViscosity();
+    Real kpDef = paramsDef.getFrictionElasticity();
+    Real kvDef = paramsDef.getFrictionViscosity();
     Real tauDef = paramsDef.getSlidingTimeConstant();
     Real vSettleDef = paramsDef.getSettleVelocity();
 
@@ -963,9 +963,9 @@ void testInitialization() {
     SimTK_TEST(params != paramsDef);
     params.setNormalViscosity(kvNorm);
     SimTK_TEST(params != paramsDef);
-    params.setElasticity(kp);
+    params.setFrictionElasticity(kp);
     SimTK_TEST(params != paramsDef);
-    params.setViscosity(kv);
+    params.setFrictionViscosity(kv);
     SimTK_TEST(params != paramsDef);
     params.setSlidingTimeConstant(tau);
     SimTK_TEST(params != paramsDef);
@@ -979,8 +979,8 @@ void testInitialization() {
     SimTK_TEST_EQ(d1 - d1Def, delta);
     SimTK_TEST_EQ_TOL(d2 - d2Def, delta, tol);
     SimTK_TEST_EQ(params.getNormalViscosity() - kvNormDef, delta);
-    SimTK_TEST_EQ_TOL(params.getElasticity() - kpDef, delta, tol);
-    SimTK_TEST_EQ_TOL(params.getViscosity() - kvDef, delta, tol);
+    SimTK_TEST_EQ_TOL(params.getFrictionElasticity() - kpDef, delta, tol);
+    SimTK_TEST_EQ_TOL(params.getFrictionViscosity() - kvDef, delta, tol);
     SimTK_TEST_EQ(params.getSlidingTimeConstant() - tauDef, delta);
     SimTK_TEST_EQ(params.getSettleVelocity() - vSettleDef, delta);
 
@@ -989,16 +989,16 @@ void testInitialization() {
     Real kp1 = 100000.0;
     Real kv1 = 2.0 * sqrt(kp1);
     params.setElasticityAndViscosityForCriticalDamping(kp1);
-    SimTK_TEST_EQ(params.getViscosity(), kv1);
+    SimTK_TEST_EQ(params.getFrictionViscosity(), kv1);
     // with a non-default mass
     Real mass = 20.0;
     kv1 = 2.0 * sqrt(kp1 * mass);
     params.setElasticityAndViscosityForCriticalDamping(kp1, mass);
-    SimTK_TEST_EQ(params.getViscosity(), kv1);
+    SimTK_TEST_EQ(params.getFrictionViscosity(), kv1);
 
     // Return the non-default params to the original non-default values
-    params.setElasticity(kp);
-    params.setViscosity(kv);
+    params.setFrictionElasticity(kp);
+    params.setFrictionViscosity(kv);
 
     //------------------------------------------------------------
     // 2. Test construction with default an non-default parameters
@@ -1038,8 +1038,8 @@ void testInitialization() {
     SimTK_TEST_EQ(d1 - d1Def, delta);
     SimTK_TEST_EQ_TOL(d2 - d2Def, delta, tol);
     SimTK_TEST_EQ(p.getNormalViscosity() - kvNormDef, delta);
-    SimTK_TEST_EQ_TOL(p.getElasticity() - kpDef, delta, tol);
-    SimTK_TEST_EQ_TOL(p.getViscosity() - kvDef, delta, tol);
+    SimTK_TEST_EQ_TOL(p.getFrictionElasticity() - kpDef, delta, tol);
+    SimTK_TEST_EQ_TOL(p.getFrictionViscosity() - kvDef, delta, tol);
     SimTK_TEST_EQ(p.getSlidingTimeConstant() - tauDef, delta);
     SimTK_TEST_EQ(p.getSettleVelocity() - vSettleDef, delta);
 

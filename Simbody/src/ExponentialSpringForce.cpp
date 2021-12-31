@@ -425,8 +425,8 @@ void
 calcFrictionForceBlended(const State& state) const {
     // Initializations
     ExponentialSpringData& data = updData(state);  // data cache
-    Real kpFric = params.getElasticity();   // elasticity
-    Real kvFric = params.getViscosity();    // viscosity
+    Real kpFric = params.getFrictionElasticity();   // elasticity
+    Real kvFric = params.getFrictionViscosity();    // viscosity
     Vec3 p0 = getSprZero(state);            // spring zero
     data.limitReached = false;              // true if force limit exceeded
 
@@ -511,8 +511,8 @@ calcFrictionForceSpringOnly(const State& state) const {
     // Retrieve a writable reference to the data cache entry.
     ExponentialSpringData& data = updData(state);
     // Get the friction parameters
-    Real kpFric = params.getElasticity();
-    Real kvFric = params.getViscosity();
+    Real kpFric = params.getFrictionElasticity();
+    Real kvFric = params.getFrictionViscosity();
     // Get the sliding state, which is bounded by 0.0 and 1.0.
     Real sliding = getZ(state)[indexZ];
     if(sliding < 0.0) sliding = 0.0;
@@ -670,7 +670,7 @@ calcPotentialEnergy(const State& state) const override {
     // state, just in the cache.
     Vec3 p0Cache = getSprZeroInCache(state);
     Vec3 r = data.pxy - p0Cache;
-    energy += 0.5 * params.getElasticity() * r.norm() * r.norm();
+    energy += 0.5 * params.getFrictionElasticity() * r.norm() * r.norm();
     return energy;
 }
 
