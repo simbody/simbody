@@ -31,16 +31,19 @@ class MobilizedBody;
 class ExponentialSpringForceImpl;
 
 //=============================================================================
-/** Class ExponentialSpringForce uses an 'exponential spring' as a means
-of modeling contact of a point on a MobilizedBody with a contact plane that is
-fixed to Ground. In practice, you should choose a number of body-fixed points
-('Stations' in Simbody vocabulary), strategically located across the
-surface of a MobilizedBody, and create an ExponentialSpringForce that acts at
-each of those points. For example, if the body were a cube, you would likely
-choose to place an exponential spring at each corner of the cube. The contact
+/** Class ExponentialSpringForce uses an "exponential spring" as a means
+of modeling contact of a specified point on a MobilizedBody with a contact
+plane that is fixed to Ground. In this documentation, this specified point
+is referred to as the "body station". Each ExponentialSpringForce instance
+acts at only one body station. In practice, you should choose a number of
+body stations strategically located across the surface of a MobilizedBody,
+and construct an ExponentialSpringForce for each of those body stations. For
+example, if the body were a cube, you would likely choose the body stations
+to be the corners of the cube and construct an ExponentialSpringForce
+instance for each corner of the cube (so a total of 8 instances). The contact
 plane is typically used to model interactions with a floor, but need not be
 limited to this use case. The contact plane can be rotated and displaced
-relative to the ground frame and so can be used to model a wall, ramp, or
+relative to the Ground frame and so can be used to model a wall, ramp, or
 some other planar structure.
 
 A distinguishing feature of the exponential spring, relative to other
@@ -137,7 +140,7 @@ whose shape is a function of three parameters (d₀, d₁, and d₂):
 
         fzElastic = d₁exp(−d₂(pz−d₀))
 
-Note that pz is the displacement of the body spring station above (pz > 0.0)
+Note that pz is the displacement of the body station above (pz > 0.0)
 or below (pz < 0.0) the contact plane. The default values of the shape
 parameters were chosen to maximize integration step size while maintaining a
 number of constraints (e.g., the normal force must fall below 0.01 Newtons
@@ -146,7 +149,7 @@ and scaled by the elastic part:
 
         fzDamping = −cz vz fzElastic,
 
-where vz is the normal component of the velocity of the specified Station and
+where vz is the normal component of the velocity of the body station and
 cz is the damping coefficient for the normal direction. All together, the
 spring force in the normal direction is given by
 
@@ -174,16 +177,15 @@ kinetic conditions are present.
 More details about the Sliding State are given in sections below.
 
 #### Friction Model 1 - Pure Damping (Sliding = 1.0)
-When the body station (i.e., the specified point on a MobilizedBody that
-interacts with the contact plane) is moving with respect to its contact plane,
-the friction force is computed using a simple damping term:
+When the body station is moving with respect to the contact plane, the
+friction force is computed using a simple damping term:
 
         fricDamp = −cxy vxy
 
-where cxy is the damping coefficient in the xy plane and vxy is the velocity
-of the spring station in the contact plane expressed in the contact plane.
-However, the magnitude of the total frictional force is not allowed to exceed
-the frictional limit:
+where cxy is the damping coefficient in the contact plane and vxy is the
+velocity of the body station in the contact plane expressed in the contact
+plane. However, the magnitude of the total frictional force is not allowed to
+exceed the frictional limit:
 
         fricLimit = μ fz
         if (|fricDamp| > fricLimit)
@@ -196,10 +198,9 @@ typically small (i.e., less than 0.1 m/s), this model is consistent with a
 standard Coulomb Friction model.
 
 #### Friction Model 2 - Damped Linear Spring (Sliding = 0.0)
-When a body station (i.e., the specified point on a MobilizedBody that
-interacts with the contact plane) is anchored with respect to its contact
-plane, the friction force is represented by a damped linear spring. The
-viscous term is given by the same damping expression as above:
+When the body station is anchored with respect to the contact plane, the
+friction force is represented by a damped linear spring. The viscous term is
+given by the same damping expression as above:
 
         fricDampSpr = −cxy vxy
 
@@ -209,8 +210,8 @@ and the elastic term is given by
 
 where kxy is the spring elasticity, pxy is the position of the body
 station projected onto the contact plane, and p₀ is the current spring zero
-(i.e., the elastic anchor point). Note that p₀ always resides in the contact
-plane.
+(i.e., the elastic anchor point of the friction spring). Note that p₀ always
+resides in the contact plane.
 
 The total friction spring force is then given by the sum of the elastic and
 viscous terms:
@@ -284,14 +285,14 @@ any point during its calculation, Sliding is driven toward 1.0 (rise):
         SlidingDot = (1.0 − Sliding)/tau
 
 - If the frictional spring force (fricSpr) does not exceed the frictional
-limit at any point during its calculation and if the kinematics of the spring
+limit at any point during its calculation and if the kinematics of the body
 station are near static equilibrium, Sliding is driven toward 0.0 (decay):
 
         SlidingDot = −Sliding/tau
 
 The threshold for being "near" static equilibrium is established by two
 parameters, vSettle and aSettle. When the velocity and acceleration of the
-spring station relative to the contact plane are below vSettle and aSettle,
+body station relative to the contact plane are below vSettle and aSettle,
 respectively, static equilibrium is considered effectively reached.
 
 During a simulation, once a rise or decay is triggered, the rise or decay
@@ -309,12 +310,12 @@ that μ is continuous and that the blending of friction models is well behaved.
 ### Future Enhancements
 
 Future enhancements could include the capacity to
-1) fix the contact plane to a body other than ground
-2) use a polygonal mesh as the contact surface, and
-3) move the specified MobilizedBody Station in manner that adapts to the
-contact circumstances. For example, to model a coin rolling on a table
-a small number of stations could be continually moved to the portion of the
-coin that is closest to the table.
+- Fix the contact plane to a body other than Ground,
+- Use a polygonal mesh as the contact surface, and
+- Move the specified body Station in manner that adapts to contact
+circumstances. For example, to model a coin rolling on a table a small number
+of stations could be continually moved to the portion of the coin that is
+closest to the table.
 
 ------
 STATES
@@ -395,9 +396,9 @@ public:
     spring was instantiated. */
     const MobilizedBody& getBody() const;
 
-    /** Get the point (station) that interacts with the contact plane and at
-    which the resulting contact force is applied. The station is expressed in
-    the frame of the body for which this exponential spring was
+    /** Get the point (body station) that interacts with the contact plane
+    and at which the resulting contact force is applied. The body station is
+    expressed in the frame of the body for which this exponential spring was
     instantiated. */
     const Vec3& getStation() const;
 
@@ -563,13 +564,13 @@ public:
     of the contact plane. */
     Vec3 getForce(const State& state, bool inGround = true) const;
 
-    /** Get the position of the station (i.e., the point at which the force
-    generated by this ExponentialSpringForce instance is applied to the body).
-    The system must be realized to Stage::Position to access this data.
-    This method differs from getStation() in terms of the frame in which the
+    /** Get the position of the body station (i.e., the point on the body at
+    which the force generated by this ExponentialSpringForce is applied). This
+    method differs from getStation() in terms of the frame in which the
     station is expressed. getStation() expresses the point in the frame of
     the MobilizedBody. getStationPosition() expresses the point either in the
-    Ground frame or in the frame of the Contact Plane.
+    Ground frame or in the frame of the Contact Plane. The system must be
+    realized to Stage::Position to access this data.
     @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned quantity
     will be expressed. If true (the default), the quantity will be expressed
@@ -577,8 +578,8 @@ public:
     of the contact plane. */
     Vec3 getStationPosition(const State& state, bool inGround = true) const;
 
-    /** Get the velocity of the station (i.e., the point at which the force
-    generated by this ExponentialSpringForce instance is applied to the body).
+    /** Get the velocity of the body station (i.e., the point on the body at
+    which the force generated by this ExponentialSpringForce is applied).
     The system must be realized to Stage::Velocity to access this data.
     @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned quantity
