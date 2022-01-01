@@ -31,28 +31,25 @@ using std::endl;
 // Class - ExponentialSpringParameters
 //=============================================================================
 //_____________________________________________________________________________
-// Default Constructor
 ExponentialSpringParameters::
 ExponentialSpringParameters() :
-    d0(0.0065905), d1(0.5336), d2(1150.0), kvNorm(0.5),
-    kpFric(20000.0), kvFric(0.0),
+    d0(0.0065905), d1(0.5336), d2(1150.0), cz(0.5),
+    kxy(20000.0), cxy(0.0),
     tau(0.01), vSettle(0.01), aSettle(1.0) {
 
-    setElasticityAndViscosityForCriticalDamping(kpFric);
+    setElasticityAndViscosityForCriticalDamping(kxy);
 }
 //_____________________________________________________________________________
-// Equality Operator
 bool
 ExponentialSpringParameters::
 operator==(const ExponentialSpringParameters& other) const {
     if(&other == this) return true;
     return ((d0 == other.d0) && (d1 == other.d1) && (d2 == other.d2) &&
-        (kvNorm == other.kvNorm) && (kpFric == other.kpFric) &&
+        (cz == other.cz) && (kxy == other.kxy) && (cxy == other.cxy) &&
         (tau == other.tau) &&
         (vSettle == other.vSettle) && (aSettle == other.aSettle));
 }
 //_____________________________________________________________________________
-// Set the parameters that control the shape of the exponential function.
 void
 ExponentialSpringParameters::
 setShapeParameters(Real d0, Real d1, Real d2) {
@@ -60,151 +57,129 @@ setShapeParameters(Real d0, Real d1, Real d2) {
     this->d0 = d0;
 
     // d1
-    if(d1 <= 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - d1 should be positive!"
-            << endl;
-    } else this->d1 = d1;
+    SimTK_APIARGCHECK1_ALWAYS(d1 > 0.0,
+        "ExponentialSpringParameters", "setShapeParameters",
+        "expected d1 > 0.0, but d1 = %lf", d1);
+    this->d1 = d1;
 
     // d2
-    if(d2 <= 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - d2 should be positive!"
-            << endl;
-    } else this->d2 = d2;
+    SimTK_APIARGCHECK1_ALWAYS(d2 > 0.0,
+        "ExponentialSpringParameters", "setShapeParameters",
+        "expected d2 > 0.0, but d2 = %lf", d2);
+    this->d2 = d2;
 }
 //_____________________________________________________________________________
-// Get the parameters that control the shape of the exponential function.
 void
 ExponentialSpringParameters::
-getShapeParameters(Real &d0, Real& d1, Real& d2) const {
+getShapeParameters(Real& d0, Real& d1, Real& d2) const {
     d0 = this->d0;
     d1 = this->d1;
     d2 = this->d2;
 }
 //_____________________________________________________________________________
-// Set the viscosity of the exponential spring.  This quanitiy only affects
-// the damping in the direction normal to the floor.
 void
 ExponentialSpringParameters::
-setNormalViscosity(Real kvNorm) {
-    if(kvNorm < 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - kvNorm should be zero "
-            << "or positive!" << endl;
-    } else this->kvNorm = kvNorm;
+setNormalViscosity(Real cz) {
+    SimTK_APIARGCHECK1_ALWAYS(cz >= 0.0,
+        "ExponentialSpringParameters", "setNormalViscosity",
+        "expected cz >= 0.0, but cz = %lf", cz);
+    this->cz = cz;
 }
 //_____________________________________________________________________________
-// Get the viscosity of the exponential spring.  This is the viscosity
-// that applies to velocity in the normal direction.
 Real
 ExponentialSpringParameters::
 getNormalViscosity() const {
-    return kvNorm;
+    return cz;
 }
 //_____________________________________________________________________________
-// Set the elasticity and compute the visosity to produce critically
-// damped motion for a specified mass.
 void
 ExponentialSpringParameters::
-setElasticityAndViscosityForCriticalDamping(Real kp, Real mass) {
+setElasticityAndViscosityForCriticalDamping(Real kxy, Real mass) {
     // Set the elasticity
-    setFrictionElasticity(kp);
+    setFrictionElasticity(kxy);
 
     // Compute the viscosity
-    if(mass<=0.0) {
-        // An exception should be throw, but for now...
-        cout<<"ExponentialSpringParameters: ERR - mass should be positive!"
-            <<endl;
-    } else this->kvFric = 2.0 * std::sqrt(this->kpFric * mass);
+    SimTK_APIARGCHECK1_ALWAYS(mass > 0.0,
+        "ExponentialSpringParameters",
+        "setElasticityAndViscosityForCriticalDamping",
+        "expected mass > 0.0, but mass = %lf", mass);
+    this->cxy = 2.0 * std::sqrt(this->kxy * mass);
 }
 //_____________________________________________________________________________
-// Set the elasticity of the friction spring.
 void
 ExponentialSpringParameters::
-setFrictionElasticity(Real kp) {
-    if(kp <= 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - kpFric should be positive!"
-            << endl;
-    } else this->kpFric = kp;
+setFrictionElasticity(Real kxy) {
+    SimTK_APIARGCHECK1_ALWAYS(kxy > 0.0,
+        "ExponentialSpringParameters",
+        "setFrictionElasticity",
+        "expected kxy > 0.0, but kxy = %lf", kxy);
+    this->kxy = kxy;
 }
 //_____________________________________________________________________________
-// Get the elasticity of the friction spring.
 Real
 ExponentialSpringParameters::
 getFrictionElasticity() const {
-    return kpFric;
+    return kxy;
 }
 //_____________________________________________________________________________
-// Set the viscosity of the friction spring.
 void
 ExponentialSpringParameters::
-setFrictionViscosity(Real kv) {
-    if(kv < 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - kvFric should be zero or "
-            << "positive!" << endl;
-    } else this->kvFric = kv;
+setFrictionViscosity(Real cxy) {
+    SimTK_APIARGCHECK1_ALWAYS(cxy >= 0.0,
+        "ExponentialSpringParameters",
+        "setFrictionViscosity",
+        "expected cxy >= 0.0, but cxy = %lf", cxy);
+    this->cxy = cxy;
 }
 //_____________________________________________________________________________
-// Get the viscosity of the friction spring.
 Real
 ExponentialSpringParameters::
 getFrictionViscosity() const {
-    return kvFric;
+    return cxy;
 }
 //_____________________________________________________________________________
-// Set the time constant for transitioning between kinetic and static
-// frictional coefficients.
 void
 ExponentialSpringParameters::
 setSlidingTimeConstant(Real tau) {
-    if(tau <= 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - tau should be positive!"
-            << endl;
-    } else this->tau = tau;
+    SimTK_APIARGCHECK1_ALWAYS(tau > 0.0,
+        "ExponentialSpringParameters",
+        "setSlidingTimeConstant",
+        "expected tau > 0.0, but tau = %lf", tau);
+    this->tau = tau;
 }
 //_____________________________________________________________________________
-// Get the elasticity of the friction spring.
 Real
 ExponentialSpringParameters::
 getSlidingTimeConstant() const {
     return tau;
 }
 //_____________________________________________________________________________
-// Set the velocity for settling into using the static coefficient of friction.
 void
 ExponentialSpringParameters::
 setSettleVelocity(Real vSettle) {
-    if(vSettle<=0.0) {
-        // An exception should be throw, but for now...
-        cout<<"ExponentialSpringParameters: ERR - vSettle should be positive!"
-            <<endl;
-    } else this->vSettle = vSettle;
+    SimTK_APIARGCHECK1_ALWAYS(vSettle > 0.0,
+        "ExponentialSpringParameters",
+        "setSettleVelocity",
+        "expected vSettle > 0.0, but vSettle = %lf", vSettle);
+    this->vSettle = vSettle;
 }
 //_____________________________________________________________________________
-// Get the settle velocity.
 Real
 ExponentialSpringParameters::
 getSettleVelocity() const {
     return vSettle;
 }
 //_____________________________________________________________________________
-// Set the acceleration for settling into using the static coefficient of
-// friction.
 void
 ExponentialSpringParameters::
 setSettleAcceleration(Real aSettle) {
-    if(aSettle <= 0.0) {
-        // An exception should be throw, but for now...
-        cout << "ExponentialSpringParameters: ERR - aSettle should be positive!"
-            << endl;
-    } else this->aSettle = aSettle;
+    SimTK_APIARGCHECK1_ALWAYS(aSettle > 0.0,
+        "ExponentialSpringParameters",
+        "setSettleAcceleration",
+        "expected aSettle > 0.0, but aSettle = %lf", aSettle);
+    this->aSettle = aSettle;
 }
 //_____________________________________________________________________________
-// Get the settle acceleration.
 Real
 ExponentialSpringParameters::
 getSettleAcceleration() const {

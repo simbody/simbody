@@ -124,9 +124,11 @@ exponential) is applied. The x-axis and y-axis of the contact plane together
 define the tangent plane. Friction forces will always be tangent to the x-y
 plane.
 
-In the equations below, a variable with a "z" suffix (e.g., pz or vz) refers
-to a quantity that is normal to the contact plane. A variable with an "xy"
-suffix refers to a quantity that lies in or is tangent to the contact plane.
+In the equations below, a variable with a "z" suffix (e.g., pz, vz, or cz)
+refers to a quantity that is normal to the contact plane or that pertains
+to calculation of the normal force. A variable with an "xy" suffix
+(e.g., pxy, vxy, or cxy) refers to a quantity that lies in or is tangent to
+the contact plane or that pertains to calculation of the friction force.
 
 ### Normal Force (positive z-axis)
 
@@ -172,12 +174,13 @@ kinetic conditions are present.
 More details about the Sliding State are given in sections below.
 
 #### Friction Model 1 - Pure Damping (Sliding = 1.0)
-When a spring station is moving with respect to its contact plane,
+When the body station (i.e., the specified point on a MobilizedBody that
+interacts with the contact plane) is moving with respect to its contact plane,
 the friction force is computed using a simple damping term:
 
-        fricDamp = −c vxy
+        fricDamp = −cxy vxy
 
-where c is the damping coefficient in the xy plane and vxy is the velocity
+where cxy is the damping coefficient in the xy plane and vxy is the velocity
 of the spring station in the contact plane expressed in the contact plane.
 However, the magnitude of the total frictional force is not allowed to exceed
 the frictional limit:
@@ -193,19 +196,21 @@ typically small (i.e., less than 0.1 m/s), this model is consistent with a
 standard Coulomb Friction model.
 
 #### Friction Model 2 - Damped Linear Spring (Sliding = 0.0)
-When a spring station is fixed with respect to its contact plane, the friction
-force is represented by a damped linear spring. The viscous term is given by
-the same damping expression as above:
+When a body station (i.e., the specified point on a MobilizedBody that
+interacts with the contact plane) is anchored with respect to its contact
+plane, the friction force is represented by a damped linear spring. The
+viscous term is given by the same damping expression as above:
 
-        fricDampSpr = −c vxy
+        fricDampSpr = −cxy vxy
 
 and the elastic term is given by
 
-        fricElasSpr = −k (pxy−p₀)
+        fricElasSpr = −kxy (pxy−p₀)
 
-where k is the spring elasticity, pxy is the position of the body station
-projected onto the contact plane, and p₀ is the current spring zero (i.e.,
-the elastic anchor point), which always resides in the contact plane.
+where kxy is the spring elasticity, pxy is the position of the body
+station projected onto the contact plane, and p₀ is the current spring zero
+(i.e., the elastic anchor point). Note that p₀ always resides in the contact
+plane.
 
 The total friction spring force is then given by the sum of the elastic and
 viscous terms:
@@ -246,8 +251,8 @@ well behaved and smooth for all values of Sliding between 0.0 and 1.0.
 The friction spring zero (p₀) is always made to be consistent with the final
 value of the blended elastic force (fricElasBlend):
 
-        p₀ = pxy + fricElasBlend / k;
-        p₀[2] = 0.0;  // p₀ always lies in the contact plane
+        p₀ = pxy + fricElasBlend / kxy;
+        p₀[2] = 0.0;  // ensure that p₀ lies in the contact plane
 
 When fricElasBlend = 0.0, notice that p₀ = pxy, p₀[2] = 0.0. In other words,
 when Sliding = 1.0, p₀ is simply the position of the body station projected

@@ -70,12 +70,12 @@ appropriate for simulating many contact interactions. For example, one might
 want to simulate an interaction in which very little energy is dissipated
 during a contact event, in which case you'd reduce the normal viscosity and
 friction spring viscosity, as well as decrease the coefficients of
-friction. Valid values of the friction spring elasticity and viscosity (k and
-c) can range widely (e.g., k = 1,000 to k = 1,000,000) depending on the
-material properties of the objects represented by a particular MobilizedBody
-and contact plane (e.g., bare feet on a yoga mat vs. a steel bearing
-on a marble floor). In general, higher values of k and c will result in
-smaller integration step sizes.
+friction. Valid values of the friction spring elasticity and viscosity
+(kxy and cxy) can range widely (e.g., kxy = 1,000 to kxy = 1,000,000)
+depending on the material properties of the objects represented by a
+particular MobilizedBody and contact plane (e.g., bare feet on a yoga mat vs.
+a steel bearing on a marble floor). In general, higher values of kxy and cxy
+will result in smaller integration step sizes.
 
 The default values of the parameters are expressed in units of Newtons,
 meters, seconds, and kilograms; however, you may use an alternate set of
@@ -164,26 +164,26 @@ public:
     @returns Viscosity in the normal direction (cz) */
     Real getNormalViscosity() const;
 
-    /** Set both the elasticity and viscosity of the friction spring
-    associated with an exponential spring. The value that is set for the
+    /** Set both the elasticity and viscosity of the damped linear spring
+    used to model friction in Friction Model 2. The value that is set for the
     viscosity is computed so that critical damping would result for a
-    specified mass (i.e., c = 2*sqrt(k*mass)). A call to this method
+    specified mass (i.e., cxy = 2*sqrt(kxy*mass)). A call to this method
     overrides any values set previously by calls to setElasticity() or
     setViscosity().
-    @param k Elasticity of the friction spring. k should be positive.
+    @param kxy Elasticity of the friction spring. kxy should be positive.
     @param mass Mass of the body for which critical damping would be achieved.
     Articulated bodies generally don't have an effective mass that is constant
     as it relates to acceleration in a particular direction, so think of this
     mass as a kind of average mass. A default mass of 1.0 kg is used if a mass
     is not specified. */
-    void setElasticityAndViscosityForCriticalDamping(Real k, Real mass=1.0);
+    void setElasticityAndViscosityForCriticalDamping(Real kxy, Real mass=1.0);
 
-    /** Set the elasticity of the friction spring (k). A call to this method
+    /** Set the elasticity of the friction spring (kxy). A call to this method
     overrides any value of elasticity previously set by a call to
     setElasticityAndViscosityForCriticalDamping().
-    @param k Elasticity of the friction spring. Its default value is
-    20000.0 N/m. kp should be positive. */
-    void setFrictionElasticity(Real k);
+    @param kxy Elasticity of the friction spring. Its default value is
+    20000.0 N/m. kxy should be positive. */
+    void setFrictionElasticity(Real kxy);
 
     /** Get the elasticity of the friction spring. The value of the elasticity
     is the default value (2000.0 N/m) or the value set by a call to either
@@ -192,22 +192,22 @@ public:
     @returns Elasticity of the friction spring. */
     Real getFrictionElasticity() const;
 
-    /** Set the viscosity of the friction spring (c). A call to this method
+    /** Set the viscosity of the friction spring (cxy). A call to this method
     overrides any value of viscosity previously set by a call to
     setElasticityAndViscosityForCriticalDamping(). Setting the viscosity equal
     to 0.0 is fine. Be aware, however, that if a body is not sliding,
-    setting c = 0.0 will simply allow the body to vibrate in place
-    indefinitely. If a body is sliding, even if c = 0.0, the kinetic energy
+    setting cxy = 0.0 will simply allow the body to vibrate in place
+    indefinitely. If a body is sliding, even if cxy = 0.0, the kinetic energy
     of the body will still be dissipated because the frictional force is
     directed opposite the sliding velocity, and the elastic part of the
     friction spring will not store additional potential energy because the
-    spring zero is continually released. The only way to eliminate energy
-    dissipation entirely is to also set the coefficients of friction equal to
-    0.0.
-    @param c Viscosity of the friction spring. Its default value is
-    2.0*sqrt(k*mass) = 2.0*sqrt(20000*1) ~= 282.8427 N*s/m. c should be 0.0
-    or positive. */
-    void setFrictionViscosity(Real c);
+    friction spring zero (p₀) is continually released. The only way to
+    eliminate energy dissipation entirely is to also set the coefficients of
+    friction equal to 0.0.
+    @param cxy Viscosity of the friction spring. Its default value is
+    2.0*sqrt(kxy*mass) = 2.0*sqrt(20000*1) ~= 282.8427 N*s/m. cxy should be
+    0.0 or positive. */
+    void setFrictionViscosity(Real cxy);
 
     /** Get the viscosity of the friction spring. The value of the viscosity
     is the default value (~282.8427 N*s/m) or the value set by a call to either
@@ -255,9 +255,9 @@ private:
     Real d0;
     Real d1;
     Real d2;
-    Real kvNorm;
-    Real kpFric;
-    Real kvFric;
+    Real cz;
+    Real kxy;
+    Real cxy;
     Real tau;
     Real vSettle;
     Real aSettle;
