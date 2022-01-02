@@ -248,9 +248,10 @@ Thus, Model 1 (Pure Damping) dominates as Sliding → 1.0, and
 Model 2 (Damped Linear Spring) dominates as Sliding → 0.0. The blending is
 well behaved and smooth for all values of Sliding between 0.0 and 1.0.
 
-#### Moving the Friciton Spring Zero
-The friction spring zero (p₀) is always made to be consistent with the final
-value of the blended elastic force (fricElasBlend):
+#### Moving the Friction Spring Zero
+The friction spring zero (p₀) (the elastic anchor point) is always made
+to be consistent with the final value of the blended elastic force
+(fricElasBlend):
 
         p₀ = pxy + fricElasBlend / kxy;
         p₀[2] = 0.0;  // ensure that p₀ lies in the contact plane
@@ -309,13 +310,13 @@ that μ is continuous and that the blending of friction models is well behaved.
 
 ### Future Enhancements
 
-Future enhancements could include the capacity to
+Enhancements might include the capacity to
 - Fix the contact plane to a body other than Ground,
 - Use a polygonal mesh as the contact surface, and
-- Move the specified body Station in manner that adapts to contact
-circumstances. For example, to model a coin rolling on a table a small number
-of stations could be continually moved to the portion of the coin that is
-closest to the table.
+- Move the body station in manner that adapts to contact circumstances. For
+example, to model a coin rolling on a table a small number of body stations
+could be continually moved to the portion of the coin that is closest to the
+table.
 
 ------
 STATES
@@ -326,6 +327,7 @@ below in the appropriate category:
 ### DISCRETE STATES (parameters)
 - μₛ (Real) = Static coefficient of friction.  0.0 ≤ μₛ
 - μₖ (Real) = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
+
 As discrete states, μₛ and μₖ can be changed during the course of a simulation
 without invalidating the System topology. This feature allows μₛ and μₖ to be
 altered during a simulation to model, for example, a slippery spot on the

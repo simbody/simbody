@@ -286,9 +286,9 @@ realizeSubsystemTopologyImpl(State& state) const override {
 // Cache Entry when the System is realized at the Dynamics Stage.
 // These data can be retrieved during a simulation by a reporter or handler,
 // for example.
-// 
+//
 // Variables without a suffix are expressed in the frame of the contact plane.
-// 
+//
 // Variables with the _G suffix are expressed in the ground frame.
 //
 // Most every calculation happens in this one method, the calculations for
