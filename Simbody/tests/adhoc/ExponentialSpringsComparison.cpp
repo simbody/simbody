@@ -171,7 +171,6 @@ int main() {
         const Real fVis = 0.0; // to turn off viscous friction
         const Real fK = .5 * 1e6; // pascals
         const Rotation R_xdown(-Pi / 2, ZAxis);
-        //int surfx;
         matter.Ground().updBody().addDecoration(
             Transform(Vec3(0, -0.5, 0)),
             DecorativeBrick(Vec3(2, 0.5, 2)).setColor(Green).setOpacity(.1));
