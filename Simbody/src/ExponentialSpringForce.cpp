@@ -117,11 +117,11 @@ enum SlidingAction {
 
 // Constructor
 ExponentialSpringForceImpl(const Transform& XContactPlane,
-const MobilizedBody& body, const Vec3& station, Real mus, Real muk,
-const ExponentialSpringParameters& params) :
+const MobilizedBody& ground, const MobilizedBody& body, const Vec3& station,
+Real mus, Real muk, const ExponentialSpringParameters& params) :
 ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
-X_GP(XContactPlane), body(body), station(station),
-defaultMus(mus), defaultMuk(muk), useBlended(true),
+X_GP(XContactPlane), ground(ground), body(body), station(station),
+defaultMus(mus), defaultMuk(muk),
 defaultSprZero(Vec3(0., 0., 0.)),
 defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0) {
     // Check for valid static coefficient
@@ -233,7 +233,7 @@ void setMuKinetic(State& state, Real muk) const {
 // Clone
 Subsystem::Guts*
 cloneImpl() const override {
-    return new ExponentialSpringForceImpl(X_GP, body, station,
+    return new ExponentialSpringForceImpl(X_GP, body, ground, station,
         defaultMus, defaultMuk, params);
 }
 //_____________________________________________________________________________
@@ -313,15 +313,17 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     ExponentialSpringData& data = updData(state);
 
     // Set total force expressed in the frame of the Contact Plane.
-    data.f_P = data.fric_P;     // The x and y components are friction.
-    data.f_P[2] = data.fz;    // The z component is the normal force.
+    data.f_P = data.fric_P;  // The x and y components are friction.
+    data.f_P[2] = data.fz;   // The z component is the normal force.
 
     // Transform the total force to the Ground frame
-    //data.f_G = X_GP.xformFrameVecToBase(data.f);
     data.f_G = X_GP.R() * data.f_P;
 
-    // Apply the force
+    // Apply the force to the body and to Ground.
+    // TODO(fcanderson) Add a test to see that Ground registers the
+    // reaction of the force applied to the body.
     body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
+    ground.applyForceToBodyPoint(state, data.p_G, -data.f_G, forces_G);
 
     return 0;
 }
@@ -579,11 +581,11 @@ resetSprZero(State& state) const {
 // Data Members
 //-----------------------------------------------------------------------------
 private:
-    bool useBlended;
     ExponentialSpringParameters params;
     ExponentialSpringData defaultData;
     Transform X_GP;
     const MobilizedBody& body;
+    const MobilizedBody& ground;
     Vec3 station;
     Real defaultMus;
     Real defaultMuk;
@@ -616,8 +618,10 @@ ExponentialSpringForce(MultibodySystem& system,
     const MobilizedBody& body, const Vec3& station,
     Real mus, Real muk, ExponentialSpringParameters params)
 {
+    SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
+    const MobilizedBody& ground = (const MobilizedBody&)matter.Ground();
     adoptSubsystemGuts(
-        new ExponentialSpringForceImpl(XContactPlane, body, station,
+        new ExponentialSpringForceImpl(XContactPlane, ground, body, station,
             mus, muk, params));
     system.addForceSubsystem(*this);
 }
