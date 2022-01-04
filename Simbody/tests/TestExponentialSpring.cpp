@@ -21,13 +21,9 @@
  * limitations under the License.                                            *
  * ------------------------------------------------------------------------- */
 
-
-// WINDOWS STUFF -----------------------------
-// Temporarily added to check for memory leaks
-//--------------------------------------------
 #include "SimTKsimbody.h"
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 #include <memory>
 using std::cout;
 using std::endl;
