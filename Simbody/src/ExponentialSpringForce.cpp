@@ -146,61 +146,77 @@ const Vec3& getStation() const { return station; }
 const ExponentialSpringParameters& getParameters() const { return params; }
 void setParameters(const ExponentialSpringParameters& params) {
     this->params = params;
-    invalidateSubsystemTopologyCache(); }
+    invalidateSubsystemTopologyCache();
+}
 
 // DATA CACHE
 ExponentialSpringData& updData(const State& state) const {
     return Value<ExponentialSpringData>::updDowncast(updCacheEntry(state,
-        indexData)); }
+        indexData));
+}
 const ExponentialSpringData& getData(const State& state) const {
     return Value<ExponentialSpringData>::downcast(getCacheEntry(state,
-        indexData)); }
+        indexData));
+}
 
 // SLIDING STATE
 void setSliding(State& state, Real sliding) {
-    updZ(state)[indexZ] = clampInPlace(0.0, sliding, 1.0); }
+    updZ(state)[indexZ] = clampInPlace(0.0, sliding, 1.0);
+}
 Real getSliding(const State& state) const {
-    return getZ(state)[indexZ]; }
+    return getZ(state)[indexZ];
+}
 Real getSlidingDotInCache(const State& state) const {
-    return getZDot(state)[indexZ]; }
+    return getZDot(state)[indexZ];
+}
 void updSlidingDotInCache(const State& state, Real slidingDot) const {
-    updZDot(state)[indexZ] = slidingDot; /* Doesn't invalidate the State. */ }
+    updZDot(state)[indexZ] = slidingDot; /* Doesn't invalidate the State. */
+}
 
 // SLIDING ACTION
 SlidingAction getSlidingAction(const State& state) const {
     return Value<SlidingAction>::
-        downcast(getDiscreteVariable(state, indexSlidingAction)); }
+        downcast(getDiscreteVariable(state, indexSlidingAction));
+}
 SlidingAction& updSlidingAction(State& state) const {
     return Value<SlidingAction>::
-        updDowncast(updDiscreteVariable(state, indexSlidingAction)); }
+        updDowncast(updDiscreteVariable(state, indexSlidingAction));
+}
 SlidingAction getSlidingActionInCache(const State& state) const {
     return Value<SlidingAction>::
-        downcast(getDiscreteVarUpdateValue(state, indexSlidingAction)); }
+        downcast(getDiscreteVarUpdateValue(state, indexSlidingAction));
+}
 void updSlidingActionInCache(const State& state,
     SlidingAction action) const { // Will not invalidate the State.
     Value<SlidingAction>::updDowncast(
         updDiscreteVarUpdateValue(state, indexSlidingAction)) = action;
-    markDiscreteVarUpdateValueRealized(state, indexSlidingAction); }
+    markDiscreteVarUpdateValueRealized(state, indexSlidingAction);
+}
 
 // SPRING ZERO
 const Vec3& getSprZero(const State& state) const {
     return Value<Vec3>::
-        downcast(getDiscreteVariable(state, indexSprZero)); }
+        downcast(getDiscreteVariable(state, indexSprZero));
+}
 Vec3& updSprZero(State& state) const {
     return Value<Vec3>::
-        updDowncast(updDiscreteVariable(state,indexSprZero)); }
+        updDowncast(updDiscreteVariable(state,indexSprZero));
+}
 Vec3 getSprZeroInCache(const State& state) const {
     return Value<Vec3>::downcast(
-        getDiscreteVarUpdateValue(state, indexSprZero)); }
+        getDiscreteVarUpdateValue(state, indexSprZero));
+}
 void updSprZeroInCache(const State& state, const Vec3& p0) const {
     // Will not invalidate the State.
     Value<Vec3>::updDowncast(
         updDiscreteVarUpdateValue(state, indexSprZero)) = p0;
-    markDiscreteVarUpdateValueRealized(state, indexSprZero); }
+    markDiscreteVarUpdateValueRealized(state, indexSprZero);
+}
 
 // STATIC COEFFICENT OF FRICTION
 const Real& getMuStatic(const State& state) const {
-    return Value<Real>::downcast(getDiscreteVariable(state, indexMus)); }
+    return Value<Real>::downcast(getDiscreteVariable(state, indexMus));
+}
 void setMuStatic(State& state, Real mus) {
     // Keep mus greter than or equal to 0.0.
     if(mus < 0.0) mus = 0.0;
@@ -215,7 +231,8 @@ void setMuStatic(State& state, Real mus) {
 
 // KINETIC COEFFICENT OF FRICTION
 const Real& getMuKinetic(const State& state) const {
-    return Value<Real>::downcast(getDiscreteVariable(state, indexMuk)); }
+    return Value<Real>::downcast(getDiscreteVariable(state, indexMuk));
+}
 void setMuKinetic(State& state, Real muk) const {
     // Keep muk >= to zero.
     if(muk < 0.0) muk = 0.0;
