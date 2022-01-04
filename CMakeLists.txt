@@ -46,6 +46,9 @@ option(INSTALL_DOCS
        "Install documentation."
        ON)
 
+# Declare the option to use external libraries on Windows
+option(WINDOWS_USE_EXTERNAL_LIBS OFF)
+
 # Check compiler version
 if(MSVC)
     if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
@@ -478,23 +481,23 @@ if(MSVC)
     "/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
 
     ## C++
-    set(CMAKE_CXX_FLAGS_DEBUG "/MP${mxcpu} ${BUILD_CXX_FLAGS_DEBUG}"
+    set(CMAKE_CXX_FLAGS_DEBUG "/MP${mxcpu} ${BUILD_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_DEBUG}"
         CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
-    set(CMAKE_CXX_FLAGS_RELEASE "/MP${mxcpu} ${BUILD_CXX_FLAGS_RELEASE}"
+    set(CMAKE_CXX_FLAGS_RELEASE "/MP${mxcpu} ${BUILD_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_RELEASE}"
         CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MP${mxcpu} ${BUILD_CXX_FLAGS_RELWITHDEBINFO}"
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MP${mxcpu} ${BUILD_CXX_FLAGS_RELWITHDEBINFO} ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}"
         CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
-    set(CMAKE_CXX_FLAGS_MINSIZEREL "/MP${mxcpu} ${BUILD_CXX_FLAGS_MINSIZEREL}"
+    set(CMAKE_CXX_FLAGS_MINSIZEREL "/MP${mxcpu} ${BUILD_CXX_FLAGS_MINSIZEREL} ${CMAKE_CXX_FLAGS_MINSIZEREL}"
         CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
 
     ## C
-    set(CMAKE_C_FLAGS_DEBUG "/MP${mxcpu} ${BUILD_C_FLAGS_DEBUG}"
+    set(CMAKE_C_FLAGS_DEBUG "/MP${mxcpu} ${BUILD_C_FLAGS_DEBUG} ${CMAKE_C_FLAGS_DEBUG}"
         CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
-    set(CMAKE_C_FLAGS_RELEASE "/MP${mxcpu} ${BUILD_C_FLAGS_RELEASE}"
+    set(CMAKE_C_FLAGS_RELEASE "/MP${mxcpu} ${BUILD_C_FLAGS_RELEASE} ${CMAKE_C_FLAGS_RELEASE}"
         CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
-    set(CMAKE_C_FLAGS_RELWITHDEBINFO "/MP${mxcpu} ${BUILD_C_FLAGS_RELWITHDEBINFO}"
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "/MP${mxcpu} ${BUILD_C_FLAGS_RELWITHDEBINFO} ${CMAKE_C_FLAGS_RELWITHDEBINFO}"
         CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
-    set(CMAKE_C_FLAGS_MINSIZEREL "/MP${mxcpu} ${BUILD_C_FLAGS_MINSIZEREL}"
+    set(CMAKE_C_FLAGS_MINSIZEREL "/MP${mxcpu} ${BUILD_C_FLAGS_MINSIZEREL} ${CMAKE_C_FLAGS_MINSIZEREL}"
         CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
 
 endif()
@@ -529,7 +532,7 @@ endif()
 # Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
 set(BUILD_USING_OTHER_LAPACK "" CACHE STRING
  "If you have your own Lapack and Blas, put libraries here, separated by semicolons (full paths or paths that are on the (DY)LD_LIBRARY_PATH (UNIX) or PATH (Windows)). See LAPACK_BEING_USED to see what's actually being used.")
-if(WIN32)
+if(WIN32 AND NOT WINDOWS_USE_EXTERNAL_LIBS)
     set(LAPACK_PLATFORM_DEFAULT lapack;blas)
 else()
     find_package(BLAS)
