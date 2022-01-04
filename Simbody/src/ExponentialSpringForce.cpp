@@ -18,6 +18,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/MobilizedBody_Ground.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/ForceSubsystemGuts.h"
 #include "simbody/internal/ExponentialSpringForce.h"
@@ -117,10 +118,10 @@ enum SlidingAction {
 
 // Constructor
 ExponentialSpringForceImpl(const Transform& XContactPlane,
-const MobilizedBody& ground, const MobilizedBody& body, const Vec3& station,
+const MobilizedBody& body, const Vec3& station,
 Real mus, Real muk, const ExponentialSpringParameters& params) :
 ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
-X_GP(XContactPlane), ground(ground), body(body), station(station),
+X_GP(XContactPlane), body(body), station(station),
 defaultMus(mus), defaultMuk(muk),
 defaultSprZero(Vec3(0., 0., 0.)),
 defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0) {
@@ -233,7 +234,7 @@ void setMuKinetic(State& state, Real muk) const {
 // Clone
 Subsystem::Guts*
 cloneImpl() const override {
-    return new ExponentialSpringForceImpl(X_GP, body, ground, station,
+    return new ExponentialSpringForceImpl(X_GP, body, station,
         defaultMus, defaultMuk, params);
 }
 //_____________________________________________________________________________
@@ -322,8 +323,9 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     // Apply the force to the body and to Ground.
     // TODO(fcanderson) Add a test to see that Ground registers the
     // reaction of the force applied to the body.
-    body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
+    const MobilizedBody& ground = matter.getGround();
     ground.applyForceToBodyPoint(state, data.p_G, -data.f_G, forces_G);
+    body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
 
     return 0;
 }
@@ -502,8 +504,9 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
                 && (sliding > 0.05)) {
                 // Using another tier of the conditional to avoid computing
                 // the acceleration if possible.
-                // Computing acceleration takes 48 flops.
-                // Computing norm takes 15 to 20 flops.
+                // Acceleration takes 48 flops.
+                // norm() takes 15 to 20 flops, but we'll use normSqr() which
+                // only takes a 5-flop dot product.
                 Vec3 a = body.findStationAccelerationInGround(state, station);
                 if(a.normSqr() < aSettle * aSettle) {
                     target = 0.0;
@@ -585,7 +588,6 @@ private:
     ExponentialSpringData defaultData;
     Transform X_GP;
     const MobilizedBody& body;
-    const MobilizedBody& ground;
     Vec3 station;
     Real defaultMus;
     Real defaultMuk;
@@ -600,8 +602,8 @@ private:
     CacheEntryIndex indexSlidingActionInCache;
     ZIndex indexZ;
     CacheEntryIndex indexData;
-};  // end of class ExponentialSpringForceImpl
-} // end of namespace SimTK
+}; // end of class ExponentialSpringForceImpl
+}  // end of namespace SimTK
 
 
 using namespace SimTK;
@@ -618,10 +620,8 @@ ExponentialSpringForce(MultibodySystem& system,
     const MobilizedBody& body, const Vec3& station,
     Real mus, Real muk, ExponentialSpringParameters params)
 {
-    SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
-    const MobilizedBody& ground = (const MobilizedBody&)matter.Ground();
     adoptSubsystemGuts(
-        new ExponentialSpringForceImpl(XContactPlane, ground, body, station,
+        new ExponentialSpringForceImpl(XContactPlane, body, station,
             mus, muk, params));
     system.addForceSubsystem(*this);
 }
@@ -708,12 +708,14 @@ resetSpringZero(State& state) const {
 }
 
 //-----------------------------------------------------------------------------
-// Spring Data Accessor Methods
+// Data Cache Accessor Methods
 //-----------------------------------------------------------------------------
 //_____________________________________________________________________________
 Vec3
 ExponentialSpringForce::
 getNormalForceElasticPart(const State& state, bool inGround) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+        "ExponentialSpringForce::getNormalForceElasticPart");
     Vec3 fzElas(0.);
     fzElas[2] = getImpl().getData(state).fzElas;
     if(inGround) fzElas =
@@ -724,6 +726,8 @@ getNormalForceElasticPart(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getNormalForceDampingPart(const State& state, bool inGround) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+        "ExponentialSpringForce::getNormalForceDampingPart");
     Vec3 fzDamp(0.);
     fzDamp[2] = getImpl().getData(state).fzDamp;
     if(inGround) fzDamp =
@@ -734,6 +738,8 @@ getNormalForceDampingPart(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getNormalForce(const State& state, bool inGround) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+        "ExponentialSpringForce::getNormalForce");
     Vec3 fz(0.);
     fz[2] = getImpl().getData(state).fz;
     if(inGround) fz = getContactPlaneTransform().xformFrameVecToBase(fz);
@@ -743,18 +749,24 @@ getNormalForce(const State& state, bool inGround) const {
 Real
 ExponentialSpringForce::
 getMu(const State& state) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+        "ExponentialSpringForce::getMu");
     return getImpl().getData(state).mu;
 }
 //_____________________________________________________________________________
 Real
 ExponentialSpringForce::
 getFrictionForceLimit(const State& state) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+        "ExponentialSpringForce::getFrictionForceLimit");
     return getImpl().getData(state).fxyLimit;
 }
 //_____________________________________________________________________________
 Vec3
 ExponentialSpringForce::
 getFrictionForceElasticPart(const State& state, bool inGround) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+        "ExponentialSpringForce::getFrictionForceElasticPart");
     Vec3 fricElas = getImpl().getData(state).fricElas_P;
     if(inGround) fricElas =
         getContactPlaneTransform().xformFrameVecToBase(fricElas);
@@ -764,6 +776,8 @@ getFrictionForceElasticPart(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getFrictionForceDampingPart(const State& state, bool inGround) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+        "ExponentialSpringForce::getFrictionForceDampingPart");
     Vec3 fricDamp = getImpl().getData(state).fricDamp_P;
     if(inGround) fricDamp =
         getContactPlaneTransform().xformFrameVecToBase(fricDamp);
@@ -773,6 +787,8 @@ getFrictionForceDampingPart(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getFrictionForce(const State& state, bool inGround) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+        "ExponentialSpringForce::getFrictionForce");
     Vec3 fric = getImpl().getData(state).fric_P;
     if(inGround) fric = getContactPlaneTransform().xformFrameVecToBase(fric);
     return fric;
@@ -781,6 +797,8 @@ getFrictionForce(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getForce(const State& state, bool inGround) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+        "ExponentialSpringForce::getForce");
     Vec3 force;
     if(inGround) {
         force = getImpl().getData(state).f_G;
@@ -793,6 +811,8 @@ getForce(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getStationPosition(const State& state, bool inGround) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Position,
+        "ExponentialSpringForce::getStationPosition");
     Vec3 pos_B = getStation();
     Vec3 pos_G = getBody().findStationLocationInGround(state, pos_B);
     if(inGround) return pos_G;
@@ -803,6 +823,8 @@ getStationPosition(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getStationVelocity(const State& state, bool inGround) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Velocity,
+        "ExponentialSpringForce::getStationVelocity");
     Vec3 pos_B = getStation();
     Vec3 vel_G = getBody().findStationVelocityInGround(state, pos_B);
     if(inGround) return vel_G;
@@ -818,6 +840,8 @@ getStationVelocity(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getFrictionSpringZeroPosition(const State& state, bool inGround) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+        "ExponentialSpringForce::getFrictionSpringZeroPosition");
     Vec3 p0 = getImpl().getSprZeroInCache(state);
     if(inGround) {
         p0 = getContactPlaneTransform().shiftFrameStationToBase(p0);
