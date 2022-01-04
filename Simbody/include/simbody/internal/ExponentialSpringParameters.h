@@ -25,7 +25,7 @@ namespace SimTK {
 
 //=============================================================================
 /** ExponentialSpringParameters is a helper class used to customize the
-characteristics of an ExponentialSpringForce instance.
+force-producing characteristics of an ExponentialSpringForce instance.
 ExponentialSpringParameters manages all parameters that are implemented as
 Stage::Topology variables. To customize any of the Topology-stage parameters
 on an ExponentialSpringForce instance, you should
@@ -66,7 +66,7 @@ ExponentialSpringForce::setParameters() is made.
 
 The default values of the parameters held by ExponentialSpringParameters
 work well for typical contact interactions, but clearly may not be
-appropriate for simulating many contact interactions. For example, one might
+appropriate for simulating many contact interactions. For example, you might
 want to simulate an interaction in which very little energy is dissipated
 during a contact event, in which case you'd reduce the normal viscosity and
 friction spring viscosity, as well as decrease the coefficients of
@@ -81,17 +81,37 @@ The default values of the parameters are expressed in units of Newtons,
 meters, seconds, and kilograms; however, you may use an alternate set of
 self-consistent units by re-specifying all parameters.
 
-Finally, there are 2 quantities not managed by this class that can be used
-to further customize the behavior of an ExponentialSpringForce instance: the
-static coefficient of friction (μₛ) and the kinetic coefficient of friction
-(μₖ). μₛ and μₖ are parameters, but they are not implemented as
-Topology-stage variables; they are implemented as Dynamics-stage discrete
-state variables. Thus, they can be changed during the course of a simulation
-without invalidating the System at Stage::Topology. This functionality allows
-a contact plane to posses non-uniform frictional characteristics across its
-surface. For example, a patch of ice on a sidewalk could be modeled. μₛ and
-μₖ can be set during a simulation using ExponentialSpringForce::setMuStatic()
-and ExponentialSpringForce::setMuKinetic().
+Finally, there are 2 parameters in this class that possess a different
+status than the others. They are 1) the initial value for the static
+coefficient of friction (μₛ) and 2) the initial value for the kinetic
+coefficient of friction (μₖ).
+
+These two parameters, like the others, are used to set the force-producing
+characteristics of an ExponentialSpringForce instance at the beginning of a
+simulation when a model is put together. And, if the initial μₛ or the
+default μₖ are changed, those new values will not be realized for an
+ExponentialSpringForce instance until ExponentialSpringForce::setParameters()
+on the instance is called and, further, the System is re-realized to
+Stage::Topology.
+
+Unlike the other parameters, however, there are Dynamics-stage discrete state
+variables that correspond to the initial μₛ and the default μₖ. These
+discrete-state versions (think of them as the instantaneous μₛ and the
+instantaneous μₖ) can be changed during the course of a simulation without
+having to call setParameters() and re-realize the System at Stage::Toplogy.
+This functionality allows a contact plane to posses non-uniform frictional
+characteristics across its surface. For example, a patch of ice on a sidewalk
+could be modeled. The discrete-state versions of μₛ and μₖ (the instantaneous
+versions) are NOT be changed via the ExponentialSpringParameters class, but
+by setting them directly on an ExponentialSpringForce instance by calling
+ExponentialSpringForce::setMuStatic() and
+ExponentialSpringForce::setMuKinetic().
+
+In summary, regarding coefficients of friction, use
+ExponentialSpringParameters to establish the initial values for μₛ and μₖ;
+use ExponentialSpringForce::setMuStatic() and
+ExponentialSpringForce::setMuKinetic() to change μₛ and μₖ during the course
+of a simulation.
 
 For an explanation of the equations that underlie exponential spring forces,
 refer to class ExponentialSpringForce.*/
@@ -251,6 +271,28 @@ public:
     @returns Settle acceleration. */
     Real getSettleAcceleration() const;
 
+    /** Set the initial value of the static coefficient of friction (μₛ).
+    Note- use ExponentialSpringForce::setMuStatic(), not this method, to set
+    the instantaneous value of μₛ during the course of a simulation.
+    @param mus Initial static coefficient of friction (μₛ). It's default
+    value is 0.7 (unitless). 0.0 ≤ μₖ ≤ μₛ. If μₛ < μₖ, μₖ is set to μₛ. */
+    void setInitialMuStatic(Real mus);
+
+    /** Get the initial value of the static coefficient of friction (μₛ).
+    @returns Initial μₛ. */
+    Real getInitialMuStatic() const;
+
+    /** Set the initial value of the kinetic coefficient of friction (μₖ).
+    Note- use ExponentialSpringForce::setMuKinetic(), not this method, to set
+    the instantaneous value of μₖ during the course of a simulation.
+    @param muk Initial kinetic coefficient of friction (μₖ). It's default
+    value is 0.5 (unitless). 0.0 ≤ μₖ ≤ μₛ. If μₖ > μₛ, μₛ is set to μₖ.*/
+    void setInitialMuKinetic(Real mus);
+
+    /** Get the initial value of the kinetic coefficient of friction (μₖ).
+    @returns Initial μₖ. */
+    Real getInitialMuKinetic() const;
+
 private:
     Real d0;
     Real d1;
@@ -261,6 +303,8 @@ private:
     Real tau;
     Real vSettle;
     Real aSettle;
+    Real initMus;
+    Real initMuk;
 };
 
 }       // namespace SimTK

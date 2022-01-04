@@ -548,9 +548,9 @@ void simulateBlock(const SimulationOptions& options) {
     }
     // Friction
     Real muk = 0.25, mus = 0.5;
-    if(!options.friction) {
-        mus = 0.0, muk = 0.0;
-    }
+    if(!options.friction) muk = mus = 0.0;
+    params.setInitialMuStatic(0.0);
+    params.setInitialMuKinetic(0.0);
 
     // Floor Plane
     // First point the z-axis up, then rotate about the ground z
@@ -566,7 +566,7 @@ void simulateBlock(const SimulationOptions& options) {
     for(i = 0; i < 8; ++i) {
         sprFloor[i] = unique_ptr<ExponentialSpringForce>(
             new ExponentialSpringForce(system, floorPlane, body, corner[i],
-                mus, muk, params));
+                params));
     }
     Rotation RDecor(angle2, ZAxis);
     Transform shiftedFloorPlane(RDecor, Vec3(0.0, -0.1, 0.0));
@@ -586,7 +586,7 @@ void simulateBlock(const SimulationOptions& options) {
     for(i = 0; i < 8; ++i) {
         sprWall[i] = unique_ptr<ExponentialSpringForce>(
             new ExponentialSpringForce(system, wallPlane, body, corner[i],
-                mus, muk, params));
+                params));
     }
     angle1 = convertDegreesToRadians(90.0);
     angle2 = convertDegreesToRadians(30.0);
@@ -941,6 +941,9 @@ void testInitialization() {
     Real kvDef = paramsDef.getFrictionViscosity();
     Real tauDef = paramsDef.getSlidingTimeConstant();
     Real vSettleDef = paramsDef.getSettleVelocity();
+    Real aSettleDef = paramsDef.getSettleAcceleration();
+    Real initMusDef = paramsDef.getInitialMuStatic();
+    Real initMukDef = paramsDef.getInitialMuKinetic();
 
     // Make up non-default parameters
     Real delta = 0.1;
@@ -952,6 +955,9 @@ void testInitialization() {
     Real kv = kvDef + delta;
     Real tau = tauDef + delta;
     Real vSettle = vSettleDef + delta;
+    Real aSettle = aSettleDef + delta;
+    Real initMus = initMusDef + delta;
+    Real initMuk = initMukDef + delta;
 
     // Test Equality Operator again by setting non-default parameters on
     // the non-default params object.
@@ -967,6 +973,12 @@ void testInitialization() {
     SimTK_TEST(params != paramsDef);
     params.setSettleVelocity(vSettle);
     SimTK_TEST(params != paramsDef);
+    params.setSettleAcceleration(aSettle);
+    SimTK_TEST(params != paramsDef);
+    params.setInitialMuStatic(initMus);
+    SimTK_TEST(params != paramsDef);
+    params.setInitialMuKinetic(initMuk);
+    SimTK_TEST(params != paramsDef);
 
     // Test the set methods by checking the individual member variables.
     Real tol = 1.0e-10 * delta;
@@ -979,6 +991,9 @@ void testInitialization() {
     SimTK_TEST_EQ_TOL(params.getFrictionViscosity() - kvDef, delta, tol);
     SimTK_TEST_EQ(params.getSlidingTimeConstant() - tauDef, delta);
     SimTK_TEST_EQ(params.getSettleVelocity() - vSettleDef, delta);
+    SimTK_TEST_EQ(params.getSettleAcceleration() - aSettleDef, delta);
+    SimTK_TEST_EQ(params.getInitialMuStatic() - initMusDef, delta);
+    SimTK_TEST_EQ(params.getInitialMuKinetic() - initMukDef, delta);
 
     // Test setting viscosity for critical damping,
     // with a default mass (1.0 kg)
@@ -1017,13 +1032,12 @@ void testInitialization() {
     Transform plane(planeTilt, planeOrigin);
     MobilizedBody::Free body(matter.Ground(), bodyProps);
     Vec3 station(0.1, -0.1, 0.1);
-    Real mus = 0.7, muk = 0.5;
     ExponentialSpringForce
-        sprDef0(system, plane, body, station, mus, muk);
+        sprDef0(system, plane, body, station);
     ExponentialSpringForce
-        sprDef1(system, plane, body, station, mus, muk, paramsDef);
+        sprDef1(system, plane, body, station, paramsDef);
     ExponentialSpringForce
-        spr(system, plane, body, station, mus, muk, params);
+        spr(system, plane, body, station, params);
 
     // Test that the non-default parameter values were set properly.
     SimTK_TEST(sprDef0.getParameters() == sprDef1.getParameters());
@@ -1038,6 +1052,9 @@ void testInitialization() {
     SimTK_TEST_EQ_TOL(p.getFrictionViscosity() - kvDef, delta, tol);
     SimTK_TEST_EQ(p.getSlidingTimeConstant() - tauDef, delta);
     SimTK_TEST_EQ(p.getSettleVelocity() - vSettleDef, delta);
+    SimTK_TEST_EQ(params.getSettleAcceleration() - aSettleDef, delta);
+    SimTK_TEST_EQ(params.getInitialMuStatic() - initMusDef, delta);
+    SimTK_TEST_EQ(params.getInitialMuKinetic() - initMukDef, delta);
 
     // Test getting contact plane, body, and station
     SimTK_TEST(spr.getContactPlaneTransform() == plane);
@@ -1053,6 +1070,8 @@ void testInitialization() {
     system.realizeModel(state);
 
     // Test getting μₛ and μₖ
+    Real mus = params.getInitialMuStatic();
+    Real muk = params.getInitialMuKinetic();
     SimTK_TEST(spr.getMuStatic(state) == mus);
     SimTK_TEST(spr.getMuKinetic(state) == muk);
 

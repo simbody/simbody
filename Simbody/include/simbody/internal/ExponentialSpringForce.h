@@ -385,7 +385,6 @@ public:
     ExponentialSpringForce(MultibodySystem& system,
         const Transform& contactPlane,
         const MobilizedBody& body, const Vec3& station,
-        Real mus, Real muk,
         ExponentialSpringParameters params = ExponentialSpringParameters());
 
     /** Get the Transform specifying the location and orientation of the

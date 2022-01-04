@@ -227,11 +227,13 @@ int main() {
             // Modify the default parameters if desired
             ExponentialSpringParameters params;
             params.setElasticityAndViscosityForCriticalDamping(20000.0);
+            params.setInitialMuStatic(mu_s);
+            params.setInitialMuKinetic(mu_k);
             // Add an exponential spring at each corner of the block.
             for(i = 0; i < 8; ++i) {
                 spr[i] = unique_ptr<ExponentialSpringForce>(
                     new ExponentialSpringForce(system, floorXForm, *blockExp,
-                        corner[i], mu_s, mu_k, params));
+                        corner[i], params));
             }
         }
 

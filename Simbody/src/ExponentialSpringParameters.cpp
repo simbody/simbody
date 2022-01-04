@@ -35,7 +35,8 @@ ExponentialSpringParameters::
 ExponentialSpringParameters() :
     d0(0.0065905), d1(0.5336), d2(1150.0), cz(0.5),
     kxy(20000.0), cxy(0.0),
-    tau(0.01), vSettle(0.01), aSettle(1.0) {
+    tau(0.01), vSettle(0.01), aSettle(1.0),
+    initMus(0.7), initMuk(0.5) {
 
     setElasticityAndViscosityForCriticalDamping(kxy);
 }
@@ -47,7 +48,8 @@ operator==(const ExponentialSpringParameters& other) const {
     return ((d0 == other.d0) && (d1 == other.d1) && (d2 == other.d2) &&
         (cz == other.cz) && (kxy == other.kxy) && (cxy == other.cxy) &&
         (tau == other.tau) &&
-        (vSettle == other.vSettle) && (aSettle == other.aSettle));
+        (vSettle == other.vSettle) && (aSettle == other.aSettle) &&
+        (initMus == other.initMus) && (initMuk == other.initMuk));
 }
 //_____________________________________________________________________________
 void
@@ -184,5 +186,37 @@ Real
 ExponentialSpringParameters::
 getSettleAcceleration() const {
     return aSettle;
+}
+//_____________________________________________________________________________
+void
+ExponentialSpringParameters::
+setInitialMuStatic(Real mus) {
+    initMus = mus;
+    // Keep initMus greter than or equal to 0.0.
+    if(initMus < 0.0) initMus = 0.0;
+    // Make sure initMuk is less than or equal to initMus
+    if(initMuk > initMus) initMuk = initMus;
+}
+//_____________________________________________________________________________
+Real
+ExponentialSpringParameters::
+getInitialMuStatic() const {
+    return initMus;
+}
+//_____________________________________________________________________________
+void
+ExponentialSpringParameters::
+setInitialMuKinetic(Real muk) {
+    initMuk = muk;
+    // Keep initMuk greater than or equal to 0.0.
+    if(initMuk < 0.0) initMuk = 0.0;
+    // Make sure initMus is greater than or equal to initMuk
+    if(initMus < initMuk) initMus = initMuk;
+}
+//_____________________________________________________________________________
+Real
+ExponentialSpringParameters::
+getInitialMuKinetic() const {
+    return initMuk;
 }
 

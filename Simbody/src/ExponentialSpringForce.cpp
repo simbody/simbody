@@ -119,19 +119,19 @@ enum SlidingAction {
 // Constructor
 ExponentialSpringForceImpl(const Transform& XContactPlane,
 const MobilizedBody& body, const Vec3& station,
-Real mus, Real muk, const ExponentialSpringParameters& params) :
+const ExponentialSpringParameters& params) :
 ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
 X_GP(XContactPlane), body(body), station(station),
-defaultMus(mus), defaultMuk(muk),
 defaultSprZero(Vec3(0., 0., 0.)),
 defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0) {
-    // Check for valid static coefficient
-    if(defaultMus < 0.0) defaultMus = 0.0;
-    // Check for valid kinetic coefficient
-    if(defaultMuk < 0.0) defaultMuk = 0.0;
-    if(defaultMuk > defaultMus) defaultMuk = defaultMus;
+
     // Assign the parameters
     this->params = params;
+
+    // Assign default values for the discrete states for the
+    // coefficients of friction.
+    defaultMus = params.getInitialMuStatic();
+    defaultMuk = params.getInitialMuKinetic();
 }
 
 //-----------------------------------------------------------------------------
@@ -146,6 +146,8 @@ const Vec3& getStation() const { return station; }
 const ExponentialSpringParameters& getParameters() const { return params; }
 void setParameters(const ExponentialSpringParameters& params) {
     this->params = params;
+    defaultMus = this->params.getInitialMuStatic();
+    defaultMuk = this->params.getInitialMuKinetic();
     invalidateSubsystemTopologyCache();
 }
 
@@ -251,8 +253,7 @@ void setMuKinetic(State& state, Real muk) const {
 // Clone
 Subsystem::Guts*
 cloneImpl() const override {
-    return new ExponentialSpringForceImpl(X_GP, body, station,
-        defaultMus, defaultMuk, params);
+    return new ExponentialSpringForceImpl(X_GP, body, station, params);
 }
 //_____________________________________________________________________________
 // Topology - allocate state variables and the data cache.
@@ -675,11 +676,10 @@ ExponentialSpringForce::
 ExponentialSpringForce(MultibodySystem& system,
     const Transform& XContactPlane,
     const MobilizedBody& body, const Vec3& station,
-    Real mus, Real muk, ExponentialSpringParameters params)
+    ExponentialSpringParameters params)
 {
     adoptSubsystemGuts(
-        new ExponentialSpringForceImpl(XContactPlane, body, station,
-            mus, muk, params));
+        new ExponentialSpringForceImpl(XContactPlane, body, station, params));
     system.addForceSubsystem(*this);
 }
 //_____________________________________________________________________________
