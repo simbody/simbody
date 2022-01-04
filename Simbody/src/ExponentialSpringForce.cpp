@@ -293,27 +293,78 @@ realizeSubsystemTopologyImpl(State& state) const override {
     return 0;
 }
 //_____________________________________________________________________________
-// Dynamics - compute the forces modeled by this Subsystem.
+// Stage::Position - compute the positions needed by this Subsystem.
+//
+// "data" is a struct that stores the key quantities that are calculated and
+// stored as cache entries. Values are updated in the data cache when the
+// System is realized at the following stages: Position, Velocity, Dynamics,
+// Acceleration. These data can be retrieved during a simulation by a reporter
+// or handler, for example.
+//
+// Variables with a _P suffix are expressed in the frame of the contact plane.
+//
+// Variables with a _G suffix are expressed in the ground frame.
+int
+realizeSubsystemPositionImpl(const State& state) const override {
+    // Retrieve a writable reference to the data cache entry.
+    ExponentialSpringData& data = updData(state);
+    // Get the position of the body station in Ground
+    data.p_G = body.findStationLocationInGround(state, station);
+    // Transform the position into the contact plane frame.
+    data.p_P = ~X_GP * data.p_G;
+    // Resolve into normal (z) and tangential parts (xy plane)
+    // Normal (perpendicular to contact plane)
+    data.pz = data.p_P[2];
+    // Tangent (tangent to contact plane)
+    data.pxy = data.p_P;    data.pxy[2] = 0.0;
+
+    return 0;
+}
+//_____________________________________________________________________________
+// Stage::Velocity - compute the velocities needed by this Subsystem.
+//
+// "data" is a struct that stores the key quantities that are calculated and
+// stored as cache entries. Values are updated in the data cache when the
+// System is realized at the following stages: Position, Velocity, Dynamics,
+// Acceleration. These data can be retrieved during a simulation by a reporter
+// or handler, for example.
+//
+// Variables with a _P suffix are expressed in the frame of the contact plane.
+//
+// Variables with a _G suffix are expressed in the ground frame.
+int
+realizeSubsystemVelocityImpl(const State& state) const override {
+    // Retrieve a writable reference to the data cache entry.
+    ExponentialSpringData& data = updData(state);
+    // Get the velocity of the spring station in Ground
+    data.v_G = body.findStationVelocityInGround(state, station);
+    // Transform the velocity into the contact plane frame.
+    data.v_P = ~X_GP.R() * data.v_G;
+    // Resolve into normal (z) and tangential parts (xy plane)
+    // Normal (perpendicular to contact plane)
+    data.vz = data.v_P[2];
+    // Tangent (tangent to contact plane)
+    data.vxy = data.v_P;    data.vxy[2] = 0.0;
+
+    return 0;
+}
+//_____________________________________________________________________________
+// Stage::Dynamics - compute the forces modeled by this Subsystem.
 //
 // "params" references the configurable topology-stage parameters that govern
 // the behavior of the exponential spring. These can be changed by the user,
 // but the System must be realized at the Topology Stage after any such
 // change.
 //
-// "data" references the key data that are calculated and stored as a
-// Cache Entry when the System is realized at the Dynamics Stage.
-// These data can be retrieved during a simulation by a reporter or handler,
-// for example.
+// "data" is a struct that stores the key quantities that are calculated and
+// stored as cache entries. Values are updated in the data cache when the
+// System is realized at the following stages: Position, Velocity, Dynamics,
+// Acceleration. These data can be retrieved during a simulation by a reporter
+// or handler, for example.
 //
-// Variables without a suffix are expressed in the frame of the contact plane.
+// Variables with a _P suffix are expressed in the frame of the contact plane.
 //
-// Variables with the _G suffix are expressed in the ground frame.
-//
-// Most every calculation happens in this one method, the calculations for
-// setting SlidingDot being the notable exception. The conditions that must
-// be met for transitioning to Sliding = 0 (fixed in place) include the
-// acceleration of the body station. Therefore, SlidingDot is set in
-// realizeSubsystemAccelerationImpl().
+// Variables with a _G suffix are expressed in the ground frame.
 int
 realizeSubsystemDynamicsImpl(const State& state) const override {
     // Get current accumulated forces
@@ -323,7 +374,6 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
         system.updRigidBodyForces(state, Stage::Dynamics);
 
     // Perform the kinematic and force calculations.
-    calcStationKinematics(state);
     calcNormalForce(state);
     calcFrictionForceBlended(state);
 
@@ -345,29 +395,6 @@ realizeSubsystemDynamicsImpl(const State& state) const override {
     body.applyForceToBodyPoint(state, station, data.f_G, forces_G);
 
     return 0;
-}
-//_____________________________________________________________________________
-// Calculate the spring station kinematics.
-// The normal is defined by the z axis of the contact plane.
-// The friction plane is defined by the x and y axes of the contact plane.
-// Key quantities are saved in the data cache.
-void
-calcStationKinematics(const State& state) const {
-    // Retrieve a writable reference to the data cache entry.
-    ExponentialSpringData& data = updData(state);
-    // Get position and velocity of the spring station in Ground
-    data.p_G = body.findStationLocationInGround(state, station);
-    data.v_G = body.findStationVelocityInGround(state, station);
-    // Transform the position and velocity into the contact plane frame.
-    data.p_P = ~X_GP * data.p_G;
-    data.v_P = ~X_GP.R() * data.v_G;
-    // Resolve into normal (z) and tangential parts (xy plane)
-    // Normal (perpendicular to contact plane)
-    data.pz = data.p_P[2];
-    data.vz = data.v_P[2];
-    // Tangent (tangent to contact plane)
-    data.pxy = data.p_P;    data.pxy[2] = 0.0;
-    data.vxy = data.v_P;    data.vxy[2] = 0.0;
 }
 //_____________________________________________________________________________
 // Calculate the normal force.
@@ -478,8 +505,21 @@ calcFrictionForceBlended(const State& state) const {
     updSprZeroInCache(state, p0);
 }
 //_____________________________________________________________________________
-// Acceleration - compute and update the derivatives of continuous states.
-// The only such state in ExponentialSpringForce is the Sliding state.
+// Stage::Acceleration - compute and update the derivatives of continuous,
+// acceleration-dependent states.
+//
+// Two states are managed at this Stage: Sliding amd SlidingAction.
+//
+// Sliding is a continuous state (a "Z" in Simbody vocabuary), and its time
+// derivative (SlidingDot) is set here. Sliding is bound between
+// 0.0 (indicating that the body station is fixed in place or static) and
+// 1.0 (indicating that the body station is moving or kinetic).
+//
+// SlidingAction is a discrete state used to trigger when Sliding should
+// rise to 1.0 (kinetic - fully sliding) or decay to 0.0 (static - fully fixed
+// in place). Some conditions for triggering a rise or decay depend on the
+// acceleration of the body station. Thus, the need to manage these states
+// at the Acceleration Stage.
 int
 realizeSubsystemAccelerationImpl(const State& state) const override {
     // Parameters
@@ -830,11 +870,9 @@ ExponentialSpringForce::
 getStationPosition(const State& state, bool inGround) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Position,
         "ExponentialSpringForce::getStationPosition");
-    Vec3 pos_B = getStation();
-    Vec3 pos_G = getBody().findStationLocationInGround(state, pos_B);
-    if(inGround) return pos_G;
-    Vec3 pos = getContactPlaneTransform().shiftBaseStationToFrame(pos_G);
-    return pos;
+    const ExponentialSpringData& data = getImpl().getData(state);
+    if(inGround) return data.p_G;
+    return data.p_P;
 }
 //_____________________________________________________________________________
 Vec3
@@ -842,11 +880,9 @@ ExponentialSpringForce::
 getStationVelocity(const State& state, bool inGround) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Velocity,
         "ExponentialSpringForce::getStationVelocity");
-    Vec3 pos_B = getStation();
-    Vec3 vel_G = getBody().findStationVelocityInGround(state, pos_B);
-    if(inGround) return vel_G;
-    Vec3 vel = getContactPlaneTransform().xformBaseVecToFrame(vel_G);
-    return vel;
+    const ExponentialSpringData& data = getImpl().getData(state);
+    if(inGround) return data.v_G;
+    return data.v_P;
 }
 //_____________________________________________________________________________
 // Only the updated value stored in the data cache for the friction spring
