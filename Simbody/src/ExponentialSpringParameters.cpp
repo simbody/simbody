@@ -33,7 +33,7 @@ using std::endl;
 //_____________________________________________________________________________
 ExponentialSpringParameters::
 ExponentialSpringParameters() :
-    d0(0.0065905), d1(0.5336), d2(1150.0), cz(0.5),
+    d0(0.0065905), d1(0.5336), d2(1150.0), cz(0.5), maxFz(100000.0),
     kxy(20000.0), cxy(0.0),
     tau(0.01), vSettle(0.01), aSettle(1.0),
     initMus(0.7), initMuk(0.5) {
@@ -46,7 +46,8 @@ ExponentialSpringParameters::
 operator==(const ExponentialSpringParameters& other) const {
     if(&other == this) return true;
     return ((d0 == other.d0) && (d1 == other.d1) && (d2 == other.d2) &&
-        (cz == other.cz) && (kxy == other.kxy) && (cxy == other.cxy) &&
+        (cz == other.cz) && (maxFz == other.maxFz) &&
+        (kxy == other.kxy) && (cxy == other.cxy) &&
         (tau == other.tau) &&
         (vSettle == other.vSettle) && (aSettle == other.aSettle) &&
         (initMus == other.initMus) && (initMuk == other.initMuk));
@@ -93,6 +94,22 @@ ExponentialSpringParameters::
 getNormalViscosity() const {
     return cz;
 }
+//_____________________________________________________________________________
+void
+ExponentialSpringParameters::
+setMaxNormalForce(Real maxFz) {
+    SimTK_APIARGCHECK1_ALWAYS(maxFz > 0.0,
+        "ExponentialSpringParameters", "setMaxNormalForce",
+        "expected maxFz > 0.0, but cz = %lf", maxFz);
+    this->maxFz = maxFz;
+}
+//_____________________________________________________________________________
+Real
+ExponentialSpringParameters::
+getMaxNormalForce() const {
+    return maxFz;
+}
+
 //_____________________________________________________________________________
 void
 ExponentialSpringParameters::

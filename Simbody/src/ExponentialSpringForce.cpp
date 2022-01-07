@@ -428,8 +428,8 @@ calcNormalForce(const State& state) const {
         data.fz = 0.0;
         data.fzDamp = -data.fzElas;
     }
-    if(data.fz > 100000.0) {
-        data.fz = 100000.0;
+    if(data.fz > params.getMaxNormalForce()) {
+        data.fz = params.getMaxNormalForce();
         data.fzElas = data.fz - data.fzDamp;
     }
 }

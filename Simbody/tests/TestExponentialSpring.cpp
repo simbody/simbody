@@ -936,9 +936,10 @@ void testInitialization() {
     // Get the default parameters
     Real d0Def, d1Def, d2Def;
     paramsDef.getShapeParameters(d0Def, d1Def, d2Def);
-    Real kvNormDef = paramsDef.getNormalViscosity();
-    Real kpDef = paramsDef.getFrictionElasticity();
-    Real kvDef = paramsDef.getFrictionViscosity();
+    Real czDef = paramsDef.getNormalViscosity();
+    Real maxFzDef = paramsDef.getMaxNormalForce();
+    Real kxyDef = paramsDef.getFrictionElasticity();
+    Real cxyDef = paramsDef.getFrictionViscosity();
     Real tauDef = paramsDef.getSlidingTimeConstant();
     Real vSettleDef = paramsDef.getSettleVelocity();
     Real aSettleDef = paramsDef.getSettleAcceleration();
@@ -950,9 +951,10 @@ void testInitialization() {
     Real d0 = d0Def + delta;
     Real d1 = d1Def + delta;
     Real d2 = d2Def + delta;
-    Real kvNorm = kvNormDef + delta;
-    Real kp = kpDef + delta;
-    Real kv = kvDef + delta;
+    Real cz = czDef + delta;
+    Real maxFz = maxFzDef + delta;
+    Real kxy = kxyDef + delta;
+    Real cxy = cxyDef + delta;
     Real tau = tauDef + delta;
     Real vSettle = vSettleDef + delta;
     Real aSettle = aSettleDef + delta;
@@ -963,11 +965,13 @@ void testInitialization() {
     // the non-default params object.
     params.setShapeParameters(d0, d1, d2);
     SimTK_TEST(params != paramsDef);
-    params.setNormalViscosity(kvNorm);
+    params.setNormalViscosity(cz);
     SimTK_TEST(params != paramsDef);
-    params.setFrictionElasticity(kp);
+    params.setMaxNormalForce(maxFz);
     SimTK_TEST(params != paramsDef);
-    params.setFrictionViscosity(kv);
+    params.setFrictionElasticity(kxy);
+    SimTK_TEST(params != paramsDef);
+    params.setFrictionViscosity(cxy);
     SimTK_TEST(params != paramsDef);
     params.setSlidingTimeConstant(tau);
     SimTK_TEST(params != paramsDef);
@@ -986,9 +990,10 @@ void testInitialization() {
     SimTK_TEST_EQ(d0 - d0Def, delta);
     SimTK_TEST_EQ(d1 - d1Def, delta);
     SimTK_TEST_EQ_TOL(d2 - d2Def, delta, tol);
-    SimTK_TEST_EQ(params.getNormalViscosity() - kvNormDef, delta);
-    SimTK_TEST_EQ_TOL(params.getFrictionElasticity() - kpDef, delta, tol);
-    SimTK_TEST_EQ_TOL(params.getFrictionViscosity() - kvDef, delta, tol);
+    SimTK_TEST_EQ(params.getNormalViscosity() - czDef, delta);
+    SimTK_TEST_EQ_TOL(params.getMaxNormalForce() - maxFzDef, delta, tol);
+    SimTK_TEST_EQ_TOL(params.getFrictionElasticity() - kxyDef, delta, tol);
+    SimTK_TEST_EQ_TOL(params.getFrictionViscosity() - cxyDef, delta, tol);
     SimTK_TEST_EQ(params.getSlidingTimeConstant() - tauDef, delta);
     SimTK_TEST_EQ(params.getSettleVelocity() - vSettleDef, delta);
     SimTK_TEST_EQ(params.getSettleAcceleration() - aSettleDef, delta);
@@ -1008,8 +1013,8 @@ void testInitialization() {
     SimTK_TEST_EQ(params.getFrictionViscosity(), kv1);
 
     // Return the non-default params to the original non-default values
-    params.setFrictionElasticity(kp);
-    params.setFrictionViscosity(kv);
+    params.setFrictionElasticity(kxy);
+    params.setFrictionViscosity(cxy);
 
     //------------------------------------------------------------
     // 2. Test construction with default an non-default parameters
@@ -1047,9 +1052,10 @@ void testInitialization() {
     SimTK_TEST_EQ(d0 - d0Def, delta);
     SimTK_TEST_EQ(d1 - d1Def, delta);
     SimTK_TEST_EQ_TOL(d2 - d2Def, delta, tol);
-    SimTK_TEST_EQ(p.getNormalViscosity() - kvNormDef, delta);
-    SimTK_TEST_EQ_TOL(p.getFrictionElasticity() - kpDef, delta, tol);
-    SimTK_TEST_EQ_TOL(p.getFrictionViscosity() - kvDef, delta, tol);
+    SimTK_TEST_EQ(p.getNormalViscosity() - czDef, delta);
+    SimTK_TEST_EQ_TOL(p.getMaxNormalForce() - maxFzDef, delta, tol);
+    SimTK_TEST_EQ_TOL(p.getFrictionElasticity() - kxyDef, delta, tol);
+    SimTK_TEST_EQ_TOL(p.getFrictionViscosity() - cxyDef, delta, tol);
     SimTK_TEST_EQ(p.getSlidingTimeConstant() - tauDef, delta);
     SimTK_TEST_EQ(p.getSettleVelocity() - vSettleDef, delta);
     SimTK_TEST_EQ(params.getSettleAcceleration() - aSettleDef, delta);

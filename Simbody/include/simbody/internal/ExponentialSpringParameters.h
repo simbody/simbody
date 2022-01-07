@@ -102,7 +102,7 @@ having to call setParameters() and re-realize the System at Stage::Toplogy.
 This functionality allows a contact plane to posses non-uniform frictional
 characteristics across its surface. For example, a patch of ice on a sidewalk
 could be modeled. The discrete-state versions of μₛ and μₖ (the instantaneous
-versions) are NOT be changed via the ExponentialSpringParameters class, but
+versions) should NOT be changed via the ExponentialSpringParameters class, but
 by setting them directly on an ExponentialSpringForce instance by calling
 ExponentialSpringForce::setMuStatic() and
 ExponentialSpringForce::setMuKinetic().
@@ -183,6 +183,19 @@ public:
     plane.
     @returns Viscosity in the normal direction (cz) */
     Real getNormalViscosity() const;
+
+    /** Set the maximum normal force allowed for an ExponentialSpringForce. If
+    the normal force exceeds the maximum normal force, it is clamped at the
+    maximum normal force before being applied to the MobilizedBody. Setting the
+    maximum force can be important for avoiding numerical isses and integration
+    failures for motions that involve extreme impact events (e.g., a mass
+    striking the floor after falling from a high height).
+    @param maxFz Maximum normal force. Its default value is 100,000.0 N.
+    maxFz should be positive. */
+    void setMaxNormalForce(Real maxFz);
+
+    /** Get the maximum normal force allowed for an ExponentialSpringForce. */
+    Real getMaxNormalForce() const;
 
     /** Set both the elasticity and viscosity of the damped linear spring
     used to model friction in Friction Model 2. The value that is set for the
@@ -298,6 +311,7 @@ private:
     Real d1;
     Real d2;
     Real cz;
+    Real maxFz;
     Real kxy;
     Real cxy;
     Real tau;
