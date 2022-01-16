@@ -1124,17 +1124,77 @@ void testInitialization() {
     body.setU(state, u);
     body.setUToFitAngularVelocity(state, w);
 
-    // Test that an exception is through when trying to get the position
-    // of the spring zero before Stage::Dynamics has been realized.
-    // A valid value of the spring zero cannot be obtained until the System
-    // is realized through Stage::Dyanmics.
-    // Before the reset and after realizing through Stage::Dynamics, the
-    // spring zero is made to be consistent with the frictional limit of the
-    // spring, but it is not necessarily coincident with the projection of
-    // the spring station onto the contact plane.
-    system.realize(state, Stage::Velocity);
-    SimTK_TEST_MUST_THROW(spr.getFrictionSpringZeroPosition(state, false));
+    // REALIZATION-RELATED EXCEPTIONS
+    // At Stage::Model - All data cache accessors must throw.
+    system.realizeModel(state);
+    SimTK_TEST_MUST_THROW(spr.getNormalForceElasticPart(state));
+    SimTK_TEST_MUST_THROW(spr.getNormalForceDampingPart(state));
+    SimTK_TEST_MUST_THROW(spr.getNormalForce(state));
+    SimTK_TEST_MUST_THROW(spr.getMu(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForceLimit(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForceElasticPart(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForceDampingPart(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForce(state));
+    SimTK_TEST_MUST_THROW(spr.getForce(state));
     SimTK_TEST_MUST_THROW(spr.getFrictionSpringZeroPosition(state));
+    SimTK_TEST_MUST_THROW(spr.getStationVelocity(state));
+    SimTK_TEST_MUST_THROW(spr.getStationPosition(state));
+    // At Stage::Position - all but getStationPosition() must throw
+    system.realize(state, Stage::Position);
+    SimTK_TEST_MUST_THROW(spr.getNormalForceElasticPart(state));
+    SimTK_TEST_MUST_THROW(spr.getNormalForceDampingPart(state));
+    SimTK_TEST_MUST_THROW(spr.getNormalForce(state));
+    SimTK_TEST_MUST_THROW(spr.getMu(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForceLimit(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForceElasticPart(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForceDampingPart(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForce(state));
+    SimTK_TEST_MUST_THROW(spr.getForce(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionSpringZeroPosition(state));
+    SimTK_TEST_MUST_THROW(spr.getStationVelocity(state));
+    spr.getStationPosition(state);
+    // At Stage::Velocity - all but getStationPosition() Velocity() must throw
+    system.realize(state, Stage::Velocity);
+    SimTK_TEST_MUST_THROW(spr.getNormalForceElasticPart(state));
+    SimTK_TEST_MUST_THROW(spr.getNormalForceDampingPart(state));
+    SimTK_TEST_MUST_THROW(spr.getNormalForce(state));
+    SimTK_TEST_MUST_THROW(spr.getMu(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForceLimit(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForceElasticPart(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForceDampingPart(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionForce(state));
+    SimTK_TEST_MUST_THROW(spr.getForce(state));
+    SimTK_TEST_MUST_THROW(spr.getFrictionSpringZeroPosition(state));
+    spr.getStationVelocity(state);
+    spr.getStationPosition(state);
+    // At Stage::Dynamics - None should throw an exception.
+    system.realize(state, Stage::Dynamics);
+    spr.getNormalForceElasticPart(state);
+    spr.getNormalForceDampingPart(state);
+    spr.getNormalForce(state);
+    spr.getMu(state);
+    spr.getFrictionForceLimit(state);
+    spr.getFrictionForceElasticPart(state);
+    spr.getFrictionForceDampingPart(state);
+    spr.getFrictionForce(state);
+    spr.getForce(state);
+    spr.getFrictionSpringZeroPosition(state);
+    spr.getStationVelocity(state);
+    spr.getStationPosition(state);
+    // At Stage::Acceleration - None should throw an exception.
+    system.realize(state, Stage::Acceleration);
+    spr.getNormalForceElasticPart(state);
+    spr.getNormalForceDampingPart(state);
+    spr.getNormalForce(state);
+    spr.getMu(state);
+    spr.getFrictionForceLimit(state);
+    spr.getFrictionForceElasticPart(state);
+    spr.getFrictionForceDampingPart(state);
+    spr.getFrictionForce(state);
+    spr.getForce(state);
+    spr.getFrictionSpringZeroPosition(state);
+    spr.getStationVelocity(state);
+    spr.getStationPosition(state);
 
     // Test resetting the spring zero
     // After the reset the spring zero should coincide with the projection of
