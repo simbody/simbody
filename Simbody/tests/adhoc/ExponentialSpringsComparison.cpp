@@ -22,7 +22,7 @@
 
 #include "Simbody.h"
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 
 using namespace SimTK;
 using std::endl;
