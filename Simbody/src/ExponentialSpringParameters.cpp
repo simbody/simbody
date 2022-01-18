@@ -56,7 +56,6 @@ operator==(const ExponentialSpringParameters& other) const {
 bool
 ExponentialSpringParameters::
 operator!=(const ExponentialSpringParameters& other) const {
-    if(&other == this) return false;
     return !(*this == other);
 }
 //_____________________________________________________________________________
