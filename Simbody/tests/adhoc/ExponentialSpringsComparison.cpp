@@ -54,7 +54,7 @@ private:
 
 
 //=============================================================================
-/** This class impmlements an event reporter that identifies the highest
+/** This class implements an event reporter that identifies the highest
 position reached by a body.  If energy is conserved, which should
 be the case if there are no damping components of the contact force,
 then the height should be constant across multiple bounces. */
@@ -79,7 +79,7 @@ private:
 };
 
 //=============================================================================
-/** This class impmlements an event reporter that access the force exerted
+/** This class implements an event reporter that access the force exerted
 by an ExponentialSpringForce at regular intervals. */
 class ExpSprForceReporter : public PeriodicEventReporter {
 public:
@@ -245,8 +245,6 @@ int main() {
             system.addEventReporter(new MyReporter(system, 1.0/30.0));
             system.addEventReporter(new Visualizer::Reporter(*viz, 1./30.));
             if(ExpContactOn) {
-                //system.addEventReporter(
-                //new MaxHeightReporter(system, *blockExp));
                 system.addEventReporter(
                     new ExpSprForceReporter(system, *spr[0], 0.01));
             }
