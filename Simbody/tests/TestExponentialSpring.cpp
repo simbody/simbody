@@ -88,7 +88,7 @@ void checkConservationOfEnergy(MultibodySystem& system, Real acc,
 // Reporters
 //=============================================================================
 //_____________________________________________________________________________
-// This class impmlements an event reporter that records the System State at
+// This class implements an event reporter that records the System State at
 // a regular time interval.
 class PeriodicStateRecorder : public PeriodicEventReporter {
 public:
@@ -547,10 +547,15 @@ void simulateBlock(const SimulationOptions& options) {
         params.setFrictionViscosity(0.0);
     }
     // Friction
+    // TODO(fcanderson) - Make sure that non-zero friction forces
+    // are properly being applied during a simulation.
+    // At one point, mus and muk were being set to 0.0 and no friction
+    // forces were being applied. All tests were passing, so I didn't
+    // realize there was a bug.
     Real muk = 0.25, mus = 0.5;
     if(!options.friction) muk = mus = 0.0;
-    params.setInitialMuStatic(0.0);
-    params.setInitialMuKinetic(0.0);
+    params.setInitialMuStatic(mus);
+    params.setInitialMuKinetic(muk);
 
     // Floor Plane
     // First point the z-axis up, then rotate about the ground z
@@ -991,7 +996,7 @@ void testInitialization() {
     params.setInitialMuStatic(initMusDef);
     SimTK_TEST(!(params == paramsDef));
     params.setInitialMuKinetic(initMukDef);
-    SimTK_TEST(params==paramsDef);
+    SimTK_TEST(params == paramsDef);
 
     // Test the Inequality Operator
     params.setShapeParameters(d0, d1, d2);
