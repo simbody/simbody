@@ -1,7 +1,7 @@
 /*-----------------------------------------------------------------------------
                                Simbody(tm)
 -------------------------------------------------------------------------------
- Copyright (c) 2021 Authors.
+ Copyright (c) 2021-22 Authors.
  Authors: Frank C. Anderson
  Contributors:
 
@@ -54,7 +54,7 @@ private:
 
 
 //=============================================================================
-/** This class impmlements an event reported that identifies the highest
+/** This class impmlements an event reporter that identifies the highest
 position reached by a body.  If energy is conserved, which should
 be the case if there are no damping components of the contact force,
 then the height should be constant across multiple bounces. */
@@ -72,9 +72,6 @@ public:
         system.realize(state, Stage::Velocity);
         Vec3 pos = body.getBodyOriginLocation(state);
         Vec3 vel = body.getBodyOriginVelocity(state);
-        //cout << endl;
-        //cout << state.getTime() << "\tp = " << pos << "\tv = " << vel << endl;
-        //cout << endl;
     }
 private:
     const MultibodySystem& system;
@@ -82,7 +79,7 @@ private:
 };
 
 //=============================================================================
-/** This class impmlements an event reported that access the force exerted
+/** This class impmlements an event reporter that access the force exerted
 by an ExponentialSpringForce at regular intervals. */
 class ExpSprForceReporter : public PeriodicEventReporter {
 public:
@@ -100,12 +97,6 @@ public:
         Real mu = spr.getMu(state);
         Vec3 fric = f; fric[2] = 0.0;
         Real ratio = fric.norm() / f[2];
-        //cout << state.getTime() << "\tSliding= "<< sliding <<
-        //    "  \tmu= " << mu << "  \tratio= "<< ratio <<
-        //    "  \tp0= " << p0 << "  \tf= " << f << endl;
-        //cout << state.getTime() << "\tSliding= " << sliding <<
-        //    "  \tp0= " << p0 << "  \tpxy= " << station << endl;
-
     }
 private:
     const MultibodySystem& system;
@@ -118,9 +109,9 @@ int main() {
     std::cout << "Running a simulation in which contact with a floor is " <<
         "modeled with exponential springs." << endl;
     try {
-        // I should probably make the following options command line
-        // areguments, but since this code is part of the build environment,
-        // it is easy to recomplile.
+        // I should probably make the following options command-line
+        // arguments, but since this code is part of the build environment,
+        // it is easy to recompile.
 
         // Use compliant Contact?
         bool CmpContactOn = true;
@@ -141,7 +132,7 @@ int main() {
         // 5 = spinning like a top
         // 6 = tumbling
         // 7 = non-vertical gravity (simple way to create a sideways force)
-        
+
         // Create the system.
         Real hs = 0.1;
         MultibodySystem system; system.setUseUniformBackground(true);
@@ -161,7 +152,6 @@ int main() {
         BodyPropsCmp.addDecoration(Transform(),
             DecorativeBrick(Vec3(hs)).setColor(Red));
 
-     
         // Add a 6 dof mass that uses the Compliant Contact system.
         // Some constants
         const Vec3 hdim(hs, hs, hs);
@@ -178,7 +168,7 @@ int main() {
         unique_ptr<ContactTrackerSubsystem> tracker;
         unique_ptr<CompliantContactSubsystem> contactForces;
         unique_ptr<MobilizedBody::Free> blockCmp;
-        if (CmpContactOn == true) { 
+        if (CmpContactOn == true) {
             tracker = unique_ptr<ContactTrackerSubsystem>(
                 new ContactTrackerSubsystem(system));
             contactForces =

@@ -1,7 +1,7 @@
 /*-----------------------------------------------------------------------------
                                Simbody(tm)
 -------------------------------------------------------------------------------
- Copyright (c) 2021 Authors.
+ Copyright (c) 2021-22 Authors.
  Authors: Frank C. Anderson
  Contributors:
 
@@ -41,75 +41,72 @@ provided by ExponentialSpringForce's API.
 
 The struct has three member structs (Pos, Vel, and Dyn) that each correspond
 to a realization stage. Splitting up the data cache in this way allows data to
-be access at the earliest appropriate stage.
+be accessed at the earliest appropriate stage.
 
 Member variables with an "_G" suffix are expressed in the Ground frame.
 Member variables with an "_P" suffix are expressed in the Contact Plane. */
 struct ExponentialSpringData {
     struct Pos {
         // Position of the body station in the ground frame.
-        Vec3 p_G;
+        Vec3 p_G{NaN};
         // Position of the body station in the frame of the contact plane.
-        Vec3 p_P;
+        Vec3 p_P{NaN};
         // Displacement of the body station normal to the floor expressed in
         // the frame of the contact plane.
-        Real pz;
+        Real pz{NaN};
         // Position of the body station projected onto the contact plane
         // expressed in the frame of the contact plane.
-        Vec3 pxy;
+        Vec3 pxy{NaN};
     };
     struct Vel {
         // Velocity of the body station in the ground frame.
-        Vec3 v_G;
+        Vec3 v_G{NaN};
         // Velocity of the body station in the frame of the contact plane.
-        Vec3 v_P;
+        Vec3 v_P{NaN};
         // Velocity of the body station normal to the contact plane expressed
         // in the frame of the contact plane.
-        Real vz;
+        Real vz{NaN};
         // Velocity of the body station in the contact plane expressed in
         // the frame of the contact plane.
-        Vec3 vxy;
+        Vec3 vxy{NaN};
     };
     struct Dyn {
         // Elastic force in the normal direction.
-        Real fzElas;
+        Real fzElas{NaN};
         // Damping force in the normal direction.
-        Real fzDamp;
+        Real fzDamp{NaN};
         // Total normal force expressed in the frame of the contact plane.
-        Real fz;
+        Real fz{NaN};
         // Instantaneous coefficient of friction.
-        Real mu;
+        Real mu{NaN};
         // Limit of the friction force.
-        Real fxyLimit;
+        Real fxyLimit{NaN};
         // Flag indicating if the friction limit was exceeded.
-        bool limitReached;
+        bool limitReached{false};
         // Damping part of the friction force in Model 1.
-        Vec3 fricDampMod1_P;
+        Vec3 fricDampMod1_P{NaN};
         // Total friction force in Model 1.
-        Vec3 fricMod1_P;
+        Vec3 fricMod1_P{NaN};
         // Elastic part of the friction spring force in Model 2.
-        Vec3 fricElasMod2_P;
+        Vec3 fricElasMod2_P{NaN};
         // Damping part of the friction spring force in Model 2.
-        Vec3 fricDampMod2_P;
+        Vec3 fricDampMod2_P{NaN};
         // Total friction spring force in Model 2.
-        Vec3 fricMod2_P;
+        Vec3 fricMod2_P{NaN};
         // Elastic friction force after blending.
-        Vec3 fricElas_P;
+        Vec3 fricElas_P{NaN};
         // Damping friction force after blending.
-        Vec3 fricDamp_P;
+        Vec3 fricDamp_P{NaN};
         // Total friction force after blending.
-        Vec3 fric_P;
+        Vec3 fric_P{NaN};
         // Resultant force (normal + friction) expressed in the frame of the
         // contact frame. This is the force that will be applied to the body
         // after expressing it in the appropriate frame.
-        Vec3 f_P;
+        Vec3 f_P{NaN};
         // Resultant force (normal + friction) expressed in the Ground frame.
         // This is the force applied to the body.
-        Vec3 f_G;
+        Vec3 f_G{NaN};
     };
-    Pos pos;
-    Vel vel;
-    Dyn dyn;
 };
 } // End anonymous namespace for ExponentialSpringData
 
@@ -312,13 +309,12 @@ realizeSubsystemTopologyImpl(State& state) const override {
     mutableThis->indexZ = allocateZ(state, zInit);
 
     // Data
-    ExponentialSpringData data;
     mutableThis->indexDataPos = allocateCacheEntry(state, Stage::Position,
-        new Value<ExponentialSpringData::Pos>(data.pos));
+        new Value<ExponentialSpringData::Pos>());
     mutableThis->indexDataVel = allocateCacheEntry(state, Stage::Velocity,
-        new Value<ExponentialSpringData::Vel>(data.vel));
+        new Value<ExponentialSpringData::Vel>());
     mutableThis->indexDataDyn = allocateCacheEntry(state, Stage::Dynamics,
-        new Value<ExponentialSpringData::Dyn>(data.dyn));
+        new Value<ExponentialSpringData::Dyn>());
 
     return 0;
 }
@@ -494,7 +490,7 @@ calcFrictionForceBlended(const State& state) const {
 
     // Friction limit is too small.
     // Set all forces to 0.0.
-    // Set limitReaced to true.
+    // Set limitReached to true.
     if(dataDyn.fxyLimit < SignificantReal) {
         Vec3 zero(0.0);
         dataDyn.fricMod1_P = dataDyn.fricDampMod1_P = zero;
@@ -646,7 +642,6 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
 // force is capped at its maximum.
 Real
 calcPotentialEnergy(const State& state) const override {
-    const MultibodySystem& system = MultibodySystem::downcast(getSystem());
     const ExponentialSpringData::Pos& dataPos = getDataPos(state);
     const ExponentialSpringData::Dyn& dataDyn = getDataDyn(state);
     // Strain energy in the normal direction (exponential spring)

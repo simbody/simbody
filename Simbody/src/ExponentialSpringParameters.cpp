@@ -1,7 +1,7 @@
 /*-----------------------------------------------------------------------------
                                Simbody(tm)
 -------------------------------------------------------------------------------
- Copyright (c) 2021 Authors.
+ Copyright (c) 2021-22 Authors.
  Authors: Frank C. Anderson
  Contributors:
 
@@ -51,6 +51,13 @@ operator==(const ExponentialSpringParameters& other) const {
         (tau == other.tau) &&
         (vSettle == other.vSettle) && (aSettle == other.aSettle) &&
         (initMus == other.initMus) && (initMuk == other.initMuk));
+}
+//_____________________________________________________________________________
+bool
+ExponentialSpringParameters::
+operator!=(const ExponentialSpringParameters& other) const {
+    if(&other == this) return false;
+    return !(*this == other);
 }
 //_____________________________________________________________________________
 void

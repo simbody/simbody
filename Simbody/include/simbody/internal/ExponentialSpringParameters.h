@@ -4,7 +4,7 @@
 /*-----------------------------------------------------------------------------
                                Simbody(tm)
 -------------------------------------------------------------------------------
- Copyright (c) 2021 Authors.
+ Copyright (c) 2021-22 Authors.
  Authors: Frank C. Anderson
  Contributors:
 
@@ -134,9 +134,14 @@ public:
         operator=(const ExponentialSpringParameters& source) = default;
 
     /** Equality operator. All member variables of this object must be
-    equal to the corresponding members of the other object to return true.
+    equal to the corresponding members of the other object, in order for the
+    equality operator to return true.
     @param other The other object with which to test equality. */
     bool operator==(const ExponentialSpringParameters& other) const;
+
+    /** Inquality operator. If any member of this object is not equal
+    to its corresponding member in the other, true is returned. */
+    bool operator!=(const ExponentialSpringParameters& other) const;
 
     /** Set the parameters that determine the shape of the exponential. The
     exponential, which models the elastic response of the spring in the normal

@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for       *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody. *
  *                                                                           *
- * Portions copyright (c) 2021 the Authors.                                  *
+ * Portions copyright (c) 2021-22 the Authors.                                  *
  * Authors: Frank C. Anderson                                                *
  * Contributors:                                                             *
  *                                                                           *
@@ -88,7 +88,7 @@ void checkConservationOfEnergy(MultibodySystem& system, Real acc,
 // Reporters
 //=============================================================================
 //_____________________________________________________________________________
-// This class impmlements an event reported that records the System State at
+// This class impmlements an event reporter that records the System State at
 // a regular time interval.
 class PeriodicStateRecorder : public PeriodicEventReporter {
 public:
@@ -109,10 +109,10 @@ private:
     unique_ptr<Array_<State>> storage;
 };
 //_____________________________________________________________________________
-// This class implements an event reported that identifies the minimum and
+// This class implements an event reporter that identifies the minimum and
 // maximum heights reached by a body and records the State at those heights.
 // This reporter is included in the testing to ensure that key events
-// during contact events are not missed.  It is posible that the periodic
+// during contact events are not missed.  It is possible that the periodic
 // reporter (see directly above) could step over such events.
 class MinMaxHeightStateRecorder : public TriggeredEventReporter {
 public:
@@ -511,7 +511,7 @@ void testBlockTumbleWithDampWithFric() {
 //
 // Simulation options specify which set of initial conditions are set, whether
 // damping and friction are part of the simulation, and the tilt of the floor
-// plane.  
+// plane.
 void simulateBlock(const SimulationOptions& options) {
 
     // Construct the system and basic subsystems.
@@ -532,7 +532,7 @@ void simulateBlock(const SimulationOptions& options) {
     corner[5] = Vec3(hs, hs, -hs);
     corner[6] = Vec3(-hs, hs, -hs);
     corner[7] = Vec3(-hs, hs, hs);
-    
+
     // Construct the mobilized body.
     Body::Rigid bodyProps(MassProperties(10.0, Vec3(0), Inertia(1)));
     bodyProps.addDecoration(Transform(),
@@ -647,7 +647,7 @@ void simulateBlock(const SimulationOptions& options) {
     case 1: // Dropped
         x = Vec3(0.5, 1.0, 0.0);
         break;
-    case 2: // Sliding            
+    case 2: // Sliding
         x = Vec3(-0.5, 0.11, 0.0);
         u = Vec6(0, 0, 0, 4.0, 0, 0);
         break;
@@ -694,7 +694,7 @@ void simulateBlock(const SimulationOptions& options) {
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(options.tf);
- 
+
     // Get the recorded state arrays
     const Array_<State>* periodicArray = periodicRecorder->getStateArray();
     const Array_<State>* minmaxArray = minmaxRecorder->getStateArray();
@@ -771,10 +771,6 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         // Realize through Stage::Dynamics
         system.realize(state, Stage::Dynamics);
 
-        // Debug - print out the vertical position (z) of the spring station
-        //Vec3 s_G = spr.getStationPosition(state);
-        //cout << state.getTime() << "  station_y=" << s_G[2] << endl;
-
         // Set a tolerance for comparisons
         Real tol = 1.0e-12;
 
@@ -792,8 +788,6 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         SimTK_TEST(fz[1] == 0.0);
         // sum elastic and damping
         Vec3 fzCalc = fzElas + fzDamp;
-        //cout << "fzElas= " << fzElas << "  fzDamp= " << fzDamp <<
-        //    "  fz= " << fz << "  fzCalc= " << fzCalc << endl;
         SimTK_TEST_EQ(fzCalc, fz);
 
         // Check normal force when expressed in Ground
@@ -801,8 +795,6 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         Vec3 fzDamp_G = spr.getNormalForceDampingPart(state);
         Vec3 fz_G = spr.getNormalForce(state);
         Vec3 fzCalc_G = fzElas_G + fzDamp_G;
-        //cout << "fzElas= " << fzElas_G << "  fzDamp= " << fzDamp_G <<
-        //    "  fz= " << fz_G << "  fzCalc= " << fzCalc_G << endl;
         SimTK_TEST_EQ(fzCalc_G, fz_G);
 
         // Check magnitude of fz is same in Ground and ContacPlane
@@ -824,7 +816,6 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         // Check friction limit ≤ μ*fy
         Vec3 mufz = mu * fz_G;
         Real fricLimit = spr.getFrictionForceLimit(state);
-        //cout << "fricLimit= " << fricLimit << "  mu*fz= " << mufz << endl;
         SimTK_TEST_EQ_TOL(fricLimit, mufz.norm(), tol);
 
         // Check friction force expressed in the contact plane
@@ -837,8 +828,6 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         SimTK_TEST(fric[2] == 0.0);
         // sum elastic and damping
         Vec3 fricCalc = fricElas + fricDamp;
-        //cout << "fricElas= " << fricElas << "  fricDamp= " << fricDamp <<
-        //    "  fric= " << fric << "  fricCalc= " << fricCalc << endl;
         SimTK_TEST_EQ(fricCalc, fric);
 
         // Check friction force expressed in Ground
@@ -911,8 +900,6 @@ void checkConservationOfEnergy(MultibodySystem& system, Real acc,
         // Check the energy
         Real tol = state.getTime() * acc * energy0;
         Real energy = system.calcEnergy(state);
-        //cout << state.getTime() << "  tol= "<< tol <<
-        //    "  energy= " << energy << "  energy0= " << energy0 << endl;
         SimTK_TEST_EQ_TOL(energy, energy0, tol);
     }
 }
@@ -931,7 +918,6 @@ void testInitialization() {
     //----------------------------------
     // Test Equality Operator
     ExponentialSpringParameters params, paramsDef;
-    SimTK_TEST(params == paramsDef);
 
     // Get the default parameters
     Real d0Def, d1Def, d2Def;
@@ -961,8 +947,53 @@ void testInitialization() {
     Real initMus = initMusDef + delta;
     Real initMuk = initMukDef + delta;
 
-    // Test Equality Operator again by setting non-default parameters on
-    // the non-default params object.
+    // Test the Equality Operator
+    SimTK_TEST(params==paramsDef);
+    params.setShapeParameters(d0, d1, d2);
+    SimTK_TEST(!(params == paramsDef));
+    params.setNormalViscosity(cz);
+    SimTK_TEST(!(params == paramsDef));
+    params.setMaxNormalForce(maxFz);
+    SimTK_TEST(!(params == paramsDef));
+    params.setFrictionElasticity(kxy);
+    SimTK_TEST(!(params == paramsDef));
+    params.setFrictionViscosity(cxy);
+    SimTK_TEST(!(params == paramsDef));
+    params.setSlidingTimeConstant(tau);
+    SimTK_TEST(!(params == paramsDef));
+    params.setSettleVelocity(vSettle);
+    SimTK_TEST(!(params == paramsDef));
+    params.setSettleAcceleration(aSettle);
+    SimTK_TEST(!(params == paramsDef));
+    params.setInitialMuStatic(initMus);
+    SimTK_TEST(!(params == paramsDef));
+    params.setInitialMuKinetic(initMuk);
+    SimTK_TEST(!(params == paramsDef));
+    // Now return to the default values, one member variable at a time.
+    // This may seem redundant, but different combinations of the member
+    // variables have non-default values.
+    params.setShapeParameters(d0Def, d1Def, d2Def);
+    SimTK_TEST(!(params == paramsDef));
+    params.setNormalViscosity(czDef);
+    SimTK_TEST(!(params == paramsDef));
+    params.setMaxNormalForce(maxFzDef);
+    SimTK_TEST(!(params == paramsDef));
+    params.setFrictionElasticity(kxyDef);
+    SimTK_TEST(!(params == paramsDef));
+    params.setFrictionViscosity(cxyDef);
+    SimTK_TEST(!(params == paramsDef));
+    params.setSlidingTimeConstant(tauDef);
+    SimTK_TEST(!(params == paramsDef));
+    params.setSettleVelocity(vSettleDef);
+    SimTK_TEST(!(params == paramsDef));
+    params.setSettleAcceleration(aSettleDef);
+    SimTK_TEST(!(params == paramsDef));
+    params.setInitialMuStatic(initMusDef);
+    SimTK_TEST(!(params == paramsDef));
+    params.setInitialMuKinetic(initMukDef);
+    SimTK_TEST(params==paramsDef);
+
+    // Test the Inequality Operator
     params.setShapeParameters(d0, d1, d2);
     SimTK_TEST(params != paramsDef);
     params.setNormalViscosity(cz);
