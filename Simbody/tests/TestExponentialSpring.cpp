@@ -78,8 +78,9 @@ void testBlockTumbleWithDampWithFric();
 
 // Lower level routines called by the sub-tests
 void simulateBlock(const SimulationOptions &options);
-void checkSpringCalculations(MultibodySystem& system, Real acc,
-    ExponentialSpringForce& spr, const Array_<State>* stateArray);
+void checkSpringCalculations(const SimulationOptions& options,
+    MultibodySystem& system, Real acc, ExponentialSpringForce& spr,
+    const Array_<State>* stateArray);
 void checkConservationOfEnergy(MultibodySystem& system, Real acc,
     ExponentialSpringForce& spr, const Array_<State>* stateArray);
 
@@ -547,11 +548,6 @@ void simulateBlock(const SimulationOptions& options) {
         params.setFrictionViscosity(0.0);
     }
     // Friction
-    // TODO(fcanderson) - Make sure that non-zero friction forces
-    // are properly being applied during a simulation.
-    // At one point, mus and muk were being set to 0.0 and no friction
-    // forces were being applied. All tests were passing, so I didn't
-    // realize there was a bug.
     Real muk = 0.25, mus = 0.5;
     if(!options.friction) muk = mus = 0.0;
     params.setInitialMuStatic(mus);
@@ -581,7 +577,7 @@ void simulateBlock(const SimulationOptions& options) {
     // Wall Plane
     // 1.5 m along the +x axis, but angled to face the Ground +z axis.
     // The 30 deg angle is so that motion will be generated that is
-    // not perfectly along the coordinate axes.
+    // not perfectly aligned with the coordinate axes.
     Real angle = convertDegreesToRadians(-60.0);
     Rotation r;
     r.setRotationFromAngleAboutY(angle);
@@ -715,21 +711,25 @@ void simulateBlock(const SimulationOptions& options) {
 
         cout << " f"<< i;
         // periodic floor plane
-        checkSpringCalculations(system, acc, *sprFloor[i], periodicArray);
+        checkSpringCalculations(options,
+            system, acc, *sprFloor[i], periodicArray);
         if((options.damping == false) && (options.friction == false))
             checkConservationOfEnergy(system, acc, *sprFloor[i], minmaxArray);
         // minmax floor plane
-        checkSpringCalculations(system, acc, *sprFloor[i], periodicArray);
+        checkSpringCalculations(options,
+            system, acc, *sprFloor[i], periodicArray);
         if((options.damping == false) && (options.friction == false))
             checkConservationOfEnergy(system, acc, *sprFloor[i], minmaxArray);
 
         cout << " w" << i;
         // periodic wall plane
-        checkSpringCalculations(system, acc, *sprWall[i], periodicArray);
+        checkSpringCalculations(options,
+            system, acc, *sprWall[i], periodicArray);
         if((options.damping == false) && (options.friction == false))
             checkConservationOfEnergy(system, acc, *sprFloor[i], minmaxArray);
         // minmax wall plane
-        checkSpringCalculations(system, acc, *sprWall[i], periodicArray);
+        checkSpringCalculations(options,
+            system, acc, *sprWall[i], periodicArray);
         if((options.damping == false) && (options.friction == false))
             checkConservationOfEnergy(system, acc, *sprFloor[i], minmaxArray);
     }
@@ -763,8 +763,10 @@ void simulateBlock(const SimulationOptions& options) {
 // acc          : integrator accuracy
 // spr          : exponential spring
 // stateArray   : time history of states
-void checkSpringCalculations(MultibodySystem& system, Real acc,
-    ExponentialSpringForce& spr, const Array_<State>* stateArray) {
+void checkSpringCalculations(const SimulationOptions& options,
+    MultibodySystem& system, Real acc, ExponentialSpringForce& spr,
+    const Array_<State>* stateArray)
+{
     // Check for empty state array
     if(stateArray->size() == 0) return;
 
@@ -817,6 +819,7 @@ void checkSpringCalculations(MultibodySystem& system, Real acc,
         Real mu = spr.getMu(state);
         SimTK_TEST(muk <= (mu+acc));
         SimTK_TEST(mu <= (mus+acc));
+        if(options.friction) SimTK_TEST(mu > 0.0);
 
         // Check friction limit ≤ μ*fy
         Vec3 mufz = mu * fz_G;
