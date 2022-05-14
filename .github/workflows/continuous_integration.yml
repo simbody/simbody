@@ -15,7 +15,7 @@ jobs:
   windows:
     name: Windows
 
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
       - uses: actions/checkout@v2
@@ -33,7 +33,7 @@ jobs:
           chdir $env:GITHUB_WORKSPACE\\build
           # Set the CXXFLAGS environment variable to turn warnings into errors.
           # TODO: Can remove /WX when we use that in CMakeLists.txt.
-          cmake -E env CXXFLAGS="/WX" cmake $env:GITHUB_WORKSPACE -LAH -G"Visual Studio 16 2019" -A x64 -DCMAKE_INSTALL_PREFIX=~/simbody-install
+          cmake -E env CXXFLAGS="/WX" cmake $env:GITHUB_WORKSPACE -LAH -G"Visual Studio 17 2022" -A x64 -DCMAKE_INSTALL_PREFIX=~/simbody-install
 
       - name: Build
         run: |

@@ -11,6 +11,10 @@
 # was replaced with C++11 threading in 2018.
 #-----------------------------------------------------------
 
+if (WINDOWS_USE_EXTERNAL_LIBS)
+    return()
+endif()
+
 set(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${CMAKE_HOST_SYSTEM_NAME})
 
 if(WIN32 AND NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
