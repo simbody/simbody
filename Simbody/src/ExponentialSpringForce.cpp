@@ -23,6 +23,8 @@
 #include "simbody/internal/ForceSubsystemGuts.h"
 #include "simbody/internal/ExponentialSpringForce.h"
 
+#include "ForceImpl.h"
+
 
 namespace SimTK {
 
@@ -114,7 +116,7 @@ struct ExponentialSpringData {
  //============================================================================
  // Class ExponentialSpringForceImpl
  //============================================================================
-class ExponentialSpringForceImpl : public ForceSubsystem::Guts {
+class ExponentialSpringForceImpl : public ForceImpl {
 public:
 
 // Flag for managing the Sliding state and SlidingDot.
