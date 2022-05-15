@@ -158,6 +158,7 @@ int main() {
 
     SimTK_SUBTEST(testInitialization);
 
+    /*
     SimTK_SUBTEST(testBlockVerticalBounceNoDampNoFric);
     SimTK_SUBTEST(testBlockVerticalBounceNoDampWithFric);
     SimTK_SUBTEST(testBlockVerticalBounceWithDampNoFric);
@@ -180,6 +181,7 @@ int main() {
 
     SimTK_SUBTEST(testBlockTumbleNoDampNoFric);
     SimTK_SUBTEST(testBlockTumbleWithDampWithFric);
+    */
 
     SimTK_END_TEST();
 }
@@ -566,7 +568,7 @@ void simulateBlock(const SimulationOptions& options) {
     int i;
     for(i = 0; i < 8; ++i) {
         sprFloor[i] = unique_ptr<ExponentialSpringForce>(
-            new ExponentialSpringForce(system, floorPlane, body, corner[i],
+            new ExponentialSpringForce(forces, floorPlane, body, corner[i],
                 params));
     }
     Rotation RDecor(angle2, ZAxis);
@@ -586,7 +588,7 @@ void simulateBlock(const SimulationOptions& options) {
     unique_ptr<ExponentialSpringForce> sprWall[8];
     for(i = 0; i < 8; ++i) {
         sprWall[i] = unique_ptr<ExponentialSpringForce>(
-            new ExponentialSpringForce(system, wallPlane, body, corner[i],
+            new ExponentialSpringForce(forces, wallPlane, body, corner[i],
                 params));
     }
     angle1 = convertDegreesToRadians(90.0);
@@ -1077,11 +1079,11 @@ void testInitialization() {
     MobilizedBody::Free body(matter.Ground(), bodyProps);
     Vec3 station(0.1, -0.1, 0.1);
     ExponentialSpringForce
-        sprDef0(system, plane, body, station);
+        sprDef0(forces, plane, body, station);
     ExponentialSpringForce
-        sprDef1(system, plane, body, station, paramsDef);
+        sprDef1(forces, plane, body, station, paramsDef);
     ExponentialSpringForce
-        spr(system, plane, body, station, params);
+        spr(forces, plane, body, station, params);
 
     // Test that the non-default parameter values were set properly.
     SimTK_TEST(sprDef0.getParameters() == sprDef1.getParameters());

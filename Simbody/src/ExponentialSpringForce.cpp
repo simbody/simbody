@@ -17,10 +17,14 @@
  ----------------------------------------------------------------------------*/
 
 #include "SimTKcommon.h"
+
+#include "simbody/internal/common.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/MobilizedBody_Ground.h"
-#include "simbody/internal/ForceSubsystem.h"
-#include "simbody/internal/ForceSubsystemGuts.h"
+#include "simbody/internal/GeneralForceSubsystem.h"
+//#include "simbody/internal/ForceSubsystem.h"
+//#include "simbody/internal/ForceSubsystemGuts.h"
 #include "simbody/internal/ExponentialSpringForce.h"
 
 #include "ForceImpl.h"
@@ -130,13 +134,12 @@ enum SlidingAction {
 
 // Constructor
 ExponentialSpringForceImpl(const Transform& XContactPlane,
-const MobilizedBody& body, const Vec3& station,
-const ExponentialSpringParameters& params) :
-ForceSubsystem::Guts("ExponentialSpringForce", "0.0.1"),
-X_GP(XContactPlane), body(body), station(station),
-defaultSprZero(Vec3(0., 0., 0.)),
-defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0) {
-
+    const MobilizedBody& body, const Vec3& station,
+    const ExponentialSpringParameters& params) :
+    X_GP(XContactPlane), body(body), station(station),
+    defaultSprZero(Vec3(0., 0., 0.)),
+    defaultSlidingAction(SlidingAction::Check), defaultSliding(1.0)
+{
     this->params = params;
 }
 
@@ -152,188 +155,195 @@ const Vec3& getStation() const { return station; }
 const ExponentialSpringParameters& getParameters() const { return params; }
 void setParameters(const ExponentialSpringParameters& params) {
     this->params = params;
-    invalidateSubsystemTopologyCache();
+    invalidateTopologyCache();
 }
 
 // DATA CACHE
 // Position Stage
 ExponentialSpringData::Pos& updDataPos(const State& state) const {
-    return Value<ExponentialSpringData::Pos>::updDowncast(updCacheEntry(state,
-        indexDataPos));
+    return Value<ExponentialSpringData::Pos>::updDowncast(
+        getForceSubsystem().updCacheEntry(state, indexDataPos) );
 }
 const ExponentialSpringData::Pos& getDataPos(const State& state) const {
-    return Value<ExponentialSpringData::Pos>::downcast(getCacheEntry(state,
-        indexDataPos));
+    return Value<ExponentialSpringData::Pos>::downcast(
+        getForceSubsystem().getCacheEntry(state, indexDataPos) );
 }
 // Velocity Stage
 ExponentialSpringData::Vel& updDataVel(const State& state) const {
-    return Value<ExponentialSpringData::Vel>::updDowncast(updCacheEntry(state,
-        indexDataVel));
+    return Value<ExponentialSpringData::Vel>::updDowncast(
+        getForceSubsystem().updCacheEntry(state, indexDataVel) );
 }
 const ExponentialSpringData::Vel& getDataVel(const State& state) const {
-    return Value<ExponentialSpringData::Vel>::downcast(getCacheEntry(state,
-        indexDataVel));
+    return Value<ExponentialSpringData::Vel>::downcast(
+        getForceSubsystem().getCacheEntry(state, indexDataVel));
 }
 // Dynamics Stage
 ExponentialSpringData::Dyn& updDataDyn(const State& state) const {
-    return Value<ExponentialSpringData::Dyn>::updDowncast(updCacheEntry(state,
-        indexDataDyn));
+    return Value<ExponentialSpringData::Dyn>::updDowncast(
+        getForceSubsystem().updCacheEntry(state, indexDataDyn));
 }
 const ExponentialSpringData::Dyn& getDataDyn(const State& state) const {
-    return Value<ExponentialSpringData::Dyn>::downcast(getCacheEntry(state,
-        indexDataDyn));
+    return Value<ExponentialSpringData::Dyn>::downcast(
+        getForceSubsystem().getCacheEntry(state, indexDataDyn));
 }
 
 // SLIDING STATE
 void setSliding(State& state, Real sliding) {
-    updZ(state)[indexZ] = clampInPlace(0.0, sliding, 1.0);
+    getForceSubsystem().updZ(state)[indexZ] = clampInPlace(0.0, sliding, 1.0);
 }
 Real getSliding(const State& state) const {
-    return getZ(state)[indexZ];
+    return getForceSubsystem().getZ(state)[indexZ];
 }
 Real getSlidingDotInCache(const State& state) const {
-    return getZDot(state)[indexZ];
+    return getForceSubsystem().getZDot(state)[indexZ];
 }
 void updSlidingDotInCache(const State& state, Real slidingDot) const {
-    updZDot(state)[indexZ] = slidingDot; /* Doesn't invalidate the State. */
+    // Doesn't invalidate the State.
+    getForceSubsystem().updZDot(state)[indexZ] = slidingDot;
 }
 
 // SLIDING ACTION
 SlidingAction getSlidingAction(const State& state) const {
-    return Value<SlidingAction>::
-        downcast(getDiscreteVariable(state, indexSlidingAction));
+    return Value<SlidingAction>::downcast(
+        getForceSubsystem().getDiscreteVariable(state, indexSlidingAction) );
 }
 SlidingAction& updSlidingAction(State& state) const {
-    return Value<SlidingAction>::
-        updDowncast(updDiscreteVariable(state, indexSlidingAction));
+    return Value<SlidingAction>::updDowncast(
+        getForceSubsystem().updDiscreteVariable(state, indexSlidingAction) );
 }
 SlidingAction getSlidingActionInCache(const State& state) const {
-    return Value<SlidingAction>::
-        downcast(getDiscreteVarUpdateValue(state, indexSlidingAction));
+    return Value<SlidingAction>::downcast(
+        getForceSubsystem().getDiscreteVarUpdateValue(
+            state, indexSlidingAction) );
 }
-void updSlidingActionInCache(const State& state,
-    SlidingAction action) const { // Will not invalidate the State.
+void updSlidingActionInCache(const State& state, SlidingAction action) const {
+    // Will not invalidate the State.
     Value<SlidingAction>::updDowncast(
-        updDiscreteVarUpdateValue(state, indexSlidingAction)) = action;
-    markDiscreteVarUpdateValueRealized(state, indexSlidingAction);
+        getForceSubsystem().updDiscreteVarUpdateValue(
+            state, indexSlidingAction) ) = action;
+    getForceSubsystem().markDiscreteVarUpdateValueRealized(
+        state, indexSlidingAction);
 }
 
 // SPRING ZERO
 const Vec3& getSprZero(const State& state) const {
-    return Value<Vec3>::
-        downcast(getDiscreteVariable(state, indexSprZero));
+    return Value<Vec3>::downcast(
+        getForceSubsystem().getDiscreteVariable(state, indexSprZero) );
 }
 Vec3& updSprZero(State& state) const {
-    return Value<Vec3>::
-        updDowncast(updDiscreteVariable(state,indexSprZero));
+    return Value<Vec3>::updDowncast(
+        getForceSubsystem().updDiscreteVariable(state,indexSprZero) );
 }
 Vec3 getSprZeroInCache(const State& state) const {
     return Value<Vec3>::downcast(
-        getDiscreteVarUpdateValue(state, indexSprZero));
+        getForceSubsystem().getDiscreteVarUpdateValue(state, indexSprZero));
 }
 void updSprZeroInCache(const State& state, const Vec3& p0) const {
     // Will not invalidate the State.
     Value<Vec3>::updDowncast(
-        updDiscreteVarUpdateValue(state, indexSprZero)) = p0;
-    markDiscreteVarUpdateValueRealized(state, indexSprZero);
+        getForceSubsystem().updDiscreteVarUpdateValue(
+            state, indexSprZero) ) = p0;
+    getForceSubsystem().markDiscreteVarUpdateValueRealized(
+        state, indexSprZero);
 }
 
 // STATIC COEFFICENT OF FRICTION
 const Real& getMuStatic(const State& state) const {
-    return Value<Real>::downcast(getDiscreteVariable(state, indexMus));
+    return Value<Real>::downcast(
+        getForceSubsystem().getDiscreteVariable(state, indexMus) );
 }
 void setMuStatic(State& state, Real mus) {
-    // Keep mus greter than or equal to 0.0.
+    // Keep mus greater than or equal to 0.0.
     if(mus < 0.0) mus = 0.0;
-    Value<Real>::updDowncast(updDiscreteVariable(state, indexMus)) = mus;
+    Value<Real>::updDowncast(
+        getForceSubsystem().updDiscreteVariable(state, indexMus) ) = mus;
     // Make sure muk is less than or equal to mus
     Real muk = getMuKinetic(state);
     if(muk > mus) {
         muk = mus;
-        Value<Real>::updDowncast(updDiscreteVariable(state, indexMuk)) = muk;
+        Value<Real>::updDowncast(
+            getForceSubsystem().updDiscreteVariable(state, indexMuk)) = muk;
     }
 }
 
 // KINETIC COEFFICENT OF FRICTION
 const Real& getMuKinetic(const State& state) const {
-    return Value<Real>::downcast(getDiscreteVariable(state, indexMuk));
+    return Value<Real>::downcast(
+        getForceSubsystem().getDiscreteVariable(state, indexMuk) );
 }
 void setMuKinetic(State& state, Real muk) const {
     // Keep muk >= to zero.
     if(muk < 0.0) muk = 0.0;
-    Value<Real>::updDowncast(updDiscreteVariable(state, indexMuk)) = muk;
+    Value<Real>::updDowncast(
+        getForceSubsystem().updDiscreteVariable(state, indexMuk) ) = muk;
     // Make sure mus is greater than or equal to muk
     Real mus = getMuStatic(state);
     if(muk > mus) {
-        Value<Real>::updDowncast(updDiscreteVariable(state, indexMus)) = muk;
+        Value<Real>::updDowncast(
+            getForceSubsystem().updDiscreteVariable(state, indexMus) ) = muk;
     }
 }
 
 //-----------------------------------------------------------------------------
-// ForceSubsystem Methods (overrides of virtual methods)
+// ForceImpl Methods (overrides of virtual methods)
 //-----------------------------------------------------------------------------
 //_____________________________________________________________________________
 // Clone
-Subsystem::Guts*
-cloneImpl() const override {
+ForceImpl*
+clone() const override {
     return new ExponentialSpringForceImpl(X_GP, body, station, params);
 }
 //_____________________________________________________________________________
 // Topology - allocate state variables and the data cache.
-int
-realizeSubsystemTopologyImpl(State& state) const override {
+void
+realizeTopology(State& state) const override {
     // Create a mutableThis
     ExponentialSpringForceImpl* mutableThis =
         const_cast<ExponentialSpringForceImpl*>(this);
 
     // Coefficients of friction: mus and muk
-    mutableThis->indexMus = allocateDiscreteVariable(state,
+    mutableThis->indexMus = getForceSubsystem().allocateDiscreteVariable(state,
         Stage::Dynamics, new Value<Real>(params.getInitialMuStatic()));
-    mutableThis->indexMuk = allocateDiscreteVariable(state,
+    mutableThis->indexMuk = getForceSubsystem().allocateDiscreteVariable(state,
         Stage::Dynamics, new Value<Real>(params.getInitialMuKinetic()));
 
     // SprZero
     mutableThis->indexSprZero =
-        allocateAutoUpdateDiscreteVariable(state, Stage::Dynamics,
-            new Value<Vec3>(defaultSprZero), Stage::Dynamics);
+        getForceSubsystem().allocateAutoUpdateDiscreteVariable(state,
+            Stage::Dynamics, new Value<Vec3>(defaultSprZero), Stage::Dynamics);
     mutableThis->indexSprZeroInCache =
-        getDiscreteVarUpdateIndex(state, indexSprZero);
+        getForceSubsystem().getDiscreteVarUpdateIndex(state, indexSprZero);
 
     // SlidingAction
     mutableThis->indexSlidingAction =
-        allocateAutoUpdateDiscreteVariable(state, Stage::Acceleration,
+        getForceSubsystem().allocateAutoUpdateDiscreteVariable(state,
+            Stage::Acceleration,
             new Value<SlidingAction>(defaultSlidingAction), Stage::Dynamics);
     mutableThis->indexSlidingActionInCache =
-        getDiscreteVarUpdateIndex(state, indexSlidingAction);
+        getForceSubsystem().getDiscreteVarUpdateIndex(state,
+            indexSlidingAction);
 
     // Sliding
     const Vector zInit(1, defaultSliding);
-    mutableThis->indexZ = allocateZ(state, zInit);
+    mutableThis->indexZ = getForceSubsystem().allocateZ(state, zInit);
 
     // Data
-    mutableThis->indexDataPos = allocateCacheEntry(state, Stage::Position,
-        new Value<ExponentialSpringData::Pos>());
-    mutableThis->indexDataVel = allocateCacheEntry(state, Stage::Velocity,
-        new Value<ExponentialSpringData::Vel>());
-    mutableThis->indexDataDyn = allocateCacheEntry(state, Stage::Dynamics,
-        new Value<ExponentialSpringData::Dyn>());
-
-    return 0;
+    mutableThis->indexDataPos = getForceSubsystem().allocateCacheEntry(state,
+        Stage::Position, new Value<ExponentialSpringData::Pos>());
+    mutableThis->indexDataVel = getForceSubsystem().allocateCacheEntry(state,
+        Stage::Velocity, new Value<ExponentialSpringData::Vel>());
+    mutableThis->indexDataDyn = getForceSubsystem().allocateCacheEntry(state,
+        Stage::Dynamics, new Value<ExponentialSpringData::Dyn>());
 }
 //_____________________________________________________________________________
-// Stage::Position - compute the positions needed by this Subsystem.
-//
-// "data" is a struct that stores the key quantities that are calculated and
-// stored as cache entries. Values are updated in the data cache when the
-// System is realized at the following stages: Position, Velocity, Dynamics,
-// Acceleration. These data can be retrieved during a simulation by a reporter
-// or handler, for example.
+// Stage::Position - compute the positions needed by this Force and store
+// them in the data cache.
 //
 // Variables with a _P suffix are expressed in the frame of the contact plane.
 //
 // Variables with a _G suffix are expressed in the ground frame.
-int
-realizeSubsystemPositionImpl(const State& state) const override {
+void
+realizePosition(const State& state) const override {
     // Retrieve a writable reference to the data cache entry.
     ExponentialSpringData::Pos& dataPos = updDataPos(state);
     // Get the position of the body station in Ground
@@ -345,23 +355,16 @@ realizeSubsystemPositionImpl(const State& state) const override {
     dataPos.pz = dataPos.p_P[2];
     // Tangent (tangent to contact plane)
     dataPos.pxy = dataPos.p_P;    dataPos.pxy[2] = 0.0;
-
-    return 0;
 }
 //_____________________________________________________________________________
-// Stage::Velocity - compute the velocities needed by this Subsystem.
-//
-// "data" is a struct that stores the key quantities that are calculated and
-// stored as cache entries. Values are updated in the data cache when the
-// System is realized at the following stages: Position, Velocity, Dynamics,
-// Acceleration. These data can be retrieved during a simulation by a reporter
-// or handler, for example.
+// Stage::Velocity - compute the velocities needed by this Force and store
+// them in the data cache.
 //
 // Variables with a _P suffix are expressed in the frame of the contact plane.
 //
 // Variables with a _G suffix are expressed in the ground frame.
-int
-realizeSubsystemVelocityImpl(const State& state) const override {
+void
+realizeVelocity(const State& state) const override {
     // Retrieve a writable reference to the data cache entry.
     ExponentialSpringData::Vel& dataVel = updDataVel(state);
     // Get the velocity of the spring station in Ground
@@ -373,59 +376,34 @@ realizeSubsystemVelocityImpl(const State& state) const override {
     dataVel.vz = dataVel.v_P[2];
     // Tangent (tangent to contact plane)
     dataVel.vxy = dataVel.v_P;    dataVel.vxy[2] = 0.0;
-
-    return 0;
 }
 //_____________________________________________________________________________
-// Stage::Dynamics - compute the forces modeled by this Subsystem.
+// Stage::Dynamics - compute the forces and store them in the data cache.
 //
 // "params" references the configurable topology-stage parameters that govern
 // the behavior of the exponential spring. These can be changed by the user,
 // but the System must be realized at the Topology Stage after any such
 // change.
 //
-// "data" is a struct that stores the key quantities that are calculated and
-// stored as cache entries. Values are updated in the data cache when the
-// System is realized at the following stages: Position, Velocity, Dynamics,
-// Acceleration. These data can be retrieved during a simulation by a reporter
-// or handler, for example.
-//
 // Variables with a _P suffix are expressed in the frame of the contact plane.
 //
 // Variables with a _G suffix are expressed in the ground frame.
-int
-realizeSubsystemDynamicsImpl(const State& state) const override {
-    // Get current accumulated forces
-    const MultibodySystem& system = MultibodySystem::downcast(getSystem());
-    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
-    Vector_<SpatialVec>& forces_G =
-        system.updRigidBodyForces(state, Stage::Dynamics);
-
-    // Perform the kinematic and force calculations.
+/*
+void
+realizeDynamics(const State& state) const override {
+    // Perform the force calculations.
     calcNormalForce(state);
     calcFrictionForceBlended(state);
 
-    // Kinematic and force calculations were just stored in the data cache.
-    const ExponentialSpringData::Pos& dataPos = getDataPos(state);
-    ExponentialSpringData::Dyn& dataDyn = updDataDyn(state);
-
     // Set total force expressed in the frame of the Contact Plane.
+    ExponentialSpringData::Dyn& dataDyn = updDataDyn(state);
     dataDyn.f_P = dataDyn.fric_P;  // The x and y components are friction.
     dataDyn.f_P[2] = dataDyn.fz;   // The z component is the normal force.
 
     // Transform the total force to the Ground frame
     dataDyn.f_G = X_GP.R() * dataDyn.f_P;
-
-    // Apply the force to the body and to Ground.
-    // TODO(fcanderson) Add a test to see that Ground registers the
-    // reaction of the force applied to the body.
-    const MobilizedBody& ground = matter.getGround();
-    ground.applyForceToBodyPoint(state, dataPos.p_G, -dataDyn.f_G,
-        forces_G);
-    body.applyForceToBodyPoint(state, station, dataDyn.f_G, forces_G);
-
-    return 0;
 }
+*/
 //_____________________________________________________________________________
 // Calculate the normal force.
 // The normal is defined by the z axis of the contact plane.
@@ -481,7 +459,7 @@ calcFrictionForceBlended(const State& state) const {
     Vec3 p0 = getSprZero(state);
     Real mus = getMuStatic(state);
     Real muk = getMuKinetic(state);
-    Real sliding = getZ(state)[indexZ];
+    Real sliding = getForceSubsystem().getZ(state)[indexZ];
     if(sliding < 0.0) sliding = 0.0;
     else if(sliding > 1.0) sliding = 1.0;
     dataDyn.limitReached = false;
@@ -540,7 +518,7 @@ calcFrictionForceBlended(const State& state) const {
         p0 = dataPos.pxy + dataDyn.fricElas_P / kpFric;  p0[2] = 0.0;
     }
 
-    // Update the spring zero
+    // Update the spring zero in the data cache
     updSprZeroInCache(state, p0);
 }
 //_____________________________________________________________________________
@@ -559,15 +537,15 @@ calcFrictionForceBlended(const State& state) const {
 // in place). Some conditions for triggering a rise or decay depend on the
 // acceleration of the body station. Thus, the need to manage these states
 // at the Acceleration Stage.
-int
-realizeSubsystemAccelerationImpl(const State& state) const override {
+void
+realizeAcceleration(const State& state) const override {
     // Parameters
     Real kTau = 1.0 / params.getSlidingTimeConstant();
     Real vSettle = params.getSettleVelocity();
     Real aSettle = params.getSettleAcceleration();
 
     // Current Sliding State
-    Real sliding = getZ(state)[indexZ];
+    Real sliding = getForceSubsystem().getZ(state)[indexZ];
     SlidingAction action = getSlidingAction(state);
 
     // Get const references to the data caches
@@ -632,8 +610,48 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
     updSlidingActionInCache(state, action);
     Real slidingDot = kTau * (target - sliding);
     updSlidingDotInCache(state, slidingDot);
+}
+//_____________________________________________________________________________
+// Force - calculate the forces and add them to the GeneralForceSubsystem.
+// In a GeneralizedForceSubsystem, calcForce() is called instead of
+// realizeDynamics().
+void
+calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+    Vector_<Vec3>& particleForces, Vector& mobilityForces) const override
+{
+    //SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+    //    Stage::Dynamics,
+    //    "ExponentialSpringForce::calcForce");
+    // Compute all the forces
+    //realizeDynamics(state);
 
-    return 0;
+    // Perform the force calculations.
+    calcNormalForce(state);
+    calcFrictionForceBlended(state);
+
+    // Kinematic calculations have already been stored in the data cache.
+    const ExponentialSpringData::Pos& dataPos = getDataPos(state);
+
+    // Totals and a transform need to be done for the force.
+    ExponentialSpringData::Dyn& dataDyn = updDataDyn(state);
+    dataDyn.f_P = dataDyn.fric_P;  // The x and y components are friction.
+    dataDyn.f_P[2] = dataDyn.fz;   // The z component is the normal force.
+
+    // Transform the total force to the Ground frame
+    dataDyn.f_G = X_GP.R() * dataDyn.f_P;
+
+    // Get the Ground Body
+    const MultibodySystem& system = MultibodySystem::downcast(
+        getForceSubsystem().getSystem());
+    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+    const MobilizedBody& ground = matter.getGround();
+
+    // Apply the force to the body and to ground.
+    // TODO(fcanderson) Add a test to see that Ground registers the
+    // reaction of the force applied to the body.
+    ground.applyForceToBodyPoint(state, dataPos.p_G, -dataDyn.f_G,
+        bodyForces);
+    body.applyForceToBodyPoint(state, station, dataDyn.f_G, bodyForces);
 }
 //_____________________________________________________________________________
 // Potential Energy - calculate the potential energy stored in the spring.
@@ -643,7 +661,13 @@ realizeSubsystemAccelerationImpl(const State& state) const override {
 // TODO(fcanderson) Correct potential energy calculation when the normal
 // force is capped at its maximum.
 Real
-calcPotentialEnergy(const State& state) const override {
+calcPotentialEnergy(const State& state) const override
+{
+    //SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+    //    Stage::Dynamics,
+    //    "ExponentialSpringForce::calcForce");
+
+    // Access the data cache
     const ExponentialSpringData::Pos& dataPos = getDataPos(state);
     const ExponentialSpringData::Dyn& dataDyn = getDataDyn(state);
     // Strain energy in the normal direction (exponential spring)
@@ -670,7 +694,8 @@ calcPotentialEnergy(const State& state) const override {
 void
 resetSprZero(State& state) const {
     // Realize through to the Position Stage
-    const MultibodySystem& system = MultibodySystem::downcast(getSystem());
+    const MultibodySystem& system = MultibodySystem::downcast(
+        getForceSubsystem().getSystem());
     system.realize(state, Stage::Position);
     // Get position of the spring station in the Ground frame
     Vec3 p_G = body.findStationLocationInGround(state, station);
@@ -710,19 +735,22 @@ using namespace SimTK;
 using std::cout;
 using std::endl;
 
+
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(
+    ExponentialSpringForce, ExponentialSpringForceImpl, Force);
+
 //=============================================================================
 // Class ExponentialSpringForce
 //=============================================================================
 //_____________________________________________________________________________
 ExponentialSpringForce::
-ExponentialSpringForce(MultibodySystem& system,
+ExponentialSpringForce(GeneralForceSubsystem& forces,
     const Transform& XContactPlane,
     const MobilizedBody& body, const Vec3& station,
-    ExponentialSpringParameters params)
+    ExponentialSpringParameters params) :
+    Force(new ExponentialSpringForceImpl(XContactPlane, body, station, params))
 {
-    adoptSubsystemGuts(
-        new ExponentialSpringForceImpl(XContactPlane, body, station, params));
-    system.addForceSubsystem(*this);
+    updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 //_____________________________________________________________________________
 const Transform&
@@ -813,7 +841,8 @@ resetSpringZero(State& state) const {
 Vec3
 ExponentialSpringForce::
 getNormalForceElasticPart(const State& state, bool inGround) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Dynamics,
         "ExponentialSpringForce::getNormalForceElasticPart");
     Vec3 fzElas(0.);
     fzElas[2] = getImpl().getDataDyn(state).fzElas;
@@ -825,7 +854,8 @@ getNormalForceElasticPart(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getNormalForceDampingPart(const State& state, bool inGround) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Dynamics,
         "ExponentialSpringForce::getNormalForceDampingPart");
     Vec3 fzDamp(0.);
     fzDamp[2] = getImpl().getDataDyn(state).fzDamp;
@@ -837,7 +867,8 @@ getNormalForceDampingPart(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getNormalForce(const State& state, bool inGround) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Dynamics,
         "ExponentialSpringForce::getNormalForce");
     Vec3 fz(0.);
     fz[2] = getImpl().getDataDyn(state).fz;
@@ -848,7 +879,8 @@ getNormalForce(const State& state, bool inGround) const {
 Real
 ExponentialSpringForce::
 getMu(const State& state) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Dynamics,
         "ExponentialSpringForce::getMu");
     return getImpl().getDataDyn(state).mu;
 }
@@ -856,7 +888,8 @@ getMu(const State& state) const {
 Real
 ExponentialSpringForce::
 getFrictionForceLimit(const State& state) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Dynamics,
         "ExponentialSpringForce::getFrictionForceLimit");
     return getImpl().getDataDyn(state).fxyLimit;
 }
@@ -864,7 +897,8 @@ getFrictionForceLimit(const State& state) const {
 Vec3
 ExponentialSpringForce::
 getFrictionForceElasticPart(const State& state, bool inGround) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Dynamics,
         "ExponentialSpringForce::getFrictionForceElasticPart");
     Vec3 fricElas = getImpl().getDataDyn(state).fricElas_P;
     if(inGround) fricElas =
@@ -875,7 +909,8 @@ getFrictionForceElasticPart(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getFrictionForceDampingPart(const State& state, bool inGround) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Dynamics,
         "ExponentialSpringForce::getFrictionForceDampingPart");
     Vec3 fricDamp = getImpl().getDataDyn(state).fricDamp_P;
     if(inGround) fricDamp =
@@ -886,7 +921,8 @@ getFrictionForceDampingPart(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getFrictionForce(const State& state, bool inGround) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Dynamics,
         "ExponentialSpringForce::getFrictionForce");
     Vec3 fric = getImpl().getDataDyn(state).fric_P;
     if(inGround) fric = getContactPlaneTransform().xformFrameVecToBase(fric);
@@ -896,7 +932,8 @@ getFrictionForce(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getForce(const State& state, bool inGround) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Dynamics,
         "ExponentialSpringForce::getForce");
     Vec3 force;
     if(inGround) {
@@ -910,7 +947,8 @@ getForce(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getStationPosition(const State& state, bool inGround) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Position,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Position,
         "ExponentialSpringForce::getStationPosition");
     const ExponentialSpringData::Pos& data = getImpl().getDataPos(state);
     if(inGround) return data.p_G;
@@ -920,7 +958,8 @@ getStationPosition(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getStationVelocity(const State& state, bool inGround) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Velocity,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
+        Stage::Velocity,
         "ExponentialSpringForce::getStationVelocity");
     const ExponentialSpringData::Vel& dataVel = getImpl().getDataVel(state);
     if(inGround) return dataVel.v_G;
@@ -935,7 +974,8 @@ getStationVelocity(const State& state, bool inGround) const {
 Vec3
 ExponentialSpringForce::
 getFrictionSpringZeroPosition(const State& state, bool inGround) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Dynamics,
+    SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),\
+        Stage::Dynamics,
         "ExponentialSpringForce::getFrictionSpringZeroPosition");
     Vec3 p0 = getImpl().getSprZeroInCache(state);
     if(inGround) {
@@ -944,6 +984,9 @@ getFrictionSpringZeroPosition(const State& state, bool inGround) const {
     return p0;
 }
 
+
+
+/*
 //-----------------------------------------------------------------------------
 // Implementation Accesssors
 //-----------------------------------------------------------------------------
@@ -963,3 +1006,4 @@ ExponentialSpringForce::
 getImpl() const {
     return dynamic_cast<const ExponentialSpringForceImpl&>(getRep());
 }
+*/

@@ -20,8 +20,8 @@
  ----------------------------------------------------------------------------*/
 
 #include "SimTKmath.h"
-#include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/ExponentialSpringParameters.h"
+#include "simbody/internal/Force.h"
 
 namespace SimTK {
 
@@ -362,7 +362,7 @@ DATA
 Calculated quantities are cached when the System is realized through
 Stage::Dynamics. The cached data is made accessible via conventional "get"
 methods (see below). */
-class SimTK_SIMBODY_EXPORT ExponentialSpringForce : public ForceSubsystem {
+class SimTK_SIMBODY_EXPORT ExponentialSpringForce : public Force {
 public:
     /** Construct an exponential spring force object with customized
     parameters.
@@ -382,7 +382,7 @@ public:
     construction, if μₖ > μₛ, μₖ is set equal to μₛ.
     @param params Customized Topology-stage parameters. If params is omitted
     from the argument list, the default set of parameters is used. */
-    ExponentialSpringForce(MultibodySystem& system,
+    ExponentialSpringForce(GeneralForceSubsystem& forces,
         const Transform& contactPlane,
         const MobilizedBody& body, const Vec3& station,
         ExponentialSpringParameters params = ExponentialSpringParameters());
@@ -602,11 +602,14 @@ public:
         bool inGround=true) const;
 
 private:
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(
+        ExponentialSpringForce, ExponentialSpringForceImpl, Force);
+
     // Retrieve a writable reference to the underlying implementation.
-    ExponentialSpringForceImpl& updImpl();
+    //ExponentialSpringForceImpl& updImpl();
 
     // Retrieve a read-only reference to the underlying implementation.
-    const ExponentialSpringForceImpl& getImpl() const;
+    //const ExponentialSpringForceImpl& getImpl() const;
 };
 
 
