@@ -215,7 +215,7 @@ void
 ExponentialSpringParameters::
 setInitialMuStatic(Real mus) {
     initMus = mus;
-    // Keep initMus greter than or equal to 0.0.
+    // Keep initMus greater than or equal to 0.0.
     if(initMus < 0.0) initMus = 0.0;
     // Make sure initMuk is less than or equal to initMus
     if(initMuk > initMus) initMuk = initMus;

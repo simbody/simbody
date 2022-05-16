@@ -377,33 +377,105 @@ realizeVelocity(const State& state) const override {
     // Tangent (tangent to contact plane)
     dataVel.vxy = dataVel.v_P;    dataVel.vxy[2] = 0.0;
 }
+
+//------------------------------
+// Note that "realizeDynamics()" is replaced by "calcForce()". See below.
+//------------------------------
+
 //_____________________________________________________________________________
-// Stage::Dynamics - compute the forces and store them in the data cache.
+// Stage::Acceleration - compute and update the derivatives of continuous,
+// acceleration-dependent states.
 //
-// "params" references the configurable topology-stage parameters that govern
-// the behavior of the exponential spring. These can be changed by the user,
-// but the System must be realized at the Topology Stage after any such
-// change.
+// Two states are managed at this Stage: Sliding amd SlidingAction.
 //
-// Variables with a _P suffix are expressed in the frame of the contact plane.
+// Sliding is a continuous state (a "Z" in Simbody vocabuary), and its time
+// derivative (SlidingDot) is set here. Sliding is bound between
+// 0.0 (indicating that the body station is fixed in place or static) and
+// 1.0 (indicating that the body station is moving or kinetic).
 //
-// Variables with a _G suffix are expressed in the ground frame.
-/*
+// SlidingAction is a discrete state used to trigger when Sliding should
+// rise to 1.0 (kinetic - fully sliding) or decay to 0.0 (static - fully fixed
+// in place). Some conditions for triggering a rise or decay depend on the
+// acceleration of the body station. Thus, the need to manage these states
+// at the Acceleration Stage.
 void
-realizeDynamics(const State& state) const override {
-    // Perform the force calculations.
-    calcNormalForce(state);
-    calcFrictionForceBlended(state);
+realizeAcceleration(const State& state) const override {
+    // Parameters
+    Real kTau = 1.0 / params.getSlidingTimeConstant();
+    Real vSettle = params.getSettleVelocity();
+    Real aSettle = params.getSettleAcceleration();
 
-    // Set total force expressed in the frame of the Contact Plane.
-    ExponentialSpringData::Dyn& dataDyn = updDataDyn(state);
-    dataDyn.f_P = dataDyn.fric_P;  // The x and y components are friction.
-    dataDyn.f_P[2] = dataDyn.fz;   // The z component is the normal force.
+    // Current Sliding State
+    Real sliding = getForceSubsystem().getZ(state)[indexZ];
+    SlidingAction action = getSlidingAction(state);
 
-    // Transform the total force to the Ground frame
-    dataDyn.f_G = X_GP.R() * dataDyn.f_P;
+    // Get const references to the data caches
+    // Values were updated during previous realization stages (see above).
+    const ExponentialSpringData::Pos& dataPos = getDataPos(state);
+    const ExponentialSpringData::Vel& dataVel = getDataVel(state);
+    const ExponentialSpringData::Dyn& dataDyn = getDataDyn(state);
+
+    // Decision tree for managing SlidingDot. Two things happen:
+    // 1) Assign target to 0.0 or 1.0.
+    // 2) Assign next action to Check, Rise, or Decay.
+    // Note that the reason for the 0.05 and 0.95 thresholds are because it
+    // takes a LONG time for Sliding to decay all the way to 0.0 or rise all
+    // the way to 1.0 (i.e., much longer than tau). Checking can resume when
+    // Sliding gets reasonably close to its target.
+    Real target = 1.0;
+    if (action == SlidingAction::Check) {
+
+        // Conditions for Rise (Sliding --> 1.0)
+        // 1. limitReached = true, OR
+        // 2. fz < SimTK::SignificantReal (not "touching" contact plane)
+        if ((dataDyn.limitReached) && (sliding < 0.95)) {
+            action = SlidingAction::Rise;
+
+            // Conditions for Decay (Sliding --> 0.0)
+            // The requirement is basically static equilibrium.
+            // 1. Friction limit not reached, AND
+            // 2. |v| < vSettle  (Note: v must be small in ALL directions), AND
+            // 3. |a| < aSettle  (Note: a must be small in ALL directions)
+        }
+        else {
+            if (!dataDyn.limitReached && (dataVel.v_G.normSqr()
+                < vSettle * vSettle) && (sliding > 0.05)) {
+                // Using another tier of the conditional to avoid computing
+                // the acceleration if possible.
+                // Acceleration takes 48 flops.
+                // norm() takes 15 to 20 flops, but we'll use normSqr() which
+                // only takes a 5-flop dot product.
+                Vec3 a = body.findStationAccelerationInGround(state, station);
+                if (a.normSqr() < aSettle * aSettle) {
+                    target = 0.0;
+                    action = SlidingAction::Decay;
+                }
+            }
+        }
+
+        // If the action is still StateAction::Check, finish transitioning
+        // to the current target.
+        if ((action == SlidingAction::Check) && (sliding < 0.06))
+            target = 0.0;
+
+        // Rise
+    }
+    else if (action == SlidingAction::Rise) {
+        if (sliding >= 0.95) action = SlidingAction::Check;
+
+        // Decay
+    }
+    else if (action == SlidingAction::Decay) {
+        target = 0.0;
+        if (sliding <= 0.05) action = SlidingAction::Check;
+    }
+
+    // Update
+    updSlidingActionInCache(state, action);
+    Real slidingDot = kTau * (target - sliding);
+    updSlidingDotInCache(state, slidingDot);
 }
-*/
+
 //_____________________________________________________________________________
 // Calculate the normal force.
 // The normal is defined by the z axis of the contact plane.
@@ -522,109 +594,18 @@ calcFrictionForceBlended(const State& state) const {
     updSprZeroInCache(state, p0);
 }
 //_____________________________________________________________________________
-// Stage::Acceleration - compute and update the derivatives of continuous,
-// acceleration-dependent states.
-//
-// Two states are managed at this Stage: Sliding amd SlidingAction.
-//
-// Sliding is a continuous state (a "Z" in Simbody vocabuary), and its time
-// derivative (SlidingDot) is set here. Sliding is bound between
-// 0.0 (indicating that the body station is fixed in place or static) and
-// 1.0 (indicating that the body station is moving or kinetic).
-//
-// SlidingAction is a discrete state used to trigger when Sliding should
-// rise to 1.0 (kinetic - fully sliding) or decay to 0.0 (static - fully fixed
-// in place). Some conditions for triggering a rise or decay depend on the
-// acceleration of the body station. Thus, the need to manage these states
-// at the Acceleration Stage.
-void
-realizeAcceleration(const State& state) const override {
-    // Parameters
-    Real kTau = 1.0 / params.getSlidingTimeConstant();
-    Real vSettle = params.getSettleVelocity();
-    Real aSettle = params.getSettleAcceleration();
-
-    // Current Sliding State
-    Real sliding = getForceSubsystem().getZ(state)[indexZ];
-    SlidingAction action = getSlidingAction(state);
-
-    // Get const references to the data caches
-    // Values were updated during previous realization stages (see above).
-    const ExponentialSpringData::Pos& dataPos = getDataPos(state);
-    const ExponentialSpringData::Vel& dataVel = getDataVel(state);
-    const ExponentialSpringData::Dyn& dataDyn = getDataDyn(state);
-
-    // Decision tree for managing SlidingDot. Two things happen:
-    // 1) Assign target to 0.0 or 1.0.
-    // 2) Assign next action to Check, Rise, or Decay.
-    // Note that the reason for the 0.05 and 0.95 thresholds are because it
-    // takes a LONG time for Sliding to decay all the way to 0.0 or rise all
-    // the way to 1.0 (i.e., much longer than tau). Checking can resume when
-    // Sliding gets reasonably close to its target.
-    Real target = 1.0;
-    if(action == SlidingAction::Check) {
-
-        // Conditions for Rise (Sliding --> 1.0)
-        // 1. limitReached = true, OR
-        // 2. fz < SimTK::SignificantReal (not "touching" contact plane)
-        if((dataDyn.limitReached) && (sliding < 0.95)) {
-            action = SlidingAction::Rise;
-
-        // Conditions for Decay (Sliding --> 0.0)
-        // The requirement is basically static equilibrium.
-        // 1. Friction limit not reached, AND
-        // 2. |v| < vSettle  (Note: v must be small in ALL directions), AND
-        // 3. |a| < aSettle  (Note: a must be small in ALL directions)
-        } else {
-            if(!dataDyn.limitReached && (dataVel.v_G.normSqr()
-                < vSettle * vSettle) && (sliding > 0.05)) {
-                // Using another tier of the conditional to avoid computing
-                // the acceleration if possible.
-                // Acceleration takes 48 flops.
-                // norm() takes 15 to 20 flops, but we'll use normSqr() which
-                // only takes a 5-flop dot product.
-                Vec3 a = body.findStationAccelerationInGround(state, station);
-                if(a.normSqr() < aSettle * aSettle) {
-                    target = 0.0;
-                    action = SlidingAction::Decay;
-                }
-            }
-        }
-
-        // If the action is still StateAction::Check, finish transitioning
-        // to the current target.
-        if((action == SlidingAction::Check) && (sliding < 0.06))
-            target = 0.0;
-
-    // Rise
-    } else if(action == SlidingAction::Rise) {
-        if(sliding >= 0.95) action = SlidingAction::Check;
-
-    // Decay
-    } else if(action == SlidingAction::Decay) {
-        target = 0.0;
-        if(sliding <= 0.05) action = SlidingAction::Check;
-    }
-
-    // Update
-    updSlidingActionInCache(state, action);
-    Real slidingDot = kTau * (target - sliding);
-    updSlidingDotInCache(state, slidingDot);
-}
-//_____________________________________________________________________________
 // Force - calculate the forces and add them to the GeneralForceSubsystem.
-// In a GeneralizedForceSubsystem, calcForce() is called instead of
+//
+// Note- In a GeneralizedForceSubsystem, calcForce() is called instead of
 // realizeDynamics().
 void
 calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
     Vector_<Vec3>& particleForces, Vector& mobilityForces) const override
 {
-    // Perform the force calculations.
+    // Calculate the normal and friction forces.
+    // Results are stored in the Dyn data cache.
     calcNormalForce(state);
     calcFrictionForceBlended(state);
-
-    // Kinematic calculations have already been stored in the data cache.
-    const ExponentialSpringData::Pos& dataPos = getDataPos(state);
 
     // Totals and a transform need to be done for the force.
     ExponentialSpringData::Dyn& dataDyn = updDataDyn(state);
@@ -632,18 +613,21 @@ calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
     dataDyn.f_P[2] = dataDyn.fz;   // The z component is the normal force.
     dataDyn.f_G = X_GP.R() * dataDyn.f_P;  // Transform to Ground
 
-    // Get the Ground Body
+    // Add in the force to the body forces.
+    body.applyForceToBodyPoint(state, station, dataDyn.f_G, bodyForces);
+
+    // Add in the force to the Ground forces.
+    // TODO(fcanderson) Add a test to see that Ground registers the
+    // reaction of the force applied to the body.
     const MultibodySystem& system = MultibodySystem::downcast(
         getForceSubsystem().getSystem());
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
     const MobilizedBody& ground = matter.getGround();
-
-    // Apply the force to the body and to ground.
-    // TODO(fcanderson) Add a test to see that Ground registers the
-    // reaction of the force applied to the body.
+    // The point at which the force should be applied to Ground was
+    // stored in the data cache during the call to realizePosition().
+    const ExponentialSpringData::Pos& dataPos = getDataPos(state);
     ground.applyForceToBodyPoint(state, dataPos.p_G, -dataDyn.f_G,
         bodyForces);
-    body.applyForceToBodyPoint(state, station, dataDyn.f_G, bodyForces);
 }
 //_____________________________________________________________________________
 // Potential Energy - calculate the potential energy stored in the spring.
@@ -655,10 +639,6 @@ calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
 Real
 calcPotentialEnergy(const State& state) const override
 {
-    //SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
-    //    Stage::Dynamics,
-    //    "ExponentialSpringForce::calcForce");
-
     // Access the data cache
     const ExponentialSpringData::Pos& dataPos = getDataPos(state);
     const ExponentialSpringData::Dyn& dataDyn = getDataDyn(state);
@@ -975,27 +955,3 @@ getFrictionSpringZeroPosition(const State& state, bool inGround) const {
     }
     return p0;
 }
-
-
-
-/*
-//-----------------------------------------------------------------------------
-// Implementation Accesssors
-//-----------------------------------------------------------------------------
-//_____________________________________________________________________________
-// Get a reference to the underlying implementation that will allow changes
-// to be made to underlying member variables and states.
-ExponentialSpringForceImpl&
-ExponentialSpringForce::
-updImpl() {
-    return dynamic_cast<ExponentialSpringForceImpl&>(updRep());
-}
-//_____________________________________________________________________________
-// Get a reference to the underlying implementation that will allow
-// access, but no change, to underlying parameters and states.
-const ExponentialSpringForceImpl&
-ExponentialSpringForce::
-getImpl() const {
-    return dynamic_cast<const ExponentialSpringForceImpl&>(getRep());
-}
-*/
