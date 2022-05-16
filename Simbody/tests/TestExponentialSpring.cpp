@@ -158,7 +158,6 @@ int main() {
 
     SimTK_SUBTEST(testInitialization);
 
-    /*
     SimTK_SUBTEST(testBlockVerticalBounceNoDampNoFric);
     SimTK_SUBTEST(testBlockVerticalBounceNoDampWithFric);
     SimTK_SUBTEST(testBlockVerticalBounceWithDampNoFric);
@@ -181,7 +180,6 @@ int main() {
 
     SimTK_SUBTEST(testBlockTumbleNoDampNoFric);
     SimTK_SUBTEST(testBlockTumbleWithDampWithFric);
-    */
 
     SimTK_END_TEST();
 }
