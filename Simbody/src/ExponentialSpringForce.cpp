@@ -23,8 +23,6 @@
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/MobilizedBody_Ground.h"
 #include "simbody/internal/GeneralForceSubsystem.h"
-//#include "simbody/internal/ForceSubsystem.h"
-//#include "simbody/internal/ForceSubsystemGuts.h"
 #include "simbody/internal/ExponentialSpringForce.h"
 
 #include "ForceImpl.h"
