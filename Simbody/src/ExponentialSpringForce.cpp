@@ -619,12 +619,6 @@ void
 calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
     Vector_<Vec3>& particleForces, Vector& mobilityForces) const override
 {
-    //SimTK_STAGECHECK_GE_ALWAYS(getForceSubsystem().getStage(state),
-    //    Stage::Dynamics,
-    //    "ExponentialSpringForce::calcForce");
-    // Compute all the forces
-    //realizeDynamics(state);
-
     // Perform the force calculations.
     calcNormalForce(state);
     calcFrictionForceBlended(state);
@@ -636,9 +630,7 @@ calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
     ExponentialSpringData::Dyn& dataDyn = updDataDyn(state);
     dataDyn.f_P = dataDyn.fric_P;  // The x and y components are friction.
     dataDyn.f_P[2] = dataDyn.fz;   // The z component is the normal force.
-
-    // Transform the total force to the Ground frame
-    dataDyn.f_G = X_GP.R() * dataDyn.f_P;
+    dataDyn.f_G = X_GP.R() * dataDyn.f_P;  // Transform to Ground
 
     // Get the Ground Body
     const MultibodySystem& system = MultibodySystem::downcast(
