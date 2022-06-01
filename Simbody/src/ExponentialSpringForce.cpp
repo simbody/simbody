@@ -686,7 +686,7 @@ private:
     CacheEntryIndex indexDataVel;
     CacheEntryIndex indexDataDyn;
     //-----------------------------------------------------------------------------
-    // pass-through methods to reduce clutter in the main code.
+    // pass-through methods to reduce calls to getForceSubsystem() in main code.
     //-----------------------------------------------------------------------------
     // Z
     const Vector& getZ(const State& s) const {
