@@ -375,18 +375,13 @@ realizeVelocity(const State& state) const override {
     // Tangent (tangent to contact plane)
     dataVel.vxy = dataVel.v_P;    dataVel.vxy[2] = 0.0;
 }
-
-//------------------------------
-// Note that "realizeDynamics()" is replaced by "calcForce()". See below.
-//------------------------------
-
 //_____________________________________________________________________________
 // Stage::Acceleration - compute and update the derivatives of continuous,
 // acceleration-dependent states.
 //
 // Two states are managed at this Stage: Sliding amd SlidingAction.
 //
-// Sliding is a continuous state (a "Z" in Simbody vocabuary), and its time
+// Sliding is a continuous state (a "Z" in Simbody vocabulary), and its time
 // derivative (SlidingDot) is set here. Sliding is bound between
 // 0.0 (indicating that the body station is fixed in place or static) and
 // 1.0 (indicating that the body station is moving or kinetic).

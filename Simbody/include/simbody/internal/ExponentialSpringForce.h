@@ -464,7 +464,7 @@ public:
     @param state State object from which to retrieve Sliding. */
     Real getSliding(const State& state) const;
 
-    /** Reset the friciton spring zero (elastic anchor point) so that it
+    /** Reset the friction spring zero (elastic anchor point) so that it
     coincides with the projection of the spring station onto the contact
     plane. This step is often needed at the beginning of a simulation to
     ensure that a simulation does not begin with large friction forces.
