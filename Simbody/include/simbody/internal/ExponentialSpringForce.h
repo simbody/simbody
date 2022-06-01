@@ -602,6 +602,9 @@ public:
 private:
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(
         ExponentialSpringForce, ExponentialSpringForceImpl, Force);
+    Stage getStage(const State& state) const {
+        return getForceSubsystem().getStage(state);
+    }
 };
 
 
