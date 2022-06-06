@@ -89,7 +89,7 @@ coefficient of friction (μₖ).
 These two parameters, like the others, are used to set the force-producing
 characteristics of an ExponentialSpringForce instance at the beginning of a
 simulation when a model is put together. And, if the initial μₛ or the
-default μₖ are changed, those new values will not be realized for an
+initial μₖ are changed, those new values will not be realized for an
 ExponentialSpringForce instance until ExponentialSpringForce::setParameters()
 on the instance is called and, further, the System is re-realized to
 Stage::Topology.
@@ -152,21 +152,21 @@ public:
     Note that pz is the displacement of the body spring station above
     (pz > 0.0) or below (pz < 0.0) the contact plane. The default values of
     the shape parameters were chosen to maximize integration step size while
-    maintaining a number of constraints (e.g., the normal force must fall
+    maintaining a number of constraints (e.g., the normal force should fall
     below 0.01 Newtons when pz > 1.0 cm).
     @param d0 shifts the exponential function up and down with respect to the
     contact plane. Its default value is 0.0065905 m (~7 mm above the contact
     plane). This slight upward shift reduces penetration of the body spring
-    station below the contact plane. That is, unless there is an impact event,
-    the repulsive force applied to the body will generally be large enough to
-    keep pz from going negative. There is no issue with pz going negative
-    (nothing special happens); the shift just facilitates an interpretation of
-    the contact interaction that is conceptually appealing. d0 can be
-    positive, have a value of 0.0, or be negative.
+    station below the contact plane. That is, unless there is an extreme
+    impact event, the repulsive force applied to the body will generally be
+    large enough to keep pz from going negative. There is no issue with pz
+    going negative (nothing special happens); the shift just facilitates an
+    interpretation of the contact interaction that is conceptually appealing.
+    d0 can be positive, have a value of 0.0, or be negative.
     @param d1 linearly scales the applied force up or down. Its default
     value is 0.5336 Newtons. d1 should be positive to generate a repulsive
     force directed along the positive z-axis of the contact plane.
-    @param d2 linearly scales the exponent. Its default value is 1150.0 / m.
+    @param d2 linearly scales the exponent. Its default value is 1150.0/m.
     Larger values of d2 make the exponential curve rise more rapidly as pz
     gets small or becomes negative. d1 should be positive. */
     void setShapeParameters(Real d0, Real d1 = 0.5336, Real d2 = 1150.0);
@@ -224,7 +224,7 @@ public:
     void setFrictionElasticity(Real kxy);
 
     /** Get the elasticity of the friction spring. The value of the elasticity
-    is the default value (2000.0 N/m) or the value set by a call to either
+    is the default value (20000.0 N/m) or the value set by a call to either
     setElasticity() or setElasticityAndComputeVicosity(), whichever was called
     most recently.
     @returns Elasticity of the friction spring. */

@@ -20,8 +20,8 @@
  ----------------------------------------------------------------------------*/
 
 #include "SimTKmath.h"
-#include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/ExponentialSpringParameters.h"
+#include "simbody/internal/Force.h"
 
 namespace SimTK {
 
@@ -99,7 +99,7 @@ includes a velocity-dependent (damping) term AND a position-dependent
 and relatively large integration step sizes are maintained.
 
 In initial comparisons, using class ExponentialSpringForce to model
-contact resulted in simulation cpu times that were typically 8 times faster
+contact resulted in simulation cpu times that were typically 4 times faster
 (and sometimes 100+ times faster) than when using class
 CompliantContactSubsystem, and yet the simulated motions were similar.
 These comparisons can be reproduced by building and running the Test_Adhoc -
@@ -143,7 +143,7 @@ whose shape is a function of three parameters (d₀, d₁, and d₂):
 Note that pz is the displacement of the body station above (pz > 0.0)
 or below (pz < 0.0) the contact plane. The default values of the shape
 parameters were chosen to maximize integration step size while maintaining a
-number of constraints (e.g., the normal force must fall below 0.01 Newtons
+number of constraints (e.g., the normal force should fall below 0.01 Newtons
 when pz > 1.0 cm). The damping part of the normal force is linear in velocity
 and scaled by the elastic part:
 
@@ -208,7 +208,7 @@ and the elastic term is given by
 
         fricElasSpr = −kxy (pxy−p₀)
 
-where kxy is the spring elasticity, pxy is the position of the body
+where kxy is the friction spring elasticity, pxy is the position of the body
 station projected onto the contact plane, and p₀ is the current spring zero
 (i.e., the elastic anchor point of the friction spring). Note that p₀ always
 resides in the contact plane.
@@ -218,7 +218,7 @@ viscous terms:
 
         fricSpr = fricElasSpr + fricDampSpr
 
-If magnitude of the fricSpr exceeds the magnitude of the friction limit,
+If the magnitude of the fricSpr exceeds the magnitude of the friction limit,
 the terms are scaled down:
 
         if(|fricSpr| > fricLimit)
@@ -254,7 +254,7 @@ to be consistent with the final value of the blended elastic force
 (fricElasBlend):
 
         p₀ = pxy + fricElasBlend / kxy;
-        p₀[2] = 0.0;  // ensure that p₀ lies in the contact plane
+        p₀[2] = 0.0;  // ensures that p₀ lies in the contact plane
 
 When fricElasBlend = 0.0, notice that p₀ = pxy, p₀[2] = 0.0. In other words,
 when Sliding = 1.0, p₀ is simply the position of the body station projected
@@ -362,11 +362,13 @@ DATA
 Calculated quantities are cached when the System is realized through
 Stage::Dynamics. The cached data is made accessible via conventional "get"
 methods (see below). */
-class SimTK_SIMBODY_EXPORT ExponentialSpringForce : public ForceSubsystem {
+class SimTK_SIMBODY_EXPORT ExponentialSpringForce : public Force {
 public:
     /** Construct an exponential spring force object with customized
     parameters.
-    @param system The system being simulated or studied.
+    @param forces The general force subsystem that encapsulates many (and
+    possibly all) of the body forces, torques, and generalized forces applied
+    to the system during a simulation.
     @param contactPlane Transform specifying the location and orientation of
     the contact plane with respect to the Ground frame. The positive z-axis
     of the contact plane defines the normal direction; the x- and y-axes
@@ -377,12 +379,9 @@ public:
     will be applied. The position and velocity of this point relative to
     the contact plane determine the magnitude and direction of the contact
     force.
-    @param mus Static coefficient of friction. No upper bound. 0.0 ≤ μₛ
-    @param muk Kinetic coefficient of friction. 0.0 ≤ μₖ ≤ μₛ. During
-    construction, if μₖ > μₛ, μₖ is set equal to μₛ.
     @param params Customized Topology-stage parameters. If params is omitted
     from the argument list, the default set of parameters is used. */
-    ExponentialSpringForce(MultibodySystem& system,
+    ExponentialSpringForce(GeneralForceSubsystem& forces,
         const Transform& contactPlane,
         const MobilizedBody& body, const Vec3& station,
         ExponentialSpringParameters params = ExponentialSpringParameters());
@@ -393,8 +392,8 @@ public:
      frame and vice versa. */
     const Transform& getContactPlaneTransform() const;
 
-    /** Get the body (i.e., the MobilizedBody) for which this exponential
-    spring was instantiated. */
+    /** Get the body (i.e., the MobilizedBody) to which the resultant contact
+    force is applied and for which this exponential spring was instantiated. */
     const MobilizedBody& getBody() const;
 
     /** Get the point (body station) that interacts with the contact plane
@@ -427,8 +426,7 @@ public:
     const ExponentialSpringParameters& getParameters() const;
 
     /** Set the static coefficient of friction (μₛ) for this exponential
-    spring.
-    The value of μₛ is held in the System's State object. Unlike the
+    spring. The value of μₛ is held in the System's State object. Unlike the
     parameters managed by ExponentialSpringParameters, μₛ can be set at any
     time during a simulation. A change to μₛ will invalidate the System at
     Stage::Dynamics.
@@ -443,8 +441,7 @@ public:
     Real getMuStatic(const State& state) const;
 
     /** Set the kinetic coefficient of friction (μₖ) for this exponential
-    spring.
-    The value of μₖ is held in the System's State object. Unlike the
+    spring. The value of μₖ is held in the System's State object. Unlike the
     parameters managed by ExponentialSpringParameters, μₖ can be set at any
     time during a simulation. A change to μₖ will invalidate the System at
     Stage::Dynamics.
@@ -467,12 +464,13 @@ public:
     @param state State object from which to retrieve Sliding. */
     Real getSliding(const State& state) const;
 
-    /** Reset the spring zero so that it coincides with the projection of the
-    spring station onto the contact plane. This step is often needed at the
-    beginning of a simulation to ensure that a simulation does not begin with
-    large friction forces. After this call, the elastic portion of the
-    friction force (fxyElas) should be 0.0. Calling this method will
-    invalidate the System at Stage::Dynamics.
+    /** Reset the friction spring zero (elastic anchor point) so that it
+    coincides with the projection of the spring station onto the contact
+    plane. This step is often needed at the beginning of a simulation to
+    ensure that a simulation does not begin with large friction forces.
+    After this call, the elastic portion of the friction force (fxyElas)
+    should be 0.0. Calling this method will invalidate the System at
+    Stage::Dynamics.
     @param state State object on which to base the reset. */
     void resetSpringZero(State& state) const;
 
@@ -602,11 +600,11 @@ public:
         bool inGround=true) const;
 
 private:
-    // Retrieve a writable reference to the underlying implementation.
-    ExponentialSpringForceImpl& updImpl();
-
-    // Retrieve a read-only reference to the underlying implementation.
-    const ExponentialSpringForceImpl& getImpl() const;
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(
+        ExponentialSpringForce, ExponentialSpringForceImpl, Force);
+    Stage getStage(const State& state) const {
+        return getForceSubsystem().getStage(state);
+    }
 };
 
 

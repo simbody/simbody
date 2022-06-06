@@ -222,7 +222,7 @@ int main() {
             // Add an exponential spring at each corner of the block.
             for(i = 0; i < 8; ++i) {
                 spr[i] = unique_ptr<ExponentialSpringForce>(
-                    new ExponentialSpringForce(system, floorXForm, *blockExp,
+                    new ExponentialSpringForce(forces, floorXForm, *blockExp,
                         corner[i], params));
             }
         }
