@@ -127,6 +127,7 @@ Simbody works on Windows, Mac, and Linux. For each operating system, you can use
 5. [**FreeBSD**](#freebsd): install pre-built binaries with pkg.
 6. [**Windows using MinGW**](#windows-using-mingw): build from source using MinGW.
 7. [**Windows/Mac/Linux**](#windows-mac-and-linux-using-conda): install pre-built binaries with the Conda package manager.
+8. [**Install using vcpkg**](#installing-simbody(vcpkg)): download and install simbody using the vcpkg dependency manager
 
 If you use Linux, check [Repology](https://repology.org/project/simbody/versions) to see if your distribution provides a package for Simbody.
 
@@ -718,6 +719,19 @@ the Miniconda or Anaconda installation directory as per the standard layout for
 each of the operating systems described above. The Conda Forge Simbody recipe
 can be found in Conda Forge's [feedstock
 repository](https://github.com/conda-forge/simbody-feedstock).
+
+Installing simbody(vcpkg)
+-------------------------
+
+You can download and install simbody using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
+
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg
+    ./bootstrap-vcpkg.sh
+    ./vcpkg integrate install
+    ./vcpkg install simbody
+
+The simbody port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
 
 Acknowledgments
 ---------------
