@@ -141,16 +141,16 @@ public:
         this->params = params;
     }
 
-    //-----------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
     // Accessors
-    //-----------------------------------------------------------------------------
-    // SIMPLE
+    //-------------------------------------------------------------------------
+    // CONSTRUCTOR CHOICES THAT ARE NOT CHANGEABLE
     const Transform& getContactPlaneTransform() const { return X_GP; }
     const MobilizedBody& getBody() const { return body; }
     const Vec3& getStation() const { return station; }
 
     // TOPOLOGY PARAMETERS
-    const ExponentialSpringParameters& getParameters() const { return params; }
+    const ExponentialSpringParameters& getParameters() const {return params;}
     void setParameters(const ExponentialSpringParameters& params) {
         this->params = params;
         invalidateTopologyCache();
@@ -213,7 +213,8 @@ public:
         return Value<SlidingAction>::downcast(
             getDiscreteVarUpdateValue(state, indexSlidingAction));
     }
-    void updSlidingActionInCache(const State& state, SlidingAction action) const {
+    void updSlidingActionInCache(
+        const State& state, SlidingAction action) const {
         // Will not invalidate the State.
         Value<SlidingAction>::updDowncast(
             updDiscreteVarUpdateValue(state, indexSlidingAction)) = action;
@@ -253,7 +254,8 @@ public:
         Real muk = getMuKinetic(state);
         if (muk > mus) {
             muk = mus;
-            Value<Real>::updDowncast(updDiscreteVariable(state, indexMuk)) = muk;
+            Value<Real>::updDowncast(updDiscreteVariable(state, indexMuk))
+                = muk;
         }
     }
 
@@ -269,23 +271,24 @@ public:
         // Make sure mus is greater than or equal to muk
         Real mus = getMuStatic(state);
         if (muk > mus) {
-            Value<Real>::updDowncast(updDiscreteVariable(state, indexMus)) = muk;
+            Value<Real>::updDowncast(updDiscreteVariable(state, indexMus))
+                = muk;
         }
     }
 
-    //-----------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
     // ForceImpl Methods (overrides of virtual methods)
-    //-----------------------------------------------------------------------------
-    //_____________________________________________________________________________
+    //-------------------------------------------------------------------------
+    //_________________________________________________________________________
     // Clone
     ForceImpl*
-        clone() const override {
+    clone() const override {
         return new ExponentialSpringForceImpl(X_GP, body, station, params);
     }
-    //_____________________________________________________________________________
+    //_________________________________________________________________________
     // Topology - allocate state variables and the data cache.
     void
-        realizeTopology(State& state) const override {
+    realizeTopology(State& state) const override {
         // Create a mutableThis
         ExponentialSpringForceImpl* mutableThis =
             const_cast<ExponentialSpringForceImpl*>(this);
@@ -308,8 +311,10 @@ public:
 
         // SlidingAction
         mutableThis->indexSlidingAction =
-            fsub.allocateAutoUpdateDiscreteVariable(state, Stage::Acceleration,
-                new Value<SlidingAction>(defaultSlidingAction), Stage::Dynamics);
+            fsub.allocateAutoUpdateDiscreteVariable(state,
+                Stage::Acceleration,
+                new Value<SlidingAction>(defaultSlidingAction),
+                Stage::Dynamics);
         mutableThis->indexSlidingActionInCache =
             fsub.getDiscreteVarUpdateIndex(state, indexSlidingAction);
 
@@ -325,15 +330,15 @@ public:
         mutableThis->indexDataDyn = fsub.allocateCacheEntry(state,
             Stage::Dynamics, new Value<ExponentialSpringData::Dyn>());
     }
-    //_____________________________________________________________________________
+    //_________________________________________________________________________
     // Stage::Position - compute the positions needed by this Force and store
     // them in the data cache.
     //
-    // Variables with a _P suffix are expressed in the frame of the contact plane.
+    // Variables with a _P suffix are expressed in the contact plane frame.
     //
     // Variables with a _G suffix are expressed in the ground frame.
     void
-        realizePosition(const State& state) const override {
+    realizePosition(const State& state) const override {
         // Retrieve a writable reference to the data cache entry.
         ExponentialSpringData::Pos& dataPos = updDataPos(state);
         // Get the position of the body station in Ground
@@ -346,15 +351,15 @@ public:
         // Tangent (tangent to contact plane)
         dataPos.pxy = dataPos.p_P;    dataPos.pxy[2] = 0.0;
     }
-    //_____________________________________________________________________________
+    //_________________________________________________________________________
     // Stage::Velocity - compute the velocities needed by this Force and store
     // them in the data cache.
     //
-    // Variables with a _P suffix are expressed in the frame of the contact plane.
+    // Variables with a _P suffix are expressed in the contact plane frame.
     //
     // Variables with a _G suffix are expressed in the ground frame.
     void
-        realizeVelocity(const State& state) const override {
+    realizeVelocity(const State& state) const override {
         // Retrieve a writable reference to the data cache entry.
         ExponentialSpringData::Vel& dataVel = updDataVel(state);
         // Get the velocity of the spring station in Ground
@@ -367,24 +372,24 @@ public:
         // Tangent (tangent to contact plane)
         dataVel.vxy = dataVel.v_P;    dataVel.vxy[2] = 0.0;
     }
-    //_____________________________________________________________________________
+    //_________________________________________________________________________
     // Stage::Acceleration - compute and update the derivatives of continuous,
     // acceleration-dependent states.
     //
     // Two states are managed at this Stage: Sliding amd SlidingAction.
     //
-    // Sliding is a continuous state (a "Z" in Simbody vocabulary), and its time
-    // derivative (SlidingDot) is set here. Sliding is bound between
+    // Sliding is a continuous state (a "Z" in Simbody vocabulary), and its
+    // time derivative (SlidingDot) is set here. Sliding is bound between
     // 0.0 (indicating that the body station is fixed in place or static) and
     // 1.0 (indicating that the body station is moving or kinetic).
     //
     // SlidingAction is a discrete state used to trigger when Sliding should
-    // rise to 1.0 (kinetic - fully sliding) or decay to 0.0 (static - fully fixed
-    // in place). Some conditions for triggering a rise or decay depend on the
-    // acceleration of the body station. Thus, the need to manage these states
-    // at the Acceleration Stage.
+    // rise to 1.0 (kinetic - fully sliding) or decay to 0.0 (static - fully
+    // fixed in place). Some conditions for triggering a rise or decay depend
+    // on the acceleration of the body station. Thus, the need to manage these
+    // states at the Acceleration Stage.
     void
-        realizeAcceleration(const State& state) const override {
+    realizeAcceleration(const State& state) const override {
         // Parameters
         Real kTau = 1.0 / params.getSlidingTimeConstant();
         Real vSettle = params.getSettleVelocity();
@@ -403,10 +408,10 @@ public:
         // Decision tree for managing SlidingDot. Two things happen:
         // 1) Assign target to 0.0 or 1.0.
         // 2) Assign next action to Check, Rise, or Decay.
-        // Note that the reason for the 0.05 and 0.95 thresholds are because it
-        // takes a LONG time for Sliding to decay all the way to 0.0 or rise all
-        // the way to 1.0 (i.e., much longer than tau). Checking can resume when
-        // Sliding gets reasonably close to its target.
+        // Note that the reason for the 0.05 and 0.95 thresholds are because
+        // it takes a LONG time for Sliding to decay all the way to 0.0 or
+        // rise all the way to 1.0 (i.e., much longer than tau). Checking can
+        // resume when Sliding gets reasonably close to its target.
         Real target = 1.0;
         if (action == SlidingAction::Check) {
 
@@ -416,21 +421,21 @@ public:
             if ((dataDyn.limitReached) && (sliding < 0.95)) {
                 action = SlidingAction::Rise;
 
-                // Conditions for Decay (Sliding --> 0.0)
-                // The requirement is basically static equilibrium.
-                // 1. Friction limit not reached, AND
-                // 2. |v| < vSettle  (Note: v must be small in ALL directions), AND
-                // 3. |a| < aSettle  (Note: a must be small in ALL directions)
-            }
-            else {
+            // Conditions for Decay (Sliding --> 0.0)
+            // The requirement is basically static equilibrium.
+            // 1. Friction limit not reached, AND
+            // 2. |v| < vSettle (Note: v must be small in ALL directions), AND
+            // 3. |a| < aSettle (Note: a must be small in ALL directions)
+            } else {
                 if (!dataDyn.limitReached && (dataVel.v_G.normSqr()
                     < vSettle * vSettle) && (sliding > 0.05)) {
-                    // Using another tier of the conditional to avoid computing
-                    // the acceleration if possible.
+                    // Using another tier of the conditional to avoid
+                    // computing the acceleration if possible.
                     // Acceleration takes 48 flops.
-                    // norm() takes 15 to 20 flops, but we'll use normSqr() which
-                    // only takes a 5-flop dot product.
-                    Vec3 a = body.findStationAccelerationInGround(state, station);
+                    // norm() takes 15 to 20 flops, but we'll use normSqr()
+                    // which only takes a 5-flop dot product.
+                    Vec3 a =
+                        body.findStationAccelerationInGround(state, station);
                     if (a.normSqr() < aSettle * aSettle) {
                         target = 0.0;
                         action = SlidingAction::Decay;
@@ -443,14 +448,12 @@ public:
             if ((action == SlidingAction::Check) && (sliding < 0.06))
                 target = 0.0;
 
-            // Rise
-        }
-        else if (action == SlidingAction::Rise) {
+        // Rise
+        } else if (action == SlidingAction::Rise) {
             if (sliding >= 0.95) action = SlidingAction::Check;
 
-            // Decay
-        }
-        else if (action == SlidingAction::Decay) {
+        // Decay
+        } else if (action == SlidingAction::Decay) {
             target = 0.0;
             if (sliding <= 0.05) action = SlidingAction::Check;
         }
@@ -461,12 +464,12 @@ public:
         updSlidingDotInCache(state, slidingDot);
     }
 
-    //_____________________________________________________________________________
+    //_________________________________________________________________________
     // Calculate the normal force.
     // The normal is defined by the z axis of the contact plane.
     // Key quantities are saved in the data cache.
     void
-        calcNormalForce(const State& state) const {
+    calcNormalForce(const State& state) const {
         // Retrieve references to data cache entries.
         const ExponentialSpringData::Pos& dataPos = getDataPos(state);
         const ExponentialSpringData::Vel& dataVel = getDataVel(state);
@@ -475,7 +478,6 @@ public:
         Real d0, d1, d2;
         params.getShapeParameters(d0, d1, d2);
         Real kvNorm = params.getNormalViscosity();
-        // Normal Force (perpendicular to contact plane) -------------------------
         // Elastic Part
         dataDyn.fzElas = d1 * std::exp(-d2 * (dataPos.pz - d0));
         // Damping Part
@@ -483,9 +485,9 @@ public:
         // Total
         dataDyn.fz = dataDyn.fzElas + dataDyn.fzDamp;
         // Don't allow the normal force to be negative or too large.
-        // The upper limit can be justified as a crude model of material yielding.
-        // Note that conservation of energy may fail if the material actually
-        // yields.
+        // The upper limit can be justified as a crude model of material
+        // yielding. Note that conservation of energy may fail if the material
+        // actually yields.
         // The lower limit just means that the contact plane will not pull the
         // MoblizedBody down.
         // Make sure that any change in fz is accompanied by an adjustment
@@ -499,12 +501,12 @@ public:
             dataDyn.fzElas = dataDyn.fz - dataDyn.fzDamp;
         }
     }
-    //_____________________________________________________________________________
+    //_________________________________________________________________________
     // Calculate the friction force using the Blended Option.
     // The friction plane is defined by the x and y axes of the contact plane.
     // Key quantities are saved in the data cache.
     void
-        calcFrictionForceBlended(const State& state) const {
+    calcFrictionForceBlended(const State& state) const {
         // Retrieve references to data cache entries.
         const ExponentialSpringData::Pos& dataPos = getDataPos(state);
         const ExponentialSpringData::Vel& dataVel = getDataVel(state);
@@ -537,13 +539,12 @@ public:
             p0 = dataPos.pxy;
             dataDyn.limitReached = true;
 
-            // Friction limit is large enough for meaningful calculations.
-        }
-        else {
+        // Friction limit is large enough for meaningful calculations.
+        } else {
             // Model 1: Pure Damping (when Sliding = 1.0)
             // Friction is the result purely of damping (no elastic term).
-            // If damping force is greater than data.fxyLimit, the damping force
-            // is capped at data.fxyLimit.
+            // If damping force is greater than data.fxyLimit, the damping
+            // force is capped at data.fxyLimit.
             dataDyn.fricDampMod1_P = dataDyn.fricDampMod2_P =
                 -kvFric * dataVel.vxy;
             if (dataDyn.fricDampMod1_P.normSqr() > square(dataDyn.fxyLimit)) {
@@ -552,11 +553,12 @@ public:
                 dataDyn.limitReached = true;
             }
             // Model 2: Damped Linear Spring (when Sliding = 0.0)
-            // The elastic component prevents drift while maintaining reasonable
-            // integrator step sizes, at least when compared to just increasing
-            // the damping coefficient.
+            // The elastic component prevents drift while maintaining
+            // reasonable integrator step sizes, at least when compared to
+            // just increasing the damping coefficient.
             dataDyn.fricElasMod2_P = -kpFric * (dataPos.pxy - p0);
-            dataDyn.fricMod2_P = dataDyn.fricElasMod2_P + dataDyn.fricDampMod2_P;
+            dataDyn.fricMod2_P = dataDyn.fricElasMod2_P +
+                dataDyn.fricDampMod2_P;
             Real fxyMod2 = dataDyn.fricMod2_P.norm();
             if (fxyMod2 > dataDyn.fxyLimit) {
                 Real scale = dataDyn.fxyLimit / fxyMod2;
@@ -579,15 +581,16 @@ public:
         // Update the spring zero in the data cache
         updSprZeroInCache(state, p0);
     }
-    //_____________________________________________________________________________
+    //_________________________________________________________________________
     // Force - calculate the forces and add them to the GeneralForceSubsystem.
     //
     // Note- In a GeneralizedForceSubsystem, calcForce() is called instead of
     // realizeDynamics().
     void
-        calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
-            Vector_<Vec3>& particleForces, Vector& mobilityForces) const override
-    {
+    calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+        Vector_<Vec3>& particleForces,
+        Vector& mobilityForces) const override {
+
         // Calculate the normal and friction forces.
         // Results are stored in the Dyn data cache.
         calcNormalForce(state);
@@ -615,7 +618,7 @@ public:
         ground.applyForceToBodyPoint(state, dataPos.p_G, -dataDyn.f_G,
             bodyForces);
     }
-    //_____________________________________________________________________________
+    //_________________________________________________________________________
     // Potential Energy - calculate the potential energy stored in the spring.
     // The System should be realized through Stage::Dynamics before a call to
     // this method is made.
@@ -623,8 +626,7 @@ public:
     // TODO(fcanderson) Correct potential energy calculation when the normal
     // force is capped at its maximum.
     Real
-        calcPotentialEnergy(const State& state) const override
-    {
+    calcPotentialEnergy(const State& state) const override {
         // Access the data cache
         const ExponentialSpringData::Pos& dataPos = getDataPos(state);
         const ExponentialSpringData::Dyn& dataDyn = getDataDyn(state);
@@ -644,13 +646,13 @@ public:
         return energy;
     }
 
-    //-----------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
     // Utility and Static Methods
-    //-----------------------------------------------------------------------------
-    //_____________________________________________________________________________
+    //-------------------------------------------------------------------------
+    //_________________________________________________________________________
     // Project the body spring station onto the contact plane.
     void
-        resetSprZero(State& state) const {
+    resetSprZero(State& state) const {
         // Realize through to the Position Stage
         const MultibodySystem& system = MultibodySystem::downcast(
             getForceSubsystem().getSystem());
@@ -665,9 +667,9 @@ public:
         updSprZero(state) = p_P;
     }
 private:
-    //-----------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
     // data members
-    //-----------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
     ExponentialSpringParameters params;
     Transform X_GP;
     const MobilizedBody& body;
@@ -685,9 +687,10 @@ private:
     CacheEntryIndex indexDataPos;
     CacheEntryIndex indexDataVel;
     CacheEntryIndex indexDataDyn;
-    //-----------------------------------------------------------------------------
-    // pass-through methods to reduce calls to getForceSubsystem() in main code.
-    //-----------------------------------------------------------------------------
+
+    //-------------------------------------------------------------------------
+    // pass-through methods to reduce calls to getForceSubsystem().
+    //-------------------------------------------------------------------------
     // Z
     const Vector& getZ(const State& s) const {
         return getForceSubsystem().getZ(s);
@@ -695,6 +698,7 @@ private:
     Vector& updZ(State& s) const {
         return getForceSubsystem().updZ(s);
     }
+
     // ZDot
     const Vector& getZDot(const State& s) const {
         return getForceSubsystem().getZDot(s);
@@ -702,7 +706,8 @@ private:
     Vector& updZDot(const State& s) const {
         return getForceSubsystem().updZDot(s);
     }
-    // Discrete Variable
+
+    // DiscreteVariable
     const AbstractValue& getDiscreteVariable(
         const State& s, DiscreteVariableIndex i) const {
         return getForceSubsystem().getDiscreteVariable(s, i);
@@ -711,7 +716,8 @@ private:
         State& s, DiscreteVariableIndex i) const {
         return getForceSubsystem().updDiscreteVariable(s, i);
     }
-    // Discrete Variable Update Value
+
+    // DiscreteVarUpdateValue
     const AbstractValue& getDiscreteVarUpdateValue(
         const State& s, DiscreteVariableIndex i) const {
         return getForceSubsystem().getDiscreteVarUpdateValue(s, i);
@@ -724,13 +730,13 @@ private:
         const State& s, DiscreteVariableIndex i) const {
         getForceSubsystem().markDiscreteVarUpdateValueRealized(s, i);
     }
-    // Cache Entry
+
+    // CacheEntry
     const AbstractValue& getCacheEntry(
         const State& s, CacheEntryIndex i) const {
         return getForceSubsystem().getCacheEntry(s, i);
     }
-    AbstractValue& updCacheEntry(
-        const State& s, CacheEntryIndex i) const {
+    AbstractValue& updCacheEntry(const State& s, CacheEntryIndex i) const {
         return getForceSubsystem().updCacheEntry(s, i);
     }
 
@@ -822,6 +828,7 @@ ExponentialSpringForce::
 getMuKinetic(const State& state) const {
     return getImpl().getMuKinetic(state);
 }
+
 //_____________________________________________________________________________
 void
 ExponentialSpringForce::
@@ -834,6 +841,7 @@ ExponentialSpringForce::
 getSliding(const State& state) const {
     return getImpl().getSliding(state);
 }
+
 //_____________________________________________________________________________
 void
 ExponentialSpringForce::
