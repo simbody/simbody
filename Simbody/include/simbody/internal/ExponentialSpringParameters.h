@@ -48,7 +48,7 @@ of that object. For example,
 
 4) Realize the system to Stage::Topology. When a new set of parameters is
 set on an ExponentialSpringForce instance, as above in step 3, the System will
-be invalidated at Stage::Topology.  The System must therefore be realized at
+be invalidated at Stage::Topology. The System must therefore be realized at
 Stage::Topology (and hence Stage::Model) before a simulation can proceed.
 
         system.realizeTopology();
@@ -239,7 +239,7 @@ public:
     of the body will still be dissipated because the frictional force is
     directed opposite the sliding velocity, and the elastic part of the
     friction spring will not store additional potential energy because the
-    friction spring zero (p₀) is continually released. The only way to
+    elastic anchor point (p₀) is continually released. The only way to
     eliminate energy dissipation entirely is to also set the coefficients of
     friction equal to 0.0.
     @param cxy Viscosity of the friction spring. Its default value is
@@ -254,19 +254,6 @@ public:
     @returns Viscosity of the friction spring. */
     Real getFrictionViscosity() const;
 
-    /** Set the time constant for transitioning back and forth between the
-    static (μₛ) and kinetic (μₖ) coefficients of friction. The transition is
-    mediated by a rising or decaying exponential that is asymptotic to μₛ or
-    μₖ, respectively.
-    @param tau Time constant (τ) for sliding transitions. The default value of
-    τ is 0.01 s. τ must be positive. */
-    void setSlidingTimeConstant(Real tau);
-
-    /** Get the time constant for transitioning back and forth between the
-    static (μₛ) and kinetic (μₖ) coefficients of friction.
-    @returns Time constant for sliding transitions. */
-    Real getSlidingTimeConstant() const;
-
     /** Set the velocity below which the coefficient of friction transitions
     to the static coefficient of friction (μₛ).
     @param vSettle Settle velocity. It's default value is 0.01 m/s. vSettle
@@ -277,17 +264,6 @@ public:
     transitions to the static coefficient of friction.
     @returns Settle velocity */
     Real getSettleVelocity() const;
-
-    /** Set the acceleration magnitude below which the coefficient of friction
-    transitions to the static coefficient of friction (μₛ).
-    @param aSettle Settle acceleration. It's default value is 1.0 m/s².
-    aSettle must be positive.*/
-    void setSettleAcceleration(Real aSettle);
-
-    /** Get the acceleration magnitude below which the coefficient of friction
-    transitions to the static coefficient of friction.
-    @returns Settle acceleration. */
-    Real getSettleAcceleration() const;
 
     /** Set the initial value of the static coefficient of friction (μₛ).
     Note- use ExponentialSpringForce::setMuStatic(), not this method, to set
@@ -319,9 +295,7 @@ private:
     Real maxFz;
     Real kxy;
     Real cxy;
-    Real tau;
     Real vSettle;
-    Real aSettle;
     Real initMus;
     Real initMuk;
 };

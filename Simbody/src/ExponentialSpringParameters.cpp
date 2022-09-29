@@ -34,10 +34,8 @@ using std::endl;
 ExponentialSpringParameters::
 ExponentialSpringParameters() :
     d0(0.0065905), d1(0.5336), d2(1150.0), cz(0.5), maxFz(100000.0),
-    kxy(20000.0), cxy(0.0),
-    tau(0.01), vSettle(0.01), aSettle(1.0),
-    initMus(0.7), initMuk(0.5) {
-
+    kxy(20000.0), cxy(0.0), vSettle(0.01), initMus(0.7), initMuk(0.5)
+{
     setElasticityAndViscosityForCriticalDamping(kxy);
 }
 //_____________________________________________________________________________
@@ -48,8 +46,7 @@ operator==(const ExponentialSpringParameters& other) const {
     return ((d0 == other.d0) && (d1 == other.d1) && (d2 == other.d2) &&
         (cz == other.cz) && (maxFz == other.maxFz) &&
         (kxy == other.kxy) && (cxy == other.cxy) &&
-        (tau == other.tau) &&
-        (vSettle == other.vSettle) && (aSettle == other.aSettle) &&
+        (vSettle == other.vSettle) &&
         (initMus == other.initMus) && (initMuk == other.initMuk));
 }
 //_____________________________________________________________________________
@@ -165,22 +162,6 @@ getFrictionViscosity() const {
 //_____________________________________________________________________________
 void
 ExponentialSpringParameters::
-setSlidingTimeConstant(Real tau) {
-    SimTK_APIARGCHECK1_ALWAYS(tau > 0.0,
-        "ExponentialSpringParameters",
-        "setSlidingTimeConstant",
-        "expected tau > 0.0, but tau = %lf", tau);
-    this->tau = tau;
-}
-//_____________________________________________________________________________
-Real
-ExponentialSpringParameters::
-getSlidingTimeConstant() const {
-    return tau;
-}
-//_____________________________________________________________________________
-void
-ExponentialSpringParameters::
 setSettleVelocity(Real vSettle) {
     SimTK_APIARGCHECK1_ALWAYS(vSettle > 0.0,
         "ExponentialSpringParameters",
@@ -193,22 +174,6 @@ Real
 ExponentialSpringParameters::
 getSettleVelocity() const {
     return vSettle;
-}
-//_____________________________________________________________________________
-void
-ExponentialSpringParameters::
-setSettleAcceleration(Real aSettle) {
-    SimTK_APIARGCHECK1_ALWAYS(aSettle > 0.0,
-        "ExponentialSpringParameters",
-        "setSettleAcceleration",
-        "expected aSettle > 0.0, but aSettle = %lf", aSettle);
-    this->aSettle = aSettle;
-}
-//_____________________________________________________________________________
-Real
-ExponentialSpringParameters::
-getSettleAcceleration() const {
-    return aSettle;
 }
 //_____________________________________________________________________________
 void

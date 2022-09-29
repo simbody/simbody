@@ -91,9 +91,8 @@ public:
         system.realize(state, Stage::Dynamics);
         // Everything is in the frame of the contact plane.
         Vec3 f = spr.getForce(state,false);
-        Vec3 p0 = spr.getFrictionSpringZeroPosition(state,false);
+        Vec3 p0 = spr.getAnchorPointPosition(state,false);
         Vec3 station = spr.getStationPosition(state,false);
-        Real sliding = spr.getSliding(state);
         Real mu = spr.getMu(state);
         Vec3 fric = f; fric[2] = 0.0;
         Real ratio = fric.norm() / f[2];
@@ -123,7 +122,7 @@ int main() {
         bool VisOn = true;
 
         // Specify initial conditions.
-        int condition = 5;
+        int condition = 4;
         // 0 = sitting still
         // 1 = dropped
         // 2 = sliding
@@ -154,12 +153,23 @@ int main() {
 
         // Add a 6 dof mass that uses the Compliant Contact system.
         // Some constants
+        // Note that computational expense rises dramatically as
+        // the transition velocity (vTransition) gets small. Roughly,
+        // for each decrease in vTransition by a factor of 10, the expense
+        // increases by a factor of 10.
+        // Note also that vTransition is effectively the drift velocity
+        // between contacting masses. That is, even in static conditions
+        // where one mass should not slide relative to the other, with the
+        // CompliantContactSubsystem, if the tangential net force is not
+        // zero, the two masses will slide relative to each other at a
+        // drift velocity of vTransition.
         const Vec3 hdim(hs, hs, hs);
         const Real mu_s = 0.7; // static coefficient of friction
         const Real mu_k = 0.5; // kinetic (or dynamic) coefficient of friction
-        const Real fDis = .55; // to turn off dissipation
-        const Real fVis = 0.0; // to turn off viscous friction
+        const Real fDis = .55; // to turn off dissipation, make 0.0.
+        const Real fVis = 0.0; // to turn off viscous friction, make 0.0
         const Real fK = .5 * 1e6; // pascals
+        const Real vTransition = 0.001; // in m/s
         const Rotation R_xdown(-Pi / 2, ZAxis);
         matter.Ground().updBody().addDecoration(
             Transform(Vec3(0, -0.5, 0)),
@@ -175,7 +185,7 @@ int main() {
                 unique_ptr<CompliantContactSubsystem>(
                     new CompliantContactSubsystem(system, *tracker));
             contactForces->setTrackDissipatedEnergy(true);
-            contactForces->setTransitionVelocity(1.0e-3);
+            contactForces->setTransitionVelocity(vTransition);
             // Ground
             matter.Ground().updBody().addContactSurface(
                 Transform(R_xdown, Vec3(0, 0, 0)),
@@ -219,6 +229,7 @@ int main() {
             params.setElasticityAndViscosityForCriticalDamping(20000.0);
             params.setInitialMuStatic(mu_s);
             params.setInitialMuKinetic(mu_k);
+            params.setSettleVelocity(0.01);
             // Add an exponential spring at each corner of the block.
             for(i = 0; i < 8; ++i) {
                 spr[i] = unique_ptr<ExponentialSpringForce>(
@@ -276,7 +287,7 @@ int main() {
             if (condition == 2) {
                 blockCmp->setQToFitRotation(state, R);
                 blockCmp->setQToFitTranslation(state, Vec3(-0.5, 0.1, 0.0));
-                blockCmp->setU(state, Vec6(0, 0, 0, 4.0, 0, 0));
+                blockCmp->setU(state, Vec6(0, 0, 0, 8.0, 0, 0));
                 blockCmp->setUToFitAngularVelocity(state, Vec3(0.0, 0.0, 0.0));
             }
             // Spinning flat
@@ -284,13 +295,13 @@ int main() {
                 blockCmp->setQToFitRotation(state, R);
                 blockCmp->setQToFitTranslation(state, Vec3(-0.5, 0.1, 0.0));
                 blockCmp->setU(state, Vec6(0, 0, 0, 0.0, 0, 0));
-                blockCmp->setUToFitAngularVelocity(state, Vec3(0.0, 8.0, 0.0));
+                blockCmp->setUToFitAngularVelocity(state, Vec3(0.0, 16.0, 0.0));
             }
             // Spinning and Sliding
             if (condition == 4) {
                 blockCmp->setQToFitRotation(state, R);
                 blockCmp->setQToFitTranslation(state, Vec3(-0.5, 0.1, 0.0));
-                blockCmp->setU(state, Vec6(0, 0, 0, 2.0, 0, 0));
+                blockCmp->setU(state, Vec6(0, 0, 0, 3.0, 0, 0));
                 blockCmp->setUToFitAngularVelocity(state, Vec3(0.0,12.0,0.0));
             }
             // Spinning top
@@ -322,8 +333,6 @@ int main() {
             for(i = 0; i < 8; ++i) {
                 spr[i]->setMuStatic(state, mus);
                 spr[i]->setMuKinetic(state, muk);
-                if((condition == 0) || (condition == 7))
-                    spr[i]->setSliding(state, 0.0);
             }
             // Sitting Still or Non-Vertical Force
             if ((condition == 0) || (condition > 6)) {
@@ -343,7 +352,7 @@ int main() {
             if (condition == 2) {
                 blockExp->setQToFitRotation(state, R);
                 blockExp->setQToFitTranslation(state, Vec3(-0.5, 0.1, 0.5));
-                blockExp->setU(state, Vec6(0, 0, 0, 4.0, 0, 0));
+                blockExp->setU(state, Vec6(0, 0, 0, 8.0, 0, 0));
                 blockExp->setUToFitAngularVelocity(state, Vec3(0.0, 0.0, 0.0));
             }
             // Spinning
@@ -351,13 +360,13 @@ int main() {
                 blockExp->setQToFitRotation(state, R);
                 blockExp->setQToFitTranslation(state, Vec3(0.5, 0.1, 0.0));
                 blockExp->setU(state, Vec6(0, 0, 0, 0.0, 0, 0));
-                blockExp->setUToFitAngularVelocity(state, Vec3(0.0, 8.0, 0.0));
+                blockExp->setUToFitAngularVelocity(state, Vec3(0.0, 16.0, 0.0));
             }
             // Spinning and Sliding
             if (condition == 4) {
                 blockExp->setQToFitRotation(state, R);
                 blockExp->setQToFitTranslation(state, Vec3(0.5, 0.1, 0.0));
-                blockExp->setU(state, Vec6(0, 0, 0, 2.0, 0, 0));
+                blockExp->setU(state, Vec6(0, 0, 0, 3.0, 0, 0));
                 blockExp->setUToFitAngularVelocity(state, Vec3(0.0,12.0,0.0));
             }
             // Spinning top
@@ -379,7 +388,7 @@ int main() {
             // Reset the spring zeros
             // The spring zeros are set to the point on the Floor that
             // coincices with the Station that was specified on the Body.
-            for(i = 0; i < 8; ++i) spr[i]->resetSpringZero(state);
+            for(i = 0; i < 8; ++i) spr[i]->resetAnchorPoint(state);
         }
 
         // Run Menu and storage for Replay
@@ -397,12 +406,12 @@ int main() {
         // Simulate it.
         RungeKuttaMersonIntegrator integ(system);
         integ.setAccuracy(1.0e-5);
-        integ.setMaximumStepSize(0.05);
+        integ.setMaximumStepSize(0.03);
         TimeStepper ts(system, integ);
         ts.initialize(state);
         double cpuStart = cpuTime();
         double realStart = realTime();
-        ts.stepTo(10.0);
+        ts.stepTo(12.0);
         double cpuDuration = cpuTime() - cpuStart;
         double realDuration = realTime() - realStart;
         // Report integrator performance
