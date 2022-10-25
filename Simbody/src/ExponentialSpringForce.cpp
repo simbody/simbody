@@ -65,21 +65,24 @@ struct ExponentialSpringData {
     struct Vel {
         // Velocity of the body station in the ground frame.
         Vec3 v_G{NaN};
-        // Velocity of the body station in the frame of the contact plane.
+        // Velocity of the body station in the contact plane frame.
         Vec3 v_P{NaN};
         // Velocity of the body station normal to the contact plane expressed
-        // in the frame of the contact plane.
+        // in the contact plane frame.
         Real vz{NaN};
         // Velocity of the body station in the contact plane expressed in
-        // the frame of the contact plane.
+        // the contact plane frame.
         Vec3 vxy{NaN};
     };
     struct Dyn {
+        // Note that variables fzElas, fzDamp, and fz below are scalars.
+        // They are normal components of the contact force when the contact
+        // force is expressed in the frame of the contact plane.
         // Elastic force in the normal direction.
         Real fzElas{NaN};
         // Damping force in the normal direction.
         Real fzDamp{NaN};
-        // Total normal force expressed in the frame of the contact plane.
+        // Total normal force.
         Real fz{NaN};
         // Instantaneous coefficient of friction.
         Real mu{NaN};
@@ -122,10 +125,10 @@ class ExponentialSpringForceImpl : public ForceImpl {
 public:
 
     // Constructor
-    ExponentialSpringForceImpl(const Transform& XContactPlane,
-        const MobilizedBody& body, const Vec3& station,
+    ExponentialSpringForceImpl(const Transform& X_GP,
+        const MobilizedBody& body_B, const Vec3& station_B,
         const ExponentialSpringParameters& params) :
-        X_GP(XContactPlane), body(body), station(station),
+        X_GP(X_GP), body_B(body_B), station_B(station_B),
         defaultAnchorPoint(Vec3(0., 0., 0.)), defaultSliding(1.0)
     {
         this->params = params;
@@ -136,8 +139,8 @@ public:
     //-------------------------------------------------------------------------
     // CONSTRUCTOR CHOICES THAT ARE NOT CHANGEABLE
     const Transform& getContactPlaneTransform() const { return X_GP; }
-    const MobilizedBody& getBody() const { return body; }
-    const Vec3& getStation() const { return station; }
+    const MobilizedBody& getBody() const { return body_B; }
+    const Vec3& getStation() const { return station_B; }
 
     // TOPOLOGY PARAMETERS
     const ExponentialSpringParameters& getParameters() const {return params;}
@@ -257,7 +260,7 @@ public:
     // Clone
     ForceImpl*
     clone() const override {
-        return new ExponentialSpringForceImpl(X_GP, body, station, params);
+        return new ExponentialSpringForceImpl(X_GP, body_B, station_B, params);
     }
     //_________________________________________________________________________
     // Topology - allocate state variables and the data cache.
@@ -310,7 +313,7 @@ public:
         // Retrieve a writable reference to the data cache entry.
         ExponentialSpringData::Pos& dataPos = updDataPos(state);
         // Get the position of the body station in Ground
-        dataPos.p_G = body.findStationLocationInGround(state, station);
+        dataPos.p_G = body_B.findStationLocationInGround(state, station_B);
         // Transform the position into the contact plane frame.
         dataPos.p_P = ~X_GP * dataPos.p_G;
         // Resolve into normal (z) and tangential parts (xy plane)
@@ -331,7 +334,7 @@ public:
         // Retrieve a writable reference to the data cache entry.
         ExponentialSpringData::Vel& dataVel = updDataVel(state);
         // Get the velocity of the spring station in Ground
-        dataVel.v_G = body.findStationVelocityInGround(state, station);
+        dataVel.v_G = body_B.findStationVelocityInGround(state, station_B);
         // Transform the velocity into the contact plane frame.
         dataVel.v_P = ~X_GP.R() * dataVel.v_G;
         // Resolve into normal (z) and tangential parts (xy plane)
@@ -504,7 +507,7 @@ public:
         dataDyn.f_G = X_GP.R() * dataDyn.f_P;  // Transform to Ground
 
         // Add in the force to the body forces.
-        body.applyForceToBodyPoint(state, station, dataDyn.f_G, bodyForces);
+        body_B.applyForceToBodyPoint(state,station_B,dataDyn.f_G,bodyForces);
 
         // Add in the force to the Ground forces.
         // TODO(fcanderson) Add a test to see that Ground registers the
@@ -559,7 +562,7 @@ public:
             getForceSubsystem().getSystem());
         system.realize(state, Stage::Position);
         // Get position of the spring station in the Ground frame
-        Vec3 p_G = body.findStationLocationInGround(state, station);
+        Vec3 p_G = body_B.findStationLocationInGround(state, station_B);
         // Express the position in the contact plane.
         Vec3 p_P = ~X_GP * p_G;
         // Project onto the contact plane.
@@ -573,8 +576,8 @@ private:
     //-------------------------------------------------------------------------
     ExponentialSpringParameters params;
     Transform X_GP;
-    const MobilizedBody& body;
-    Vec3 station;
+    const MobilizedBody& body_B;
+    Vec3 station_B;
     Vec3 defaultAnchorPoint;
     Real defaultSliding;
     DiscreteVariableIndex indexMus;
@@ -645,10 +648,10 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(
 //_____________________________________________________________________________
 ExponentialSpringForce::
 ExponentialSpringForce(GeneralForceSubsystem& forces,
-    const Transform& XContactPlane,
-    const MobilizedBody& body, const Vec3& station,
+    const Transform& X_GP,
+    const MobilizedBody& body_B, const Vec3& station_B,
     ExponentialSpringParameters params) :
-    Force(new ExponentialSpringForceImpl(XContactPlane, body, station, params))
+    Force(new ExponentialSpringForceImpl(X_GP, body_B, station_B, params))
 {
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }

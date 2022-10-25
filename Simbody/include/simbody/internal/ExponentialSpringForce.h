@@ -346,21 +346,24 @@ public:
     @param forces The general force subsystem that encapsulates many (and
     possibly all) of the body forces, torques, and generalized forces applied
     to the system during a simulation.
-    @param contactPlaneTransform Transform specifying the location and
-    orientation of the contact plane with respect to the Ground frame. The
-    positive z-axis of the contact plane defines the normal direction; the
-    x-axis and y-axis define the tangent (or friction) plane.
-    @param body MobilizedBody that will interact / collide with the contact
-    plane.
-    @param station Point on the specified body at which the contact force
-    will be applied. The position and velocity of this point relative to
-    the contact plane determine the magnitude and direction of the contact
-    force.
+    @param X_GP Transform specifying the location and orientation of the
+    contact plane frame (P) with respect to the Ground frame (G). The positive
+    z-axis of P defines the normal direction; the x-axis and y-axis of P
+    together define the tangent (or friction) plane. Note that X_GP is the
+    operator that transforms a point of P (point_P) to that same point in
+    space but measured from the Ground origin (G₀) and expressed in G
+    (i.e., point_G = X_GP * point_P).
+    @param body_B MobilizedBody that will interact / collide with the contact
+    plane. body_B defines frame B.
+    @param station_B Point on the specified body at which the contact force
+    will be applied. station_B is expressed in the local frame of body_B.
+    The position and velocity of this point relative to the contact plane
+    determine the magnitude and direction of the contact force.
     @param params Customized Topology-stage parameters. If params is omitted
     from the argument list, the default set of parameters is used. */
     ExponentialSpringForce(GeneralForceSubsystem& forces,
-        const Transform& contactPlaneTransform,
-        const MobilizedBody& body, const Vec3& station,
+        const Transform& X_GP,
+        const MobilizedBody& body_B, const Vec3& station_B,
         ExponentialSpringParameters params = ExponentialSpringParameters());
 
     /** Get the Transform specifying the location and orientation of the
