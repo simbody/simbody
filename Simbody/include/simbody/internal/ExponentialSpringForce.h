@@ -100,7 +100,7 @@ and relatively large integration step sizes are maintained.
 
 Computationally, using class ExponentialSpringForce to model contact is
 usually faster than using class CompliantContactSubsystem, and yet simulated
-motions are typically quite similar. For default parameters choices,
+motions are typically quite similar. For default parameter choices,
 ExponentialSpringForce is about 2x faster. However, if the drift velocity of
 CompliantContactSubsystem is brought down to 0.001 m/s, ExponentialSpringForce
 can be 100x faster. Computational comparisons can be performed by building and
