@@ -683,8 +683,8 @@ void simulateBlock(const SimulationOptions& options) {
 
     // Reset the spring zeros
     for(i = 0; i < 8; ++i) {
-        sprFloor[i]->resetSpringZero(state);
-        sprWall[i]->resetSpringZero(state); 
+        sprFloor[i]->resetAnchorPoint(state);
+        sprWall[i]->resetAnchorPoint(state); 
     }
 
     // Simulate
@@ -809,9 +809,8 @@ void checkSpringCalculations(const SimulationOptions& options,
 
         // Check 0.0 ≤ sliding state ≤ 1.0
         Real sliding = spr.getSliding(state);
-        //cout << "sliding= " << sliding << endl;
-        SimTK_TEST(sliding < 1.1);
-        SimTK_TEST(sliding > -0.1);
+        SimTK_TEST(sliding <= 1.0);
+        SimTK_TEST(sliding >= 0.0);
 
         // Check μₖ ≤ μ ≤ μₛ
         Real mus = spr.getMuStatic(state);
@@ -873,7 +872,7 @@ void checkSpringCalculations(const SimulationOptions& options,
         SimTK_TEST_EQ(station_G, p_G);
 
         // Check that the spring zero lies in the Contact Plane
-        Vec3 p0 = spr.getFrictionSpringZeroPosition(state, false);
+        Vec3 p0 = spr.getAnchorPointPosition(state, false);
         SimTK_TEST(p0[2] == 0.0);
     }
 }
@@ -934,9 +933,7 @@ void testInitialization() {
     Real maxFzDef = paramsDef.getMaxNormalForce();
     Real kxyDef = paramsDef.getFrictionElasticity();
     Real cxyDef = paramsDef.getFrictionViscosity();
-    Real tauDef = paramsDef.getSlidingTimeConstant();
     Real vSettleDef = paramsDef.getSettleVelocity();
-    Real aSettleDef = paramsDef.getSettleAcceleration();
     Real initMusDef = paramsDef.getInitialMuStatic();
     Real initMukDef = paramsDef.getInitialMuKinetic();
 
@@ -949,9 +946,7 @@ void testInitialization() {
     Real maxFz = maxFzDef + delta;
     Real kxy = kxyDef + delta;
     Real cxy = cxyDef + delta;
-    Real tau = tauDef + delta;
     Real vSettle = vSettleDef + delta;
-    Real aSettle = aSettleDef + delta;
     Real initMus = initMusDef + delta;
     Real initMuk = initMukDef + delta;
 
@@ -967,11 +962,9 @@ void testInitialization() {
     SimTK_TEST(!(params == paramsDef));
     params.setFrictionViscosity(cxy);
     SimTK_TEST(!(params == paramsDef));
-    params.setSlidingTimeConstant(tau);
     SimTK_TEST(!(params == paramsDef));
     params.setSettleVelocity(vSettle);
     SimTK_TEST(!(params == paramsDef));
-    params.setSettleAcceleration(aSettle);
     SimTK_TEST(!(params == paramsDef));
     params.setInitialMuStatic(initMus);
     SimTK_TEST(!(params == paramsDef));
@@ -990,11 +983,9 @@ void testInitialization() {
     SimTK_TEST(!(params == paramsDef));
     params.setFrictionViscosity(cxyDef);
     SimTK_TEST(!(params == paramsDef));
-    params.setSlidingTimeConstant(tauDef);
     SimTK_TEST(!(params == paramsDef));
     params.setSettleVelocity(vSettleDef);
     SimTK_TEST(!(params == paramsDef));
-    params.setSettleAcceleration(aSettleDef);
     SimTK_TEST(!(params == paramsDef));
     params.setInitialMuStatic(initMusDef);
     SimTK_TEST(!(params == paramsDef));
@@ -1012,11 +1003,9 @@ void testInitialization() {
     SimTK_TEST(params != paramsDef);
     params.setFrictionViscosity(cxy);
     SimTK_TEST(params != paramsDef);
-    params.setSlidingTimeConstant(tau);
     SimTK_TEST(params != paramsDef);
     params.setSettleVelocity(vSettle);
     SimTK_TEST(params != paramsDef);
-    params.setSettleAcceleration(aSettle);
     SimTK_TEST(params != paramsDef);
     params.setInitialMuStatic(initMus);
     SimTK_TEST(params != paramsDef);
@@ -1033,9 +1022,7 @@ void testInitialization() {
     SimTK_TEST_EQ_TOL(params.getMaxNormalForce() - maxFzDef, delta, tol);
     SimTK_TEST_EQ_TOL(params.getFrictionElasticity() - kxyDef, delta, tol);
     SimTK_TEST_EQ_TOL(params.getFrictionViscosity() - cxyDef, delta, tol);
-    SimTK_TEST_EQ(params.getSlidingTimeConstant() - tauDef, delta);
     SimTK_TEST_EQ(params.getSettleVelocity() - vSettleDef, delta);
-    SimTK_TEST_EQ(params.getSettleAcceleration() - aSettleDef, delta);
     SimTK_TEST_EQ(params.getInitialMuStatic() - initMusDef, delta);
     SimTK_TEST_EQ(params.getInitialMuKinetic() - initMukDef, delta);
 
@@ -1095,9 +1082,7 @@ void testInitialization() {
     SimTK_TEST_EQ_TOL(p.getMaxNormalForce() - maxFzDef, delta, tol);
     SimTK_TEST_EQ_TOL(p.getFrictionElasticity() - kxyDef, delta, tol);
     SimTK_TEST_EQ_TOL(p.getFrictionViscosity() - cxyDef, delta, tol);
-    SimTK_TEST_EQ(p.getSlidingTimeConstant() - tauDef, delta);
     SimTK_TEST_EQ(p.getSettleVelocity() - vSettleDef, delta);
-    SimTK_TEST_EQ(params.getSettleAcceleration() - aSettleDef, delta);
     SimTK_TEST_EQ(params.getInitialMuStatic() - initMusDef, delta);
     SimTK_TEST_EQ(params.getInitialMuKinetic() - initMukDef, delta);
 
@@ -1175,7 +1160,7 @@ void testInitialization() {
     SimTK_TEST_MUST_THROW(spr.getFrictionForceDampingPart(state));
     SimTK_TEST_MUST_THROW(spr.getFrictionForce(state));
     SimTK_TEST_MUST_THROW(spr.getForce(state));
-    SimTK_TEST_MUST_THROW(spr.getFrictionSpringZeroPosition(state));
+    SimTK_TEST_MUST_THROW(spr.getAnchorPointPosition(state));
     SimTK_TEST_MUST_THROW(spr.getStationVelocity(state));
     SimTK_TEST_MUST_THROW(spr.getStationPosition(state));
     // At Stage::Position - all but getStationPosition() must throw
@@ -1189,7 +1174,7 @@ void testInitialization() {
     SimTK_TEST_MUST_THROW(spr.getFrictionForceDampingPart(state));
     SimTK_TEST_MUST_THROW(spr.getFrictionForce(state));
     SimTK_TEST_MUST_THROW(spr.getForce(state));
-    SimTK_TEST_MUST_THROW(spr.getFrictionSpringZeroPosition(state));
+    SimTK_TEST_MUST_THROW(spr.getAnchorPointPosition(state));
     SimTK_TEST_MUST_THROW(spr.getStationVelocity(state));
     spr.getStationPosition(state);
     // At Stage::Velocity - all but getStationPosition() Velocity() must throw
@@ -1203,7 +1188,7 @@ void testInitialization() {
     SimTK_TEST_MUST_THROW(spr.getFrictionForceDampingPart(state));
     SimTK_TEST_MUST_THROW(spr.getFrictionForce(state));
     SimTK_TEST_MUST_THROW(spr.getForce(state));
-    SimTK_TEST_MUST_THROW(spr.getFrictionSpringZeroPosition(state));
+    SimTK_TEST_MUST_THROW(spr.getAnchorPointPosition(state));
     spr.getStationVelocity(state);
     spr.getStationPosition(state);
     // At Stage::Dynamics - None should throw an exception.
@@ -1217,7 +1202,7 @@ void testInitialization() {
     spr.getFrictionForceDampingPart(state);
     spr.getFrictionForce(state);
     spr.getForce(state);
-    spr.getFrictionSpringZeroPosition(state);
+    spr.getAnchorPointPosition(state);
     spr.getStationVelocity(state);
     spr.getStationPosition(state);
     // At Stage::Acceleration - None should throw an exception.
@@ -1231,7 +1216,7 @@ void testInitialization() {
     spr.getFrictionForceDampingPart(state);
     spr.getFrictionForce(state);
     spr.getForce(state);
-    spr.getFrictionSpringZeroPosition(state);
+    spr.getAnchorPointPosition(state);
     spr.getStationVelocity(state);
     spr.getStationPosition(state);
 
@@ -1249,10 +1234,10 @@ void testInitialization() {
     // express in Ground frame after the projection
     Vec3 p0After_G = plane.shiftFrameStationToBase(p0After);
     // Now reset
-    spr.resetSpringZero(state);
+    spr.resetAnchorPoint(state);
     system.realize(state, Stage::Dynamics);
-    SimTK_TEST(p0After == spr.getFrictionSpringZeroPosition(state, false));
-    SimTK_TEST(p0After_G == spr.getFrictionSpringZeroPosition(state));
+    SimTK_TEST(p0After == spr.getAnchorPointPosition(state, false));
+    SimTK_TEST(p0After_G == spr.getAnchorPointPosition(state));
     // Test that the elastic component of the friction force is 0.0
     Vec3 fElastic = spr.getFrictionForceElasticPart(state);
     SimTK_TEST_EQ(fElastic, Vec3(0., 0., 0.));

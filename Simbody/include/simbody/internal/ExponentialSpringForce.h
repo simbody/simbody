@@ -46,7 +46,7 @@ limited to this use case. The contact plane can be rotated and displaced
 relative to the Ground frame and so can be used to model a wall, ramp, or
 some other planar structure.
 
-A distinguishing feature of the exponential spring, relative to other
+A distinguishing feature of the exponential spring, relative to traditional
 contact models, is that it ALWAYS applies a force to the body; there is
 never a time in a simulation when the spring force is not applied. This
 seemingly non-physical feature works because (assuming default parameters are
@@ -98,12 +98,14 @@ includes a velocity-dependent (damping) term AND a position-dependent
 (elastic) term. By including the elastic term, drift is entirely eliminated
 and relatively large integration step sizes are maintained.
 
-In initial comparisons, using class ExponentialSpringForce to model
-contact resulted in simulation cpu times that were typically 4 times faster
-(and sometimes 100+ times faster) than when using class
-CompliantContactSubsystem, and yet the simulated motions were similar.
-These comparisons can be reproduced by building and running the Test_Adhoc -
-ExponentialSpringsComparison project that is included with Simbody.
+Computationally, using class ExponentialSpringForce to model contact is
+usually faster than using class CompliantContactSubsystem, and yet simulated
+motions are typically quite similar. For default parameter choices,
+ExponentialSpringForce is about 2x faster. However, if the drift velocity of
+CompliantContactSubsystem is brought down to 0.001 m/s, ExponentialSpringForce
+can be 100x faster. Computational comparisons can be performed by building and
+running the Test_Adhoc - ExponentialSpringsComparison project that is included
+with Simbody.
 
 Aspects of the exponential spring contact model are described in the following
 publication:
@@ -167,17 +169,16 @@ which has the form of the Hunt & Crossley damping model:
 
 The friction force is computed by blending two different friction models.
 The blending is performed based on the 'Sliding' State of the
-ExponentialSpringForce class. 'Sliding' is a continuous state variable (a Z in
-Simbody vocabulary) that characterizes the extent to which either static or
-kinetic conditions are present.
+ExponentialSpringForce class. 'Sliding' characterizes the extent to which
+either static or kinetic conditions are present.
 
         Sliding = 0.0     static- fully fixed in place (lower bound)
         Sliding = 1.0     kinetic- fully sliding (upper bound)
 
-More details about the Sliding State are given in sections below.
+Details about the Sliding %State are given in sections below.
 
 #### Friction Model 1 - Pure Damping (Sliding = 1.0)
-When the body station is moving with respect to the contact plane, the
+When the body station is sliding with respect to the contact plane, the
 friction force is computed using a simple damping term:
 
         fricDamp = −cxy vxy
@@ -237,19 +238,12 @@ Sliding State:
         fricDampBlend = fricDampSpr + (fricDamp − fricDampSpr)*Sliding
         fricBlend = fricElasBlend + fricDampBlend
 
-Regarding the elastic term, when Sliding = 0.0, fricElasBlend is given
-entirely by fricElasSpr, and, as Sliding → 1.0, fricElasBlend → 0.0.
-Regarding the damping term, when Sliding = 0.0, fricDampBlend is
-given entirely by fricDampSpr, and, as Sliding → 1.0, fricDampBlend →
-fricDamp. Any difference between fricDampSpr and fricDamp is due to the
-difference in the ways the friction limit is enforced.
+Model 1 (Pure Damping) dominates as Sliding → 1.0, and Model 2 (Damped Linear
+Spring) dominates as Sliding → 0.0. The blending is well behaved and smooth
+for all values of Sliding between 0.0 and 1.0.
 
-Thus, Model 1 (Pure Damping) dominates as Sliding → 1.0, and
-Model 2 (Damped Linear Spring) dominates as Sliding → 0.0. The blending is
-well behaved and smooth for all values of Sliding between 0.0 and 1.0.
-
-#### Moving the Friction Spring Zero
-The friction spring zero (p₀) (the elastic anchor point) is always made
+#### Moving the Elastic Anchor Point
+The elastic anchor point (p₀) (i.e., the friction spring zero) is always made
 to be consistent with the final value of the blended elastic force
 (fricElasBlend):
 
@@ -266,7 +260,7 @@ change to p₀ is made to the Update Cache (not to the State directly), and the
 integrator moves this cache value to the actual p₀ State after a successful
 integration step is obtained.
 
-#### Coefficients of Friction and SlidingDot
+#### Coefficients of Friction and the Sliding State
 Coefficients of kinetic (sliding) and static (fixed) friction can be specified
 separately for the spring, subject to the following constraints:
 
@@ -277,36 +271,25 @@ friction (μ) is calculated based on the value of the Sliding State:
 
         μ = μₛ − Sliding*(μₛ − μₖ)
 
-The time derivative of Sliding, SlidingDot, is used to drive Sliding toward
-the extremes of 0.0 or 1.0, depending on the following criteria:
+Like the elastic anchor point (p₀), Sliding is handled as an Auto Update
+Discrete State. Again, see State::allocateAutoUpdateDiscreteVariable() for a
+detailed description. Any change to Sliding is made to the Update Cache
+(not to the State directly), and the integrator moves the cache value to the
+actual Sliding State after a successful integration step is obtained.
 
-- If the frictional spring force (fricSpr) exceeded the frictional limit at
-any point during its calculation, Sliding is driven toward 1.0 (rise):
+The value of Sliding is calculated using a continuous function of the
+ratio of the speed of the elastic anchor point (ṗ₀) to the settle velocity
+(vSettle). vSettle is a customizable topology-stage parameter that represents
+the speed at which a body station settles into a static state. See
+ExponentialSpringParameters::setSettleVelocity() for details. Specifically,
+Sliding is calculated as follows:
 
-        SlidingDot = (1.0 − Sliding)/tau
+        ṗ₀ = |Δp₀| / Δt
+        Sliding = SimTK::stepUp( SimTK::clamp(0.0, ṗ₀/vSettle, 1.0) )
 
-- If the frictional spring force (fricSpr) does not exceed the frictional
-limit at any point during its calculation and if the kinematics of the body
-station are near static equilibrium, Sliding is driven toward 0.0 (decay):
-
-        SlidingDot = −Sliding/tau
-
-The threshold for being "near" static equilibrium is established by two
-parameters, vSettle and aSettle. When the velocity and acceleration of the
-body station relative to the contact plane are below vSettle and aSettle,
-respectively, static equilibrium is considered effectively reached.
-
-During a simulation, once a rise or decay is triggered, the rise or decay
-continues uninterrupted until Sliding crosses 0.95 or 0.05, respectively. Once
-these thresholds have been crossed, the criteria for rise and decay are again
-monitored.
-
-In the above equations for SlidingDot, tau is the characteristic time it takes
-for the Sliding State to rise or decay. The default value of tau is 0.01 sec.
-The motivation for using a continuous state variable is that, although the
-transition between static and kinetic may happen quickly, it does not happen
-instantaneously. Evolving Sliding based on a differential equation ensures
-that μ is continuous and that the blending of friction models is well behaved.
+where Δp₀ is the change in p₀ and Δt is the change in time since the last
+successful integration step. When ṗ₀ ≥ vSettle, Sliding = 1.0, and as
+ṗ₀ → 0.0, Sliding → 0.0.
 
 ### Future Enhancements
 
@@ -321,10 +304,10 @@ table.
 ------
 STATES
 ------
-Each instance of ExponentialSpringForce possesses 5 states, which are listed
+Each instance of ExponentialSpringForce possesses 4 states, which are listed
 below in the appropriate category:
 
-### DISCRETE STATES (parameters)
+### DISCRETE STATES
 - μₛ (Real) = Static coefficient of friction.  0.0 ≤ μₛ
 - μₖ (Real) = Kinetic coefficient of friction.  0.0 ≤ μₖ ≤ μₛ
 
@@ -334,21 +317,15 @@ altered during a simulation to model, for example, a slippery spot on the
 floor.
 
 ### AUTO UPDATE DISCRETE STATES
-- p₀ (Vec3) = Zero point  of the frictional spring. p₀ always lies in the
-contact plane.
-- SlidingAction (int) = Action to take when setting SlidingDot. Possible
-actions are Check, Rise, or Decay.
-
-### CONTINUOUS STATE
-- Sliding (Real) = Indicator of whether the spring zero (p₀) is moving or
-fixed in the contact plane.  0.0 ≤ Sliding ≤ 1.0.
-The "Sliding" state is used to transition the instantaneous coefficient of
-friction (μ) between μₖ and μₛ. A value of 0.0 indicates that p₀ is fixed in
-place, in which case μ = μₛ. A value of 1.0 indicates that p₀ is sliding, in
-which case μ = μₖ. A value between 0.0 and 1.0 indicates that a transition
-from sliding to fixed or from fixed to sliding is underway, in which case
-μₖ ≤ μ ≤ μₛ. Sliding is also used to blend between friction Model 1 and Model 2
-(see above for details).
+- p₀ (Vec3) = Elastic anchor point of the frictional spring. p₀ always lies in
+the contact plane.
+- Sliding (Real) = Sliding state of the body station. 0.0 ≤ Sliding ≤ 1.0.
+A value of 0.0 indicates that p₀ is "static" or fixed in place, in which case
+μ = μₛ. A value of 1.0 indicates that p₀ is "kinetic" or sliding, in which case
+μ = μₖ. A value between 0.0 and 1.0 indicates that a transition from fixed to
+sliding or from sliding to fixed is underway, in which case μₖ ≤ μ ≤ μₛ.
+Sliding is also used to blend between friction Model 1 and Model 2 (see
+above).
 
 ----------
 PARAMETERS
@@ -359,9 +336,9 @@ exponential spring are managed using ExponentialSpringParameters.
 ----
 DATA
 ----
-Calculated quantities are cached when the System is realized through
-Stage::Dynamics. The cached data is made accessible via conventional "get"
-methods (see below). */
+Calculated quantities are cached during the appropriate realization stages
+(i.e., Stage::Position, Stage::Velocity, and Stage::Dynamics). Cached data is
+accessible via conventional "get" methods (see below). */
 class SimTK_SIMBODY_EXPORT ExponentialSpringForce : public Force {
 public:
     /** Construct an exponential spring force object with customized
@@ -369,21 +346,24 @@ public:
     @param forces The general force subsystem that encapsulates many (and
     possibly all) of the body forces, torques, and generalized forces applied
     to the system during a simulation.
-    @param contactPlane Transform specifying the location and orientation of
-    the contact plane with respect to the Ground frame. The positive z-axis
-    of the contact plane defines the normal direction; the x- and y-axes
-    define the tangent (or friction) plane.
-    @param body MobilizedBody that will interact / collide with the contact
-    plane.
-    @param station Point on the specified body at which the contact force
-    will be applied. The position and velocity of this point relative to
-    the contact plane determine the magnitude and direction of the contact
-    force.
+    @param X_GP Transform specifying the location and orientation of the
+    contact plane frame (P) with respect to the Ground frame (G). The positive
+    z-axis of P defines the normal direction; the x-axis and y-axis of P
+    together define the tangent (or friction) plane. Note that X_GP is the
+    operator that transforms a point of P (point_P) to that same point in
+    space but measured from the Ground origin (G₀) and expressed in G
+    (i.e., point_G = X_GP * point_P).
+    @param body_B MobilizedBody that will interact / collide with the contact
+    plane. body_B defines frame B.
+    @param station_B Point on the specified body at which the contact force
+    will be applied. station_B is expressed in the local frame of body_B.
+    The position and velocity of this point relative to the contact plane
+    determine the magnitude and direction of the contact force.
     @param params Customized Topology-stage parameters. If params is omitted
     from the argument list, the default set of parameters is used. */
     ExponentialSpringForce(GeneralForceSubsystem& forces,
-        const Transform& contactPlane,
-        const MobilizedBody& body, const Vec3& station,
+        const Transform& X_GP,
+        const MobilizedBody& body_B, const Vec3& station_B,
         ExponentialSpringParameters params = ExponentialSpringParameters());
 
     /** Get the Transform specifying the location and orientation of the
@@ -455,24 +435,18 @@ public:
     @param state State object from which to retrieve μₖ. */
     Real getMuKinetic(const State& state) const;
 
-    /** Set the Sliding state of the spring.
-    @param state State object on which the new value will be set.
-    @param sliding New value of Sliding.  0.0 ≤ sliding ≤ 1.0 */
-    void setSliding(State& state, Real sliding);
-
     /** Get the Sliding state of the spring.
     @param state State object from which to retrieve Sliding. */
     Real getSliding(const State& state) const;
 
-    /** Reset the friction spring zero (elastic anchor point) so that it
-    coincides with the projection of the spring station onto the contact
-    plane. This step is often needed at the beginning of a simulation to
-    ensure that a simulation does not begin with large friction forces.
-    After this call, the elastic portion of the friction force (fxyElas)
-    should be 0.0. Calling this method will invalidate the System at
-    Stage::Dynamics.
-    @param state State object on which to base the reset. */
-    void resetSpringZero(State& state) const;
+    /** Reset the elastic anchor point (friction spring zero) so that it
+     coincides with the projection of the body station onto the contact
+     plane. This step is often needed at the beginning of a simulation to
+     ensure that a simulation does not begin with large friction forces.
+     After this call, the elastic portion of the friction force should be 0.0
+     Calling this method will invalidate the System at Stage::Dynamics.
+     @param state State object on which to base the reset. */
+    void resetAnchorPoint(State& state) const;
 
     /** Get the elastic part of the normal force. The system must be realized
     to Stage::Dynamics to access this data.
@@ -587,16 +561,16 @@ public:
     of the contact plane. */
     Vec3 getStationVelocity(const State& state, bool inGround = true) const;
 
-    /** Get the position of the friction spring zero (p₀), which will always
-    lie in the Contact Plane. p₀ is the elastic anchor point of the damped
-    linear spring used in Friction Model 2. The system must be realized
-    to Stage::Dynamics to access this data.
+    /** Get the position of the elastic anchor point (p₀), which will always
+    lie in the Contact Plane. p₀ is the spring zero of the damped linear
+    spring used in Friction Model 2. The system must be realized to
+    Stage::Dynamics to access this data.
     @param state State object on which to base the calculations.
     @param inGround Flag for choosing the frame in which the returned quantity
     will be expressed. If true (the default), the quantity will be expressed
     in the Ground frame. If false, the quantity will be expressed in the frame
     of the contact plane. */
-    Vec3 getFrictionSpringZeroPosition(const State& state,
+    Vec3 getAnchorPointPosition(const State& state,
         bool inGround=true) const;
 
 private:
