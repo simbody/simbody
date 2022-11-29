@@ -456,6 +456,7 @@ public:                                     \
     void invalidate(){clear();}                     \
     void clear(){ix=SimTK::InvalidIndex;}           \
     \
+    bool operator==(const NAME& other) const { return other == ix; } \
     bool operator==(int  i) const {assert(isValidExtended() && isValidExtended(i)); return ix==i;}    \
     bool operator==(short s) const{assert(isValidExtended() && isValidExtended(s)); return ix==(int)s;}  \
     bool operator==(long l) const {assert(isValidExtended() && isValidExtended(l)); return ix==(int)l;}  \
@@ -637,6 +638,7 @@ struct Segment {
 // operators in the std::rel_ops namespace, except that those require both
 // types to be the same.
 
+#if !defined(__cpp_lib_three_way_comparison)
 template<class L, class R> inline
 bool operator!=(const L& left, const R& right)
 {   // test for inequality, in terms of equality
@@ -660,7 +662,7 @@ bool operator>=(const L& left, const R& right)
 {   // test if left >= right, in terms of operator<
     return !(left < right);
 }
-
+#endif
 
 /** This is a special type used for causing invocation of a particular
 constructor or method overload that will avoid making a copy of the source
