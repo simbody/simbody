@@ -582,7 +582,7 @@ public:
     /// conjugates if there are any.
     TNormalize normalize() const {
         if (CNT<E>::IsScalar) {
-            return castAwayNegatorIfAny() / (SignInterpretation*norm());
+            return castAwayNegatorIfAny() / (int(SignInterpretation)*norm());
         } else {
             TNormalize elementwiseNormalized;
             // punt to the equivalent Vec to get the elements normalized

@@ -622,7 +622,7 @@ public:
     conjugates if there are any. **/
     TNormalize normalize() const {
         if (CNT<E>::IsScalar) {
-            return castAwayNegatorIfAny() / (SignInterpretation*norm());
+            return castAwayNegatorIfAny() / (int(SignInterpretation)*norm());
         } else {
             TNormalize elementwiseNormalized;
             for (int i=0; i<M; ++i) 
