@@ -456,7 +456,7 @@ public:                                     \
     void invalidate(){clear();}                     \
     void clear(){ix=SimTK::InvalidIndex;}           \
     \
-    bool operator==(const NAME& other) const { return other == ix; } \
+    bool operator==(const NAME& other) const {assert(isValidExtended() && isValidExtended(other)); return ix == other.ix; } \
     bool operator==(int  i) const {assert(isValidExtended() && isValidExtended(i)); return ix==i;}    \
     bool operator==(short s) const{assert(isValidExtended() && isValidExtended(s)); return ix==(int)s;}  \
     bool operator==(long l) const {assert(isValidExtended() && isValidExtended(l)); return ix==(int)l;}  \
