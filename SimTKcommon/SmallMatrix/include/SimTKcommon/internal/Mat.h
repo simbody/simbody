@@ -706,7 +706,7 @@ public:
     // conjugates if there are any.
     TNormalize normalize() const {
         if (CNT<E>::IsScalar) {
-            return castAwayNegatorIfAny() / (SignInterpretation*norm());
+            return castAwayNegatorIfAny() / (int(SignInterpretation)*norm());
         } else {
             TNormalize elementwiseNormalized;
             // punt to the column Vec to deal with the elements
@@ -1120,7 +1120,7 @@ public:
 
     /// For approximate comparisons, the default tolerance to use for a matrix is
     /// its shortest dimension times its elements' default tolerance.
-    static double getDefaultTolerance() {return MinDim*CNT<ELT>::getDefaultTolerance();}
+    static double getDefaultTolerance() {return int(MinDim)*CNT<ELT>::getDefaultTolerance();}
 
     /// %Test whether this matrix is numerically equal to some other matrix with
     /// the same shape, using a specified tolerance.
