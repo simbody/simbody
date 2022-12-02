@@ -1,8 +1,7 @@
 ## This whole directory exists just so I could define these extra 
 ## preprocessor values.
 
-add_definitions(-DSimTK_SIMMATH_BUILDING_STATIC_LIBRARY 
-                -DSimTK_USE_STATIC_LIBRARIES)
+add_definitions(-DSimTK_SIMMATH_BUILDING_STATIC_LIBRARY)
 
 #
 # Set up file groups for better browsing in Visual Studio.
@@ -39,6 +38,8 @@ if(BUILD_UNVERSIONED_LIBRARIES)
     set_target_properties(${STATIC_TARGET} PROPERTIES
         PROJECT_LABEL "Code - ${STATIC_TARGET}")
     
+    target_compile_definitions(${STATIC_TARGET} PUBLIC SimTK_USE_STATIC_LIBRARIES)
+
     # install library; on Windows both .lib and .dll go in the lib directory.
     install(TARGETS ${STATIC_TARGET} EXPORT SimbodyTargets
                      PERMISSIONS OWNER_READ OWNER_WRITE 
@@ -72,7 +73,9 @@ if(BUILD_VERSIONED_LIBRARIES)
     
     set_target_properties(${STATIC_TARGET_VN} PROPERTIES
         PROJECT_LABEL "Code - ${STATIC_TARGET_VN}")
-    
+
+    target_compile_definitions(${STATIC_TARGET_VN} PUBLIC SimTK_USE_STATIC_LIBRARIES)
+
     # install library; on Windows both .lib and .dll go in the lib directory.
     install(TARGETS ${STATIC_TARGET_VN} EXPORT SimbodyTargets
                      PERMISSIONS OWNER_READ OWNER_WRITE 
