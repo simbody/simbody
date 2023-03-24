@@ -577,6 +577,11 @@ Real CPodesIntegratorRep::getPreviousStepSizeTaken() const {
     return size;
 }
 
+const Vector& CPodesIntegratorRep::getPreviousStepUnweightedYErrorEstimates() const {
+    assert(initialized);
+    throw std::runtime_error{__FILE__ ": CPodesIntegratorRep::getPreviousStepUnweightedYErrorEstimates is not implemented"};
+}
+
 Real CPodesIntegratorRep::getPredictedNextStepSize() const {
     assert(initialized);
     Real size;

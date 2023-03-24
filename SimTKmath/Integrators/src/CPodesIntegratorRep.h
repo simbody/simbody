@@ -44,6 +44,7 @@ public:
     Integrator::SuccessfulStepStatus stepTo(Real reportTime, Real scheduledEventTime) override;
     Real getActualInitialStepSizeTaken() const override;
     Real getPreviousStepSizeTaken() const override;
+    const Vector& getPreviousStepUnweightedYErrorEstimates() const override;
     Real getPredictedNextStepSize() const override;
     int getNumStepsAttempted() const override;
     int getNumStepsTaken() const override;

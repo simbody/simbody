@@ -264,6 +264,9 @@ public:
     // What was the size of the most recent successful step?
     virtual Real getPreviousStepSizeTaken() const = 0;
 
+    // What were the errors of all state variables (Y) in the previous step?
+    virtual const Vector& getPreviousStepUnweightedYErrorEstimates() const = 0;
+
     // What step size will be attempted first on the next step() call?
     virtual Real getPredictedNextStepSize() const = 0;
 

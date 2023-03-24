@@ -278,6 +278,19 @@ public:
     /// Get the size of the most recent successful step.
     Real getPreviousStepSizeTaken() const;
 
+    /// Get a vector containing the unweighted errors that the integrator estimated
+    /// for each state variable in Y during the previous step.
+    ///
+    /// - The ordering of entries in the returned vector matches the ordering of
+    ///   entries in Y. That is, yerrors[i] shall return the yerror of the `i`th
+    ///   state variable in Y.
+    ///
+    /// - The returned sequence contains unweighted ("raw") error estimates. The
+    ///   integrator's implementation may (internally) rescale each of these
+    ///   coefficients when using them. Therefore, you shouldn't use the returned
+    ///   sequence to reason about the behavior of the integrator.
+    const Vector& getPreviousStepUnweightedYErrorEstimates() const;
+
     /// Get the step size that will be attempted first on the next call to stepTo() or stepBy().
     Real getPredictedNextStepSize() const;
 

@@ -55,6 +55,7 @@ public:
 
     Real getActualInitialStepSizeTaken() const override;
     Real getPreviousStepSizeTaken() const override;
+    const Vector& getPreviousStepUnweightedYErrorEstimates() const override;
     Real getPredictedNextStepSize() const override;
     int getNumStepsAttempted() const override;
     int getNumStepsTaken() const override;
@@ -162,6 +163,7 @@ private:
     bool takeOneStep(Real tMax, Real tReport);
     bool initialized, hasErrorControl;
     Real currentStepSize, lastStepSize, actualInitialStepSizeTaken;
+    Vector yErrEst;
     int minOrder, maxOrder;
     std::string methodName;
 };
