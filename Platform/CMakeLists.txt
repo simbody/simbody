@@ -118,14 +118,24 @@ endif()
 # message(STATUS "List of dependencies : ${LIB_FILES}" )
 
 # This is where we're going to put these binaries.
-set(COPIED_LIB_FILES)
+set(PLATFORM_LIB_FILES)
 foreach(LIBF ${LIB_FILES})
     get_filename_component(LIBF_ROOT ${LIBF} NAME)
-    set(COPIED_LIB_FILES ${COPIED_LIB_FILES}
-    "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
+
+    string(REGEX MATCH "[.][dD][lL][lL]$" isFileADll ${LIBF})
+    if(isFileADll)
+        set(
+            PLATFORM_LIB_FILES
+            ${PLATFORM_LIB_FILES}
+            "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
+    else()
+        set(PLATFORM_LIB_FILES
+            ${PLATFORM_LIB_FILES}
+            "${LIBF}")
+    endif()
 endforeach()
 
-add_custom_target(PlatformFiles_subdir DEPENDS ${COPIED_LIB_FILES})
+add_custom_target(PlatformFiles_subdir DEPENDS ${PLATFORM_LIB_FILES})
 add_dependencies(PlatformFiles PlatformFiles_subdir)
 set_target_properties(PlatformFiles
     PROPERTIES PROJECT_LABEL "Code - Platform Files")
