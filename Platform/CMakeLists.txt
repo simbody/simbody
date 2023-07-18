@@ -124,9 +124,14 @@ foreach(LIBF ${LIB_FILES})
 
     string(REGEX MATCH "[.][dD][lL][lL]$" isFileADll ${LIBF})
     if(isFileADll)
-        set(PLATFORM_LIB_FILES ${PLATFORM_LIB_FILES} "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
+        set(
+            PLATFORM_LIB_FILES
+            ${PLATFORM_LIB_FILES}
+            "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
     else()
-        set(PLATFORM_LIB_FILES ${PLATFORM_LIB_FILES} "${LIBF}")
+        set(PLATFORM_LIB_FILES
+            ${PLATFORM_LIB_FILES}
+            "${LIBF}")
     endif()
 endforeach()
 
