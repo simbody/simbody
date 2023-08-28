@@ -118,22 +118,22 @@ Inf, -Inf). **/
 /*@{*/
 /** Format an int as a printable %String. **/
 explicit String(int i, const char* fmt="%d")
-{   char buf[32]; sprintf(buf,fmt,i); (*this)=buf; }
+{   const int n=32; char buf[n]; snprintf(buf, n, fmt,i); (*this)=buf; }
 /** Format a long as a printable %String. **/
 explicit String(long i, const char* fmt="%ld")
-{   char buf[64]; sprintf(buf,fmt,i); (*this)=buf; }
+{   const int n=64; char buf[n]; snprintf(buf, n, fmt,i); (*this)=buf; }
 /** Format a long long as a printable %String. **/
 explicit String(long long i, const char* fmt="%lld")
-{   char buf[64]; sprintf(buf,fmt,i); (*this)=buf; }
+{   const int n=64; char buf[n]; snprintf(buf, n, fmt,i); (*this)=buf; }
 /** Format an unsigned int as a printable %String. **/
 explicit String(unsigned int s, const char* fmt="%u")
-{   char buf[32]; sprintf(buf,fmt,s); (*this)=buf; }
+{   const int n=32; char buf[n]; snprintf(buf, n, fmt,s); (*this)=buf; }
 /** Format an unsigned long as a printable %String. **/
 explicit String(unsigned long s, const char* fmt="%lu")
-{   char buf[64]; sprintf(buf,fmt,s); (*this)=buf; }
+{   const int n=64; char buf[n]; snprintf(buf, n, fmt,s); (*this)=buf; }
 /** Format an unsigned long long as a printable %String. **/
 explicit String(unsigned long long s, const char* fmt="%llu")
-{   char buf[64]; sprintf(buf,fmt,s); (*this)=buf; }
+{   const int n=64; char buf[n]; snprintf(buf, n, fmt,s); (*this)=buf; }
 
 /** Format a float as a printable %String. Nonfinite values are formatted as
 NaN, Inf, or -Inf as appropriate (Matlab compatible). The default format
