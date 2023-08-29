@@ -110,9 +110,11 @@ static void spawnViz(const Array_<String>& searchPath, const String& appName,
     int status;
 
     // Pass pipe numbers as command line arguments to the visualizer.
-    char vizReadFromSim[32], vizWriteToSim[32];
-    sprintf(vizReadFromSim, "%d", sim2vizPipe[0]);
-    sprintf(vizWriteToSim, "%d", viz2simPipe[1]);
+    const int nbufr = 32;
+    const int nbufw = 32;
+    char vizReadFromSim[nbufr], vizWriteToSim[nbufw];
+    snprintf(vizReadFromSim, nbufr, "%d", sim2vizPipe[0]);
+    snprintf(vizWriteToSim, nbufw, "%d", viz2simPipe[1]);
 
     String exePath; // search path + appName
 
