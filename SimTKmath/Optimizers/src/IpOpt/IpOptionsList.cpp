@@ -126,8 +126,9 @@ namespace SimTKIpopt
                                     bool allow_clobber, /* = true */
                                     bool dont_print /* = false */)
   {
-    char buffer[256];
-    sprintf(buffer, "%g", value);
+    const int n = 256;
+    char buffer[n];
+    snprintf(buffer, n, "%g", value);
 
     if (IsValid(reg_options_)) {
       SmartPtr<const RegisteredOption> option = reg_options_->GetOption(tag);
@@ -201,8 +202,9 @@ namespace SimTKIpopt
                                     bool allow_clobber, /* = true */
                                     bool dont_print /* = false */)
   {
-    char buffer[256];
-    sprintf(buffer, "%d", value);
+    const int n = 256;
+    char buffer[n];
+    snprintf(buffer, n, "%d", value);
 
     if (IsValid(reg_options_)) {
       SmartPtr<const RegisteredOption> option = reg_options_->GetOption(tag);
@@ -501,13 +503,14 @@ namespace SimTKIpopt
   void OptionsList::PrintList(std::string& list) const
   {
     list.clear();
-    char buffer[256];
-    sprintf(buffer, "%40s   %-20s %s\n", "Name", "Value", "# times used");
+    const int n = 256;
+    char buffer[n];
+    snprintf(buffer, n, "%40s   %-20s %s\n", "Name", "Value", "# times used");
     list += buffer;
     for(std::map< std::string, OptionValue >::const_iterator p = options_.begin();
         p != options_.end();
         ++p ) {
-      sprintf(buffer, "%40s = %-20s %6d\n", p->first.c_str(),
+      snprintf(buffer, n, "%40s = %-20s %6d\n", p->first.c_str(),
               p->second.Value().c_str(), p->second.Counter());
       list += buffer;
     }
@@ -516,8 +519,9 @@ namespace SimTKIpopt
   void OptionsList::PrintUserOptions(std::string& list) const
   {
     list.clear();
+    const int n = 256;
     char buffer[256];
-    sprintf(buffer, "%40s   %-20s %s\n", "Name", "Value", "used");
+    snprintf(buffer, n, "%40s   %-20s %s\n", "Name", "Value", "used");
     list += buffer;
     for(std::map< std::string, OptionValue >::const_iterator p = options_.begin();
         p != options_.end();
@@ -532,7 +536,7 @@ namespace SimTKIpopt
         else {
           used = no;
         }
-        sprintf(buffer, "%40s = %-20s %4s\n", p->first.c_str(),
+        snprintf(buffer, n, "%40s = %-20s %4s\n", p->first.c_str(),
                 p->second.Value().c_str(), used);
         list += buffer;
       }
