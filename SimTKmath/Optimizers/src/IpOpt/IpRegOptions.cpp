@@ -255,8 +255,9 @@ namespace SimTKIpopt
 
   std::string RegisteredOption::MakeValidLatexNumber(Number value) const
   {
-    char buffer[256];
-    sprintf(buffer, "%g", value);
+    const int n = 256;
+    char buffer[n];
+    snprintf(buffer, n, "%g", value);
     std::string source = buffer;
     std::string dest;
 
