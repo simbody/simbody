@@ -129,14 +129,15 @@ namespace SimTKIpopt
     char alpha_primal_char = IpData().info_alpha_primal_char();
     Number alpha_dual = IpData().info_alpha_dual();
     Number regu_x = IpData().info_regu_x();
-    char regu_x_buf[8];
+    const int n = 8;
+    char regu_x_buf[n];
     char dashes[]="   - ";
     char *regu_x_ptr;
     if (regu_x==.0) {
       regu_x_ptr = dashes;
     }
     else {
-      sprintf(regu_x_buf, "%5.1f", log10(regu_x));
+      snprintf(regu_x_buf, n, "%5.1f", log10(regu_x));
       regu_x_ptr = regu_x_buf;
     }
     Index ls_count = IpData().info_ls_count();
