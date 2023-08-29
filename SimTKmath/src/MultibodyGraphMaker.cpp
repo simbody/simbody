@@ -340,13 +340,14 @@ void MultibodyGraphMaker::clearGraph() {
 //                               DUMP GRAPH
 //------------------------------------------------------------------------------
 void MultibodyGraphMaker::dumpGraph(std::ostream& o) const {
-    char buf[1024];
+    const int nbuf = 1024;
+    char buf[nbuf];
     o << "\nMULTIBODY GRAPH\n";
     o <<   "---------------\n";
     o << "\n" << getNumBodies() << " BODIES:\n";
     for (int i=0; i < getNumBodies(); ++i) {
         const MultibodyGraphMaker::Body& body  = getBody(i);
-        sprintf(buf, "%2d %2d: %s mass=%g mob=%d master=%d %s\n",
+        snprintf(buf, nbuf, "%2d %2d: %s mass=%g mob=%d master=%d %s\n",
             i, body.level,
             body.name.c_str(), body.mass, body.mobilizer, body.master,
             body.mustBeBaseBody?"MUST BE BASE BODY":"");
@@ -366,7 +367,7 @@ void MultibodyGraphMaker::dumpGraph(std::ostream& o) const {
     o << "\n" << getNumJoints() << " JOINTS:\n";
     for (int i=0; i < getNumJoints(); ++i) {
         const MultibodyGraphMaker::Joint& joint = getJoint(i);
-        sprintf(buf, "%2d %2d: %20s %20s->%-20s %10s loopc=%2d %s %s\n",
+        snprintf(buf, nbuf, "%2d %2d: %20s %20s->%-20s %10s loopc=%2d %s %s\n",
             i, joint.mobilizer, joint.name.c_str(),
             getBody(joint.parentBodyNum).name.c_str(),
             getBody(joint.childBodyNum).name.c_str(),
@@ -383,7 +384,7 @@ void MultibodyGraphMaker::dumpGraph(std::ostream& o) const {
         const MultibodyGraphMaker::Joint&     joint = getJoint(mo.joint);
         const MultibodyGraphMaker::Body&      inb   = getBody(mo.inboardBody);
         const MultibodyGraphMaker::Body&      outb  = getBody(mo.outboardBody);
-        sprintf(buf, "%2d %2d: %20s %20s->%-20s %10s %2d %3s\n",
+        snprintf(buf, nbuf, "%2d %2d: %20s %20s->%-20s %10s %2d %3s\n",
             i, mo.level, joint.name.c_str(),
             inb.name.c_str(), outb.name.c_str(),
             mo.getJointTypeName().c_str(),
@@ -396,7 +397,7 @@ void MultibodyGraphMaker::dumpGraph(std::ostream& o) const {
         const MultibodyGraphMaker::LoopConstraint& lc = getLoopConstraint(i);
         const MultibodyGraphMaker::Body parent = getBody(lc.parentBody);
         const MultibodyGraphMaker::Body child  = getBody(lc.childBody);
-        sprintf(buf, "%d: %s parent=%s child=%s jointNum=%d\n",
+        snprintf(buf, nbuf, "%d: %s parent=%s child=%s jointNum=%d\n",
             i, lc.type.c_str(), parent.name.c_str(), child.name.c_str(),
             lc.joint);
         o << buf;
