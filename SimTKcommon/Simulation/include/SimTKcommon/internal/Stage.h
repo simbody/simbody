@@ -34,25 +34,25 @@
 #include <cstdarg>
 
 namespace SimTK {
- 
-/** This is the type to use for Stage version numbers that get incremented 
-whenever a state variable change invalidates a Stage. Whenever time or any state 
+
+/** This is the type to use for Stage version numbers that get incremented
+whenever a state variable change invalidates a Stage. Whenever time or any state
 variable is modified, we increment the %StageVersion for any Stage that gets
-invalidated. -1 means "uninitialized". 0 is never used as a %StageVersion, but 
-is allowed as a remembered %StageVersion which is guaranteed never to look 
+invalidated. -1 means "uninitialized". 0 is never used as a %StageVersion, but
+is allowed as a remembered %StageVersion which is guaranteed never to look
 valid. **/
 typedef long long StageVersion;
 
-/** This is the type to use for state variable version numbers that get 
-incremented whenever a state value changes. Whenever time or any state variable 
-is modified, we increment a version number for the state variable that changes, 
-so that cache entries can have finer-grained prerequisites than just on whole 
-stages. -1 means "uninitialized". 0 is never used as a %ValueVersion, but is 
+/** This is the type to use for state variable version numbers that get
+incremented whenever a state value changes. Whenever time or any state variable
+is modified, we increment a version number for the state variable that changes,
+so that cache entries can have finer-grained prerequisites than just on whole
+stages. -1 means "uninitialized". 0 is never used as a %ValueVersion, but is
 allowed as a remembered version which is guaranteed never to look valid. **/
 typedef long long ValueVersion;
 
 /** This class is basically a glorified enumerated type, type-safe and range
-checked but permitting convenient (if limited) arithmetic. Constants look like 
+checked but permitting convenient (if limited) arithmetic. Constants look like
 Stage::Position, and loops can be written like
 @code
     for(Stage s = Stage::LowestValid; s <= Stage::HighestValid; ++s) {
@@ -62,7 +62,7 @@ Stage::Position, and loops can be written like
 Stage constants (of type Stage::Level) are implicitly converted to type
 Stage when necessary.
 
-Default construction gives Stage::Empty which really means "invalid". **/    
+Default construction gives Stage::Empty which really means "invalid". **/
 class Stage  {
 public:
     enum Level {
@@ -88,7 +88,7 @@ public:
         NValid = HighestValid-LowestValid+1,
         NRuntime = HighestRuntime-LowestRuntime+1
     };
-    
+
     /** Default construction gives Stage::Empty. **/
     Stage() : level(Stage::Empty) {}
     /** This is an implicit conversion from Stage::Level to Stage. **/
@@ -120,23 +120,23 @@ public:
     // Prefix operators
     const Stage& operator++()
     {   assert(level<HighestValid); level=Level(level+1); return *this; }
-    const Stage& operator--() 
+    const Stage& operator--()
     {   assert(level>LowestValid);  level=Level(level-1); return *this;}
     // Postfix operators
-    Stage operator++(int)     
+    Stage operator++(int)
     {   assert(level<HighestValid); level=Level(level+1); return prev(); }
-    Stage operator--(int)     
+    Stage operator--(int)
     {   assert(level>LowestValid);  level=Level(level-1); return next(); }
 
     /** Return the Stage following this one, with Stage::Infinity returned
     if this Stage is already at its highest value, Stage::Report. An exception
     is thrown if this Stage is already Stage::Infinity. **/
-    Stage next() const 
+    Stage next() const
     {   assert(level<HighestValid); return Stage(Level(level+1)); }
     /** Return the Stage before this one, with Stage::Empty returned
     if this Stage is already at its lowest value, Stage::Topology. An exception
     is thrown if this Stage is already Stage::Empty. **/
-    Stage prev() const 
+    Stage prev() const
     {   assert(level>LowestValid); return Stage(Level(level-1)); }
 
     /** Return a printable name corresponding to the stage level currently
@@ -168,8 +168,8 @@ public:
     /** Return true if this Stage has one of the meaningful values between
     Stage::Topology and Stage::Report, rather than one of the end markers
     Stage::Empty or Stage::Infinity. **/
-    bool isInRuntimeRange() const 
-    {   return    Stage::LowestRuntime <= level 
+    bool isInRuntimeRange() const
+    {   return    Stage::LowestRuntime <= level
                && level <= Stage::HighestRuntime; }
 
 private:
@@ -207,10 +207,10 @@ public:
        int sysTopoVersion,
        int stateTopoVersion) : Base(fn,ln)
     {
-        setMessage(String(methodName) 
-        + ": The given State's Topology stage version number (" 
+        setMessage(String(methodName)
+        + ": The given State's Topology stage version number ("
         + String(stateTopoVersion)
-        + ") doesn't match the current topology cache version number (" 
+        + ") doesn't match the current topology cache version number ("
         + String(sysTopoVersion)
         + ") of " + String(objectType) + " " + String(objectName) + "."
         + " That means there has been a topology change to this System since this"
@@ -270,13 +270,13 @@ public:
 class CacheEntryOutOfDate : public Base {
 public:
     CacheEntryOutOfDate(const char* fn, int ln,
-        Stage currentStage, Stage dependsOn, 
-        StageVersion dependsOnVersion, StageVersion lastCalculatedVersion) 
+        Stage currentStage, Stage dependsOn,
+        StageVersion dependsOnVersion, StageVersion lastCalculatedVersion)
     :   Base(fn,ln)
     {
-        setMessage("State Cache entry was out of date at Stage " + currentStage.getName() 
-           + ". This entry depends on version " + String(dependsOnVersion) 
-           + " of Stage " + dependsOn.getName() 
+        setMessage("State Cache entry was out of date at Stage " + currentStage.getName()
+           + ". This entry depends on version " + String(dependsOnVersion)
+           + " of Stage " + dependsOn.getName()
            + " but was last updated at version " + String(lastCalculatedVersion) + ".");
     }
     virtual ~CacheEntryOutOfDate() throw() { }
@@ -285,7 +285,7 @@ public:
 // An attempt to realize a particular subsystem to a particular stage failed.
 class RealizeCheckFailed : public Base {
 public:
-    RealizeCheckFailed(const char* fn, int ln, Stage g, 
+    RealizeCheckFailed(const char* fn, int ln, Stage g,
                        int subsystemId, const char* subsystemName,
                        const char* fmt, ...) : Base(fn,ln)
     {
@@ -307,8 +307,8 @@ public:
 
 } // namespace Exception
 
-inline std::ostream& operator<<(std::ostream& o, Stage g) 
-{   o << g.getName(); return o; }    
+inline std::ostream& operator<<(std::ostream& o, Stage g)
+{   o << g.getName(); return o; }
 
 
 } // namespace SimTK
@@ -341,5 +341,5 @@ inline std::ostream& operator<<(std::ostream& o, Stage g)
                     (stage),(subsysIx),(subsysName),(msg),(a1),(a2),(a3),(a4),(a5));    \
     }while(false)
 
-    
+
 #endif // SimTK_SimTKCOMMON_STAGE_H_
