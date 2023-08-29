@@ -289,10 +289,11 @@ public:
                        int subsystemId, const char* subsystemName,
                        const char* fmt, ...) : Base(fn,ln)
     {
-        char buf[1024];
+        const int n = 1024;
+        char buf[n];
         va_list args;
         va_start(args, fmt);
-        vsprintf(buf, fmt, args);
+        vsnprintf(buf, n, fmt, args);
         setMessage("Couldn't realize subsystem " + String(subsystemId)
                    + "(" + String(subsystemName) + ") to Stage "
                    + g.getName() + ": " + String(buf) + ".");
