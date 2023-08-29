@@ -49,7 +49,8 @@ String::String(float r, const char* fmt) {
             "Unrecognized non-finite value %g.", (double)r);
         return;
     }
-    char buf[64]; sprintf(buf,fmt,r); (*this)=buf;
+    const int n = 64;
+    char buf[n]; snprintf(buf,n,fmt,r); (*this)=buf;
 }
 
 String::String(double r, const char* fmt) {
@@ -60,7 +61,8 @@ String::String(double r, const char* fmt) {
             "Unrecognized non-finite value %g.", r);
         return;
     }
-    char buf[64]; sprintf(buf,fmt,r); (*this)=buf;
+    const int n = 64;
+    char buf[n]; snprintf(buf,n,fmt,r); (*this)=buf;
 }
 
 static String cleanUp(const String& in) {
