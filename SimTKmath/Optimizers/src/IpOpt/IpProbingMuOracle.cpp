@@ -149,8 +149,9 @@ namespace SimTKIpopt
     IpData().set_delta_aff(step);
     IpData().SetHaveAffineDeltas(true);
 
-    char ssigma[40];
-    sprintf(ssigma, " sigma=%8.2e", sigma);
+    const int n = 40;
+    char ssigma[n];
+    snprintf(ssigma, n, " sigma=%8.2e", sigma);
     IpData().Append_info_string(ssigma);
     //sprintf(ssigma, " xi=%8.2e ", IpCq().curr_centrality_measure());
     //IpData().Append_info_string(ssigma);

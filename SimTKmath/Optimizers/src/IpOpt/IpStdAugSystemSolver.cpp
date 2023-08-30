@@ -172,8 +172,9 @@ namespace SimTKIpopt
       augrhs->SetComp(1, *rhs_sV[i]);
       augrhs->SetComp(2, *rhs_cV[i]);
       augrhs->SetComp(3, *rhs_dV[i]);
-      char buffer[16];
-      sprintf(buffer, "RHS[%2d]", i);
+      const int n = 16;
+      char buffer[n];
+      snprintf(buffer, n, "RHS[%2d]", i);
       augrhs->Print(Jnlst(), J_MOREVECTOR, J_LINEAR_ALGEBRA, buffer);
       augmented_rhsV[i] = GetRawPtr(augrhs);
     }
@@ -218,8 +219,9 @@ namespace SimTKIpopt
     if (retval==SYMSOLVER_SUCCESS) {
       Jnlst().Printf(J_DETAILED, J_LINEAR_ALGEBRA, "Factorization successful.\n");
       for (Index i=0; i<nrhs; i++) {
-        char buffer[16];
-        sprintf(buffer, "SOL[%2d]", i);
+        const int n = 16;
+        char buffer[n];
+        snprintf(buffer, n, "SOL[%2d]", i);
         augmented_solV[i]->Print(Jnlst(), J_MOREVECTOR, J_LINEAR_ALGEBRA,
                                  buffer);
       }

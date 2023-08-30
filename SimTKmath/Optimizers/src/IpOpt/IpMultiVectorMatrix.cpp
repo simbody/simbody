@@ -259,8 +259,9 @@ namespace SimTKIpopt
     for (Index i=0; i<NCols(); i++) {
       if (ConstVec(i)) {
         DBG_ASSERT(name.size()<200);
-        char buffer[256];
-        sprintf(buffer, "%s[%2d]", name.c_str(), i);
+        const int n = 256;
+        char buffer[n];
+        snprintf(buffer, n, "%s[%2d]", name.c_str(), i);
         std::string term_name = buffer;
         ConstVec(i)->Print(&jnlst, level, category, term_name,
                            indent+1, prefix);

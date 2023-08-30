@@ -292,8 +292,9 @@ namespace SimTKIpopt
           }
         }
         else if (lower_bound > upper_bound) {
-          char string[256];
-          sprintf(string, "There are inconsistent bounds on variable %d: lower = %25.16e and upper = %25.16e.", i, lower_bound, upper_bound);
+          const int nbuf1 = 256;
+          char string[nbuf1];
+          snprintf(string, nbuf1, "There are inconsistent bounds on variable %d: lower = %25.16e and upper = %25.16e.", i, lower_bound, upper_bound);
           delete [] x_not_fixed_map;
           delete [] x_fixed_map_tmp;
           delete [] x_l_map;
@@ -386,8 +387,9 @@ namespace SimTKIpopt
           n_c++;
         }
         else if (lower_bound > upper_bound) {
-          char string[256];
-          sprintf(string, "There are inconsistent bounds on constraint %d: lower = %25.16e and upper = %25.16e.", i, lower_bound, upper_bound);
+          const int nbuf2 = 256;
+          char string[nbuf2];
+          snprintf(string, nbuf2, "There are inconsistent bounds on constraint %d: lower = %25.16e and upper = %25.16e.", i, lower_bound, upper_bound);
           delete [] d_map;
           delete [] c_map;
           delete [] d_u_map;
