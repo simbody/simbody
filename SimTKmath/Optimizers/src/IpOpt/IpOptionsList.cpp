@@ -520,7 +520,7 @@ namespace SimTKIpopt
   {
     list.clear();
     const int n = 256;
-    char buffer[256];
+    char buffer[n];
     snprintf(buffer, n, "%40s   %-20s %s\n", "Name", "Value", "used");
     list += buffer;
     for(std::map< std::string, OptionValue >::const_iterator p = options_.begin();
