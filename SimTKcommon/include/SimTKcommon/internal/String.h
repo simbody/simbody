@@ -27,6 +27,7 @@
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
 
+#include <iomanip>
 #include <cstdio>
 #include <string>
 #include <limits>
