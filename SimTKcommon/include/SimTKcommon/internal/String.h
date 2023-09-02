@@ -41,6 +41,8 @@
 
 namespace SimTK {
 
+extern SimTK_SimTKCOMMON_EXPORT const int LosslessNumDigitsReal;
+
 template <class N> class negator;
 template <class R> class conjugate;
 
@@ -357,12 +359,15 @@ auto stringStreamExtractHelper(std::istringstream& is, T& t, int)
 
 /** Generic templatized %String constructor uses stream insertion
 `operator<<(T)` to generate the %String when no specialization of this
-constructor is available. A *runtime* error is thrown if this method is
+constructor is available. The generated String will have a sufficient number
+of significant digits (i.e., up to ~20) to represent each converted
+SimTK::Real without loss. A *runtime* error is thrown if this method is
 invoked and neither a specialization nor stream insertion operator is
 available. **/
 template <class T> inline
 String::String(const T& t) {
     std::ostringstream os;
+    os << std::setprecision(LosslessNumDigitsReal);
     *this = stringStreamInsertHelper(os, t, true).str();
 }
 
