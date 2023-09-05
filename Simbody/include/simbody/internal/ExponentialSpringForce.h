@@ -116,7 +116,7 @@ publication:
 
 The current class makes several improvements to that contact model, most
 notably including 1) the ability to rotate and translate the contact plane and
-2) the ability to specify both a static and a kinetic coefficient of friction. 
+2) the ability to specify both a static and a kinetic coefficient of friction.
 The computational details of the contact model implemented by this class
 follow below.
 
@@ -405,6 +405,13 @@ public:
     at Stage::Topology is streamlined. */
     const ExponentialSpringParameters& getParameters() const;
 
+    /** Get the State index of the static coefficient of friction (μₛ) for
+    this exponential spring. Typically, you will not need to use this index.
+    It is exposed to allow low-level, generic access to the state by other
+    modeling frameworks writen on top of Simbody, such as OpenSim.
+    @return State index for μₛ. */
+    DiscreteVariableIndex getMuStaticStateIndex() const;
+
     /** Set the static coefficient of friction (μₛ) for this exponential
     spring. The value of μₛ is held in the System's State object. Unlike the
     parameters managed by ExponentialSpringParameters, μₛ can be set at any
@@ -419,6 +426,13 @@ public:
     state for this exponential spring.
     @param state State object from which to retrieve μₛ. */
     Real getMuStatic(const State& state) const;
+
+    /** Get the State index assinged to the kinetic coefficient of friction
+    (μₖ) for this exponential spring. Typically, you will not need to use this
+    index. It is exposed to allow low-level, generic access to the state by
+    other modeling frameworks writen on top of Simbody, such as OpenSim.
+    @return State index for μₖ. */
+    DiscreteVariableIndex getMuKineticStateIndex() const;
 
     /** Set the kinetic coefficient of friction (μₖ) for this exponential
     spring. The value of μₖ is held in the System's State object. Unlike the
@@ -435,9 +449,38 @@ public:
     @param state State object from which to retrieve μₖ. */
     Real getMuKinetic(const State& state) const;
 
-    /** Get the Sliding state of the spring.
-    @param state State object from which to retrieve Sliding. */
+    /** Get the State index assinged to the sliding State (K) of this
+    exponential spring. Typically, you will not need to use this index.
+    It is exposed to allow low-level, generic access to the state by other
+    modeling frameworks writen on top of Simbody, such as OpenSim.
+    @return State index for K. */
+    DiscreteVariableIndex getSlidingStateIndex() const;
+
+    /** Get the Sliding state of this exponential spring after it has been
+    updated to be consistent with the System State. This value should be used
+    when analyzing or visualizing the dynamic behavior of this exponential
+    spring. The System must be realized to Stage::Dynamics to access this data.
+    @param state State object from which to retrieve the Sliding state. */
     Real getSliding(const State& state) const;
+
+    /** Get the State index assinged to the elastic anchor point (p₀) of this
+    exponential spring. Typically, you will not need to use this index.
+    It is exposed to allow low-level, generic access to the state by other
+    modeling frameworks writen on top of Simbody, such as OpenSim.
+    @return State index for p₀. */
+    DiscreteVariableIndex getAnchorPointStateIndex() const;
+
+    /** Get the position of the elastic anchor point (p₀), which will always
+    lie in the Contact Plane. p₀ is the spring zero of the damped linear
+    spring used in Friction Model 2. The system must be realized to
+    Stage::Dynamics to access this data.
+    @param state State object on which to base the calculations.
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
+    Vec3 getAnchorPointPosition(const State& state,
+        bool inGround = true) const;
 
     /** Reset the elastic anchor point (friction spring zero) so that it
      coincides with the projection of the body station onto the contact
@@ -560,18 +603,6 @@ public:
     in the Ground frame. If false, the quantity will be expressed in the frame
     of the contact plane. */
     Vec3 getStationVelocity(const State& state, bool inGround = true) const;
-
-    /** Get the position of the elastic anchor point (p₀), which will always
-    lie in the Contact Plane. p₀ is the spring zero of the damped linear
-    spring used in Friction Model 2. The system must be realized to
-    Stage::Dynamics to access this data.
-    @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned quantity
-    will be expressed. If true (the default), the quantity will be expressed
-    in the Ground frame. If false, the quantity will be expressed in the frame
-    of the contact plane. */
-    Vec3 getAnchorPointPosition(const State& state,
-        bool inGround=true) const;
 
 private:
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(
