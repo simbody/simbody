@@ -405,13 +405,6 @@ public:
     at Stage::Topology is streamlined. */
     const ExponentialSpringParameters& getParameters() const;
 
-    /** Get the State index of the static coefficient of friction (μₛ) for
-    this exponential spring. Typically, you will not need this index. It is
-    exposed to allow low-level, generic access to the state by modeling
-    frameworks written on top of Simbody, such as OpenSim.
-    @return State index for μₛ. */
-    DiscreteVariableIndex getMuStaticStateIndex() const;
-
     /** Set the static coefficient of friction (μₛ) for this exponential
     spring. The value of μₛ is held in the System's State object. Unlike the
     parameters managed by ExponentialSpringParameters, μₛ can be set at any
@@ -426,13 +419,6 @@ public:
     state for this exponential spring.
     @param state State object from which to retrieve μₛ. */
     Real getMuStatic(const State& state) const;
-
-    /** Get the State index assinged to the kinetic coefficient of friction
-    (μₖ) for this exponential spring. Typically, you will not need this index.
-    It is exposed to allow low-level, generic access to the state by modeling
-    frameworks written on top of Simbody, such as OpenSim.
-    @return State index for μₖ. */
-    DiscreteVariableIndex getMuKineticStateIndex() const;
 
     /** Set the kinetic coefficient of friction (μₖ) for this exponential
     spring. The value of μₖ is held in the System's State object. Unlike the
@@ -449,26 +435,12 @@ public:
     @param state State object from which to retrieve μₖ. */
     Real getMuKinetic(const State& state) const;
 
-    /** Get the State index assinged to the sliding State (K) of this
-    exponential spring. Typically, you will not need this index. It is exposed
-    to allow low-level, generic access to the state by modeling frameworks
-    written on top of Simbody, such as OpenSim.
-    @return State index for K. */
-    DiscreteVariableIndex getSlidingStateIndex() const;
-
     /** Get the Sliding state of this exponential spring after it has been
     updated to be consistent with the System State. This value should be used
     when analyzing or visualizing the dynamic behavior of this exponential
     spring. The System must be realized to Stage::Dynamics to access this data.
     @param state State object from which to retrieve the Sliding state. */
     Real getSliding(const State& state) const;
-
-    /** Get the State index assinged to the elastic anchor point (p₀) of this
-    exponential spring. Typically, you will not need this index. It is exposed
-    to allow low-level, generic access to the state by modeling frameworks
-    written on top of Simbody, such as OpenSim.
-    @return State index for p₀. */
-    DiscreteVariableIndex getAnchorPointStateIndex() const;
 
     /** Get the position of the elastic anchor point (p₀), which will always
     lie in the Contact Plane. p₀ is the spring zero of the damped linear
@@ -603,6 +575,42 @@ public:
     in the Ground frame. If false, the quantity will be expressed in the frame
     of the contact plane. */
     Vec3 getStationVelocity(const State& state, bool inGround = true) const;
+
+
+    // ADVANCED METHODS BELOW HERE
+
+    /** @name State Indices (Advanced)
+    If the State index of a discrete variable is known, the value of the
+    variable can be accessed in a generic way by calling
+    Subsystem::getDiscreteVariable() or Subsystem::updDiscreteVariable().
+    Such access is typically used by modeling frameworks, written on top of
+    Simbody, to get and set State values in bulk (e.g., during serialization
+    and deserialization). To support this functionality, a 'get' method for
+    the State index of each discrete variable possessed by an
+    ExponentialSpringForce instance is provided. */
+    ///@{
+
+    /** Get the State index of the static coefficient of friction (μₛ) for
+    this exponential spring.
+    @return Index of μₛ. */
+    DiscreteVariableIndex getMuStaticStateIndex() const;
+
+    /** Get the State index of the kinetic coefficient of friction (μₖ) for
+    this exponential spring.
+    @return Index of μₖ. */
+    DiscreteVariableIndex getMuKineticStateIndex() const;
+
+    /** Get the State index of the sliding state (K) for this exponential
+    spring.
+    @return Index of K. */
+    DiscreteVariableIndex getSlidingStateIndex() const;
+
+    /** Get the State index of the elastic anchor point (p₀) for this
+    exponential spring.
+    @return Index of p₀. */
+    DiscreteVariableIndex getAnchorPointStateIndex() const;
+
+    ///@}
 
 private:
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(
