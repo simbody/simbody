@@ -179,6 +179,9 @@ public:
     }
 
     // ELASTIC ANCHOR POINT
+    DiscreteVariableIndex getAnchorPointStateIndex() const {
+        return indexAnchorPoint;
+    }
     const Vec3& getAnchorPoint(const State& state) const {
         return Value<Vec3>::downcast(
             getDiscreteVariable(state, indexAnchorPoint));
@@ -199,6 +202,7 @@ public:
     }
 
     // SLIDING
+    DiscreteVariableIndex getSlidingStateIndex() const { return indexSliding; }
     const Real& getSliding(const State& state) const {
         return Value<Real>::downcast(
             getDiscreteVariable(state, indexSliding));
@@ -219,6 +223,7 @@ public:
     }
 
     // STATIC COEFFICENT OF FRICTION
+    DiscreteVariableIndex getMuStaticStateIndex() const { return indexMus; }
     const Real& getMuStatic(const State& state) const {
         return Value<Real>::downcast(
             getDiscreteVariable(state, indexMus));
@@ -237,6 +242,7 @@ public:
     }
 
     // KINETIC COEFFICENT OF FRICTION
+    DiscreteVariableIndex getMuKineticStateIndex() const { return indexMuk; }
     const Real& getMuKinetic(const State& state) const {
         return Value<Real>::downcast(
             getDiscreteVariable(state, indexMuk));
@@ -287,7 +293,7 @@ public:
             fsub.getDiscreteVarUpdateIndex(state, indexAnchorPoint);
 
         // Sliding (K --> for "Kinetic")
-        mutableThis->indexSliding = 
+        mutableThis->indexSliding =
             fsub.allocateAutoUpdateDiscreteVariable(state, Stage::Dynamics,
                 new Value<Real>(defaultSliding), Stage::Dynamics);
         mutableThis->indexSlidingInCache =
@@ -694,6 +700,12 @@ getParameters() const {
 }
 
 //_____________________________________________________________________________
+DiscreteVariableIndex
+ExponentialSpringForce::
+getMuStaticStateIndex() const {
+    return getImpl().getMuStaticStateIndex();
+}
+//_____________________________________________________________________________
 void
 ExponentialSpringForce::
 setMuStatic(State& state, Real mus) {
@@ -707,6 +719,12 @@ getMuStatic(const State& state) const {
 }
 
 //_____________________________________________________________________________
+DiscreteVariableIndex
+ExponentialSpringForce::
+getMuKineticStateIndex() const {
+    return getImpl().getMuKineticStateIndex();
+}
+//_____________________________________________________________________________
 void
 ExponentialSpringForce::
 setMuKinetic(State& state, Real muk) {
@@ -718,6 +736,9 @@ ExponentialSpringForce::
 getMuKinetic(const State& state) const {
     return getImpl().getMuKinetic(state);
 }
+
+
+
 //_____________________________________________________________________________
 void
 ExponentialSpringForce::
@@ -850,6 +871,12 @@ getStationVelocity(const State& state, bool inGround) const {
 // Auto Update Discrete States
 //-----------------------------------------------------------------------------
 //_____________________________________________________________________________
+DiscreteVariableIndex
+ExponentialSpringForce::
+getAnchorPointStateIndex() const {
+    return getImpl().getAnchorPointStateIndex();
+}
+//_____________________________________________________________________________
 // Only the updated value stored in the data cache for the elastic anchor
 // point is guaranteed to be consistent with the state. Therefore, in order
 // for this method to give a correct value, the System must be realized
@@ -864,6 +891,13 @@ getAnchorPointPosition(const State& state, bool inGround) const {
         p0 = getContactPlaneTransform().shiftFrameStationToBase(p0);
     }
     return p0;
+}
+
+//_____________________________________________________________________________
+DiscreteVariableIndex
+ExponentialSpringForce::
+getSlidingStateIndex() const {
+    return getImpl().getSlidingStateIndex();
 }
 //_____________________________________________________________________________
 // Only the updated value stored in the data cache for the sliding state is

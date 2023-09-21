@@ -684,7 +684,7 @@ void simulateBlock(const SimulationOptions& options) {
     // Reset the spring zeros
     for(i = 0; i < 8; ++i) {
         sprFloor[i]->resetAnchorPoint(state);
-        sprWall[i]->resetAnchorPoint(state); 
+        sprWall[i]->resetAnchorPoint(state);
     }
 
     // Simulate
@@ -1099,20 +1099,31 @@ void testInitialization() {
     State state = system.getDefaultState();
     system.realizeModel(state);
 
-    // Test getting μₛ and μₖ
+    // Test getting μₛ and μₖ via the ExponentialSpringForce API
     Real mus = params.getInitialMuStatic();
-    Real muk = params.getInitialMuKinetic();
     SimTK_TEST(spr.getMuStatic(state) == mus);
+    Real muk = params.getInitialMuKinetic();
     SimTK_TEST(spr.getMuKinetic(state) == muk);
 
-    // Test setting μₛ and μₖ
-    // μₖ ≤ μₛ
+    // Test getting μₛ and μₖ via the Subsystem API using indices obtained via
+    // getMuStaticStateIndex() and getMuKineticStateIndex().
+    const Subsystem& subsys = spr.getForceSubsystem();
+    Real musByIndex = SimTK::Value<double>::downcast(
+        subsys.getDiscreteVariable(state, spr.getMuStaticStateIndex()) );
+    SimTK_TEST(musByIndex == mus);
+    Real mukByIndex = SimTK::Value<double>::downcast(
+        subsys.getDiscreteVariable(state, spr.getMuKineticStateIndex()) );
+    SimTK_TEST(mukByIndex == muk);
+
+    // Test setting μₛ and μₖ via the ExponentialSpringForce API
     Real musNew = mus + 1.0;
-    Real mukNew = muk + 1.0;
     spr.setMuStatic(state, musNew);
-    spr.setMuKinetic(state, mukNew);
     SimTK_TEST(spr.getMuStatic(state) == musNew);
+    Real mukNew = muk + 1.0;
+    spr.setMuKinetic(state, mukNew);
     SimTK_TEST(spr.getMuKinetic(state) == mukNew);
+
+    // Test that the constraint μₖ ≤ μₛ is enforced
     // μₖ ≥ μₛ (μₛ should be set to μₖ to maintain μₖ ≤ μₛ)
     mukNew = musNew + 1.0;
     spr.setMuKinetic(state, mukNew);
@@ -1241,5 +1252,19 @@ void testInitialization() {
     // Test that the elastic component of the friction force is 0.0
     Vec3 fElastic = spr.getFrictionForceElasticPart(state);
     SimTK_TEST_EQ(fElastic, Vec3(0., 0., 0.));
+
+    // Test getting the Sliding state via the Subsystem API using indices
+    // obtained via getSlidingStateIndex().
+    Real sliding = spr.getSliding(state);
+    Real slidingByIndex = SimTK::Value<double>::downcast(
+        subsys.getDiscreteVariable(state, spr.getSlidingStateIndex()) );
+    SimTK_TEST(slidingByIndex == sliding);
+
+    // Test getting the Elastic Anchor Point state via the Subsystem API using
+    // indices obtained via getAnchorPOintStateIndex().
+    Vec3 anchor = spr.getAnchorPointPosition(state, false);
+    Vec3 anchorByIndex = SimTK::Value<Vec3>::downcast(
+        subsys.getDiscreteVariable(state, spr.getAnchorPointStateIndex()) );
+    SimTK_TEST(anchorByIndex == anchor);
 };
 

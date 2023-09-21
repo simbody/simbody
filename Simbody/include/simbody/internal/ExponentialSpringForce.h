@@ -116,7 +116,7 @@ publication:
 
 The current class makes several improvements to that contact model, most
 notably including 1) the ability to rotate and translate the contact plane and
-2) the ability to specify both a static and a kinetic coefficient of friction. 
+2) the ability to specify both a static and a kinetic coefficient of friction.
 The computational details of the contact model implemented by this class
 follow below.
 
@@ -435,9 +435,24 @@ public:
     @param state State object from which to retrieve μₖ. */
     Real getMuKinetic(const State& state) const;
 
-    /** Get the Sliding state of the spring.
-    @param state State object from which to retrieve Sliding. */
+    /** Get the Sliding state of this exponential spring after it has been
+    updated to be consistent with the System State. This value should be used
+    when analyzing or visualizing the dynamic behavior of this exponential
+    spring. The System must be realized to Stage::Dynamics to access this data.
+    @param state State object from which to retrieve the Sliding state. */
     Real getSliding(const State& state) const;
+
+    /** Get the position of the elastic anchor point (p₀), which will always
+    lie in the Contact Plane. p₀ is the spring zero of the damped linear
+    spring used in Friction Model 2. The system must be realized to
+    Stage::Dynamics to access this data.
+    @param state State object on which to base the calculations.
+    @param inGround Flag for choosing the frame in which the returned quantity
+    will be expressed. If true (the default), the quantity will be expressed
+    in the Ground frame. If false, the quantity will be expressed in the frame
+    of the contact plane. */
+    Vec3 getAnchorPointPosition(const State& state,
+        bool inGround = true) const;
 
     /** Reset the elastic anchor point (friction spring zero) so that it
      coincides with the projection of the body station onto the contact
@@ -561,17 +576,41 @@ public:
     of the contact plane. */
     Vec3 getStationVelocity(const State& state, bool inGround = true) const;
 
-    /** Get the position of the elastic anchor point (p₀), which will always
-    lie in the Contact Plane. p₀ is the spring zero of the damped linear
-    spring used in Friction Model 2. The system must be realized to
-    Stage::Dynamics to access this data.
-    @param state State object on which to base the calculations.
-    @param inGround Flag for choosing the frame in which the returned quantity
-    will be expressed. If true (the default), the quantity will be expressed
-    in the Ground frame. If false, the quantity will be expressed in the frame
-    of the contact plane. */
-    Vec3 getAnchorPointPosition(const State& state,
-        bool inGround=true) const;
+
+    // ADVANCED METHODS BELOW HERE
+
+    /** @name State Indices (Advanced)
+    If the State index of a discrete variable is known, the value of the
+    variable can be accessed in a generic way by calling
+    Subsystem::getDiscreteVariable() or Subsystem::updDiscreteVariable().
+    Such access is typically used by modeling frameworks, written on top of
+    Simbody, to get and set State values in bulk (e.g., during serialization
+    and deserialization). To support this functionality, a 'get' method for
+    the State index of each discrete variable possessed by an
+    ExponentialSpringForce instance is provided. */
+    ///@{
+
+    /** Get the State index of the static coefficient of friction (μₛ) for
+    this exponential spring.
+    @return Index of μₛ. */
+    DiscreteVariableIndex getMuStaticStateIndex() const;
+
+    /** Get the State index of the kinetic coefficient of friction (μₖ) for
+    this exponential spring.
+    @return Index of μₖ. */
+    DiscreteVariableIndex getMuKineticStateIndex() const;
+
+    /** Get the State index of the sliding state (K) for this exponential
+    spring.
+    @return Index of K. */
+    DiscreteVariableIndex getSlidingStateIndex() const;
+
+    /** Get the State index of the elastic anchor point (p₀) for this
+    exponential spring.
+    @return Index of p₀. */
+    DiscreteVariableIndex getAnchorPointStateIndex() const;
+
+    ///@}
 
 private:
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(
