@@ -98,9 +98,8 @@ if(WIN32 AND NOT SIMBODY_WAS_BUILT_USING_OTHER_LAPACK)
     set_target_properties(blas PROPERTIES
         IMPORTED_IMPLIB "@PACKAGE_CMAKE_INSTALL_LIBDIR@/libblas.lib"
         IMPORTED_LOCATION "@PACKAGE_CMAKE_INSTALL_BINDIR@/libblas.dll"
-        # link transitive dependencies
-        INTERFACE_LINK_LIBRARIES libgcc_s_sjlj-1 libgfortran-3 libquadmath-0
         )
+    target_link_libraries(blas INTERFACE libgcc_s_sjlj-1 libgfortran-3 libquadmath-0)
 
     add_library(lapack SHARED IMPORTED)
     set_target_properties(lapack PROPERTIES

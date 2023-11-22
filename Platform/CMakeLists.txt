@@ -217,9 +217,9 @@ if(WIN32 AND NOT BUILD_USING_OTHER_LAPACK)
     add_library(blas SHARED IMPORTED GLOBAL)
     set_target_properties(blas PROPERTIES
         IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
-        # link transitive dependencies
-        INTERFACE_LINK_LIBRARIES libgcc_s_sjlj-1 libgfortran-3 libquadmath-0
         )
+    # link transitive dependencies
+    target_link_libraries(blas INTERFACE libgcc_s_sjlj-1 libgfortran-3 libquadmath-0)
     
     add_library(lapack SHARED IMPORTED GLOBAL)
     set_target_properties(lapack PROPERTIES
