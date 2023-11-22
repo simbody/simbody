@@ -77,10 +77,29 @@ include("${CMAKE_CURRENT_LIST_DIR}/SimbodyTargets.cmake")
 # use the appropriate library paths below.
 set(SIMBODY_WAS_BUILT_USING_OTHER_LAPACK "@BUILD_USING_OTHER_LAPACK@")
 if(WIN32 AND NOT SIMBODY_WAS_BUILT_USING_OTHER_LAPACK)
+    # transitive dependencies for blas/lapack
+    add_library(libgcc_s_sjlj-1 SHARED IMPORTED)
+    set_target_properties(libgcc_s_sjlj-1 PROPERTIES
+        IMPORTED_IMPLIB "@PACKAGE_CMAKE_INSTALL_LIBDIR@/libblas.lib"
+        IMPORTED_LOCATION "@PACKAGE_CMAKE_INSTALL_BINDIR@/libgcc_s_sjlj-1.dll"
+        )
+    add_library(libgfortran-3 SHARED IMPORTED)
+    set_target_properties(libgfortran-3 PROPERTIES
+        IMPORTED_IMPLIB "@PACKAGE_CMAKE_INSTALL_LIBDIR@/libblas.lib"
+        IMPORTED_LOCATION "@PACKAGE_CMAKE_INSTALL_BINDIR@/libgfortran-3.dll"
+        )
+    add_library(libquadmath-0 SHARED IMPORTED)
+    set_target_properties(libquadmath-0 PROPERTIES
+        IMPORTED_IMPLIB "@PACKAGE_CMAKE_INSTALL_LIBDIR@/libblas.lib"
+        IMPORTED_LOCATION "@PACKAGE_CMAKE_INSTALL_BINDIR@/libquadmath-0.dll"
+        )
+
     add_library(blas SHARED IMPORTED)
     set_target_properties(blas PROPERTIES
         IMPORTED_IMPLIB "@PACKAGE_CMAKE_INSTALL_LIBDIR@/libblas.lib"
         IMPORTED_LOCATION "@PACKAGE_CMAKE_INSTALL_BINDIR@/libblas.dll"
+        # link transitive dependencies
+        INTERFACE_LINK_LIBRARIES libgcc_s_sjlj-1 libgfortran-3 libquadmath-0
         )
 
     add_library(lapack SHARED IMPORTED)

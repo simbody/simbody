@@ -195,11 +195,30 @@ endforeach()
 # All the platform libraries (including quadmath, etc.) still must be on the
 # PATH when running executables using Simbody.
 if(WIN32 AND NOT BUILD_USING_OTHER_LAPACK)
+    # transitive dependencies for blas/lapack
+    add_library(libgcc_s_sjlj-1 SHARED IMPORTED)
+    set_target_properties(libgcc_s_sjlj-1 PROPERTIES
+        IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
+        IMPORTED_LOCATION "${LIB_ABI_DIR}/libgcc_s_sjlj-1.dll"
+        )
+    add_library(libgfortran-3 SHARED IMPORTED)
+    set_target_properties(libgfortran-3 PROPERTIES
+        IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
+        IMPORTED_LOCATION "${LIB_ABI_DIR}/libgfortran-3.dll"
+        )
+    add_library(libquadmath-0 SHARED IMPORTED)
+    set_target_properties(libquadmath-0 PROPERTIES
+        IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
+        IMPORTED_LOCATION "${LIB_ABI_DIR}/libquadmath-0.dll"
+        )
+
     # Without GLOBAL, this target is only available in this dir. and below,
     # but we want to use these targets everywhere in this project.
     add_library(blas SHARED IMPORTED GLOBAL)
     set_target_properties(blas PROPERTIES
         IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
+        # link transitive dependencies
+        INTERFACE_LINK_LIBRARIES libgcc_s_sjlj-1 libgfortran-3 libquadmath-0
         )
     
     add_library(lapack SHARED IMPORTED GLOBAL)
