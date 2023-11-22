@@ -646,9 +646,14 @@ inline std::ostream& operator<<(std::ostream& o, const  Attribute& attr) {
 //------------------------------------------------------------------------------
 /** This is a bidirectional iterator suitable for moving forward or backward
 within a list of Attributes within an Element, for writable access. **/
-class SimTK_SimTKCOMMON_EXPORT attribute_iterator
-:   public std::iterator<std::bidirectional_iterator_tag, Attribute> {
+class SimTK_SimTKCOMMON_EXPORT attribute_iterator {
 public:
+  using iterator_category = std::bidirectional_iterator_tag;
+  using value_type = Attribute;
+  using difference_type = std::ptrdiff_t;
+  using pointer = Attribute*;
+  using reference = Attribute&;
+
 /** Default constructor creates an iterator that compares equal to
 attribute_end(). **/
 attribute_iterator() {}
