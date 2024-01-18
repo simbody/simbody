@@ -446,14 +446,14 @@ void multiplyByMPass2Inward(
     Real*                       allTau) const override;
 
 // Get a column of H_PB_G, which is what Jain calls H* and Schwieters calls H^T.
-const SpatialVec& 
+SpatialVec
 getHCol(const SBTreePositionCache& pc, int j) const override {
     return getH(pc)(j);
 }
 
 // Get a column of H_FM the local cross-mobilizer hinge matrix expressed in the
 // parent (inboard) mobilizer frame F.
-const SpatialVec& 
+SpatialVec
 getH_FMCol(const SBTreePositionCache& pc, int j) const override {
     return getH_FM(pc)(j);
 }

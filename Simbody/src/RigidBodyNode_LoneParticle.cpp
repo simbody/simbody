@@ -405,8 +405,8 @@ void multiplyByMPass2Inward(
     tau = F[1];
 }
 
-const SpatialVec& getHCol(const SBTreePositionCache& pc, 
-                          int j) const override {
+SpatialVec getHCol(const SBTreePositionCache& pc,
+                   int j) const override {
     Mat<2,3,Vec3> H = Mat<2,3,Vec3>::getAs(&pc.storageForH[2*uIndex]);
     SpatialVec& col = H(j);
     col = SpatialVec(Vec3(0), Vec3(0));
@@ -414,8 +414,8 @@ const SpatialVec& getHCol(const SBTreePositionCache& pc,
     return col;
 }
 
-const SpatialVec& getH_FMCol(const SBTreePositionCache& pc, 
-                             int j) const override {
+SpatialVec getH_FMCol(const SBTreePositionCache& pc,
+                      int j) const override {
     Mat<2,3,Vec3> H = Mat<2,3,Vec3>::getAs(&pc.storageForH_FM[2*uIndex]);
     SpatialVec& col = H(j);
     col = SpatialVec(Vec3(0), Vec3(0));

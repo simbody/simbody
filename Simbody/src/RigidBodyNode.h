@@ -587,10 +587,10 @@ virtual void multiplyByMPass2Inward(
   { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByMPass2Inward"); }
 
 // Note that this requires columns of H to be packed like SpatialVec.
-virtual const SpatialVec& getHCol(const SBTreePositionCache&, int j) const 
+virtual SpatialVec getHCol(const SBTreePositionCache&, int j) const
 {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getHCol");}
 
-virtual const SpatialVec& getH_FMCol(const SBTreePositionCache&, int j) const 
+virtual SpatialVec getH_FMCol(const SBTreePositionCache&, int j) const
 {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getH_FMCol");}
 
 
