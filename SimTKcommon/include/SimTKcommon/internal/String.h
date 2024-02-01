@@ -168,8 +168,12 @@ explicit String(bool b) : std::string(b?"true":"false") { }
 /** For any type T for which there is no matching constructor, this templatized
 constructor will format an object of type T into a %String provided that there
 is either an available specialization or (as a last resort) a stream insertion
-operator<<() available for type T. **/
-template <class T> inline explicit String(const T& t); // see below
+operator<<() available for type T; a *runtime* error is thrown if neither is
+available.
+@param t %Value to be converted to a %String.
+@param precision Optional parameter specifying the number of significant
+figures with which t will be represented. **/
+template <class T> inline explicit String(const T& t, int precision = 6);
 
 /** Constructing a %String from a negated value converts to the underlying
 native type and then uses one of the native-type constructors. **/
@@ -358,17 +362,11 @@ auto stringStreamExtractHelper(std::istringstream& is, T& t, int)
 
 /** @endcond **/
 
-/** Generic templatized %String constructor uses stream insertion
-`operator<<(T)` to generate the %String when no specialization of this
-constructor is available. The generated String will have a sufficient number
-of significant digits (i.e., up to ~20) to represent each converted
-SimTK::Real without loss. A *runtime* error is thrown if this method is
-invoked and neither a specialization nor stream insertion operator is
-available. **/
+// Implementation of the generic templatized String constructor.
 template <class T> inline
-String::String(const T& t) {
+String::String(const T& t, int precision) {
     std::ostringstream os;
-    os << std::setprecision(LosslessNumDigitsReal);
+    os << std::setprecision(precision);
     *this = stringStreamInsertHelper(os, t, true).str();
 }
 
