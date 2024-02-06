@@ -1072,6 +1072,12 @@ explicit Element(const String& tagWord, const String& value="");
 equivalent of any type T for which a conversion construction String(T) is
 allowed (generally any type for which a stream insertion operator<<()
 exists).
+@param tagWord Tag word used to identify the %Element.
+@param value %Value given to the %Element to be converted to a %String.
+@param precision Optional argument specifying the number of significant
+figures with which the value will be represented. The default number is
+given by the constant String::DefaultOutputPrecision. Any precision above
+SimTK::LosslessNumDigitsReal is set to SimTK::LosslessNumDigitsReal.
 @see getValueAs<T>(), setValueAs<T>()**/
 template <class T>
 Element(const String& tagWord, const T& value,
@@ -1166,8 +1172,8 @@ for which a conversion construction String(T) is allowed (generally any
 type for which a stream insertion operator<<() exists).
 @param value %Value to be converted to a %String.
 @param precision Optional argument specifying the number of significant
-figures with which the value will be repr-esented. The default is 6. Any
-precision below 1 is set to 1, and any precision above
+figures with which the value will be represented. The default number is
+given by the constant String::DefaultOutputPrecision. Any precision above
 SimTK::LosslessNumDigitsReal is set to SimTK::LosslessNumDigitsReal. **/
 template <class T>
 void setValueAs(const T& value,

@@ -195,9 +195,9 @@ operator<<() available for type T; a *runtime* error is thrown if neither is
 available.
 @param t %Value to be converted to a %String.
 @param precision Optional argument specifying the number of significant
-figures with which t will be represented. The default is given by the constant
-String::DefaultOuputPrecision. Any precision above SimTK::LosslessNumDigitsReal
-is capped at SimTK::LosslessNumDigitsReal. **/
+figures with which t will be represented. The default number is given by the
+constant String::DefaultOutputPrecision. Any precision above
+SimTK::LosslessNumDigitsReal is capped at SimTK::LosslessNumDigitsReal. **/
 template <class T> inline explicit
 String(const T& t, int precision = String::DefaultOutputPrecision);
 
