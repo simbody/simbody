@@ -165,15 +165,41 @@ explicit String(std::complex<double> r, const char* fmt="%.17g")
 or "0" cast the bool to an int first. **/
 explicit String(bool b) : std::string(b?"true":"false") { }
 
+// ------------
+// Developer Notes Re: String::DefaultOutputPrecision
+// - This constant was added February 2024 mainly so that numerical values
+//   could be written to XML files with varying significant figures.
+// - It could be altered to be any integer without causing an error, but
+//   some care should be taken before making a change.
+//   * Simbody users (e.g., OpenSim developers) may have written software
+//     around a default output precision of 6 (e.g., model files, GUI
+//     displays).
+//   * A default output precision less than 1 or greater than
+//     SimTK::LosslessNumDigitsReal doesn't make sense.
+// - Because this constant is used only to supply the default value of an
+//   optional 'precision' argument in the following templatized methods,
+//   no API adjustments are required in code that calls these methods. 
+//   * String::String()
+//   * Xml::Element::Element()
+//   * Xml::Element::setValueAs()
+// ------------
+/** The default output precision of the templatized string constructor is 6,
+which corresponds to the default output precision of std::ostream objects.
+See String::String(const T& t, int precision). */
+static const int DefaultOutputPrecision{6};
+
 /** For any type T for which there is no matching constructor, this templatized
 constructor will format an object of type T into a %String provided that there
 is either an available specialization or (as a last resort) a stream insertion
 operator<<() available for type T; a *runtime* error is thrown if neither is
 available.
 @param t %Value to be converted to a %String.
-@param precision Optional parameter specifying the number of significant
-figures with which t will be represented. **/
-template <class T> inline explicit String(const T& t, int precision = 6);
+@param precision Optional argument specifying the number of significant
+figures with which t will be represented. The default is given by the constant
+String::DefaultOuputPrecision. Any precision above SimTK::LosslessNumDigitsReal
+is capped at SimTK::LosslessNumDigitsReal. **/
+template <class T> inline explicit
+String(const T& t, int precision = String::DefaultOutputPrecision);
 
 /** Constructing a %String from a negated value converts to the underlying
 native type and then uses one of the native-type constructors. **/
@@ -366,6 +392,8 @@ auto stringStreamExtractHelper(std::istringstream& is, T& t, int)
 template <class T> inline
 String::String(const T& t, int precision) {
     std::ostringstream os;
+    if(precision > SimTK::LosslessNumDigitsReal)
+        precision = SimTK::LosslessNumDigitsReal;
     os << std::setprecision(precision);
     *this = stringStreamInsertHelper(os, t, true).str();
 }

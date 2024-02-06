@@ -1074,8 +1074,9 @@ allowed (generally any type for which a stream insertion operator<<()
 exists).
 @see getValueAs<T>(), setValueAs<T>()**/
 template <class T>
-Element(const String& tagWord, const T& value)
-{   new(this) Element(tagWord, String(value)); }
+Element(const String& tagWord, const T& value,
+    int precision = String::DefaultOutputPrecision)
+{   new(this) Element(tagWord, String(value, precision)); }
 
 /** The clone() method makes a deep copy of this Element and its children and
 returns a new orphan Element with the same contents; ordinary assignment and
@@ -1162,10 +1163,16 @@ void setValue(const String& value);
 
 /** Set the value of this value element to the text equivalent of any type T
 for which a conversion construction String(T) is allowed (generally any
-type for which a stream insertion operator<<() exists). **/
+type for which a stream insertion operator<<() exists).
+@param value %Value to be converted to a %String.
+@param precision Optional argument specifying the number of significant
+figures with which the value will be repr-esented. The default is 6. Any
+precision below 1 is set to 1, and any precision above
+SimTK::LosslessNumDigitsReal is set to SimTK::LosslessNumDigitsReal. **/
 template <class T>
-void setValueAs(const T& value)
-{   setValue(String(value)); }
+void setValueAs(const T& value,
+    int precision = String::DefaultOutputPrecision)
+{   setValue(String(value, precision)); }
 
 /** Assuming this is a "value element", convert its text value to the type
 of the template argument T. It is an error if the text can not be converted,
