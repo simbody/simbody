@@ -342,17 +342,17 @@ void testOutputPrecision() {
     // (see std::numeric_limits<long double>::max()), this initialization
     // will result in a consistent value that utilizes all available digits
     // whether the type of 'input' is float or double.
-    // A Vec<1> is used so that the templatized String constructor is evoked.
+    // A Vec<1> is used so that the templatized String constructor is invoked.
     SimTK::Vec<1> input(0.123456789012345678901234);
 
-    // Expected conversions to String for a range of precsions -----
+    // Expected conversions to String for a range of precisions -----
     // The index of the 'expected' array below is the precision.
     // Precisions past a value of 7 are not currently tested so that tests
     // will execute properly when SimTK::Real is set to float or to double.
     // Though not tested past p = 7, the following rounding behavior is what
     // is observed for a double.
-    const int n{24};
-    SimTK::String expected[n];
+    const int num_precisions{24};
+    SimTK::String expected[num_precisions];
     expected[0] = "~[0.1]";
     expected[1] = "~[0.1]";
     expected[2] = "~[0.12]";
@@ -398,9 +398,9 @@ void testOutputPrecision() {
         SimTK_TEST(osLocal.precision() == starting_precision);
 
         // Omit the precision argument, thereby testing the default argument.
-        // Make sure that String::DefaultOutputPrecision < n so that we don't
-        // step out of bounds on the 'expected' array.
-        if (String::DefaultOutputPrecision < n) {
+        // Make sure that String::DefaultOutputPrecision < num_precisions so
+        // that we don't step out of bounds on the 'expected' array.
+        if (String::DefaultOutputPrecision < num_precisions) {
             String outputDefault(input);
             SimTK_TEST(outputDefault ==
                 expected[String::DefaultOutputPrecision]);
@@ -427,11 +427,7 @@ void testOutputPrecision() {
     String outputZero(input, 0); 
     SimTK_TEST(outputZero == outputOne);
 
-    //std::ostringstream os;
-    //String outputDefault =
-    //    stringStreamInsertHelper<Vec<1>>(os, input, true).str();
-
-    // Test when pecision is greater than LosslessNumDigits.
+    // Test when precision is greater than LosslessNumDigits.
     // In String::String(), p is capped at LosslessNumDigits.
     String outputLossless(input, SimTK::LosslessNumDigitsReal);
     String outputLosslessPlus1(input, SimTK::LosslessNumDigitsReal+1);
