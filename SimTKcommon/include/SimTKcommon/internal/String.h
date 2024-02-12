@@ -167,21 +167,19 @@ explicit String(bool b) : std::string(b?"true":"false") { }
 
 // ------------
 // Developer Notes Re: String::DefaultOutputPrecision
-// - This constant was added February 2024 mainly so that numerical values
-//   could be written to XML files with varying significant figures.
-// - This constant could be altered to be any integer without causing an error,
-//   but some care should be taken before making a change.
-//   * Simbody users (e.g., OpenSim developers) may have written software
-//     around a default output precision of 6 (e.g., model files, GUI
-//     displays).
-//   * The default output precision should be great than or equal to 1 and
+// - This constant was added February 2024 to provide a consistent default
+//   value of the precision argument in the following methods:
+//   * String::String(const T& t, int precision = DefaultOutputPrecision)
+//   * Xml::Element::Element(const String& tagWord, const T& value,
+//         int precision = String::DefaultOutputPrecision)
+//   * Xml::Element::setValueAs(const T& value,
+//         int precision = String::DefaultOutputPrecision)
+// - It could be altered to be any integer without causing an error, but some
+//   care should be taken before making a change.
+//   * Simbody users (e.g., OpenSim devs) may have written software around a
+//     default output precision of 6 (e.g., model files, GUI displays).
+//   * The default output precision should be greater than or equal to 1 and
 //     less than or equal to SimTK::LosslessNumDigitsReal.
-// - Because this constant is used only to supply the default value of an
-//   optional 'precision' argument in the following templatized methods,
-//   no API adjustments are required in code that calls these methods. 
-//   * String::String()
-//   * Xml::Element::Element()
-//   * Xml::Element::setValueAs()
 // ------------
 /** The default output precision of the templatized string constructor is 6,
 which corresponds to the default output precision of std::ostream objects.
