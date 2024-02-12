@@ -324,6 +324,190 @@ void testStringConvert() {
 
 }
 
+// February 2024
+// The ability to specify output precision was added to three methods
+// in the SimTK API. In particular, an optional precision argument was added
+// to the following methods:
+// 
+// 1) String::String(const T& t, int precision)
+// 2) Element::Element(const String& tagWord, const T& value, int precision)
+// 3) Element::setValueAs(const T& value, int precision)
+// 
+// The following subtest verifies correct execution of these methods.  
+void testOutputPrecision() {
+
+    // Input value -----
+    // 24 digits are used to initialize the variable 'input' below.
+    // Since the maximum number of available digits for a double is 19
+    // (see std::numeric_limits<long double>::max()), this initialization
+    // will result in a consistent value that utilizes all available digits
+    // whether the type of 'input' is float or double.
+    // A Vec<1> is used so that the templatized String constructor is invoked.
+    SimTK::Vec<1> input(0.123456789012345678901234);
+
+    // Expected conversions to String for a range of precisions -----
+    // The index of the 'expected' array below is the precision.
+    // Precisions past a value of 7 are not currently tested so that tests
+    // will execute properly when SimTK::Real is set to float or to double.
+    // Though not tested past p = 7, the following rounding behavior is what
+    // is observed for a double.
+    const int num_precisions{24};
+    SimTK::String expected[num_precisions];
+    expected[0] = "~[0.1]";
+    expected[1] = "~[0.1]";
+    expected[2] = "~[0.12]";
+    expected[3] = "~[0.123]";
+    expected[4] = "~[0.1235]"; // Rounded up
+    expected[5] = "~[0.12346]"; // Rounded up
+    expected[6] = "~[0.123457]"; // Rounded up
+    expected[7] = "~[0.1234568]"; // Rounded up
+    expected[8] = "~[0.12345679]"; // Rounded up
+    expected[9] = "~[0.123456789]";
+    expected[10] = "~[0.123456789]";
+    expected[11] = "~[0.12345678901]";
+    expected[12] = "~[0.123456789012]";
+    expected[13] = "~[0.1234567890123]";
+    expected[14] = "~[0.12345678901235]"; // Rounded up
+    expected[15] = "~[0.123456789012346]"; // Rounded up
+    expected[16] = "~[0.1234567890123457]"; // Rounded up
+    expected[17] = "~[0.12345678901234568]"; // Rounded up
+    expected[18] = "~[0.123456789012345677]"; // Rounded up
+    expected[19] = "~[0.1234567890123456774]";
+    expected[20] = "~[0.12345678901234567737]";
+    expected[21] = "~[0.12345678901234567737]"; // No long changes because
+    expected[22] = "~[0.12345678901234567737]"; // precision is capped at
+    expected[23] = "~[0.12345678901234567737]"; // LosslessNumDigitsReal
+
+    // Store the precision of a local std::ostringstream object before any
+    // calls to String::String. This is done to verify that changes made to
+    // the precision inside String::String do not affect the precision of
+    // other ostringstream instances.
+    std::ostringstream osLocal;
+    const auto starting_precision{osLocal.precision()};
+
+    // ================
+    // String::String()
+    // ================
+    int p;
+    for(p=0; p <= 7; ++p) {
+        // Specify the precision.
+        String output(input, p);
+        SimTK_TEST(output == expected[p]);
+
+        // Verify that the precision of osLocal is unchanged.
+        SimTK_TEST(osLocal.precision() == starting_precision);
+
+        // Omit the precision argument, thereby testing the default argument.
+        // Make sure that String::DefaultOutputPrecision < num_precisions so
+        // that we don't step out of bounds on the 'expected' array.
+        if (String::DefaultOutputPrecision < num_precisions) {
+            String outputDefault(input);
+            SimTK_TEST(outputDefault ==
+                expected[String::DefaultOutputPrecision]);
+        }
+    }
+
+    // Note that nothing bad happens when p is neg or 0.
+    // String::String() does not check for p < 0 or p == 0; it just
+    // relies on std::ostream to handle such values.
+    // If the following tests fail, it may be because the implementation
+    // of std::ostream varies across operating systems or has changed
+    // since these tests were first put in place.
+    // -----
+    // p < 0: ostream does not accept and falls back on its starting precision.
+    // 'starting_precision' (see above) is used to get the default output
+    // value (see below) to handle a situation in which
+    // String::DefaultOuputPrecision differs from ostream.precision()
+    String outputDefault(input, (int)starting_precision);
+    String outputNeg(input,-2);
+    SimTK_TEST(outputNeg == outputDefault);
+    // -----
+    // p = 0: ostream takes the min p that applies (p = 1)
+    String outputOne(input, 1);
+    String outputZero(input, 0); 
+    SimTK_TEST(outputZero == outputOne);
+
+    // Test when precision is greater than LosslessNumDigits.
+    // In String::String(), p is capped at LosslessNumDigits.
+    String outputLossless(input, SimTK::LosslessNumDigitsReal);
+    String outputLosslessPlus1(input, SimTK::LosslessNumDigitsReal+1);
+    SimTK_TEST(outputLosslessPlus1 == outputLossless);
+
+    // =======================
+    // Test Element::Element()
+    // =======================
+    // Element::Element() is just passing the arguments through to a
+    // String::String() call. So, just going to verify a few notable cases.
+    //------ use the default precision by not passing p
+    Xml::Element defaultSigFigs("default", input);
+    SimTK_TEST(defaultSigFigs.getValue() ==
+        expected[String::DefaultOutputPrecision]);
+    //------ a precision of 0 should get lower bounded to 1
+    p = 0;
+    Xml::Element zeroSigFigs("zero", input, p);
+    SimTK_TEST(zeroSigFigs.getValue() == expected[1]);
+    //------ will not round
+    p = 3;
+    Xml::Element threeSigFigs("three", input, p);
+    SimTK_TEST(threeSigFigs.getValue() == expected[p]);
+    //------ will round
+    p = 7;
+    Xml::Element sevenSigFigs("seven", input, p);
+    SimTK_TEST(sevenSigFigs.getValue() == expected[p]);
+    //------ above the max that makes sense
+    p = SimTK::LosslessNumDigitsReal;
+    Xml::Element losslessSigFigs("lossless", input, p);
+    p = SimTK::LosslessNumDigitsReal + 1;
+    Xml::Element losslessPlusOneSigFigs("losslessPlusOne", input, p);
+    SimTK_TEST(losslessPlusOneSigFigs.getValue() ==
+        losslessSigFigs.getValue());
+
+    // ==========================
+    // Test Element::setValueAs()
+    // ==========================
+    // Element::setValueAs() is just passing the arguments through to a
+    // String::String() call. So, just going to verify a few notable cases.
+    // These tests use the previously constructed element nodes but first set
+    // all of their values to 0.0 as way of clearing the previous value.
+    //------ first set the value of existing elements to 0.0
+    Vec<1> zeroValue(0.0);
+    defaultSigFigs.setValueAs<Vec<1>>(zeroValue);
+    zeroSigFigs.setValueAs<Vec<1>>(zeroValue);
+    threeSigFigs.setValueAs<Vec<1>>(zeroValue);
+    sevenSigFigs.setValueAs<Vec<1>>(zeroValue);
+    losslessSigFigs.setValueAs<Vec<1>>(zeroValue);
+    losslessPlusOneSigFigs.setValueAs<Vec<1>>(zeroValue);
+    SimTK_TEST(defaultSigFigs.getValue() == "~[0]")
+    SimTK_TEST(zeroSigFigs.getValue() == "~[0]")
+    SimTK_TEST(threeSigFigs.getValue() == "~[0]")
+    SimTK_TEST(sevenSigFigs.getValue() == "~[0]")
+    SimTK_TEST(losslessSigFigs.getValue() == "~[0]")
+    SimTK_TEST(losslessPlusOneSigFigs.getValue() == "~[0]")
+    //------ use the default precision by not passing p
+    defaultSigFigs.setValueAs<Vec<1>>(input);
+    SimTK_TEST(defaultSigFigs.getValue() ==
+        expected[String::DefaultOutputPrecision]);
+    //------ a precision of 0 should get lower bounded to 1
+    p = 0;
+    zeroSigFigs.setValueAs<Vec<1>>(input, p);
+    SimTK_TEST(zeroSigFigs.getValue() == expected[1]);
+    //------ will not round
+    p = 3;
+    threeSigFigs.setValueAs<Vec<1>>(input, p);
+    SimTK_TEST(threeSigFigs.getValue() == expected[p]);
+    //------ will round
+    p = 7;
+    sevenSigFigs.setValueAs<Vec<1>>(input, p);
+    SimTK_TEST(sevenSigFigs.getValue() == expected[p]);
+    //------ above the max that makes sense
+    p = SimTK::LosslessNumDigitsReal;
+    losslessSigFigs.setValueAs<Vec<1>>(input, p);
+    p = SimTK::LosslessNumDigitsReal + 1;
+    losslessPlusOneSigFigs.setValueAs<Vec<1>>(input, p);
+    SimTK_TEST(losslessPlusOneSigFigs.getValue() ==
+        losslessSigFigs.getValue());
+}
+
 int main() {
     cout << "Path of this executable: '" << Pathname::getThisExecutablePath() << "'\n";
     cout << "Executable directory: '" << Pathname::getThisExecutableDirectory() << "'\n";
@@ -331,6 +515,7 @@ int main() {
 
     SimTK_START_TEST("TestXml");
 
+        SimTK_SUBTEST(testOutputPrecision);
         SimTK_SUBTEST(testStringConvert);
         SimTK_SUBTEST(testXmlFromString);
         SimTK_SUBTEST(testXmlFromScratch);
