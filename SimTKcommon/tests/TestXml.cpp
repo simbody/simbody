@@ -325,8 +325,8 @@ void testStringConvert() {
 }
 
 // February 2024
-// The ability to specify output precision was added to three methods
-// in the SimTK API. In particular, an optional precision argument was added
+// The ability to specify output precision was added by adding three new
+// methods to the SimTK API. In particular, a precision argument was added
 // to the following methods:
 // 
 // 1) String::String(const T& t, int precision)
@@ -381,7 +381,8 @@ void testOutputPrecision() {
     // Store the precision of a local std::ostringstream object before any
     // calls to String::String. This is done to verify that changes made to
     // the precision inside String::String do not affect the precision of
-    // other ostringstream instances.
+    // other ostringstream instances. This is also done to test cases
+    // where a precision is not specified.
     std::ostringstream osLocal;
     const auto starting_precision{osLocal.precision()};
 
@@ -398,12 +399,11 @@ void testOutputPrecision() {
         SimTK_TEST(osLocal.precision() == starting_precision);
 
         // Omit the precision argument, thereby testing the default argument.
-        // Make sure that String::DefaultOutputPrecision < num_precisions so
-        // that we don't step out of bounds on the 'expected' array.
-        if (String::DefaultOutputPrecision < num_precisions) {
+        // Make sure that starting_precision < num_precisions so that we don't
+        // step out of bounds on the 'expected' array.
+        if (starting_precision < num_precisions) {
             String outputDefault(input);
-            SimTK_TEST(outputDefault ==
-                expected[String::DefaultOutputPrecision]);
+            SimTK_TEST(outputDefault == expected[starting_precision]);
         }
     }
 
@@ -436,12 +436,24 @@ void testOutputPrecision() {
     // =======================
     // Test Element::Element()
     // =======================
+    // Bool is a special case. String::String(bool b) is a specialized
+    // constructor for which precision has no application.
+    // true
+    bool valueBool = true;
+    Xml::Element elmtBoolTrue("Test_Bool", valueBool);
+    String valueBoolStr = elmtBoolTrue.getValue();
+    SimTK_TEST(valueBoolStr = "true");
+    // false
+    valueBool = false;
+    Xml::Element elmtBoolFalse("Test_Bool", valueBool);
+    valueBoolStr = elmtBoolFalse.getValue();
+    SimTK_TEST(valueBoolStr = "false");
+    
     // Element::Element() is just passing the arguments through to a
     // String::String() call. So, just going to verify a few notable cases.
-    //------ use the default precision by not passing p
+    //------ use the default ostream precision by not passing p
     Xml::Element defaultSigFigs("default", input);
-    SimTK_TEST(defaultSigFigs.getValue() ==
-        expected[String::DefaultOutputPrecision]);
+    SimTK_TEST(defaultSigFigs.getValue() == expected[starting_precision]);
     //------ a precision of 0 should get lower bounded to 1
     p = 0;
     Xml::Element zeroSigFigs("zero", input, p);
@@ -468,7 +480,15 @@ void testOutputPrecision() {
     // Element::setValueAs() is just passing the arguments through to a
     // String::String() call. So, just going to verify a few notable cases.
     // These tests use the previously constructed element nodes but first set
-    // all of their values to 0.0 as way of clearing the previous value.
+    // all of their values to 0.0 (or false) as way of clearing the previous
+    // value.
+
+    //------ Bool is a special case
+    valueBool = false;
+    elmtBoolTrue.setValueAs("Test_Bool", valueBool);
+    valueBoolStr = elmtBoolTrue.getValue();
+    SimTK_TEST(valueBoolStr = "false");
+
     //------ first set the value of existing elements to 0.0
     Vec<1> zeroValue(0.0);
     defaultSigFigs.setValueAs<Vec<1>>(zeroValue);
@@ -485,8 +505,7 @@ void testOutputPrecision() {
     SimTK_TEST(losslessPlusOneSigFigs.getValue() == "~[0]")
     //------ use the default precision by not passing p
     defaultSigFigs.setValueAs<Vec<1>>(input);
-    SimTK_TEST(defaultSigFigs.getValue() ==
-        expected[String::DefaultOutputPrecision]);
+    SimTK_TEST(defaultSigFigs.getValue() == expected[starting_precision]);
     //------ a precision of 0 should get lower bounded to 1
     p = 0;
     zeroSigFigs.setValueAs<Vec<1>>(input, p);
