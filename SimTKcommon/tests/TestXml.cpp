@@ -324,7 +324,7 @@ void testStringConvert() {
 
 }
 
-// February 2024
+// March 2024
 // The ability to specify output precision was added by adding three new
 // methods to the SimTK API. In particular, a precision argument was added
 // to the following methods:
