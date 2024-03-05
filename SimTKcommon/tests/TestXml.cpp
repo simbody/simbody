@@ -408,9 +408,9 @@ void testOutputPrecision() {
     }
 
     // Test when precision is less than 1.
-    // Implementations of std::ostreatm::setprecision() may differ.
-    // To ensure uniform behavior std libraries, precision is bounded.
-    // In String::String(const T& t, int p), if p <= 1, p is set to 1.
+    // Implementations of std::ostream::setprecision() may differ.
+    // To ensure uniform behavior from std libraries, precision is bounded.
+    // In String::String(const T& t, int p), if p < 1, p is set to 1.
     // p < 0: 
     String outputNeg(input,-2);
     SimTK_TEST(outputNeg == expected[1]);

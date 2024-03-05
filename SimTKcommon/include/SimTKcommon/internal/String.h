@@ -181,7 +181,7 @@ operator<<() available for type T; a *runtime* error is thrown if neither is
 available.
 @param t %Value to be converted to a %String.
 @param precision Number of significant figures with which t will be represented.
-Bounds are enforced so that ```1 ≤ precision ≤ SimTK::LosslessNumDigitsReal```.
+Bounds are enforced so that `1 ≤ precision ≤ SimTK::LosslessNumDigitsReal`.
 */
 template <class T> inline explicit
 String(const T& t, int precision);
