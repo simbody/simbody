@@ -1,4 +1,4 @@
-#ifndef SimTK_SimTKCOMMON_STRING_H_
+﻿#ifndef SimTK_SimTKCOMMON_STRING_H_
 #define SimTK_SimTKCOMMON_STRING_H_
 
 /* -------------------------------------------------------------------------- *
@@ -181,8 +181,8 @@ operator<<() available for type T; a *runtime* error is thrown if neither is
 available.
 @param t %Value to be converted to a %String.
 @param precision Number of significant figures with which t will be represented.
-Any precision above SimTK::LosslessNumDigitsReal is capped at
-SimTK::LosslessNumDigitsReal. **/
+Bounds are enforced so that ```1 ≤ precision ≤ SimTK::LosslessNumDigitsReal```.
+*/
 template <class T> inline explicit
 String(const T& t, int precision);
 
@@ -382,10 +382,15 @@ String::String(const T& t) {
 
 // Implementation of the generic templatized String constructor
 // with precision.
+// To ensure consistent behavior of ostream::setprecision() across operating
+// systems and whether a build is debug or release, precision is bounded:
+// 1 <= precision <= SimTK::LosslessNumDigitsReal
 template <class T> inline
 String::String(const T& t, int precision) {
     std::ostringstream os;
-    if(precision > SimTK::LosslessNumDigitsReal)
+    if(precision < 1)
+        precision = 1;
+    else if(precision > SimTK::LosslessNumDigitsReal)
         precision = SimTK::LosslessNumDigitsReal;
     os << std::setprecision(precision);
     *this = stringStreamInsertHelper(os, t, true).str();
