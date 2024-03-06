@@ -407,28 +407,19 @@ void testOutputPrecision() {
         }
     }
 
-    // Note that nothing bad happens when p is neg or 0.
-    // String::String() does not check for p < 0 or p == 0; it just
-    // relies on std::ostream to handle such values.
-    // If the following tests fail, it may be because the implementation
-    // of std::ostream varies across operating systems or has changed
-    // since these tests were first put in place.
-    // -----
-    // p < 0: ostream does not accept and falls back on its starting precision.
-    // 'starting_precision' (see above) is used to get the default output
-    // value (see below) to handle a situation in which
-    // String::DefaultOuputPrecision differs from ostream.precision()
-    String outputDefault(input, (int)starting_precision);
+    // Test when precision is less than 1.
+    // Implementations of std::ostream::setprecision() may differ.
+    // To ensure uniform behavior from std libraries, precision is bounded.
+    // In String::String(const T& t, int p), if p < 1, p is set to 1.
+    // p < 0: 
     String outputNeg(input,-2);
-    SimTK_TEST(outputNeg == outputDefault);
-    // -----
-    // p = 0: ostream takes the min p that applies (p = 1)
-    String outputOne(input, 1);
+    SimTK_TEST(outputNeg == expected[1]);
+    // p = 0:
     String outputZero(input, 0); 
-    SimTK_TEST(outputZero == outputOne);
+    SimTK_TEST(outputZero == expected[1]);
 
     // Test when precision is greater than LosslessNumDigits.
-    // In String::String(), p is capped at LosslessNumDigits.
+    // In String::String(const T& t, int p), p is capped at LosslessNumDigits.
     String outputLossless(input, SimTK::LosslessNumDigitsReal);
     String outputLosslessPlus1(input, SimTK::LosslessNumDigitsReal+1);
     SimTK_TEST(outputLosslessPlus1 == outputLossless);
