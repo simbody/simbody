@@ -500,6 +500,10 @@ void SimbodyMatterSubsystem::calcPq(const State& s, Matrix& Pq) const
 {   getRep().calcPq(s,Pq); }
 void SimbodyMatterSubsystem::calcPqTranspose(const State& s, Matrix& Pqt) const 
 {   getRep().calcPqTranspose(s,Pqt); }
+void SimbodyMatterSubsystem::calcPV(const State& s, Matrix& PV) const
+{   getRep().calcPVA(s, true, true, false, PV); }
+void SimbodyMatterSubsystem::calcPVTranspose(const State& s, Matrix& PVt) const
+{   getRep().calcPVATranspose(s, true, true, false, PVt); }
 
 void SimbodyMatterSubsystem::
 calcP(const State& s, Matrix& P) const {
@@ -621,6 +625,63 @@ multiplyByPqTranspose(const State&  s,
     rep.multiplyByPqTranspose(s, *clambdap, *cfq);
     if (needToCopyBack)
         fq = *cfq;
+}
+
+
+
+//==============================================================================
+//                          MULTIPLY BY PV TRANSPOSE
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method to calculate fpv = ~[P;V]*lambdapv.
+void SimbodyMatterSubsystem::
+multiplyByPVTranspose(const State&  s,
+                      const Vector& lambdapv,
+                      Vector&       fpv) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const SBInstanceCache& ic = rep.getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mpv  = mHolo+mNonholo;
+    const int nu = rep.getNU(s);
+
+    SimTK_ERRCHK2_ALWAYS(lambdapv.size() == mpv,
+        "SimbodyMatterSubsystem::multiplyByPVTranspose()",
+        "Argument 'lambdapv' had length %d but should have the same length"
+        " as the total number of active holonomic and non-holonomic constraint"
+        " equations mp+mv=%d.",
+        lambdapv.size(), mpv);
+
+    fpv.resize(nu);
+    if (nu==0) return;
+    if (mpv==0) {fpv.setToZero(); return;}
+
+    // Assume at first that both Vectors are contiguous.
+    const Vector* clambdapv = &lambdapv;
+    Vector*       cfpv      = &fpv;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_lambdapv, contig_fpv;
+
+    if (!lambdapv.hasContiguousData()) {
+        contig_lambdapv.resize(mpv); // contiguous memory
+        contig_lambdapv(0, mpv) = lambdapv; // copy, prevent reallocation
+        clambdapv = (const Vector*)&contig_lambdapv;
+    }
+
+    if (!fpv.hasContiguousData()) {
+        contig_fpv.resize(nu); // contiguous memory
+        cfpv = (Vector*)&contig_fpv;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByPVATranspose(s, true, true, false, *clambdapv, *cfpv);
+    if (needToCopyBack)
+        fpv = *cfpv;
 }
 
 
@@ -919,6 +980,100 @@ calcBiasForMultiplyByPq(const State& state,
 }
 
 
+
+//==============================================================================
+//                             MULTIPLY BY PV
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method.
+void SimbodyMatterSubsystem::
+multiplyByPV(const State&  s,
+            const Vector& ulike,
+            const Vector& biaspv,
+            Vector&       PVulike) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const SBInstanceCache& ic = rep.getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mpv  = mHolo+mNonholo;
+    const int nu = rep.getNU(s);
+
+    SimTK_ERRCHK2_ALWAYS(ulike.size() == nu,
+        "SimbodyMatterSubsystem::multiplyByPV()",
+        "Argument 'ulike' had length %d but should have the same length"
+        " as the total number of mobilities nu=%d.", ulike.size(), nu);
+
+    SimTK_ERRCHK2_ALWAYS(biaspv.size() == mpv,
+        "SimbodyMatterSubsystem::multiplyByPV()",
+        "Argument 'biaspv' had length %d but should have the same length"
+        " as the total number of holonomic and non-holonomic constraint"
+        " equations mp+mv=%d.", biaspv.size(), mpv);
+
+    PVulike.resize(mpv);
+    if (mpv==0) return;
+
+    // Assume at first that all Vectors are contiguous.
+    const Vector* culike   = &ulike;
+    const Vector* cbiaspv  = &biaspv;
+    Vector*       cPVulike = &PVulike;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_ulike, contig_biaspv, contig_PVulike;
+
+    if (!ulike.hasContiguousData()) {
+        contig_ulike.resize(nu); // contiguous memory
+        contig_ulike(0, nu) = ulike; // copy, prevent reallocation
+        culike = (const Vector*)&contig_ulike;
+    }
+    if (!biaspv.hasContiguousData()) {
+        contig_biaspv.resize(mpv); // contiguous memory
+        contig_biaspv(0, mpv) = biaspv; // copy, prevent reallocation
+        cbiaspv = (const Vector*)&contig_biaspv;
+    }
+    if (!PVulike.hasContiguousData()) {
+        contig_PVulike.resize(mpv); // contiguous memory
+        cPVulike = (Vector*)&contig_PVulike;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByPVA(s, true, true, false, *cbiaspv, *culike, *cPVulike);
+    if (needToCopyBack)
+        PVulike = *cPVulike;
+}
+
+
+
+//==============================================================================
+//                      CALC BIAS FOR MULTIPLY BY PV
+//==============================================================================
+// Here we just make sure that we have a contiguous array for the result and
+// then call the implementation method.
+void SimbodyMatterSubsystem::
+calcBiasForMultiplyByPV(const State& state,
+                        Vector&      biaspv) const
+{
+    const SBInstanceCache& ic = getRep().getInstanceCache(state);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mpv      = mHolo+mNonholo;
+
+    biaspv.resize(mpv);
+    if (mpv==0) return;
+
+    if (biaspv.hasContiguousData()) {
+        getRep().calcBiasForMultiplyByPVA(state, true, true, false, biaspv);
+    } else {
+        Vector tmpbiaspv(mpv); // contiguous
+        getRep().calcBiasForMultiplyByPVA(state, true, true, false, tmpbiaspv);
+        biaspv = tmpbiaspv;
+    }
+}
 
 
 //==============================================================================

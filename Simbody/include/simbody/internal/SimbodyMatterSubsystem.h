@@ -1535,10 +1535,10 @@ functions with zero input to determine the bias term for use in
 multiplyByG(). Body quantities and generalized quantities are supplied to each 
 of the m active constraints' (constant time) error methods to calculate
 <pre>
-   pverr(t,q,u;ulike)=G*ulike - c(t,q)    (holonomic) 
+   pverr(t,q,u;ulike)=G*ulike - c(t,q)    (holonomic)
 or aerr(t,q,u;ulike)=G*ulike - b(t,q,u)   (nonholonomic or acceleration-only)
 </pre>
-with ulike=0, giving the bias term in O(m) time. 
+with ulike=0, giving the bias term in O(m) time.
 
 If you want the acceleration-level bias terms b for all the constraints, even
 if they are holonomic, use calcBiasForAccelerationConstraints(). **/
@@ -1679,7 +1679,7 @@ void multiplyByGTranspose(const State&  state,
     
 /** This O(nm) operator explicitly calculates the n X m transpose of the 
 acceleration-level constraint Jacobian G = [P;V;A] which appears in the system 
-equations of motion. This method generates ~G columnwise use the constraint 
+equations of motion. This method generates ~G columnwise using the constraint
 force generating methods which map constraint multipliers to constraint forces.
 To within numerical error, this should be identical to the transpose of
 the matrix returned by calcG() which uses a different method. Consider using 
@@ -1895,6 +1895,146 @@ void calcP(const State& state, Matrix& P) const;
   \c Stage::Position **/
 void calcPt(const State& state, Matrix& Pt) const;
 
+/** Returns PVulike = PV*ulike, the product of the (mp+mv)Xn acceleration
+constraint matrix PV = [P;V] (a submatrix of the full constraint Jacobian G) and
+a "u-like" (mobility space) vector of length n. mp and mv are the number of
+active acceleration-level constraint equations associated with holonomic and
+non-holonomic constraints, respectively, n is the number of mobilities. This is
+an O(mp+mv+n) operation.
+
+If you are going to call this method repeatedly at the same time, positions and
+velocities, you should precalculate the bias term once and supply it to the
+alternate signature of this method. See the Implementation section for more
+information.
+
+@pre \a state realized to Velocity stage
+@par Implementation
+This is accomplished by treating the input vector \a ulike as though it were
+a set of generalized accelerations (for non-holonomic constraints) or
+generalized speeds (for holonomic constraints). These are mapped to body
+accelerations (or velocities) in O(n) time. See
+calcBodyAccelerationFromUDot() for more information (converting from
+generalized speeds to velocities is just multiplying by the System Jacobian).
+The method calcBiasForMultiplyByPV() is used to determine the state-dependent
+term of the constraint error equations. Then a second call is made to
+evaluate the bias terms paerr(t,q,u;0)=-bp(t,q,u) and vaerr(t,q,u;0)=-bv(t,q,u).
+We then calculate PVulike = [Pulike; Vulike] in O(mp+mv) time, where
+Pulike = paerr(t,q,u;ulike)-paerr(t,q,u;0) and
+Vulike = vaerr(t,q,u;ulike)-vaerr(t,q,u;0).
+
+@see calcBiasForMultiplyByPV() **/
+void multiplyByPV(const State&  state,
+                  const Vector& ulike,
+                  Vector&       PVulike) const {
+    Vector biaspv;
+    calcBiasForMultiplyByPV(state, biaspv);
+    multiplyByPV(state, ulike, biaspv, PVulike);
+}
+
+/** Multiply PVulike=PV*ulike where PV = [P;V] using the supplied precalculated
+bias vector to improve performance (approximately 2X) over the other signature.
+@see calcBiasForMultiplyByPV() **/
+void multiplyByPV(const State&  state,
+                  const Vector&  ulike,
+                  const Vector&  biaspv,
+                  Vector&        PVulike) const;
+
+/** Calculate the bias vector needed for the higher-performance signature of
+the multiplyByPV() method above.
+
+@param[in]      state
+    Provides time t, positions q, and speeds u; must be realized through
+    Velocity stage so that all body spatial velocities are known.
+@param[out]     bias
+    This is the bias vector for use in repeated calls to multiplyByPV(). It
+    will be resized if necessary to length mp+mv, the total number of
+    active acceleration-level equations for the holonomic and non-holonomic
+    constraints.
+
+@pre \a state realized to Velocity stage
+@par Implementation
+This method uses either velocity- or acceleration- level constraint error
+functions with zero input to determine the bias term for use in
+multiplyByPV(). Body quantities and generalized quantities are supplied to each
+of the m active constraints' (constant time) error methods to calculate
+<pre>
+   pverr(t,q,u;ulike)=P*ulike - c(t,q)     (holonomic)
+or vaerr(t,q,u;ulike)=V*ulike - b(t,q,u)   (non-holonomic)
+</pre>
+with ulike=0, giving the bias term in O(mp+mv) time.
+
+If you want the acceleration-level bias terms b for all the constraints, even
+if they are holonomic, use calcBiasForAccelerationConstraints(). **/
+void calcBiasForMultiplyByPV(const State& state,
+                             Vector&      bias) const;
+
+/** This O((mp+mv)*n) operator explicitly calculates the (mp+mv) X n
+acceleration-level constraint matrix PV = [P;A] (a submatrix of the full
+constraint Jacobian G) which appears in the system equations of motion. Consider
+using the multiplyByPV() method instead of this one, which forms the matrix-
+vector product PV*v in O(mp+mv+n) time without explicitly forming PV.
+
+@par Implementation
+This method generates PV columnwise using repeated calls to multiplyByPV(),
+which makes use of the constraint error methods to perform a PV*v product
+in O(mp+mv+n) time. To within numerical error, for non-working constraints
+this should be identical to the transpose of the matrix returned by calcPVt()
+which uses the constraint force methods instead.
+@see multiplyByPV(), calcPVt(), calcPq() **/
+void calcPV(const State& state, Matrix& PV) const;
+
+/** Returns fpv = ~PV*lambdapv, the product of the n X (mp+mv) transpose of
+PV = [P;V], a submatrix of the acceleration constraint Jacobian G, and a
+multiplier-like vector \a lambda of length mp+mv, returning a generalized-force
+like quantity \a fpv of length n. mp+mv is the number of active holonomic and
+non-holonomic constraint equations, n (==nu) is the number of mobilities
+(generalized speeds u). If lambdapv is a set of constraint multipliers, then
+fpv=~PV*lambdapv is the set of forces generated by the constraints, mapped into
+generalized forces. This is an O(mp+mv+n) operation.
+
+Because the velocity (non-holonomic) constraint Jacobian V can have velocity
+dependence, the \a state supplied here must generally be realized through
+Velocity stage. If the system has only position (holonomic) constraints then the
+\a state need be realized only through Position stage.
+
+@param[in]      state
+    A State that has been realized through Velocity stage (or Position stage
+    if the system has no velocity-dependent constraint Jacobians).
+    Configuration and velocities if needed are taken from \a state.
+@param[in]      lambdapv
+    A multiplier-like vector to be multiplied by ~PV. Its length must be the
+    same as the total number of active holonomic and non-holonomic constraint
+    equations mp+mv.
+@param[out]     fpv
+    This is the generalized force-like output. It will be resized if necessary
+    to length equal to the number of mobilities (generalized speeds) n (==nu).
+
+@par Implementation
+This is accomplished by treating the input vector \a lambdapv as though it were
+a set of Lagrange multipliers, then calling each of the active Constraints'
+(constant time) force generation methods, providing the appropriate subset of
+the multipliers each time. That gives body forces F0 and mobility forces f0 in
+O(mp+mv) time. We then use the equivalent of multiplyBySystemJacobianTranspose()
+to convert the returned body spatial forces to generalized forces in O(n)
+time, and finally return the generalized force-like result fpv = ~J*F0 + f0.
+@see multiplyByPV(), multiplyBySystemJacobianTranspose() **/
+void multiplyByPVTranspose(const State&  state,
+                           const Vector& lambdapv,
+                           Vector&       fpv) const;
+
+/** This O(n(mp+mv)) operator explicitly calculates the n X (mp+mv) transpose of
+PV = [P;V], a submatrix of the acceleration-level constraint Jacobian G, which
+appears in the system equations of motion. This method generates ~PV columnwise
+using the constraint force generating methods which map constraint multipliers
+to constraint forces. To within numerical error, this should be identical to the
+transpose of the matrix returned by calcPV() which uses a different method.
+Consider using the multiplyByPVTranspose() method instead of this one, which
+forms the matrix-vector product ~PV*v in O(n) time without explicitly forming
+~PV.
+@par Required stage
+  \c Stage::Velocity
+@see calcPV(), multiplyByPVTranspose() **/
+void calcPVTranspose(const State&, Matrix& PVt) const;
 
 /** Calculate out_q = N(q)*in_u (like qdot=N*u) or out_u = ~N*in_q. Note that 
 one of "in" and "out" is always "q-like" while the other is "u-like", but which
