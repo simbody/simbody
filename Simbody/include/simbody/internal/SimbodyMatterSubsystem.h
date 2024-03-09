@@ -1535,10 +1535,10 @@ functions with zero input to determine the bias term for use in
 multiplyByG(). Body quantities and generalized quantities are supplied to each 
 of the m active constraints' (constant time) error methods to calculate
 <pre>
-   pverr(t,q,u;ulike)=G*ulike - c(t,q)    (holonomic)
+   pverr(t,q,u;ulike)=G*ulike - c(t,q)    (holonomic) 
 or aerr(t,q,u;ulike)=G*ulike - b(t,q,u)   (nonholonomic or acceleration-only)
 </pre>
-with ulike=0, giving the bias term in O(m) time.
+with ulike=0, giving the bias term in O(m) time. 
 
 If you want the acceleration-level bias terms b for all the constraints, even
 if they are holonomic, use calcBiasForAccelerationConstraints(). **/
@@ -1679,7 +1679,7 @@ void multiplyByGTranspose(const State&  state,
     
 /** This O(nm) operator explicitly calculates the n X m transpose of the 
 acceleration-level constraint Jacobian G = [P;V;A] which appears in the system 
-equations of motion. This method generates ~G columnwise using the constraint
+equations of motion. This method generates ~G columnwise using the constraint 
 force generating methods which map constraint multipliers to constraint forces.
 To within numerical error, this should be identical to the transpose of
 the matrix returned by calcG() which uses a different method. Consider using 
