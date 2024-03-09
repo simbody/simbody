@@ -646,7 +646,7 @@ multiplyByPVTranspose(const State&  s,
     const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
     const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
     const int mpv  = mHolo+mNonholo;
-    const int nu = rep.getNU(s);
+    const int nu   = rep.getNU(s);
 
     SimTK_ERRCHK2_ALWAYS(lambdapv.size() == mpv,
         "SimbodyMatterSubsystem::multiplyByPVTranspose()",
@@ -999,7 +999,7 @@ multiplyByPV(const State&  s,
     const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
     const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
     const int mpv  = mHolo+mNonholo;
-    const int nu = rep.getNU(s);
+    const int nu   = rep.getNU(s);
 
     SimTK_ERRCHK2_ALWAYS(ulike.size() == nu,
         "SimbodyMatterSubsystem::multiplyByPV()",

@@ -1934,7 +1934,7 @@ void multiplyByPV(const State&  state,
 /** Multiply PVulike=PV*ulike where PV = [P;V] using the supplied precalculated
 bias vector to improve performance (approximately 2X) over the other signature.
 @see calcBiasForMultiplyByPV() **/
-void multiplyByPV(const State&  state,
+void multiplyByPV(const State&   state,
                   const Vector&  ulike,
                   const Vector&  biaspv,
                   Vector&        PVulike) const;
@@ -2022,15 +2022,15 @@ void multiplyByPVTranspose(const State&  state,
                            const Vector& lambdapv,
                            Vector&       fpv) const;
 
-/** This O(n(mp+mv)) operator explicitly calculates the n X (mp+mv) transpose of
-PV = [P;V], a submatrix of the acceleration-level constraint Jacobian G, which
-appears in the system equations of motion. This method generates ~PV columnwise
-using the constraint force generating methods which map constraint multipliers
-to constraint forces. To within numerical error, this should be identical to the
-transpose of the matrix returned by calcPV() which uses a different method.
-Consider using the multiplyByPVTranspose() method instead of this one, which
-forms the matrix-vector product ~PV*v in O(n) time without explicitly forming
-~PV.
+/** This O(n*(mp+mv)) operator explicitly calculates the n X (mp+mv) transpose
+of PV = [P;V], a submatrix of the acceleration-level constraint Jacobian G,
+which appears in the system equations of motion. This method generates ~PV
+columnwise using the constraint force generating methods which map constraint
+multipliers to constraint forces. To within numerical error, this should be
+identical to the transpose of the matrix returned by calcPV() which uses a
+different method. Consider using the multiplyByPVTranspose() method instead of
+this one, which forms the matrix-vector product ~PV*v in O(n) time without
+explicitly forming ~PV.
 @par Required stage
   \c Stage::Velocity
 @see calcPV(), multiplyByPVTranspose() **/
