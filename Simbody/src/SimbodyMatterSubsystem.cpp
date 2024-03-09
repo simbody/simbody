@@ -645,8 +645,8 @@ multiplyByPVTranspose(const State&  s,
     // Global problem dimensions.
     const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
     const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
-    const int mpv  = mHolo+mNonholo;
-    const int nu   = rep.getNU(s);
+    const int mpv = mHolo+mNonholo;
+    const int nu  = rep.getNU(s);
 
     SimTK_ERRCHK2_ALWAYS(lambdapv.size() == mpv,
         "SimbodyMatterSubsystem::multiplyByPVTranspose()",
@@ -887,7 +887,7 @@ calcConstraintAccelerationErrors(const State&               state,
 //==============================================================================
 //                            MULTIPLY BY Pq
 //==============================================================================
-// Check arguments, copy in/out of contiguous Vectors if necssary, call the
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
 // implementation method.
 void SimbodyMatterSubsystem::
 multiplyByPq(const State&   s,
@@ -988,9 +988,9 @@ calcBiasForMultiplyByPq(const State& state,
 // implementation method.
 void SimbodyMatterSubsystem::
 multiplyByPV(const State&  s,
-            const Vector& ulike,
-            const Vector& biaspv,
-            Vector&       PVulike) const
+             const Vector& ulike,
+             const Vector& biaspv,
+             Vector&       PVulike) const
 {
     const SimbodyMatterSubsystemRep& rep = getRep();
     const SBInstanceCache& ic = rep.getInstanceCache(s);
@@ -998,8 +998,8 @@ multiplyByPV(const State&  s,
     // Global problem dimensions.
     const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
     const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
-    const int mpv  = mHolo+mNonholo;
-    const int nu   = rep.getNU(s);
+    const int mpv = mHolo+mNonholo;
+    const int nu  = rep.getNU(s);
 
     SimTK_ERRCHK2_ALWAYS(ulike.size() == nu,
         "SimbodyMatterSubsystem::multiplyByPV()",
