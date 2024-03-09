@@ -1917,9 +1917,9 @@ calcBodyAccelerationFromUDot() for more information (converting from
 generalized speeds to velocities is just multiplying by the System Jacobian).
 The method calcBiasForMultiplyByPV() is used to determine the state-dependent
 term of the constraint error equations. Then a second call is made to
-evaluate the bias terms paerr(t,q,u;0)=-bp(t,q,u) and vaerr(t,q,u;0)=-bv(t,q,u).
-We then calculate PVulike = [Pulike; Vulike] in O(mp+mv) time, where
-Pulike = paerr(t,q,u;ulike)-paerr(t,q,u;0) and
+evaluate the bias terms paerr(t,q,u;0)=-b_p(t,q,u) and
+vaerr(t,q,u;0)=-b_v(t,q,u). We then calculate PVulike = [Pulike; Vulike] in
+O(mp+mv) time, where Pulike = paerr(t,q,u;ulike)-paerr(t,q,u;0) and
 Vulike = vaerr(t,q,u;ulike)-vaerr(t,q,u;0).
 
 @see calcBiasForMultiplyByPV() **/
@@ -1958,8 +1958,8 @@ functions with zero input to determine the bias term for use in
 multiplyByPV(). Body quantities and generalized quantities are supplied to each
 of the m active constraints' (constant time) error methods to calculate
 <pre>
-   pverr(t,q,u;ulike)=P*ulike - c(t,q)     (holonomic)
-or vaerr(t,q,u;ulike)=V*ulike - b(t,q,u)   (non-holonomic)
+   pverr(t,q,u;ulike)=P*ulike - c(t,q)      (holonomic)
+or vaerr(t,q,u;ulike)=V*ulike - b_v(t,q,u)  (non-holonomic)
 </pre>
 with ulike=0, giving the bias term in O(mp+mv) time.
 
