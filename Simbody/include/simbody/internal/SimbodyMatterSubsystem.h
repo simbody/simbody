@@ -1972,11 +1972,11 @@ void calcBiasForMultiplyByPV(const State& state,
 acceleration-level constraint matrix PV = [P;A] (a submatrix of the full
 constraint Jacobian G) which appears in the system equations of motion. Consider
 using the multiplyByPV() method instead of this one, which forms the matrix-
-vector product PV*v in O(mp+mv+n) time without explicitly forming PV.
+vector product PV*u in O(mp+mv+n) time without explicitly forming PV.
 
 @par Implementation
 This method generates PV columnwise using repeated calls to multiplyByPV(),
-which makes use of the constraint error methods to perform a PV*v product
+which makes use of the constraint error methods to perform a PV*u product
 in O(mp+mv+n) time. To within numerical error, for non-working constraints
 this should be identical to the transpose of the matrix returned by calcPVt()
 which uses the constraint force methods instead.
