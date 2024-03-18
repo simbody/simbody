@@ -669,7 +669,7 @@ endif()
 # relocatable.
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
-    ${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigForInstall.cmake
     INSTALL_DESTINATION "${SIMBODY_CMAKE_DIR}"
     PATH_VARS # Variables to edit in the SimbodyConfig.cmake.in.
@@ -700,7 +700,7 @@ install(EXPORT SimbodyTargets DESTINATION
         "${SIMBODY_CMAKE_DIR}") #optionally: COMPONENT dev
 
 # Install a sample CMakeLists.txt that uses SimbodyConfig.cmake.
-install(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/SampleCMakeLists.txt
         DESTINATION ${SIMBODY_CMAKE_DIR})
 
 # Make the pkgconfig file: select the proper flags depending on the platform
@@ -717,7 +717,7 @@ else()
     set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -lpthread -lrt -ldl -lm")
 endif()
 
-configure_file(${CMAKE_SOURCE_DIR}/cmake/pkgconfig/simbody.pc.in
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/pkgconfig/simbody.pc.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig/)
