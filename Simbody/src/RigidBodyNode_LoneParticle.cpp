@@ -26,15 +26,17 @@
 #include "MobilizedBodyImpl.h"
 #include "RigidBodyNodeSpec_Translation.h"
 
-/* This is a specialized class used for MobilizedBody::Translation objects that 
-satisfy all of the following requirements:
+/* This is a specialized class used for MobilizedBody::Translation mobilizers
+that satisfy _all_ of the following requirements:
  -  The body has no children.
  -  The body's parent is ground.
  -  The inboard and outboard transforms are both identities.
  -  The body is not reversed.
 
- These assumptions allow lots of routines to be implemented simpler and faster.
- */
+These assumptions allow lots of routines to be implemented simpler and faster.
+If any of them is not met, we use the more general RBNodeTranslate to
+implement the Translation mobilizer.
+*/
 class RBNodeLoneParticle : public RigidBodyNode {
 public:
 RBNodeLoneParticle(const MassProperties& mProps_B,
@@ -148,6 +150,19 @@ void realizeInstance(const SBStateDigest& sbs) const override {
     SBTreeAccelerationCache& ac = sbs.updTreeAccelerationCache();
     Transform& X_FM = toB(pc.bodyJointInParentJointFrame);
     X_FM.updR().setRotationToIdentityMatrix();
+
+    // Precalculate H_FM_F and H_PB_G here since they never change for a
+    // LoneParticle (the rotational part is zero and the translational part
+    // is identity). And since we require F=P=G here, these are the same.
+    Mat<2,3,Vec3>& H_PB_G = // a.k.a. just "H"
+        Mat<2,3,Vec3>::updAs(&pc.storageForH_PB_G[2 * uIndex]);
+    Mat<2, 3, Vec3>& H_FM_F =
+        Mat<2,3,Vec3>::updAs(&pc.storageForH_FM[2 * uIndex]);
+    H_PB_G.setToZero();
+    for (int j = 0; j < 3; ++j)
+      H_PB_G(1, j)[j] = 1;
+    H_FM_F = H_PB_G;
+
     updV_FM(vc)[0] = Vec3(0);
     updV_PB_G(vc)[0] = Vec3(0);
     updVD_PB_G(vc)[0] = Vec3(0);
@@ -407,20 +422,16 @@ void multiplyByMPass2Inward(
 
 const SpatialVec& getHCol(const SBTreePositionCache& pc, 
                           int j) const override {
-    Mat<2,3,Vec3> H = Mat<2,3,Vec3>::getAs(&pc.storageForH[2*uIndex]);
-    SpatialVec& col = H(j);
-    col = SpatialVec(Vec3(0), Vec3(0));
-    col[1][j] = 1;
-    return col;
+    const Mat<2,3,Vec3>& H_PB_G =
+        Mat<2,3,Vec3>::getAs(&pc.storageForH_PB_G[2*uIndex]);
+    return H_PB_G(j);
 }
 
 const SpatialVec& getH_FMCol(const SBTreePositionCache& pc, 
                              int j) const override {
-    Mat<2,3,Vec3> H = Mat<2,3,Vec3>::getAs(&pc.storageForH_FM[2*uIndex]);
-    SpatialVec& col = H(j);
-    col = SpatialVec(Vec3(0), Vec3(0));
-    col[1][j] = 1;
-    return col;
+    const Mat<2,3,Vec3>& H_FM =
+        Mat<2,3,Vec3>::getAs(&pc.storageForH_FM[2*uIndex]);
+    return H_FM(j);
 }
 
 void setQToFitTransformImpl(const SBStateDigest&, const Transform& X_F0M0, 

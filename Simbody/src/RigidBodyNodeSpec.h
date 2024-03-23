@@ -671,9 +671,9 @@ HType&       updH_FM(SBTreePositionCache& pc) const
 // matrix relating parent and body frames, but expressed in Ground.
 // CAUTION: our H definition is transposed from Jain and Schwieters.
 const HType& getH(const SBTreePositionCache& pc) const
-{   return HType::getAs(&pc.storageForH[2*uIndex]); }
+{   return HType::getAs(&pc.storageForH_PB_G[2*uIndex]); }
 HType&       updH(SBTreePositionCache& pc) const
-{   return HType::updAs(&pc.storageForH[2*uIndex]); }
+{   return HType::updAs(&pc.storageForH_PB_G[2*uIndex]); }
 
     // Velocity
 
