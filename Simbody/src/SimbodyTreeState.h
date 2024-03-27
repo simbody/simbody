@@ -671,8 +671,10 @@ public:
     // CAUTION: our definition of the H matrix is transposed from those used
     // by Jain and by Schwieters. Jain would call these H* and Schwieters
     // would call them H^T, but we call them H.
-    Array_<Vec3> storageForH_FM; // 2 x ndof (H_FM)
-    Array_<Vec3> storageForH;    // 2 x ndof (H_PB_G)
+    // TODO(sherm1) Since each dof gets a SpatialVec, consider making each
+    //  entry a SpatialVec instead to get rid of the 2x in the index.
+    Array_<Vec3> storageForH_FM;   // 2 x ndof (H_FM)
+    Array_<Vec3> storageForH_PB_G; // 2 x ndof (H_PB_G)
 
     Array_<Transform,MobilizedBodyIndex>    bodyJointInParentJointFrame;  // nb (X_FM)
     Array_<Transform,MobilizedBodyIndex>    bodyConfigInParent;           // nb (X_PB)
@@ -715,7 +717,7 @@ public:
         mobilizerQCache.resize(model.totalNQPoolInUse);
 
         storageForH_FM.resize(2*nDofs);
-        storageForH.resize(2*nDofs);
+        storageForH_PB_G.resize(2*nDofs);
 
         bodyJointInParentJointFrame.resize(nBodies); 
         bodyJointInParentJointFrame[GroundIndex].setToZero();

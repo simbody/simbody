@@ -648,7 +648,7 @@ void setUToFitLinearVelocity(State& state, const Vec3& v_FM) const;
 of this mobilizer's mobilities (actually a column of H_PB_G; what Jain calls H* 
 and Schwieters calls H^T). This is the matrix that maps generalized speeds u to 
 the cross-body relative spatial velocity V_PB_G via V_PB_G=H*u. Note that 
-although H relates child body B to parent body B, it is expressed in the ground 
+although H relates child body B to parent body P, it is expressed in the ground
 frame G so the resulting cross-body velocity of B in P is also expressed in G. 
 The supplied state must have been realized through Position stage because H 
 varies with this mobilizer's generalized coordinates q.
