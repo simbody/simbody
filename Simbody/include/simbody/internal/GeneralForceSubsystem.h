@@ -102,6 +102,44 @@ public:
     @return Maximum number of threads GeneralForceSubsystem can use for force
     computations**/
     int getNumberOfThreads() const;
+    
+    /** Calculate the sum of forces that would be applied by the force elements 
+    if the given \a state were realized to Dynamics stage. This sizes the given
+    arrays if necessary, zeroes them, and then calls each force element's
+    calcForce() method which adds its force contributions if any to the
+    appropriate array elements for bodies and mobilities. Note that in general 
+    we have no idea what elements of the system are affected by a force element, 
+    and in fact that can change based on state and time (consider contact 
+    forces, for example). A disabled force element will return all zeroes 
+    without invoking calcForce(), since that method may depend on earlier 
+    computations which may not have been performed in that case.
+    @param[in]      state
+        The State containing information to be used by the force elements to
+        calculate the current sum of forces. This must have already been 
+        realized to a high enough stage for each force element to get what it 
+        needs; if you don't know then realize it to Stage::Velocity.
+    @param[in]      forceIndexes
+        This is an array of ForceIndex values, one for each force element whose
+        forces are to be calculated. The order of the force indexes is arbitrary
+        and has no effect on the results.
+    @param[out]     bodyForces
+        This is a Vector of spatial forces, one per mobilized body in the 
+        matter subsystem associated with the force elements. This Vector is
+        indexed by MobilizedBodyIndex so it has a 0th entry corresponding
+        to Ground. A spatial force contains two Vec3's; index with [0] to get
+        the moment vector, with [1] to get the force vector. This argument is
+        resized if necessary to match the number of mobilized bodies and any
+        unused entry will be set to zero on return.
+    @param[out]     mobilityForces
+        This is a Vector of scalar generalized forces, one per mobility in 
+        the matter subsystem associated with the force elements. This is the
+        same as the number of generalized speeds u that collectively represent
+        all the mobilities of the mobilizers. To determine the per-mobilizer
+        correspondence, you must call methods of MobilizedBody; there is no
+        hint here.  **/
+    void calcForces(
+        const State& s, const Array_<ForceIndex>& forceIndexes, 
+        Vector_<SpatialVec>& rigidBodyForces, Vector& mobilityForces) const;
 
     /** Every Subsystem is owned by a System; a GeneralForceSubsystem expects
     to be owned by a MultibodySystem. This method returns a const reference

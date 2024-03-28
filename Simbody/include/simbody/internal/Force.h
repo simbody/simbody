@@ -124,7 +124,9 @@ public:
         hint here. 
     @note This method must zero out the passed in arrays, and in most cases
     almost all returned entries will be zero, so this is \e not the most
-    efficent way to calculate forces; use it sparingly. **/
+    efficent way to calculate forces; use it sparingly. For a more efficent way
+    to calculate force contributions from multiple force elements, see
+    GeneralForceSubsystem::calcForces(). **/
     void calcForceContribution(const State&          state,
                                Vector_<SpatialVec>&  bodyForces,
                                Vector_<Vec3>&        particleForces,
