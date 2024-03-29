@@ -599,7 +599,8 @@ public:
       return calcForcesExecutor->getMaxThreads();
     }
 
-    void calcForces(const State& s, const Array_<ForceIndex>& forceIndexes,
+    void calcForceContributionsSum(const State& s, 
+        const Array_<ForceIndex>& forceIndexes, 
         Vector_<SpatialVec>& rigidBodyForces, Vector& mobilityForces) const 
     {
         const SimbodyMatterSubsystem& matter = 
@@ -1035,11 +1036,11 @@ void GeneralForceSubsystem::setNumberOfThreads(unsigned numThreads)
 int GeneralForceSubsystem::getNumberOfThreads() const
 {   return getRep().getNumberOfThreads(); }
 
-void GeneralForceSubsystem::calcForces(
+void GeneralForceSubsystem::calcForceContributionsSum(
     const State& s, const Array_<ForceIndex>& forceIndexes, 
     Vector_<SpatialVec>& rigidBodyForces, Vector& mobilityForces) const 
 {
-    getRep().calcForces(
+    getRep().calcForceContributionsSum(
         s, forceIndexes, rigidBodyForces, mobilityForces);
 }
 

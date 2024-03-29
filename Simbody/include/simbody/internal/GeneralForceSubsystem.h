@@ -137,7 +137,7 @@ public:
         all the mobilities of the mobilizers. To determine the per-mobilizer
         correspondence, you must call methods of MobilizedBody; there is no
         hint here.  **/
-    void calcForces(
+    void calcForceContributionsSum(
         const State& s, const Array_<ForceIndex>& forceIndexes, 
         Vector_<SpatialVec>& rigidBodyForces, Vector& mobilityForces) const;
 
