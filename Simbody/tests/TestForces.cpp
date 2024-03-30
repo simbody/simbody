@@ -365,8 +365,10 @@ void testCalcForceContributionsSum() {
     GeneralForceSubsystem forces(system);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     for (int i = 0; i < NUM_BODIES; ++i) {
-        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
-        MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
+        MobilizedBody& parent = matter.updMobilizedBody(
+            MobilizedBodyIndex(matter.getNumBodies()-1));
+        MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, 
+            Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
     
     // Add a set of forces.
@@ -377,7 +379,8 @@ void testCalcForceContributionsSum() {
     Force::ConstantTorque constantTorque(forces, body1, Vec3(1, 2, 3));
     Force::GlobalDamper globalDamper(forces, matter, 2.0);
     Force::MobilityConstantForce mobilityConstantForce(forces, body1, 1, 2.0);
-    Force::TwoPointConstantForce twoPointConstantForce(forces, body1, Vec3(0), body9, Vec3(0), 2.0);
+    Force::TwoPointConstantForce twoPointConstantForce(forces, body1, Vec3(0), 
+        body9, Vec3(0), 2.0);
 
     // Make sure we get the correct summed forces when one is disabled
     
@@ -398,7 +401,6 @@ void testCalcForceContributionsSum() {
     // Calculate the sum of the force components and see if it is correct.
     
     Vector_<SpatialVec> bodyForces(matter.getNumBodies(), SpatialVec(0));
-    Vector_<Vec3> particleForces(0);
     Vector mobilityForces(state.getNU(), Real(0));
     Array_<ForceIndex> forceIndexes;
     forceIndexes.reserve(5);
@@ -413,7 +415,7 @@ void testCalcForceContributionsSum() {
     bodyForces[1][0] += Vec3(1, 2, 3);
     forceIndexes.push_back(constantTorque.getForceIndex());
     
-    // The GlobalDamper is disable and should not contribute any forces
+    // The GlobalDamper is disabled and should not contribute any forces
 
     forceIndexes.push_back(globalDamper.getForceIndex());
     
