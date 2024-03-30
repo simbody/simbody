@@ -107,8 +107,8 @@ public:
     if the given \a state were realized to Dynamics stage. This sizes the given
     arrays if necessary, zeroes them, and then calls each force element's
     calcForce() method which adds its force contributions if any to the
-    appropriate array elements for bodies and mobilities. Note that in general 
-    we have no idea what elements of the system are affected by a force element, 
+    appropriate array elements for bodies and mobilities. Note that in general
+    we have no idea what elements of the system are affected by a force element,
     and in fact that can change based on state and time (consider contact 
     forces, for example). A disabled force element will return all zeroes 
     without invoking calcForce(), since that method may depend on earlier 
@@ -139,7 +139,7 @@ public:
         hint here.  **/
     void calcForceContributionsSum(
         const State& s, const Array_<ForceIndex>& forceIndexes, 
-        Vector_<SpatialVec>& rigidBodyForces, Vector& mobilityForces) const;
+        Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
 
     /** Every Subsystem is owned by a System; a GeneralForceSubsystem expects
     to be owned by a MultibodySystem. This method returns a const reference

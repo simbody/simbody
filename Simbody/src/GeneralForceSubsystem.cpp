@@ -601,24 +601,24 @@ public:
 
     void calcForceContributionsSum(const State& s, 
         const Array_<ForceIndex>& forceIndexes, 
-        Vector_<SpatialVec>& rigidBodyForces, Vector& mobilityForces) const 
+        Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const 
     {
         const SimbodyMatterSubsystem& matter = 
                 getMultibodySystem().getMatterSubsystem();
 
         // Resize if necessary.
-        rigidBodyForces.resize(matter.getNumBodies());
+        bodyForces.resize(matter.getNumBodies());
         mobilityForces.resize(matter.getNumMobilities());
 
         // Set all forces to zero.
-        rigidBodyForces.setToZero();
+        bodyForces.setToZero();
         mobilityForces.setToZero();
         
         Vector_<Vec3> particleForces; // unused
         for (const auto& index : forceIndexes) {
             if (!isForceDisabled(s, index)) {
                 forces[index]->getImpl().calcForce(
-                    s, rigidBodyForces, particleForces, mobilityForces);
+                    s, bodyForces, particleForces, mobilityForces);
             }
         }
     }
@@ -1038,10 +1038,10 @@ int GeneralForceSubsystem::getNumberOfThreads() const
 
 void GeneralForceSubsystem::calcForceContributionsSum(
     const State& s, const Array_<ForceIndex>& forceIndexes, 
-    Vector_<SpatialVec>& rigidBodyForces, Vector& mobilityForces) const 
+    Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const 
 {
     getRep().calcForceContributionsSum(
-        s, forceIndexes, rigidBodyForces, mobilityForces);
+        s, forceIndexes, bodyForces, mobilityForces);
 }
 
 const MultibodySystem& GeneralForceSubsystem::getMultibodySystem() const

@@ -142,7 +142,7 @@ void testStandardForces() {
     Vector_<Vec3> particleForces(0);
     Vector mobilityForces(state.getNU());
     Real pe = 0;
-    
+
     // Check ConstantForce
     
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
@@ -356,12 +356,102 @@ void testDisabling() {
     ASSERT(!forces.isForceDisabled(state, spring.getForceIndex()));
 }
 
+void testCalcForceContributionsSum() {
+
+    // Create a system consisting of a chain of bodies.
+    
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    for (int i = 0; i < NUM_BODIES; ++i) {
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
+        MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
+    }
+    
+    // Add a set of forces.
+    
+    MobilizedBody& body1 = matter.updMobilizedBody(MobilizedBodyIndex(1));
+    MobilizedBody& body9 = matter.updMobilizedBody(MobilizedBodyIndex(9));
+    Force::ConstantForce constantForce(forces, body1, Vec3(0), Vec3(1, 2, 3));
+    Force::ConstantTorque constantTorque(forces, body1, Vec3(1, 2, 3));
+    Force::GlobalDamper globalDamper(forces, matter, 2.0);
+    Force::MobilityConstantForce mobilityConstantForce(forces, body1, 1, 2.0);
+    Force::TwoPointConstantForce twoPointConstantForce(forces, body1, Vec3(0), body9, Vec3(0), 2.0);
+
+    // Make sure we get the correct summed forces when one is disabled
+    
+    system.realizeTopology();
+    State state = system.getDefaultState();
+    forces.setForceIsDisabled(state, globalDamper.getForceIndex(), true);
+
+    // Create a random state
+
+    Random::Uniform random;
+    for (int i = 0; i < state.getNY(); ++i)
+        state.updY()[i] = random.getValue();
+    system.realize(state, Stage::Velocity);
+    Vec3 pos1 = body1.getBodyOriginLocation(state);
+    Vec3 pos9 = body9.getBodyOriginLocation(state);
+    Vec3 delta19 = pos9-pos1;
+
+    // Calculate the sum of the force components and see if it is correct.
+    
+    Vector_<SpatialVec> bodyForces(matter.getNumBodies(), SpatialVec(0));
+    Vector_<Vec3> particleForces(0);
+    Vector mobilityForces(state.getNU(), Real(0));
+    Array_<ForceIndex> forceIndexes;
+    forceIndexes.reserve(5);
+    
+    // ConstantForce contribution
+
+    bodyForces[1][1] += Vec3(1, 2, 3);
+    forceIndexes.push_back(constantForce.getForceIndex());
+    
+    // ConstantTorque contribution
+
+    bodyForces[1][0] += Vec3(1, 2, 3);
+    forceIndexes.push_back(constantTorque.getForceIndex());
+    
+    // The GlobalDamper is disable and should not contribute any forces
+
+    forceIndexes.push_back(globalDamper.getForceIndex());
+    
+    // MobilityConstantForce contribution
+
+    Vector theseMobilityForces(state.getNU(), Real(0));
+    body1.updOneFromUPartition(state, 1, theseMobilityForces) = 2.0;
+    mobilityForces += theseMobilityForces;    
+    forceIndexes.push_back(mobilityConstantForce.getForceIndex());
+    
+    // TwoPointConstantForce contribution
+
+    bodyForces[1][1] += -2.0*delta19.normalize();
+    bodyForces[9][1] += 2.0*delta19.normalize();
+    forceIndexes.push_back(twoPointConstantForce.getForceIndex());
+
+    // Calculate the sum of the forces
+
+    Vector_<SpatialVec> actualBodyForces(matter.getNumBodies());
+    Vector actualMobilityForces(mobilityForces.size());
+    forces.calcForceContributionsSum(
+        state, forceIndexes, actualBodyForces, actualMobilityForces);
+    
+    // Verify the results
+
+    for (int i = 0; i < bodyForces.size(); ++i)
+        ASSERT((bodyForces[i]-actualBodyForces[i]).norm() < 1e-10);
+    for (int i = 0; i < mobilityForces.size(); ++i)
+        ASSERT(std::abs(mobilityForces[i]-actualMobilityForces[i]) < 1e-10);
+}
+
 int main() {
     try {
         testStandardForces();
         testEnergyConservation();
         testCustomRealization();
         testDisabling();
+        testCalcForceContributionsSum();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
