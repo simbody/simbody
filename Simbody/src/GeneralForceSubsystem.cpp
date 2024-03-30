@@ -599,6 +599,30 @@ public:
       return calcForcesExecutor->getMaxThreads();
     }
 
+    void calcForceContributionsSum(const State& s, 
+        const Array_<ForceIndex>& forceIndexes, 
+        Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const 
+    {
+        const SimbodyMatterSubsystem& matter = 
+                getMultibodySystem().getMatterSubsystem();
+
+        // Resize if necessary.
+        bodyForces.resize(matter.getNumBodies());
+        mobilityForces.resize(matter.getNumMobilities());
+
+        // Set all forces to zero.
+        bodyForces.setToZero();
+        mobilityForces.setToZero();
+        
+        Vector_<Vec3> particleForces; // unused
+        for (const auto& index : forceIndexes) {
+            if (!isForceDisabled(s, index)) {
+                forces[index]->getImpl().calcForce(
+                    s, bodyForces, particleForces, mobilityForces);
+            }
+        }
+    }
+
     // These override default implementations of virtual methods in the
     // Subsystem::Guts class.
 
@@ -1011,6 +1035,14 @@ void GeneralForceSubsystem::setNumberOfThreads(unsigned numThreads)
 
 int GeneralForceSubsystem::getNumberOfThreads() const
 {   return getRep().getNumberOfThreads(); }
+
+void GeneralForceSubsystem::calcForceContributionsSum(
+    const State& s, const Array_<ForceIndex>& forceIndexes, 
+    Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const 
+{
+    getRep().calcForceContributionsSum(
+        s, forceIndexes, bodyForces, mobilityForces);
+}
 
 const MultibodySystem& GeneralForceSubsystem::getMultibodySystem() const
 {   return MultibodySystem::downcast(getSystem()); }
