@@ -126,7 +126,7 @@ jobs:
   ubuntu:
     name: Ubuntu
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     strategy:
       matrix:
@@ -185,7 +185,7 @@ jobs:
   style:
     name: Style
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@v2
