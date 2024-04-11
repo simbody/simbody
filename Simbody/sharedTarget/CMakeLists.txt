@@ -21,9 +21,6 @@ if(BUILD_UNVERSIONED_LIBRARIES)
     # install library; on Windows the .dll goes in the bin directory.
 
     install(TARGETS ${SHARED_TARGET} EXPORT SimbodyTargets
-                     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-                     GROUP_READ GROUP_WRITE GROUP_EXECUTE 
-                     WORLD_READ WORLD_EXECUTE
                      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -62,9 +59,6 @@ if(BUILD_VERSIONED_LIBRARIES)
     # install library; on Windows the .dll goes in the bin directory.
 
     install(TARGETS ${SHARED_TARGET_VN} EXPORT SimbodyTargets
-                     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-                     GROUP_READ GROUP_WRITE GROUP_EXECUTE 
-                     WORLD_READ WORLD_EXECUTE
                      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
