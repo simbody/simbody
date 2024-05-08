@@ -138,12 +138,15 @@ endif()
 # won't conflict with installed versions.
 set(BUILD_USING_NAMESPACE "" CACHE STRING
     "All library names will be prefixed with 'xxx_' if this is set to xxx.")
+mark_as_advanced(BUILD_USING_NAMESPACE)
 
 set(BUILD_UNVERSIONED_LIBRARIES TRUE CACHE BOOL
- "Build library names, and assume dependency names, with no version numbers?")
+    "Build library names, and assume dependency names, with no version numbers?")
+mark_as_advanced(BUILD_UNVERSIONED_LIBRARIES)
 
 set(BUILD_VERSIONED_LIBRARIES FALSE CACHE BOOL
- "Build library names, and assume dependency names, with version numbers?")
+    "Build library names, and assume dependency names, with version numbers?")
+mark_as_advanced(BUILD_VERSIONED_LIBRARIES)
 
 set(NS)
 if(BUILD_USING_NAMESPACE)
