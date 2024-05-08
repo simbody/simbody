@@ -508,26 +508,11 @@ endif()
 # TODO removed SVN_REVSION; replace with GIT_SHA1
 # http://stackoverflow.com/questions/1435953/how-can-i-pass-git-sha1-to-compiler-as-definition-using-cmake
 
-# CMake quotes automatically when building Visual Studio projects but we need
-# to add them ourselves for Linux or Cygwin. Two cases to avoid duplicate quotes
-# in Visual Studio which end up in the binary.
 
-if(${CMAKE_GENERATOR} MATCHES "Visual Studio")
-    set(NEED_QUOTES FALSE)
-else()
-    set(NEED_QUOTES TRUE)
-endif()
-
-##TODO: doesn't work without quotes in nightly build
-set(NEED_QUOTES TRUE)
-
-if(NEED_QUOTES)
-    add_definitions(-DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
-                    -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}")
-else()
-    add_definitions(-DSimTK_SIMBODY_COPYRIGHT_YEARS=${SIMBODY_COPYRIGHT_YEARS}
-                    -DSimTK_SIMBODY_AUTHORS=${SIMBODY_AUTHORS})
-endif()
+add_compile_definitions(
+   -DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
+   -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}"
+)
 
 # Determine which math libraries to use for this platform.
 # Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
