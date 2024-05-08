@@ -96,16 +96,15 @@ endif()
 
 set(SIMBODY_VERSION
     "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}${PATCH_VERSION_STRING}"
-    CACHE STRING
-    "This is the version that will be built (can't be changed in GUI)."
-    FORCE)
+    CACHE INTERNAL
+    "This is the version that will be built"
+    )
 
 set(SIMBODY_SONAME_VERSION
     "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}"
-    CACHE STRING
-    "Soname version; appended to names of shared libs
-    (can't be changed in GUI)."
-    FORCE)
+    CACHE INTERNAL
+    "Soname version; appended to names of shared libs"
+    )
 
 # This is the suffix if we're building and depending on versioned libraries.
 set(VN "_${SIMBODY_VERSION}")
@@ -116,6 +115,8 @@ set(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
 
 # Make everything go in the same binary directory. (These are CMake-defined
 # variables.)
+# TODO: "EXECUTABLE_OUTPUT_PATH" and "LIBRARY_OUTPUT_PATH" have been superseded;
+# its unclear if these need to be updated to the replacements
 set(EXECUTABLE_OUTPUT_PATH ${BUILD_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${BUILD_BINARY_DIR})
 
@@ -162,15 +163,15 @@ set(MACOSX_BUNDLE_HIGH_RESOLUTION_CAPABLE "false")
 # on another. (In Debug mode the actual targets will have "_d" appended.)
 #
 
-set(SimTKSIMBODY_LIBRARY_NAME ${NS}SimTKsimbody CACHE STRING
-"Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
-FORCE)
-set(SimTKMATH_LIBRARY_NAME ${NS}SimTKmath CACHE STRING
-"Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
-FORCE)
-set(SimTKCOMMON_LIBRARY_NAME ${NS}SimTKcommon CACHE STRING
-"Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
-FORCE)
+set(SimTKSIMBODY_LIBRARY_NAME ${NS}SimTKsimbody CACHE INTERNAL
+    "Base name of the SimTKsimbody library"
+    )
+set(SimTKMATH_LIBRARY_NAME ${NS}SimTKmath CACHE INTERNAL
+    "Base name of the SimTKmath library"
+    )
+set(SimTKCOMMON_LIBRARY_NAME ${NS}SimTKcommon CACHE INTERNAL
+    "Base name of the SimTKcommon library"
+    )
 
 
 set(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME})
@@ -257,9 +258,9 @@ else()
     set(PLATFORM_ABI x86)
 endif()
 
-set(BUILD_PLATFORM "${CMAKE_HOST_SYSTEM_NAME}:${PLATFORM_ABI}" CACHE STRING
-    "This is the platform and ABI we're building for. Not changeable here; use a different CMake generator instead."
-    FORCE)
+set(BUILD_PLATFORM "${CMAKE_HOST_SYSTEM_NAME}:${PLATFORM_ABI}" CACHE INTERNAL
+    "This is the platform and ABI we're building for"
+)
 
 # If CMAKE_INSTALL_PREFIX is /usr/local, then the LIBDIR should necessarily be
 # lib/. Sometimes (on Linux), LIBDIR is something like x86_64-linux-gnu. The
@@ -280,9 +281,9 @@ endif()
 
 
 if(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
+    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE INTERNAL
         "Debug, RelWithDebInfo (recommended), or Release build"
-        FORCE)
+        )
 endif()
 
 
@@ -417,23 +418,23 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
 
     # C++
     set(CMAKE_CXX_FLAGS_DEBUG ${BUILD_CXX_FLAGS_DEBUG}
-        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_CXX_FLAGS_RELEASE ${BUILD_CXX_FLAGS_RELEASE}
-        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${BUILD_CXX_FLAGS_RELWITHDEBINFO}
-        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_CXX_FLAGS_MINSIZEREL ${BUILD_CXX_FLAGS_MINSIZEREL}
-        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
 
     # C
     set(CMAKE_C_FLAGS_DEBUG ${BUILD_C_FLAGS_DEBUG}
-        CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_C_FLAGS_RELEASE ${BUILD_C_FLAGS_RELEASE}
-        CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_C_FLAGS_RELWITHDEBINFO ${BUILD_C_FLAGS_RELWITHDEBINFO}
-        CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_C_FLAGS_MINSIZEREL ${BUILD_C_FLAGS_MINSIZEREL}
-        CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
 
     set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
     if(SIMBODY_COVERAGE)
@@ -482,23 +483,23 @@ if(MSVC)
 
     ## C++
     set(CMAKE_CXX_FLAGS_DEBUG "/MP${mxcpu} ${BUILD_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS_DEBUG}"
-        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_CXX_FLAGS_RELEASE "/MP${mxcpu} ${BUILD_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_RELEASE}"
-        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MP${mxcpu} ${BUILD_CXX_FLAGS_RELWITHDEBINFO} ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}"
-        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_CXX_FLAGS_MINSIZEREL "/MP${mxcpu} ${BUILD_CXX_FLAGS_MINSIZEREL} ${CMAKE_CXX_FLAGS_MINSIZEREL}"
-        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
 
     ## C
     set(CMAKE_C_FLAGS_DEBUG "/MP${mxcpu} ${BUILD_C_FLAGS_DEBUG} ${CMAKE_C_FLAGS_DEBUG}"
-        CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_C_FLAGS_RELEASE "/MP${mxcpu} ${BUILD_C_FLAGS_RELEASE} ${CMAKE_C_FLAGS_RELEASE}"
-        CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_C_FLAGS_RELWITHDEBINFO "/MP${mxcpu} ${BUILD_C_FLAGS_RELWITHDEBINFO} ${CMAKE_C_FLAGS_RELWITHDEBINFO}"
-        CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
     set(CMAKE_C_FLAGS_MINSIZEREL "/MP${mxcpu} ${BUILD_C_FLAGS_MINSIZEREL} ${CMAKE_C_FLAGS_MINSIZEREL}"
-        CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
+        CACHE INTERNAL "Control using BUILD_CXX")
 
 endif()
 
@@ -543,12 +544,12 @@ else()
         message(WARNING "Could not find blas/lapack")
     endif()
 endif()
-set(LAPACK_BEING_USED ${LAPACK_PLATFORM_DEFAULT} CACHE STRING
-    "Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
+set(LAPACK_BEING_USED ${LAPACK_PLATFORM_DEFAULT} CACHE INTERNAL
+    "Basename of the actual Lapack library dependency. Set BUILD_USING_OTHER_LAPACK to modify.")
 
 if(BUILD_USING_OTHER_LAPACK)
-    set(LAPACK_BEING_USED ${BUILD_USING_OTHER_LAPACK} CACHE STRING
-"Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
+    set(LAPACK_BEING_USED ${BUILD_USING_OTHER_LAPACK} CACHE INTERNAL
+        "Basename of the actual Lapack library dependency. Set BUILD_USING_OTHER_LAPACK to modify.")
 endif()
 
 if(UNIX)
