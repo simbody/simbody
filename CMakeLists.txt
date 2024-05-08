@@ -385,10 +385,6 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
         set(GCC_INST_SET)
     endif()
 
-    # Get the gcc or clang version number in major.minor.build format
-    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
-                    OUTPUT_VARIABLE GCC_VERSION)
-
     # Unrolling fixed-count loops was a useful optimization for Simmatrix
     # in earlier gcc versions.
     # Doesn't have a big effect for current compiler crop and may be
