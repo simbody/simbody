@@ -73,6 +73,11 @@ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     endif()
 endif()
 
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
 set(SIMBODY_COPYRIGHT_YEARS "2005-20")
 
 # underbar separated list of dotted authors, no spaces or commas
@@ -340,24 +345,6 @@ endif()
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
    ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-
-    # C++11
-    # -----
-    # Using C++11 on OSX requires using libc++ instead of libstd++.
-    # libc++ is an implementation of the C++ standard library for OSX.
-    if(APPLE)
-        if(XCODE)
-            set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
-            set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
-        else()
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-            if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-            endif()
-        endif()
-    else() # not APPLE
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    endif()
 
     if(inst_set_to_use)
         string(TOLOWER ${inst_set_to_use} GCC_INST_SET)
