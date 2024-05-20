@@ -10,15 +10,10 @@
 #    (5) Build examples
 #
 #-------------------------------------------------------------------------------
-if(MSVC)
-    # To properly support Visual Studio 2015.
-    set(SIMBODY_REQUIRED_CMAKE_VERSION 3.1.3)
-else()
-    set(SIMBODY_REQUIRED_CMAKE_VERSION 2.8.10)
-endif()
-cmake_minimum_required(VERSION ${SIMBODY_REQUIRED_CMAKE_VERSION})
+cmake_minimum_required(VERSION 3.12)
+cmake_policy(SET CMP0048 NEW)
 
-project(Simbody)
+project(Simbody VERSION 3.8.0)
 
 # At this point CMake will have set CMAKE_INSTALL_PREFIX to /usr/local on Linux
 # or appropriate ProgramFiles directory on Windows, for example
@@ -78,36 +73,19 @@ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     endif()
 endif()
 
-set(SIMBODY_MAJOR_VERSION 3)
-set(SIMBODY_MINOR_VERSION 8)
-set(SIMBODY_PATCH_VERSION 0)
-
 set(SIMBODY_COPYRIGHT_YEARS "2005-20")
 
 # underbar separated list of dotted authors, no spaces or commas
 set(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
 
-# Report the version number to the CMake UI. Don't include the
-# build version if it is zero.
-set(PATCH_VERSION_STRING)
-if(SIMBODY_PATCH_VERSION)
-    set(PATCH_VERSION_STRING ".${SIMBODY_PATCH_VERSION}")
-endif()
-
-set(SIMBODY_VERSION
-    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}${PATCH_VERSION_STRING}"
-    CACHE INTERNAL
-    "This is the version that will be built"
-    )
-
 set(SIMBODY_SONAME_VERSION
-    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}"
+    "${Simbody_VERSION_MAJOR}.${Simbody_VERSION_MINOR}"
     CACHE INTERNAL
     "Soname version; appended to names of shared libs"
     )
 
 # This is the suffix if we're building and depending on versioned libraries.
-set(VN "_${SIMBODY_VERSION}")
+set(VN "_${Simbody_VERSION}")
 
 set(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
     CACHE PATH
@@ -318,7 +296,7 @@ endif()
 # RPATH
 # -----
 set(SIMBODY_USE_INSTALL_RPATH FALSE)
-if(APPLE AND NOT (${CMAKE_VERSION} VERSION_LESS 2.8.12))
+if(APPLE)
     # CMake 2.8.12 introduced the ability to set RPATH for shared libraries on
     # OSX. This helps executables find the libraries they depend on without
     # having to set the DYLD_LIBRARY_PATH environment variable.
@@ -671,7 +649,6 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigForInstall.cmake
 
 # Create a file that allows clients to Simbody to ensure they have the version
 # of Simbody they want.
-# Requires CMake 2.8.8.
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake

@@ -21,7 +21,7 @@
 #
 #----------------------------------------------------
 
-project(SimTKmath)
+project(SimTKmath VERSION Simbody_VERSION)
 
 # SimTKmath depends on PlatformFiles and SimTKcommon only.
 include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
@@ -35,23 +35,8 @@ set(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers Geometry)
 # into the binaries. This also determines the versioned library names
 # in which case all dependencies must use the same version.
 
-set(SIMMATH_MAJOR_VERSION ${SIMBODY_MAJOR_VERSION})
-set(SIMMATH_MINOR_VERSION ${SIMBODY_MINOR_VERSION})
-set(SIMMATH_PATCH_VERSION ${SIMBODY_PATCH_VERSION})
-
-
-# Report the version number to the CMake UI. Don't include the
-# patch version if it is zero.
-set(PATCH_VERSION_STRING)
-if(SIMMATH_PATCH_VERSION)
-    set(PATCH_VERSION_STRING ".${SIMMATH_PATCH_VERSION}")
-endif()
-
-set(SIMMATH_VERSION
-    "${SIMMATH_MAJOR_VERSION}.${SIMMATH_MINOR_VERSION}${PATCH_VERSION_STRING}")
-
 # This is the suffix if we're building and depending on versioned libraries.
-set(VN "_${SIMMATH_VERSION}")
+set(VN "_${SimTKmath_VERSION}")
 
 set(SIMMATH_COPYRIGHT_YEARS "2005-10")
 
@@ -60,9 +45,9 @@ set(SIMMATH_AUTHORS         "Jack.Middleton_Michael.Sherman")
 
 add_compile_definitions(
     -DSimTK_SIMMATH_LIBRARY_NAME=${SimTKMATH_LIBRARY_NAME}
-    -DSimTK_SIMMATH_MAJOR_VERSION=${SIMMATH_MAJOR_VERSION}
-    -DSimTK_SIMMATH_MINOR_VERSION=${SIMMATH_MINOR_VERSION}
-    -DSimTK_SIMMATH_PATCH_VERSION=${SIMMATH_PATCH_VERSION}
+    -DSimTK_SIMMATH_MAJOR_VERSION=${SimTKmath_VERSION_MAJOR}
+    -DSimTK_SIMMATH_MINOR_VERSION=${SimTKmath_VERSION_MINOR}
+    -DSimTK_SIMMATH_PATCH_VERSION=${SimTKmath_VERSION_PATCH}
     -DSimTK_SIMMATH_COPYRIGHT_YEARS="${SIMMATH_COPYRIGHT_YEARS}"
     -DSimTK_SIMMATH_AUTHORS="${SIMMATH_AUTHORS}")
 

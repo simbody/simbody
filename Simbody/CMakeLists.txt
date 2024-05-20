@@ -21,7 +21,7 @@
 #
 #----------------------------------------------------
 
-project(SimTKsimbody)
+project(SimTKsimbody VERSION Simbody_VERSION)
 
 # SimTKsimbody depends on PlatformFiles, SimTKcommon, and SimTKmath only.
 include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
@@ -36,9 +36,9 @@ include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
 set(SIMBODY_SOURCE_SUBDIRS . Visualizer)
 
 add_definitions(-DSimTK_SIMBODY_LIBRARY_NAME=${SimTKSIMBODY_LIBRARY_NAME}
-                -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
-                -DSimTK_SIMBODY_MINOR_VERSION=${SIMBODY_MINOR_VERSION}
-                -DSimTK_SIMBODY_PATCH_VERSION=${SIMBODY_PATCH_VERSION})
+                -DSimTK_SIMBODY_MAJOR_VERSION=${SimTKsimbody_VERSION_MAJOR}
+                -DSimTK_SIMBODY_MINOR_VERSION=${SimTKsimbody_VERSION_MINOR}
+                -DSimTK_SIMBODY_PATCH_VERSION=${SimTKsimbody_VERSION_PATCH})
 
 
 set(SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})

@@ -26,7 +26,7 @@
 #
 #----------------------------------------------------
 
-project(SimTKcommon)
+project(SimTKcommon VERSION Simbody_VERSION)
 
 # SimTKcommon depends on the Platform files but nothing else.
 include_directories(${PLATFORM_INCLUDE_DIRECTORIES})
@@ -42,35 +42,19 @@ set(SimTKCOMMON_SOURCE_SUBDIRS
 # into the binaries. This also determines the versioned library names
 # in which case all dependencies must use the same version.
 
-set(SimTKCOMMON_MAJOR_VERSION ${SIMBODY_MAJOR_VERSION})
-set(SimTKCOMMON_MINOR_VERSION ${SIMBODY_MINOR_VERSION})
-set(SimTKCOMMON_PATCH_VERSION ${SIMBODY_PATCH_VERSION})
-
-# Report the version number to the CMake UI. Don't include the
-# build version if it is zero.
-set(PATCH_VERSION_STRING)
-if(SimTKCOMMON_PATCH_VERSION)
-    set(PATCH_VERSION_STRING ".${SimTKCOMMON_PATCH_VERSION}")
-endif()
-
-set(SimTKCOMMON_VERSION
-    "${SimTKCOMMON_MAJOR_VERSION}.${SimTKCOMMON_MINOR_VERSION}${PATCH_VERSION_STRING}")
-
 # This is the suffix if we're building and depending on versioned libraries.
-set(VN "_${SimTKCOMMON_VERSION}")
-
+set(VN "_${SimTKcommon_VERSION}")
 
 set(SimTKCOMMON_COPYRIGHT_YEARS "2005-10")
 
 # underbar separated list of dotted authors, no spaces or commas
 set(SimTKCOMMON_AUTHORS "Michael.Sherman_Peter.Eastman")
 
-
 add_compile_definitions(
     -DSimTK_SimTKCOMMON_LIBRARY_NAME=${SimTKCOMMON_LIBRARY_NAME}
-    -DSimTK_SimTKCOMMON_MAJOR_VERSION=${SimTKCOMMON_MAJOR_VERSION}
-    -DSimTK_SimTKCOMMON_MINOR_VERSION=${SimTKCOMMON_MINOR_VERSION}
-    -DSimTK_SimTKCOMMON_PATCH_VERSION=${SimTKCOMMON_PATCH_VERSION}
+    -DSimTK_SimTKCOMMON_MAJOR_VERSION=${SimTKcommon_VERSION_MAJOR}
+    -DSimTK_SimTKCOMMON_MINOR_VERSION=${SimTKcommon_VERSION_MINOR}
+    -DSimTK_SimTKCOMMON_PATCH_VERSION=${SimTKcommon_VERSION_PATCH}
     -DSimTK_SimTKCOMMON_COPYRIGHT_YEARS="${SimTKCOMMON_COPYRIGHT_YEARS}"
     -DSimTK_SimTKCOMMON_AUTHORS="${SimTKCOMMON_AUTHORS}")
 
