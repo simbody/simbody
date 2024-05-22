@@ -71,10 +71,10 @@ set(STATIC_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN}_static)
 if(BUILD_UNVERSIONED_LIBRARIES)
     set(TEST_SHARED_TARGET ${SHARED_TARGET})
     set(TEST_STATIC_TARGET ${STATIC_TARGET})
-else(BUILD_UNVERSIONED_LIBRARIES)
+else()
     set(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
     set(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
-endif(BUILD_UNVERSIONED_LIBRARIES)
+endif()
 
 
 # These are all the places to search for header files which are
@@ -90,7 +90,7 @@ foreach(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     # Referencing headers must always be done relative to this level.
     set(SimTKCOMMON_INCLUDE_DIRS ${SimTKCOMMON_INCLUDE_DIRS}
      ${PROJECT_SOURCE_DIR}/${subdir}/include)
-endforeach(subdir)
+endforeach()
 
 
 # Include the SimTKcommon API include directories now so that SimTKcommon code
@@ -114,8 +114,8 @@ foreach(dir ${API_INCLUDE_DIRS})
     foreach(pathname ${fullpaths})
         get_filename_component(filename ${pathname} NAME)
         set(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES} ${dir}/${filename})
-    endforeach(pathname)
-endforeach(dir)
+    endforeach()
+endforeach()
 
 # collect up source files
 set(SOURCE_FILES) # empty
@@ -126,7 +126,7 @@ foreach(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     file(GLOB incl_files ${subdir}/src/*.h)
     set(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
     set(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
-endforeach(subdir)
+endforeach()
 
 #
 # Installation
@@ -156,5 +156,5 @@ endif()
 
 if( BUILD_TESTING )
     add_subdirectory( tests )
-endif( BUILD_TESTING )
+endif()
 

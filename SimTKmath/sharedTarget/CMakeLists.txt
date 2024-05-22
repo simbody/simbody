@@ -55,7 +55,7 @@ if(BUILD_UNVERSIONED_LIBRARIES)
         add_coverage(${SHARED_TARGET})
     endif()
 
-endif(BUILD_UNVERSIONED_LIBRARIES)
+endif()
 
 
 if(BUILD_VERSIONED_LIBRARIES)
@@ -89,4 +89,4 @@ if(BUILD_VERSIONED_LIBRARIES)
         add_coverage(${SHARED_TARGET_VN})
     endif()
 
-endif(BUILD_VERSIONED_LIBRARIES)
+endif()

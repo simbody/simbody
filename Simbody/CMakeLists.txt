@@ -51,10 +51,10 @@ set(STATIC_TARGET_VN ${SimTKSIMBODY_LIBRARY_NAME}${VN}_static)
 if(BUILD_UNVERSIONED_LIBRARIES)
     set(TEST_SHARED_TARGET ${SHARED_TARGET})
     set(TEST_STATIC_TARGET ${STATIC_TARGET})
-else(BUILD_UNVERSIONED_LIBRARIES)
+else()
     set(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
     set(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
-endif(BUILD_UNVERSIONED_LIBRARIES)
+endif()
 
 # These are all the places to search for header files which are
 # to be part of the API.
@@ -70,7 +70,7 @@ foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
     # Referencing headers must always be done relative to this level.
     set(SimTKSIMBODY_INCLUDE_DIRS ${SimTKSIMBODY_INCLUDE_DIRS}
      ${PROJECT_SOURCE_DIR}/${subdir}/include)
-endforeach(subdir)
+endforeach()
 
 # Include the Simbody API include directories now so that Simbody code
 # can use them.
@@ -94,8 +94,8 @@ foreach(dir ${API_INCLUDE_DIRS})
     foreach(pathname ${fullpaths})
         get_filename_component(filename ${pathname} NAME)
         set(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES} ${dir}/${filename})
-    endforeach(pathname)
-endforeach(dir)
+    endforeach()
+endforeach()
 
 # collect up source files
 set(SOURCE_FILES) # empty
@@ -108,7 +108,7 @@ foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
     set(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
     #include_directories(${PROJECT_SOURCE_DIR}/${subdir}/include)
-endforeach(subdir)
+endforeach()
 
 #include_directories(${PROJECT_SOURCE_DIR}/src)
 

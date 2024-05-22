@@ -64,10 +64,10 @@ set(STATIC_TARGET_VN ${SimTKMATH_LIBRARY_NAME}${VN}_static)
 if(BUILD_UNVERSIONED_LIBRARIES)
     set(TEST_SHARED_TARGET ${SHARED_TARGET})
     set(TEST_STATIC_TARGET ${STATIC_TARGET})
-else(BUILD_UNVERSIONED_LIBRARIES)
+else()
     set(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
     set(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
-endif(BUILD_UNVERSIONED_LIBRARIES)
+endif()
 
 # These are all the places to search for header files which are
 # to be part of the API.
@@ -83,7 +83,7 @@ foreach(subdir . ${SIMMATH_SOURCE_SUBDIRS})
     # Referencing headers must always be done relative to this level.
     set(SimTKMATH_INCLUDE_DIRS ${SimTKMATH_INCLUDE_DIRS}
      ${PROJECT_SOURCE_DIR}/${subdir}/include)
-endforeach(subdir)
+endforeach()
 
 # Include the Simmath API include directories now so that Simmath code
 # can use them.
@@ -108,8 +108,8 @@ foreach(dir ${API_INCLUDE_DIRS})
         get_filename_component(filename ${pathname} NAME)
         set(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES}
         ${dir}/${filename})
-    endforeach(pathname)
-endforeach(dir)
+    endforeach()
+endforeach()
 
 # collect up source files
 set(SOURCE_FILES) # empty
@@ -121,7 +121,7 @@ set(SOURCE_GROUP_FILES)
 # first process all the source subdirectories
 foreach(subdir ${SIMMATH_SOURCE_SUBDIRS})
     add_subdirectory(${subdir})
-endforeach(subdir)
+endforeach()
 
 if(SOURCE_GROUPS)
     list(LENGTH SOURCE_GROUPS NGROUPS)
@@ -172,4 +172,4 @@ endif()
 
 if( BUILD_TESTING )
     add_subdirectory( tests )
-endif( BUILD_TESTING )
+endif()
