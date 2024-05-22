@@ -26,7 +26,7 @@
 #
 #----------------------------------------------------
 
-project(SimTKcommon VERSION Simbody_VERSION)
+project(SimTKcommon VERSION ${Simbody_VERSION})
 
 # SimTKcommon depends on the Platform files but nothing else.
 include_directories(${PLATFORM_INCLUDE_DIRECTORIES})

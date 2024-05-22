@@ -21,7 +21,7 @@
 #
 #----------------------------------------------------
 
-project(SimTKmath VERSION Simbody_VERSION)
+project(SimTKmath VERSION ${Simbody_VERSION})
 
 # SimTKmath depends on PlatformFiles and SimTKcommon only.
 include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
