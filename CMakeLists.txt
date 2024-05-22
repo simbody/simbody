@@ -15,34 +15,105 @@ cmake_policy(SET CMP0048 NEW)
 
 project(Simbody VERSION 3.8.0)
 
-# At this point CMake will have set CMAKE_INSTALL_PREFIX to /usr/local on Linux
-# or appropriate ProgramFiles directory on Windows, for example
-# C:/Program Files/Simbody, C:/Program Files (x86)/Simbody, or the local
-# language equivalent.
+## List of Simbody build configuration options:
+#-------------------------------------------------------------------------------
+option(BUILD_DYNAMIC_LIBRARIES
+    "Build dynamic (shared) Simbody libraries."
+    ON)
 
-if(WIN32)
-    set(CMAKE_INSTALL_DOCDIR doc CACHE PATH "documentation root (DATAROOTDIR/doc/PROJECT_NAME)")
-else()
-    # Redefine DOCDIR to use the project name in lowercase to avoid
-    # problems with some platforms: NTFS on Win, XFS or JFS variants
-    set(CMAKE_INSTALL_DOCDIR share/doc/simbody CACHE PATH "documentation root (DATAROOTDIR/doc/PROJECT_NAME)")
+option(BUILD_STATIC_LIBRARIES
+    "Build static Simbody libraries."
+    OFF)
+
+if(NOT BUILD_DYNAMIC_LIBRARIES AND NOT BUILD_STATIC_LIBRARIES)
+    message(FATAL_ERROR
+        "BUILD_DYNAMIC_LIBRARIES and BUILD_STATIC_LIBRARIES "
+        "are both set to FALSE. No compilation is possible!")
 endif()
 
-# Include GNUInstallDirs to get canonical paths
-include(GNUInstallDirs)
+option(BUILD_VISUALIZER
+    "Build and install the Simbody visualizer."
+    ON)
 
-# Declare the option for code coverage
-option(SIMBODY_COVERAGE
-       "Adding ability to assess test coverage (requires gcc or clang)."
-       OFF)
+option(BUILD_EXAMPLES
+    "Build and install Simbody examples."
+    ON)
 
-# Declare the option to install documentation
 option(INSTALL_DOCS
-       "Install documentation."
-       ON)
+"Build and install Simbody documentation."
+ON)
 
-# Declare the option to use external libraries on Windows
-option(WINDOWS_USE_EXTERNAL_LIBS OFF)
+# Caution: this variable is automatically created by the CMake
+# enable_testing() command, but we'll take it over here for
+# our own purposes too.
+set(BUILD_TESTING ON CACHE BOOL
+    "Control building of Simbody test programs.
+    To actually build tests, one
+    or both of BUILD_TESTS_AND_EXAMPLES_STATIC and
+    BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
+
+set(BUILD_USING_NAMESPACE "" CACHE STRING
+    "Add a prefix to library filenames. (e.g. `BUILD_USING_NAMESPACE=ns_` would \
+produce libraries like 'libns_SimTKmath.so' on Unix).")
+mark_as_advanced(BUILD_USING_NAMESPACE)
+
+option(BUILD_UNVERSIONED_LIBRARIES
+    "Build a set of Simbody libraries without a version suffix (e.g. library names like 'libSimTKMath.so')"
+    ON)
+mark_as_advanced(BUILD_UNVERSIONED_LIBRARIES)
+
+option(BUILD_VERSIONED_LIBRARIES
+    "Build a set of Simbody libraries with a version suffix (e.g. library names like 'libSimTKMath_3.8.so')"
+    OFF)
+mark_as_advanced(BUILD_VERSIONED_LIBRARIES)
+
+include(CMakeDependentOption)
+
+cmake_dependent_option(BUILD_TESTS_AND_EXAMPLES_STATIC
+    "Statically link tests and examples against static Simbody libraries.\
+Static linking increases the build time and uses more storage than dynamic \
+linking. However, statically-linked tests may be easier to debug on Windows \
+than dynamically-linked tests."
+    ON "BUILD_STATIC_LIBRARIES" OFF
+)
+mark_as_advanced(BUILD_TESTS_AND_EXAMPLES_STATIC)
+
+cmake_dependent_option(BUILD_TESTS_AND_EXAMPLES_SHARED
+    "Dynamically link tests and examples against shared Simbody libraries.\
+Dynamic linking has faster build times and uses less storage than static \
+linking."
+    ON "BUILD_DYNAMIC_LIBRARIES" OFF
+)
+mark_as_advanced(BUILD_TESTS_AND_EXAMPLES_SHARED)
+
+if(BUILD_TESTING AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
+        BUILD_TESTS_AND_EXAMPLES_SHARED))
+    message(SEND_ERROR
+        "Requested build configuration is invalid! BUILD_TESTING is set to ON, "
+        "but no tests will be built because dynamic and statically-linked tests "
+        "are disabled. (BUILD_TESTS_AND_EXAMPLES_SHARED and "
+        "BUILD_TESTS_AND_EXAMPLES_STATIC have been manually set to OFF)")
+endif()
+
+if(BUILD_EXAMPLES AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
+        BUILD_TESTS_AND_EXAMPLES_SHARED))
+    message(SEND_ERROR
+        "Requested build configuration is invalid! BUILD_EXAMPLES is set to ON, "
+        "but no examples will be built because dynamic and statically-linked examples "
+        "are disabled. (BUILD_TESTS_AND_EXAMPLES_SHARED and "
+        "BUILD_TESTS_AND_EXAMPLES_STATIC have been manually set to OFF)")
+endif()
+
+option(SIMBODY_COVERAGE
+    "Generate code coverage files to assess test coverage (ignored for MSVC compilers)"
+    OFF)
+mark_as_advanced(SIMBODY_COVERAGE)
+
+option(WINDOWS_USE_EXTERNAL_LIBS
+    "Link against system BLAS/LAPACK on Windows. When set to OFF/FALSE (default), Simbody \
+will use vendored BLAS/LAPACK libraries."
+    OFF)
+mark_as_advanced(WINDOWS_USE_EXTERNAL_LIBS)
 
 # Check compiler version
 if(MSVC)
@@ -89,8 +160,21 @@ set(SIMBODY_SONAME_VERSION
     "Soname version; appended to names of shared libs"
     )
 
-# This is the suffix if we're building and depending on versioned libraries.
-set(VN "_${Simbody_VERSION}")
+# At this point CMake will have set CMAKE_INSTALL_PREFIX to /usr/local on Linux
+# or appropriate ProgramFiles directory on Windows, for example
+# C:/Program Files/Simbody, C:/Program Files (x86)/Simbody, or the local
+# language equivalent.
+
+if(WIN32)
+    set(CMAKE_INSTALL_DOCDIR doc CACHE PATH "documentation root (DATAROOTDIR/doc/PROJECT_NAME)")
+else()
+    # Redefine DOCDIR to use the project name in lowercase to avoid
+    # problems with some platforms: NTFS on Win, XFS or JFS variants
+    set(CMAKE_INSTALL_DOCDIR share/doc/simbody CACHE PATH "documentation root (DATAROOTDIR/doc/PROJECT_NAME)")
+endif()
+
+# Include GNUInstallDirs to get canonical paths
+include(GNUInstallDirs)
 
 set(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
     CACHE PATH
@@ -103,51 +187,38 @@ set(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
 set(EXECUTABLE_OUTPUT_PATH ${BUILD_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${BUILD_BINARY_DIR})
 
-# Dynamic libraries, tests, and examples
-set(BUILD_DYNAMIC_LIBRARIES TRUE CACHE BOOL
-"Build dynamic versions of libraries")
-
-# Static libraries, tests, and examples won't be built unless this
-# is set.
-set(BUILD_STATIC_LIBRARIES FALSE CACHE BOOL
-"Build '_static' versions of libraries")
-
-if(NOT BUILD_DYNAMIC_LIBRARIES AND NOT BUILD_STATIC_LIBRARIES)
-    message(SEND_ERROR "BUILD_DYNAMIC_LIBRARIES and BUILD_STATIC_LIBRARIES "
-        "are both set to FALSE. No compilation is possible!")
-endif()
-
-# Use this to generate a private set of libraries whose names
-# won't conflict with installed versions.
-set(BUILD_USING_NAMESPACE "" CACHE STRING
-    "All library names will be prefixed with 'xxx_' if this is set to xxx.")
-mark_as_advanced(BUILD_USING_NAMESPACE)
-
-set(BUILD_UNVERSIONED_LIBRARIES TRUE CACHE BOOL
-    "Build library names, and assume dependency names, with no version numbers?")
-mark_as_advanced(BUILD_UNVERSIONED_LIBRARIES)
-
-set(BUILD_VERSIONED_LIBRARIES FALSE CACHE BOOL
-    "Build library names, and assume dependency names, with version numbers?")
-mark_as_advanced(BUILD_VERSIONED_LIBRARIES)
-
-set(NS)
-if(BUILD_USING_NAMESPACE)
-    set(NS "${BUILD_USING_NAMESPACE}_")
+# If CMAKE_INSTALL_PREFIX is /usr/local, then the LIBDIR should necessarily be
+# lib/. Sometimes (on Linux), LIBDIR is something like x86_64-linux-gnu. The
+# linker will search /usr/lib/x86_64-linux-gnu (this path is in
+# /etc/ld.so.conf.d), but it will NOT search /usr/local/lib/x86-64-linux-gnu.
+# HOWEVER, it WILL search /usr/local/lib. So that Linux users needn't modify
+# their LD_LIBRARY_PATH if installing to /usr/local, we force the LIBDIR to be
+# lib/.
+# Note: CMake 3.0 fixes this issue. When we move to CMake 3.0, we can
+# remove this if-statement. See issue #151.
+if("${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local" OR
+        "${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local/")
+    # Overwrite both of these variables; we use both of them.
+    set(CMAKE_INSTALL_LIBDIR "lib")
+    set(CMAKE_INSTALL_FULL_LIBDIR
+        "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 endif()
 
 # Ensure that debug libraries have "_d" appended to their names.
 set(CMAKE_DEBUG_POSTFIX "_d")
-
-# This variable gets used when configuring the Info.plist for
-# simbody-visualizer.app; see cmake/MacOSXBundleInfo.plist.in.
-set(MACOSX_BUNDLE_HIGH_RESOLUTION_CAPABLE "false")
 
 #
 # These are the names of all the libraries we may generate. These are
 # target names so can be used to specify dependencies of one library
 # on another. (In Debug mode the actual targets will have "_d" appended.)
 #
+
+set(NS)
+if(BUILD_USING_NAMESPACE)
+    set(NS "${BUILD_USING_NAMESPACE}_")
+endif()
+# This is the suffix if we're building and depending on versioned libraries.
+set(VN "_${Simbody_VERSION}")
 
 set(SimTKSIMBODY_LIBRARY_NAME ${NS}SimTKsimbody CACHE INTERNAL
     "Base name of the SimTKsimbody library"
@@ -182,58 +253,6 @@ set(SimTKSIMBODY_SHARED_LIBRARY_VN ${SimTKSIMBODY_LIBRARY_NAME_VN})
 set(SimTKSIMBODY_STATIC_LIBRARY_VN ${SimTKSIMBODY_LIBRARY_NAME_VN}_static)
 
 
-# Caution: this variable is automatically created by the CMake
-# enable_testing() command, but we'll take it over here for
-# our own purposes too.
-set(BUILD_TESTING ON CACHE BOOL
-    "Control building of Simbody test programs.
-    To actually build tests, one
-    or both of BUILD_TESTS_AND_EXAMPLES_STATIC and
-    BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
-
-set(BUILD_EXAMPLES ON CACHE BOOL
-    "Control building of Simbody example programs.
-    To actually build examples, one
-    or both of BUILD_TESTS_AND_EXAMPLES_STATIC and
-    BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
-
-# Set whether to build the Visualizer code.
-set(BUILD_VISUALIZER ON CACHE BOOL
-    "Control building of the visualizer component.")
-
-# Turning this off reduces the build time (and space) substantially,
-# but you may miss the occasional odd bug. Also currently on Windows it
-# is easier to debug the static tests than the DLL-linked ones.
-set(BUILD_TESTS_AND_EXAMPLES_STATIC ON CACHE BOOL
-    "If BUILDING_STATIC_LIBRARIES and BUILD_TESTING or BUILD_EXAMPLES, build
-    statically-linked test and example programs too? On Windows,
-    statically-linked tests may be easier to debug than DLL-linked tests.
-    Statically-linked examples are never installed.")
-mark_as_advanced(BUILD_TESTS_AND_EXAMPLES_STATIC)
-
-if(BUILD_DYNAMIC_LIBRARIES)
-    set(BUILD_TESTS_AND_EXAMPLES_SHARED ON CACHE BOOL
-        "If BUILD_TESTING or BUILD_EXAMPLES, build dynamically-linked ones?")
-else()
-    set(BUILD_TESTS_AND_EXAMPLES_SHARED OFF)
-endif()
-mark_as_advanced(BUILD_TESTS_AND_EXAMPLES_SHARED)
-
-if(BUILD_TESTING AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
-        BUILD_TESTS_AND_EXAMPLES_SHARED))
-    message(SEND_ERROR "No tests would be built, despite BUILD_EXAMPLES"
-        "being on, because BUILD_TESTS_AND_EXAMPLES_STATIC and "
-        "BUILD_TESTS_AND_EXAMPLES_SHARED are both off.")
-endif()
-
-if(BUILD_EXAMPLES AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
-        BUILD_TESTS_AND_EXAMPLES_SHARED))
-    message(SEND_ERROR
-        "No examples would be built, despite BUILD_EXAMPLES being on, "
-        "because BUILD_TESTS_AND_EXAMPLES_STATIC and "
-        "BUILD_TESTS_AND_EXAMPLES_SHARED are both off.")
-endif()
-
 # In addition to the platform name we need to know the Application Binary
 # Interface (ABI) we're building for. Currently that is either x86, meaning
 # 32 bit Intel instruction set, or x64 for 64 bit Intel instruction set.
@@ -244,30 +263,9 @@ else()
     set(PLATFORM_ABI x86)
 endif()
 
-set(BUILD_PLATFORM "${CMAKE_HOST_SYSTEM_NAME}:${PLATFORM_ABI}" CACHE INTERNAL
-    "This is the platform and ABI we're building for"
-)
-
-# If CMAKE_INSTALL_PREFIX is /usr/local, then the LIBDIR should necessarily be
-# lib/. Sometimes (on Linux), LIBDIR is something like x86_64-linux-gnu. The
-# linker will search /usr/lib/x86_64-linux-gnu (this path is in
-# /etc/ld.so.conf.d), but it will NOT search /usr/local/lib/x86-64-linux-gnu.
-# HOWEVER, it WILL search /usr/local/lib. So that Linux users needn't modify
-# their LD_LIBRARY_PATH if installing to /usr/local, we force the LIBDIR to be
-# lib/.
-# Note: CMake 3.0 fixes this issue. When we move to CMake 3.0, we can
-# remove this if-statement. See issue #151.
-if("${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local" OR
-        "${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local/")
-    # Overwrite both of these variables; we use both of them.
-    set(CMAKE_INSTALL_LIBDIR "lib")
-    set(CMAKE_INSTALL_FULL_LIBDIR
-        "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
-endif()
-
 
 if(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE INTERNAL
+    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE
         "Debug, RelWithDebInfo (recommended), or Release build"
         )
 endif()
@@ -297,11 +295,14 @@ else()
     set(inst_set_to_use ${default_build_inst_set})
 endif()
 
-
 # RPATH
 # -----
 set(SIMBODY_USE_INSTALL_RPATH FALSE)
 if(APPLE)
+    # This variable gets used when configuring the Info.plist for
+    # simbody-visualizer.app; see cmake/MacOSXBundleInfo.plist.in.
+    set(MACOSX_BUNDLE_HIGH_RESOLUTION_CAPABLE "false")
+
     # CMake 2.8.12 introduced the ability to set RPATH for shared libraries on
     # OSX. This helps executables find the libraries they depend on without
     # having to set the DYLD_LIBRARY_PATH environment variable.
@@ -467,10 +468,6 @@ endif()
 
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
-# TODO removed SVN_REVSION; replace with GIT_SHA1
-# http://stackoverflow.com/questions/1435953/how-can-i-pass-git-sha1-to-compiler-as-definition-using-cmake
-
-
 add_compile_definitions(
    -DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
    -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}"
