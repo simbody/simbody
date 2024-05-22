@@ -404,15 +404,13 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     if(SIMBODY_COVERAGE)
         find_package(codecov)
     endif()
-
-endif()
-
-## When building in any of the Release modes, tell VC++ cl compiler to use
-## intrinsics (i.e. sqrt instruction rather than sqrt subroutine) with
-## flag /Oi.
+elseif(MSVC)
 ## Caution: can't use CMAKE_CXX_COMPILER_ID MATCHES MSVC here because
 ## "MSVC" is a predefined CMAKE variable and will get expanded to 1 or 0
-if(MSVC)
+
+    ## When building in any of the Release modes, tell VC++ cl compiler to use
+    ## intrinsics (i.e. sqrt instruction rather than sqrt subroutine) with
+    ## flag /Oi.
     if(inst_set_to_use)
         string(TOUPPER ${inst_set_to_use} CL_INST_SET)
         set(CL_INST_SET "/arch:${CL_INST_SET}")
