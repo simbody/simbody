@@ -115,6 +115,16 @@ will use vendored BLAS/LAPACK libraries."
     OFF)
 mark_as_advanced(WINDOWS_USE_EXTERNAL_LIBS)
 
+# Ultimately, BUILD_USING_OTHER_LAPACK is given to target_link_libraries;
+# see https://cmake.org/cmake/help/latest/command/target_link_libraries.html#overview
+# for a more complete description of different valid incantations for BUILD_USING_OTHER_LAPACK
+set(BUILD_USING_OTHER_LAPACK "" CACHE STRING
+    "Use non-default BLAS/LAPACK libraries. List library names (no extensions) \
+separated by semicolons (full paths or paths that are on the (DY)LD_LIBRARY_PATH \
+(UNIX) or PATH (Windows)). (e.g. BUILD_USING_OTHER_LAPACK='mkl_intel_c_dll;\
+mkl_sequential_dll;mkl_core_dll' to use Intel MKL on Windows).")
+mark_as_advanced(BUILD_USING_OTHER_LAPACK)
+
 # Check compiler version
 if(MSVC)
     if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
@@ -265,7 +275,7 @@ endif()
 
 
 if(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE
+    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
         "Debug, RelWithDebInfo (recommended), or Release build"
         )
 endif()
@@ -473,27 +483,24 @@ add_compile_definitions(
    -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}"
 )
 
-# Determine which math libraries to use for this platform.
-# Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
-set(BUILD_USING_OTHER_LAPACK "" CACHE STRING
- "If you have your own Lapack and Blas, put libraries here, separated by semicolons (full paths or paths that are on the (DY)LD_LIBRARY_PATH (UNIX) or PATH (Windows)). See LAPACK_BEING_USED to see what's actually being used.")
-if(WIN32 AND NOT WINDOWS_USE_EXTERNAL_LIBS)
-    set(LAPACK_PLATFORM_DEFAULT lapack;blas)
-else()
-    find_package(BLAS)
-    find_package(LAPACK)
-    if(BLAS_FOUND AND LAPACK_FOUND)
-        set(LAPACK_PLATFORM_DEFAULT ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-    else()
-        message(WARNING "Could not find blas/lapack")
-    endif()
-endif()
-set(LAPACK_BEING_USED ${LAPACK_PLATFORM_DEFAULT} CACHE INTERNAL
-    "Basename of the actual Lapack library dependency. Set BUILD_USING_OTHER_LAPACK to modify.")
-
 if(BUILD_USING_OTHER_LAPACK)
     set(LAPACK_BEING_USED ${BUILD_USING_OTHER_LAPACK} CACHE INTERNAL
-        "Basename of the actual Lapack library dependency. Set BUILD_USING_OTHER_LAPACK to modify.")
+        "The BLAS/LAPACK libraries that will be linked against by the Simbody libraries.")
+else()
+    if(WIN32 AND NOT WINDOWS_USE_EXTERNAL_LIBS)
+        set(LAPACK_PLATFORM_DEFAULT lapack;blas)
+    else()
+        find_package(BLAS)
+        find_package(LAPACK)
+        if(BLAS_FOUND AND LAPACK_FOUND)
+            set(LAPACK_PLATFORM_DEFAULT ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+        else()
+            message(WARNING "Could not find blas/lapack")
+        endif()
+    endif()
+
+    set(LAPACK_BEING_USED ${LAPACK_PLATFORM_DEFAULT} CACHE INTERNAL
+        "The BLAS/LAPACK libraries that will be linked against by the Simbody libraries.")
 endif()
 
 if(UNIX)
