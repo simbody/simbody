@@ -137,6 +137,13 @@ public:
                         Vec3& closestPointOnLine,
                         Real& height) const;
 
+    bool calcNearestPointOnLineImplicitly(
+            const Vec3& pointA,
+            const Vec3& pointB,
+            Vec3& nearestPointOnLine,
+            size_t maxIter,
+            Real tolerance) const;
+
     // Geodesic evaluators
 
 

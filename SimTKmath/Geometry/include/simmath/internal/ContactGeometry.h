@@ -234,7 +234,12 @@ bool trackSeparationFromLine(const Vec3& pointOnLine,
                              Vec3& closestPointOnLine,
                              Real& height) const;
 
-
+bool calcNearestPointOnLineImplicitly(
+    const Vec3& pointA,
+    const Vec3& pointB,
+    Vec3& nearestPointOnLine,
+    size_t maxIter,
+    Real tolerance) const;
 
 /** Determine whether this object intersects a ray, and if so, find the 
 intersection point.

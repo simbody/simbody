@@ -770,6 +770,87 @@ trackSeparationFromLine(const Vec3& pointOnLine,
     return succeeded;
 }
 
+bool ContactGeometry::calcNearestPointOnLineImplicitly(
+    const Vec3& pointA,
+    const Vec3& pointB,
+    Vec3& nearestPointOnLine,
+    size_t maxIter,
+    Real tolerance) const
+{
+    return getImpl().calcNearestPointOnLineImplicitly(
+            pointA,
+            pointB,
+            nearestPointOnLine,
+            maxIter,
+            tolerance);
+}
+
+bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
+    const Vec3& pointA,
+    const Vec3& pointB,
+    Vec3& nearestPointOnLine,
+    size_t maxIter,
+    Real tolerance) const
+{
+    // TODO the sign of the constraint is such that positive is inside the surface.
+
+    // Initial guess.
+    const Vec3 d = pointB - pointA;
+    Real alpha   = -dot(d, pointA - nearestPointOnLine) / dot(d, d);
+    alpha        = std::max(0., std::min(alpha, 1.));
+
+    size_t iter = 0;
+
+    for (; iter < maxIter; ++iter) {
+        // Touchdown point on line.
+        const Vec3 pointOnLine = pointA + d * alpha;
+
+        // Constraint evaluation at touchdown point.
+        const Real c = -calcSurfaceValue(pointOnLine);
+
+        // Break on touchdown.
+        if (std::abs(c) < tolerance) {
+            break;
+        }
+
+        // Gradient at point on line.
+        const Vec3 g  = -calcSurfaceGradient(pointOnLine);
+        const Mat33 H = -calcSurfaceHessian(pointOnLine);
+
+        // Add a weight to the newton step to avoid large steps.
+        constexpr Real w = 0.5;
+
+        // Update alpha.
+        const Real step = dot(g, d) / (dot(d, H * d) + w);
+
+        // Stop when converged.
+        if (std::abs(step) < tolerance) {
+            break;
+        }
+
+        // Clamp the stepsize.
+        constexpr Real maxStep = 0.25;
+        alpha -= std::min(std::max(-maxStep, step), maxStep);
+
+        // Stop when leaving bounds.
+        if (alpha < 0. || alpha > 1.) {
+            break;
+        }
+    }
+
+    // Write the point on line nearest the surface.
+    alpha = std::max(0., std::min(alpha, 1.));
+    nearestPointOnLine = pointA + d * alpha;
+
+    const bool touchdown = -calcSurfaceValue(nearestPointOnLine) < tolerance;
+
+    SimTK_ASSERT_ALWAYS(iter < maxIter,
+        "Failed to compute point on line nearest "
+                                 "surface: Reached max iterations");
+
+    return touchdown;
+}
+
 //==============================================================================
 //                  GEODESIC EVALUATORS in CONTACT GEOMETRY
 //==============================================================================
