@@ -116,6 +116,11 @@ public:
                                 const Mat33& Hessian) const;
     Real  calcSurfaceCurvatureInDirection(const Vec3& point, 
                                           const UnitVec3& direction) const;
+
+    Real calcSurfaceTorsionInDirection(
+            const Vec3& point,
+            const UnitVec3& direction) const;
+
     // Generic method for calculating principal curvatures kmax,kmin and
     // corresponding unit tangent vector directions R_SP.x() and R_SP.y().
     // R_SP.z() is the surface unit normal at P, with z=x X y.

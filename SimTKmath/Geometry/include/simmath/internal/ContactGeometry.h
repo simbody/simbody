@@ -375,6 +375,8 @@ where H is the Hessian matrix evaluated at p.
 **/
 Real calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
 
+Real calcSurfaceTorsionInDirection(const Vec3& point, const UnitVec3& direction) const;
+
 /** For an implicit surface at a given point p, return the principal 
 curvatures and principal curvature directions, using only the implicit
 function and its derivatives. The curvatures are returned as a Vec2 (kmax,kmin), 

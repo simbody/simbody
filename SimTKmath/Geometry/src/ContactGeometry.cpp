@@ -118,6 +118,21 @@ Vec3 ContactGeometry::projectDownhillToNearestPoint(const Vec3& Q) const {
     return getImpl().projectDownhillToNearestPoint(Q);
 }
 
+Real ContactGeometry::calcSurfaceTorsionInDirection(const Vec3& point, const UnitVec3& direction) const
+{
+    return getImpl().calcSurfaceTorsionInDirection(point, direction);
+}
+
+Real ContactGeometryImpl::calcSurfaceTorsionInDirection(const Vec3& point, const UnitVec3& direction) const
+{
+    const Vec3 g   = calcSurfaceGradient(point);
+    const Vec3 h_d = calcSurfaceHessian(point) * direction;
+    const Vec3 gXd = cross(g, direction);
+
+    // TODO Prevent 0/0?
+    return -dot(h_d, gXd) / dot(g, g);
+}
+
 bool ContactGeometry::
 trackSeparationFromLine(const Vec3& pointOnLine,
                         const UnitVec3& directionOfLine,
