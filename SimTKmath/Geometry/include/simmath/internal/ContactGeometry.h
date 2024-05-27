@@ -35,6 +35,7 @@ individual contact shapes. **/
 #include "simmath/internal/BicubicSurface.h"
 
 #include <cassert>
+#include <functional>
 
 namespace SimTK {
 
@@ -565,6 +566,18 @@ is closest to that point. Otherwise, find the shortest length geodesic.
 **/
 void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
         const GeodesicOptions& options, Geodesic& geod) const;
+
+void shootGeodesicInDirectionImplicitly(
+    Vec3 pointApprox,
+    Vec3 tangentApprox,
+    Real finalArcLength,
+    Real& initStepSize,
+    Real integratorAccuracy,
+    Real constraintTolerance,
+    int maxIter,
+    Vec2& finalJacobi,
+    Vec2& finalJacobiDot,
+    std::function<void(const Real& l, const Vec3& x, const Vec3& t)>& log) const;
 
 
 /** Given the current positions of two points P and Q moving on this surface, 

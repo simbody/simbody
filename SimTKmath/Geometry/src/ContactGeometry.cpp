@@ -855,6 +855,84 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
 //                  GEODESIC EVALUATORS in CONTACT GEOMETRY
 //==============================================================================
 
+void ContactGeometry::shootGeodesicInDirectionImplicitly(
+    Vec3 pointApprox,
+    Vec3 tangentApprox,
+    Real finalArcLength,
+    Real& initStepSize,
+    Real integratorAccuracy,
+    Real constraintTolerance,
+    int maxIter,
+    Vec2& finalJacobi,
+    Vec2& finalJacobiDot,
+    std::function<void(const Real& l, const Vec3& x, const Vec3& t)>& log) const
+{
+    getImpl().shootGeodesicInDirectionImplicitly(pointApprox,
+    tangentApprox,
+    finalArcLength,
+    initStepSize,
+    integratorAccuracy,
+    constraintTolerance,
+    maxIter,
+    finalJacobi,
+    finalJacobiDot,
+    log);
+}
+
+void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
+    Vec3 pointApprox,
+    Vec3 tangentApprox,
+    Real finalArcLength,
+    Real& initStepSize,
+    Real integratorAccuracy,
+    Real constraintTolerance,
+    int maxIter,
+    Vec2& finalJacobi,
+    Vec2& finalJacobiDot,
+    std::function<void(const Real& l, const Vec3& x, const Vec3& t)>& log) const
+{
+    // integrator settings
+    const Real startArcLength = 0;
+
+    using Eqns = GeodesicOnImplicitSurface;
+
+    Eqns eqns(*this);
+    GeodesicIntegrator<GeodesicOnImplicitSurface>
+        integ(eqns,integratorAccuracy,constraintTolerance);
+    static const int N = GeodesicOnImplicitSurface::N;
+
+    integ.initialize(startArcLength, Eqns::getInitialState(pointApprox, UnitVec3(tangentApprox)));
+
+    // Aliases for the integrators internal time and state variables.
+    const Vec<N>& y = integ.getY();
+    const Real&   s = integ.getTime();  // arc length
+
+    // Simulate it, and record geodesic knot points after each step
+    int stepcnt = 0;
+    while (true) {
+        log(
+            s,
+            Eqns::getP(y),
+            Eqns::getV(y));
+
+        if (s == finalArcLength) {
+            break;
+        }
+
+        integ.takeOneStep(finalArcLength);
+        ++stepcnt;
+    }
+
+    initStepSize = integ.getActualInitialStepSizeTaken();
+
+    finalJacobi = {
+        Eqns::getJTrans(y),
+        Eqns::getJRot(y),};
+
+    finalJacobiDot = {
+        Eqns::getJTransDot(y),
+        Eqns::getJRotDot(y),};
+}
 
 void ContactGeometry::initGeodesic(const Vec3& xP, const Vec3& xQ,
         const Vec3& xSP, const GeodesicOptions& options, Geodesic& geod) const

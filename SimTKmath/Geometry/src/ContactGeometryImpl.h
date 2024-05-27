@@ -151,6 +151,20 @@ public:
     void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
             const GeodesicOptions& options, Geodesic& geod) const;
 
+    void shootGeodesicInDirectionImplicitly(
+            Vec3 pointApprox,
+            Vec3 tangentApprox,
+            Real finalArcLength,
+            Real& initStepSize,
+            Real integratorAccuracy,
+            Real constraintTolerance,
+            int maxIter,
+            Vec2& finalJacobi,
+            Vec2& finalJacobiDot,
+            std::function<void(
+                const Real& l,
+                const Vec3& x,
+                const Vec3& t)>& log) const;
 
     // Given two points and previous geodesic curve close to the points, find
     // a geodesic curve connecting the points that is close to the previous geodesic.
