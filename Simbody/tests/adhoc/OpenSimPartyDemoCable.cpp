@@ -364,7 +364,7 @@ int main() {
     pendulumFemur.addBodyDecoration(patchTransform,
          DecorativeMesh(lowResPatchMesh).setRepresentation(DecorativeGeometry::DrawWireframe));
 
-    path2.adoptSurfaceObstacle(
+    path2.addSurfaceObstacle(
         pendulumFemur,
         patchTransform,
         ContactGeometry::SmoothHeightMap(patch),
@@ -378,7 +378,7 @@ int main() {
 
     Transform sphTransform(sphRotation, sphOffset);
 
-    path2.adoptSurfaceObstacle(
+    path2.addSurfaceObstacle(
         pendulumTibia,
         sphTransform,
         ContactGeometry::Sphere(sphRadius),

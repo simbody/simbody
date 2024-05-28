@@ -228,7 +228,7 @@ CableSpan::CableSpan(
     subsystem.updImpl().adoptCable(*this);
 }
 
-void CableSpan::adoptSurfaceObstacle(
+void CableSpan::addSurfaceObstacle(
     MobilizedBodyIndex body,
     Transform X_BS,
     const ContactGeometry& geometry,

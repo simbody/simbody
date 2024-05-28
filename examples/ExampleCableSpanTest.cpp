@@ -599,13 +599,13 @@ int main()
         cable.setIntegratorAccuracy(integratorAccuracy);
         cable.setMaxRadialStepInDegrees(maxStepDeg);
 
-        cable.adoptSurfaceObstacle(
+        cable.addSurfaceObstacle(
             ball0,
             Transform(Vec3{-0.5, 0., 0.}),
             ContactGeometry::Sphere(Rad),
             {0., 1., 0.});
 
-        cable.adoptSurfaceObstacle(
+        cable.addSurfaceObstacle(
             ball1,
             Transform(Vec3{1.1, 0.2, 0.3}),
             ContactGeometry::Ellipsoid(Vec3{0.5, 0.7, 1.2} * Rad),

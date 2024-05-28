@@ -307,7 +307,7 @@ int main()
             ballBody,
             Transform(Vec3{offset - arm}));
 
-        path1.adoptSurfaceObstacle(
+        path1.addSurfaceObstacle(
             ball,
             Transform(Rotation(1.5, CoordinateAxis::YCoordinateAxis()),Vec3{0.}),
             ContactGeometry::Sphere(Rad),
@@ -324,7 +324,7 @@ int main()
             ball2Body,
             Transform(Vec3{-arm2}));
 
-        path1.adoptSurfaceObstacle(
+        path1.addSurfaceObstacle(
             ball2,
             Transform(),
             ContactGeometry::Ellipsoid({Rad2, Rad2 * 2., Rad2 * 0.9}),

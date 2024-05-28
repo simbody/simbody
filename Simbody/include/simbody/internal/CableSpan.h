@@ -211,6 +211,7 @@ public:
     CableSpan(CableSpan&&) noexcept            = default;
     CableSpan& operator=(CableSpan&&) noexcept = default;
 
+//------------------------------------------------------------------------------
 
     CableSpan(
         CableSubsystem& subsystem,
@@ -219,12 +220,13 @@ public:
         MobilizedBodyIndex terminationBody,
         const Vec3& defaultTerminationPoint);
 
-    void adoptSurfaceObstacle(
+    void addSurfaceObstacle(
         MobilizedBodyIndex mobod,
         Transform X_BS,
         const ContactGeometry& geometry,
         Vec3 contactPointHint = {1., 0., 0.});
 
+//------------------------------------------------------------------------------
 
     int getNumCurveSegments() const;
 
