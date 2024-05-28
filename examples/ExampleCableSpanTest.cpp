@@ -223,12 +223,13 @@ void RungeKutta4Step(
 
 std::vector<GeodesicState> RecomputeUnconstrainedGeodesic(
     const State& state,
-    const CurveSegment& curve,
+    const CableSpan& cable,
+    CurveSegmentIndex ix,
     size_t integratorSteps)
 {
     std::vector<GeodesicState> samples;
 
-    const FrenetFrame& K_P = curve.getFrenetFrameStart(state);
+    const FrenetFrame& K_P = cable.getCurveSegmentFirstFrenetFrame(state, ix);
 
     GeodesicState q;
 
@@ -242,12 +243,12 @@ std::vector<GeodesicState> RecomputeUnconstrainedGeodesic(
     samples.push_back(q);
 
     const int n              = integratorSteps;
-    const ContactGeometry& g = curve.getContactGeometry();
-    const Mobod& body        = curve.getMobilizedBody();
+    const ContactGeometry& g = cable.getObstacleContactGeometry(ix);
+    const Mobod& body        = cable.getObstacleMobilizedBody(ix);
     const Transform X_GS =
-        body.getBodyTransform(state).compose(curve.getXformSurfaceToBody());
+        body.getBodyTransform(state).compose(cable.getObstacleXformSurfaceToBody(ix));
 
-    Real l  = curve.getSegmentLength(state);
+    Real l  = cable.getCurveSegmentLength(state, ix);
     Real dl = l / static_cast<Real>(n);
 
     for (int k = 0; k < n; ++k) {
@@ -455,19 +456,20 @@ bool RunRungeKutta4Test(std::ostream& os)
 
 bool RunCurveSegmentShooterTest(
     const State& state,
-    const CurveSegment& curve,
+    const CableSpan& cable,
+    CurveSegmentIndex ix,
     Real eps,
     int integratorSteps,
     std::ostream& os)
 {
 
     std::vector<GeodesicState> testSamples =
-        RecomputeUnconstrainedGeodesic(state, curve, integratorSteps);
+        RecomputeUnconstrainedGeodesic(state, cable, ix, integratorSteps);
 
-    const ContactGeometry& g = curve.getContactGeometry();
-    const Mobod& body        = curve.getMobilizedBody();
+    const ContactGeometry& g = cable.getObstacleContactGeometry(ix);
+    const Mobod& body        = cable.getObstacleMobilizedBody(ix);
     const Transform X_GS =
-        body.getBodyTransform(state).compose(curve.getXformSurfaceToBody());
+        body.getBodyTransform(state).compose(cable.getObstacleXformSurfaceToBody(ix));
 
     bool success = true;
     success &= AssertRecomputedPosition(
@@ -507,14 +509,14 @@ bool RunCurveSegmentShooterTest(
             Transform frame;
             frame.updP() = point_G;
             frame.updR().setRotationFromTwoAxes(
-                calcSurfaceNormal(curve.getContactGeometry(), X_GS, point_G),
+                calcSurfaceNormal(g, X_GS, point_G),
                 NormalAxis,
                 tangent_G,
                 TangentAxis);
             frames.push_back(frame);
         };
 
-    curve.calcPathPointsAndTangents(state, Logger, integratorSteps + 1);
+    cable.calcCurveSegmentPathPointsAndTangents(state, ix, integratorSteps + 1, Logger);
 
     if (frames.size() != testSamples.size()) {
         std::cout << frames.size() << "\n";
@@ -624,12 +626,12 @@ int main()
 
         std::ostringstream oss;
         bool testPassed = true;
-        for (CurveSegmentIndex ix = CurveSegmentIndex(0);
+        for (CurveSegmentIndex ix(0);
              ix < cable.getNumSurfaceObstacles();
              ++ix) {
             testPassed &= RunCurveSegmentShooterTest(
                 s,
-                cable.getCurveSegment(ix),
+                cable, ix,
                 cable.getIntegratorAccuracy(),
                 1000,
                 oss);

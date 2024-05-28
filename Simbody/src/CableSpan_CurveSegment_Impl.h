@@ -24,20 +24,39 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include "simbody/internal/CableSpan.h"
+#include <stdexcept>
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/CableSpan.h"
+#include "simbody/internal/common.h"
+#include "simmath/internal/ContactGeometry.h"
 
 namespace SimTK
 {
 
+// Representation of the cable segments that do not lie on a surface.
+struct LineSegment final
+{
+    LineSegment() = default;
+
+    LineSegment(Vec3 a, Vec3 b) : length((b - a).norm()), direction((b - a) / length)
+    {}
+
+    // TODO rename to length.
+    Real length = NaN;
+    // TODO rename to direction.
+    UnitVec3 direction{NaN, NaN, NaN};
+};
+
 //==============================================================================
 //                          CURVE SEGMENT IMPL
 //==============================================================================
-class CurveSegment::Impl final
+class CurveSegment final
 {
 public:
     // The frenet frame along the geodesic on the surface obstacle.
     using FrenetFrame = Transform;
+
+    using WrappingStatus = CableSpan::ObstacleWrappingStatus;
 
     // Helper struct for logging the frames obtained during shooting of the
     // geodesic.
@@ -138,19 +157,25 @@ public:
         FrenetFrame X_GQ{};
     };
 
+    struct GeodesicIntegratorParams {
+        Real intergatorAccuracy = 1e-6; // TODO set to reasonable
+        Real constraintProjectionTolerance = 1e-6; // TODO set to reasonable
+        int constraintProjectionMaxIter = 50; // TODO set to reasonable
+    };
+
 //------------------------------------------------------------------------------
 
     // TODO refactor rule of five and constructor
-    Impl()                       = delete;
-    Impl(const Impl&)            = delete;
-    Impl& operator=(const Impl&) = delete;
+    CurveSegment()                               = default;
+    CurveSegment(const CurveSegment&)            = default;
+    CurveSegment& operator=(const CurveSegment&) = default;
 
-    ~Impl()                          = default;
-    Impl(Impl&&) noexcept            = default;
-    Impl& operator=(Impl&&) noexcept = default;
+    ~CurveSegment()                                  = default;
+    CurveSegment(CurveSegment&&) noexcept            = default;
+    CurveSegment& operator=(CurveSegment&&) noexcept = default;
 
-    Impl(
-        CableSpan path,
+    CurveSegment(
+        CableSubsystem* subsystem,
         MobilizedBodyIndex body,
         const Transform& X_BS,
         ContactGeometry geometry,
@@ -176,14 +201,15 @@ public:
             Stage::Position,
             Stage::Infinity,
             new Value<PosEntry>(posInfo));
+
+        m_Decoration = getContactGeometry().createDecorativeGeometry()
+            .setColor(Orange)
+            .setOpacity(.75)
+            .setResolution(3);
     }
 
-    void realizePosition(const State& s, Vec3 prevPoint_G, Vec3 nextPoint_G)
+    void realizePosition(const State& s, Vec3 prevPoint_G, Vec3 nextPoint_G, const GeodesicIntegratorParams& params)
         const;
-
-    // Realize the CableSpan, that this segment is a part of, to
-    // Stage::Position.
-    void realizeCablePosition(const State& s) const;
 
     void invalidatePosEntry(const State& state) const
     {
@@ -191,21 +217,6 @@ public:
     }
 
 //------------------------------------------------------------------------------
-
-    const CableSpan& getCable() const
-    {
-        return m_Path;
-    }
-
-    CurveSegmentIndex getIndex() const
-    {
-        return m_Index;
-    }
-
-    void setIndex(CurveSegmentIndex ix)
-    {
-        m_Index = ix;
-    }
 
     // Set the user defined point that controls the initial wrapping path.
     // Point is in surface coordinates.
@@ -225,6 +236,10 @@ public:
     {
         return m_Geometry;
     }
+    void setContactGeometry(ContactGeometry geometry)
+    {
+        m_Geometry = geometry;
+    }
 
     const DecorativeGeometry& getDecoration() const
     {
@@ -232,6 +247,15 @@ public:
     }
 
     const MobilizedBody& getMobilizedBody() const;
+
+    const MobilizedBodyIndex& getMobilizedBodyIndex() const
+    {
+        return m_Body;
+    }
+
+    void setMobilizedBodyIndex(MobilizedBodyIndex body) {
+        m_Body = body;
+    }
 
     const Transform& getXformSurfaceToBody() const
     {
@@ -245,12 +269,23 @@ public:
 
     const CableSubsystem& getSubsystem() const
     {
+        if (!m_Subsystem) {
+            SimTK_ERRCHK_ALWAYS(m_Subsystem, "CurveSegment::getSubsystem()", "CableSpan not yet adopted by any CableSubsystem");
+        }
         return *m_Subsystem;
     }
 
     CableSubsystem& updSubsystem()
     {
+        if (!m_Subsystem) {
+            SimTK_ERRCHK_ALWAYS(m_Subsystem, "CurveSegment::updSubsystem()", "CableSpan not yet adopted by any CableSubsystem");
+        }
         return *m_Subsystem;
+    }
+
+    void setSubsystem(CableSubsystem& subsystem)
+    {
+        m_Subsystem = &subsystem;
     }
 
 //------------------------------------------------------------------------------
@@ -304,7 +339,8 @@ public:
         Vec3 point_S,
         Vec3 tangent_S,
         Real length,
-        Real stepSizeHint) const;
+        Real stepSizeHint,
+        const GeodesicIntegratorParams& params) const;
 
     // Lift curve from surface, and start tracking the given point.
     // This method will update the InstanceEntry cache, and invalidates the
@@ -341,9 +377,7 @@ private:
 //------------------------------------------------------------------------------
 
     // Subsystem info.
-    CableSubsystem* m_Subsystem; // The subsystem this segment belongs to.
-    CableSpan m_Path;            // The path this segment belongs to.
-    CurveSegmentIndex m_Index;   // The index in its path.
+    CableSubsystem* m_Subsystem; // TODO manage reference count?
 
     // MobilizedBody that surface is attached to.
     MobilizedBodyIndex m_Body;

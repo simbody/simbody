@@ -62,21 +62,36 @@ public:
 
 //------------------------------------------------------------------------------
 
+    // Construct, but not associated with a CableSubsystem yet.
     Impl(
-        CableSubsystem& subsystem,
         MobilizedBodyIndex originBody,
         Vec3 originPoint,
         MobilizedBodyIndex terminationBody,
         Vec3 terminationPoint) :
-        m_Subsystem(&subsystem),
+        m_Subsystem(nullptr), // Not adopted yet
+        m_Index(CableSpanIndex(-1)), // Invalid index
         m_OriginBody(originBody), m_OriginPoint(originPoint),
         m_TerminationBody(terminationBody), m_TerminationPoint(terminationPoint)
     {}
 
-    CurveSegmentIndex adoptSegment(const CurveSegment& segment)
+    CurveSegmentIndex addSurfaceObstacle(
+        MobilizedBodyIndex mobod,
+        Transform X_BS,
+        const ContactGeometry& geometry,
+        Vec3 contactPointHint)
     {
-        m_CurveSegments.push_back(segment);
-        return CurveSegmentIndex(m_CurveSegments.size() - 1);
+        invalidateTopology();
+
+        CurveSegmentIndex obstacleIx(m_CurveSegments.size());
+
+        m_CurveSegments.push_back(CurveSegment(
+                    m_Subsystem,
+                    mobod,
+                    X_BS,
+                    geometry,
+                    contactPointHint));
+
+        return obstacleIx;
     }
 
 //------------------------------------------------------------------------------
@@ -87,7 +102,9 @@ public:
     void realizeVelocity(const State& state) const;
     void invalidateTopology()
     {
-        getSubsystem().invalidateSubsystemTopologyCache();
+        if (m_Subsystem) {
+            getSubsystem().invalidateSubsystemTopologyCache();
+        }
     }
     void invalidatePositionLevelCache(const State& state) const;
 
@@ -102,6 +119,11 @@ public:
     }
 
     const CurveSegment& getCurveSegment(CurveSegmentIndex ix) const
+    {
+        return m_CurveSegments[ix];
+    }
+
+    CurveSegment& updCurveSegment(CurveSegmentIndex ix)
     {
         return m_CurveSegments[ix];
     }
@@ -126,29 +148,29 @@ public:
 
     Real getSurfaceConstraintTolerance() const
     {
-        return m_ConstraintTolerance;
+        return m_IntegratorParams.constraintProjectionTolerance;
     }
     void setSurfaceConstraintTolerance(Real tolerance)
     {
-        m_ConstraintTolerance = tolerance;
+        m_IntegratorParams.constraintProjectionTolerance = tolerance;
     }
 
     int getSurfaceProjectionMaxIter() const
     {
-        return m_ProjectionMaxIter;
+        return m_IntegratorParams.constraintProjectionMaxIter;
     }
     void setSurfaceProjectionMaxIter(int maxIter)
     {
-        m_ProjectionMaxIter = maxIter;
+        m_IntegratorParams.constraintProjectionMaxIter = maxIter;
     }
 
     Real getIntegratorAccuracy() const
     {
-        return m_IntegratorAccuracy;
+        return m_IntegratorParams.intergatorAccuracy;
     }
     void setIntegratorAccuracy(Real accuracy)
     {
-        m_IntegratorAccuracy = accuracy;
+        m_IntegratorParams.intergatorAccuracy = accuracy;
     }
 
     int getPathMaxIter() const
@@ -178,6 +200,11 @@ public:
         m_MaxCorrectionStepDeg = maxStepInDeg;
     }
 
+    const CurveSegment::GeodesicIntegratorParams& getIntegratorParams() const
+    {
+        return m_IntegratorParams;
+    }
+
 //------------------------------------------------------------------------------
 
     // Find the number of CurveSegments that are in contact with an obstacle's
@@ -186,8 +213,8 @@ public:
 
     int calcPathPoints(
         const State& state,
-        std::function<void(Vec3 point_G)>& sink,
-        int nPointsPerCurveSegment) const;
+    Real maxLengthIncrement,
+        std::function<void(Vec3 point_G)>& sink) const;
 
     void applyBodyForces(
         const State& state,
@@ -205,12 +232,35 @@ private:
     // Get the subsystem this CableSpan is part of.
     const CableSubsystem& getSubsystem() const
     {
+        if (!m_Subsystem) {
+            SimTK_ERRCHK_ALWAYS(m_Subsystem, "CableSpan::Impl::getSubsystem()", "CableSpan not yet adopted by any CableSubsystem");
+        }
         return *m_Subsystem;
+    }
+
+    void setSubsystem(CableSubsystem& subsystem, CableSpanIndex index)
+    {
+        m_Subsystem = &subsystem;
+        m_Index = index;
+        for (CurveSegment& curve: m_CurveSegments) {
+            curve.setSubsystem(subsystem);
+        }
     }
 
     CableSubsystem& updSubsystem()
     {
+        if (!m_Subsystem) {
+            SimTK_ERRCHK_ALWAYS(m_Subsystem, "CableSpan::Impl::updSubsystem()", "CableSpan not yet adopted by any CableSubsystem");
+        }
         return *m_Subsystem;
+    }
+
+    CableSpanIndex getIndex() const
+    {
+        if (!m_Subsystem) {
+            SimTK_ERRCHK_ALWAYS(m_Subsystem, "CableSpan::Impl::getIndex()", "CableSpan not yet adopted by any CableSubsystem");
+        }
+        return m_Index;
     }
 
     PosInfo& updPosInfo(const State& s) const;
@@ -227,16 +277,8 @@ private:
     // over any that are not in contact with their respective obstacle's
     // surface.
     Vec3 findPrevPoint(const State& state, CurveSegmentIndex ix) const;
-    Vec3 findPrevPoint(const State& state, const CurveSegment& curve) const
-    {
-        return findPrevPoint(state, curve.getImpl().getIndex());
-    }
     // Similarly find the first contact point after the given curve segment.
     Vec3 findNextPoint(const State& state, CurveSegmentIndex ix) const;
-    Vec3 findNextPoint(const State& state, const CurveSegment& curve) const
-    {
-        return findNextPoint(state, curve.getImpl().getIndex());
-    }
     // Similarly find the first curve segment before the given curve segment.
     const CurveSegment* findPrevActiveCurveSegment(
         const State& s,
@@ -273,12 +315,13 @@ private:
     // their respective obstacle's surface.
     void callForEachActiveCurveSegment(
         const State& s,
-        std::function<void(const CurveSegment::Impl&)> f) const;
+        std::function<void(const CurveSegment&)> f) const;
 
 //------------------------------------------------------------------------------
 
     // Reference back to the subsystem.
     CableSubsystem* m_Subsystem; // TODO just a pointer?
+    CableSpanIndex m_Index;
 
     MobilizedBodyIndex m_OriginBody;
     Vec3 m_OriginPoint;
@@ -294,16 +337,13 @@ private:
     // For each curve segment the max allowed radial curvature.
     Real m_MaxCorrectionStepDeg = 10.; // TODO describe
 
-    size_t m_ProjectionMaxIter = 50; // TODO set to reasonable value
-    Real m_ConstraintTolerance = 1e-6;
-
-    Real m_IntegratorAccuracy = 1e-6;
+    CurveSegment::GeodesicIntegratorParams m_IntegratorParams {};
 
     // TOPOLOGY CACHE (set during realizeTopology())
     CacheEntryIndex m_PosInfoIx;
     CacheEntryIndex m_VelInfoIx;
 
-    friend CurveSegment::Impl;
+    friend CableSubsystem;
     friend CableSubsystemTestHelper;
 };
 

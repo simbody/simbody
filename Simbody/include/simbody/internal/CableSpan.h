@@ -39,139 +39,6 @@ class CableSubsystemTestHelper;
 class CableSpan;
 
 //==============================================================================
-// A curved cable segment that is part of a `CableSpan`, and wraps over an
-// obstacle surface.
-class SimTK_SIMBODY_EXPORT CurveSegment final
-{
-private:
-    CurveSegment() = default;
-
-public:
-    CurveSegment(const CurveSegment&)                = default;
-    CurveSegment& operator=(const CurveSegment&)     = default;
-    CurveSegment(CurveSegment&&) noexcept            = default;
-    CurveSegment& operator=(CurveSegment&&) noexcept = default;
-    ~CurveSegment()                                  = default;
-
-    /** Construct a CurveSegment representing a segment of a CableSpan that
-    wraps over an obstacle surface (i.e. a ContactGeometry).
-    @param cable The cable this segment belongs to.
-    @param mobod The body that the contact geometry is rigidly attached to.
-    @param X_BS Transform specifying the location and orientation of the
-    contact geometry's origin frame with respect to the mobilized body.
-    @param geometry The contact geometry over which this segment wraps.
-    @param initialContactPointHint A guess of the contact point of the cable
-    span and the contact geometry to compute the initial cable path. This point
-    is defined in the local contact geometry's frame. The point will be used as
-    a starting point when computing the initial cable path. As such, it does
-    not have to lie on the contact geometry's surface, nor does it have to
-    belong to a valid cable path.*/
-    CurveSegment(
-        CableSpan cable,
-        MobilizedBodyIndex body,
-        Transform X_BS,
-        const ContactGeometry& geometry,
-        Vec3 initialContactPointHint);
-
-    /** Wrapping status of this segment in relation to the contact geometry. */
-    enum class WrappingStatus
-    {
-        InContactWithSurface,
-        LiftedFromSurface,
-        Disabled,
-        // TODO WrappingStatus::InitialGuess is used to initialize the path. Instead this should be done using the first Stage realizations.
-        InitialGuess,
-    };
-
-    /** Get the ContactGeometry that this segment wraps over. */
-    const ContactGeometry& getContactGeometry() const;
-
-    /** Get the MobilizedBody that the contact geometry is rigidly attached to.
-     */
-    const Mobod& getMobilizedBody() const;
-
-    /** Get the transform representing the orientation and postion of the
-    contact geometry's origin with respect to the body fixed frame. */
-    const Transform& getXformSurfaceToBody() const;
-
-    /** Set the transform representing the orientation and postion of the
-    contact geometry's origin with respect to the body fixed frame. */
-    void setXformSurfaceToBody(Transform X_BS);
-
-    /** Get the length of this segment.
-    The system must be realiezd to Stage::Position. */
-    Real getSegmentLength(const State& state) const;
-
-    /** Get the frenet frame at the start (first contact point) of this curve
-    segment.
-    TODO describe the frame axes.
-    The system must be realiezd to Stage::Position. */
-    const Transform& getFrenetFrameStart(const State& state) const;
-
-    /** Get the frenet frame at the end (last contact point) of this curve
-    segment.
-    TODO describe the frame axes.
-    The system must be realiezd to Stage::Position. */
-    const Transform& getFrenetFrameEnd(const State& state) const;
-
-    /** Get the wrapping status of this segment.
-    The system must be realiezd to Stage::Position. */
-    WrappingStatus getStatus(const State& state) const;
-
-    /** Get the number of steps taken by the GeodesicIntegrator to compute this
-    segment during the last realization. The system must be realiezd to
-    Stage::Position. */
-    int getNumberOfIntegratorStepsTaken(const State& state);
-
-    /** Get the initial step size that the GeodesicIntegrator will use for the
-    next path computation. The system must be realiezd to Stage::Position. */
-    Real getInitialIntegratorStepSize(const State& state);
-
-    // TODO useful?
-    /* void setDisabled(const State& state) const; */
-    /* void setEnabled(const State& state) const; */
-
-    /** Comute resampled points at equal length intervals along the curve, in
-    ground frame.
-    The system must be realiezd to Stage::Position.
-
-    @param state State of the system.
-    @param points_G The output buffer to which the points are written.
-    @param Controls the number of points that are computed. These points are
-    resampled from the computed curve at equal length intervals. If the curve
-    length is zero, this parameter is ignored, and a single point is written.
-    If the curve is not active (Status::Disabled or Status::Lifted), no points
-    are written. Note that if nPoints=1, and the curve length is not zero, an
-    exception is thrown.
-    @return The number of points written. */
-    int calcPathPoints(
-        const State& state,
-        std::function<void(Vec3 point_G)>& sink,
-        int nPoints) const;
-    int calcPathPointsAndTangents(
-        const State& state,
-        std::function<void(Vec3 point_G, UnitVec3 tangent_G)>& sink,
-        int nSamples = 0) const;
-
-//------------------------------------------------------------------------------
-    class Impl;
-
-private:
-    friend CableSpan;
-    const Impl& getImpl() const
-    {
-        return *m_Impl;
-    }
-    Impl& updImpl()
-    {
-        return *m_Impl;
-    }
-
-    std::shared_ptr<Impl> m_Impl = nullptr;
-    friend CableSubsystemTestHelper;
-};
-
-//==============================================================================
 //                          CABLE SPAN
 //==============================================================================
 // Representation of a cable spanning between two poins.
@@ -188,22 +55,18 @@ private:
 class SimTK_SIMBODY_EXPORT CableSpan final
 {
 public:
+    using FrenetFrame = Transform;
 
-    // Representation of the cable segments that do not lie on a surface.
-    struct LineSegment final
-    {
-        LineSegment() = default;
-
-        LineSegment(Vec3 a, Vec3 b) : length((b - a).norm()), direction((b - a) / length)
-        {}
-
-        // TODO rename to length.
-        Real length = NaN;
-        // TODO rename to direction.
-        UnitVec3 direction{NaN, NaN, NaN};
+    enum class ObstacleWrappingStatus {
+        InitialGuess,
+        InContactWithSurface,
+        LiftedFromSurface,
+        Disabled,
     };
 
+//------------------------------------------------------------------------------
 
+    // TODO who owns the cable span? the subsystem?
     CableSpan()                                = default;
     ~CableSpan()                               = default;
     CableSpan(const CableSpan&)                = default;
@@ -221,20 +84,53 @@ public:
         const Vec3& defaultTerminationPoint);
 
 //------------------------------------------------------------------------------
+//                     OBSTACLE CONFIGURATION
+//------------------------------------------------------------------------------
 
-    void addSurfaceObstacle(
+    CurveSegmentIndex addSurfaceObstacle(
         MobilizedBodyIndex mobod,
         Transform X_BS,
         const ContactGeometry& geometry,
-        Vec3 contactPointHint = {1., 0., 0.});
+        Vec3 contactPointHint);
 
     int getNumSurfaceObstacles() const;
 
+    const MobilizedBody& getObstacleMobilizedBody(CurveSegmentIndex ix) const;
+    const MobilizedBodyIndex& getObstacleMobilizedBodyIndex(CurveSegmentIndex ix) const;
+    void setObstacleMobilizedBodyIndex(CurveSegmentIndex ix, MobilizedBodyIndex body);
+
+    const Transform& getObstacleXformSurfaceToBody(CurveSegmentIndex ix) const;
+    void setObstacleXformSurfaceToBody(CurveSegmentIndex ix, Transform X_BS);
+
+    const ContactGeometry& getObstacleContactGeometry(CurveSegmentIndex ix) const;
+    void setObstacleContactGeometry(CurveSegmentIndex ix, ContactGeometry geometry);
+
+    Vec3 getObstacleInitialContactPointHint(CurveSegmentIndex ix) const;
+    void setObstacleInitialContactPointHint(CurveSegmentIndex ix, Vec3 initialContactPointHint);
+
+//------------------------------------------------------------------------------
+//                     OBSTACLE CALCULATIONS
 //------------------------------------------------------------------------------
 
-    int getNumCurveSegments() const;
+    ObstacleWrappingStatus getObstacleWrappingStatus(const State& state, CurveSegmentIndex ix) const;
+    Real getCurveSegmentLength(const State& state, CurveSegmentIndex ix) const;
 
-    const CurveSegment& getCurveSegment(CurveSegmentIndex ix) const;
+    int calcCurveSegmentPathPoints(const State& state, CurveSegmentIndex ix, int nPoints, std::function<void(Vec3 point)>& sink) const;
+
+    // This is useful for debugging and visualization.
+    int calcCurveSegmentPathPointsAndTangents(const State& state, CurveSegmentIndex ix, int nPoints, std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const;
+
+    int getCurveSegmentNumberOfIntegratorStepsTaken(const State& state, CurveSegmentIndex ix) const;
+    Real getCurveSegmentInitialIntegratorStepSize(const State& state, CurveSegmentIndex ix) const;
+
+    // TODO perhaps remove this, and replace with calcTangentAtLength(), calcPosAtLength().
+    const FrenetFrame& getCurveSegmentFirstFrenetFrame(const State& state, CurveSegmentIndex ix) const;
+    // TODO perhaps remove this.
+    const FrenetFrame& getCurveSegmentLastFrenetFrame(const State& state, CurveSegmentIndex ix) const;
+
+//------------------------------------------------------------------------------
+//                     CABLE CONFIGURATION
+//------------------------------------------------------------------------------
 
     // TODO rename to constraint tolerance
     Real getSurfaceConstraintTolerance() const;
@@ -263,6 +159,9 @@ public:
     Real getMaxRadialStepInDegrees() const;
     void setMaxRadialStepInDegrees(Real maxStepInDeg);
 
+//------------------------------------------------------------------------------
+//                     CABLE CALCULATIONS
+//------------------------------------------------------------------------------
 
     Real getLength(const State& state) const;
 
@@ -275,17 +174,13 @@ public:
 
     Real calcCablePower(const State& state, Real tension) const;
 
-    // Calls `CurveSegment::calcPoints` on each active curve segment, see
-    // description there.
-    int calcPathPoints(
-        const State& state,
-        std::function<void(Vec3 point_G)>& sink,
-        int nPointsPerCurveSegment = 0) const;
-
+    int calcPathPoints(const State& state, Real maxLengthIncrement, std::function<void(Vec3 point)>& sink) const;
 
     class Impl;
 
 private:
+    explicit CableSpan(Impl);
+
     const Impl& getImpl() const
     {
         return *m_Impl;
@@ -298,8 +193,6 @@ private:
 
     std::shared_ptr<Impl> m_Impl = nullptr;
 
-    friend CurveSegment;
-    friend CurveSegment::Impl;
     friend CableSubsystem;
 
     // Befriend the helper class for testing the implementation.
