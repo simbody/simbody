@@ -625,7 +625,7 @@ int main()
         std::ostringstream oss;
         bool testPassed = true;
         for (CurveSegmentIndex ix = CurveSegmentIndex(0);
-             ix < cable.getNumCurveSegments();
+             ix < cable.getNumSurfaceObstacles();
              ++ix) {
             testPassed &= RunCurveSegmentShooterTest(
                 s,

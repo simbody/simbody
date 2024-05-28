@@ -220,11 +220,15 @@ public:
         MobilizedBodyIndex terminationBody,
         const Vec3& defaultTerminationPoint);
 
+//------------------------------------------------------------------------------
+
     void addSurfaceObstacle(
         MobilizedBodyIndex mobod,
         Transform X_BS,
         const ContactGeometry& geometry,
         Vec3 contactPointHint = {1., 0., 0.});
+
+    int getNumSurfaceObstacles() const;
 
 //------------------------------------------------------------------------------
 

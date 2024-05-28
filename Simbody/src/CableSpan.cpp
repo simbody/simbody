@@ -239,7 +239,7 @@ void CableSpan::addSurfaceObstacle(
 
 //------------------------------------------------------------------------------
 
-int CableSpan::getNumCurveSegments() const
+int CableSpan::getNumSurfaceObstacles() const
 {
     return getImpl().getNumCurveSegments();
 }
