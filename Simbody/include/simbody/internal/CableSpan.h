@@ -99,43 +99,60 @@ public:
      * is defined in the local contact geometry's frame. The point will be used as
      * a starting point when computing the initial cable path. As such, it does
      * not have to lie on the contact geometry's surface, nor does it have to
-     * belong to a valid cable path.
-    */
+     * belong to a valid cable path. */
     ObstacleIndex addSurfaceObstacle(
         MobilizedBodyIndex mobod,
         Transform X_BS,
         const ContactGeometry& geometry,
         Vec3 contactPointHint);
 
+    /** Get the number of obstacles added to the path. */
     int getNumSurfaceObstacles() const;
 
+    // Helper function: TODO remove?
     const MobilizedBody& getObstacleMobilizedBody(ObstacleIndex ix) const;
+
+    /** Get the index of the mobilized body that the obstacle is attached to. */
     const MobilizedBodyIndex& getObstacleMobilizedBodyIndex(ObstacleIndex ix) const;
+    /** Set the index of the mobilized body that the obstacle is attached to. */
     void setObstacleMobilizedBodyIndex(ObstacleIndex ix, MobilizedBodyIndex body);
 
+    /** Get the orientation and position of the obstacle's surface with respect
+     * to its mobilized body. */
     const Transform& getObstacleXformSurfaceToBody(ObstacleIndex ix) const;
+    /** Set the orientation and position of the obstacle's surface with respect
+     * to its mobilized body. */
     void setObstacleXformSurfaceToBody(ObstacleIndex ix, Transform X_BS);
 
+    /** Get the ContactGeometry attached to the obstacle */
     const ContactGeometry& getObstacleContactGeometry(ObstacleIndex ix) const;
+    /** Set the ContactGeometry attached to the obstacle. TODO: dont take ownership. */
     void setObstacleContactGeometry(ObstacleIndex ix, ContactGeometry geometry);
 
+    /** Get the point on the obstacle used to compute the initial path. */
     Vec3 getObstacleInitialContactPointHint(ObstacleIndex ix) const;
+    /** Set the point on the obstacle used to compute the initial path. */
     void setObstacleInitialContactPointHint(ObstacleIndex ix, Vec3 initialContactPointHint);
 
 //------------------------------------------------------------------------------
 //                     OBSTACLE CALCULATIONS
 //------------------------------------------------------------------------------
 
+    /** Get the wrapping status of the cable path over the given obstacle.
+     * State must be realized to Stage::Position. */
     ObstacleWrappingStatus getObstacleWrappingStatus(const State& state, ObstacleIndex ix) const;
+
+    /** Get the length of the curve segment over the given obstacle.
+     * Throws an exception if the cable is not in contact with the surface.
+     * State must be realized to Stage::Position. */
     Real getCurveSegmentLength(const State& state, ObstacleIndex ix) const;
-
-    int calcCurveSegmentPathPoints(const State& state, ObstacleIndex ix, int nPoints, std::function<void(Vec3 point)>& sink) const;
-
-    // This is useful for debugging and visualization.
-    int calcCurveSegmentPathPointsAndTangents(const State& state, ObstacleIndex ix, int nPoints, std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const;
 
     int getCurveSegmentNumberOfIntegratorStepsTaken(const State& state, ObstacleIndex ix) const;
     Real getCurveSegmentInitialIntegratorStepSize(const State& state, ObstacleIndex ix) const;
+
+    int calcCurveSegmentPathPoints(const State& state, ObstacleIndex ix, int nPoints, std::function<void(Vec3 point)>& sink) const;
+    // This is useful for debugging and visualization.
+    int calcCurveSegmentPathPointsAndTangents(const State& state, ObstacleIndex ix, int nPoints, std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const;
 
     // TODO perhaps remove this, and replace with calcTangentAtLength(), calcPosAtLength().
     const FrenetFrame& getCurveSegmentFirstFrenetFrame(const State& state, ObstacleIndex ix) const;
@@ -146,23 +163,26 @@ public:
 //                     CABLE CONFIGURATION
 //------------------------------------------------------------------------------
 
-    // TODO rename to constraint tolerance
+    /** Get the tolerance used to enfore the surface constraints of all obstacles. */
     Real getSurfaceConstraintTolerance() const;
+    /** Set the tolerance used to enfore the surface constraints of all obstacles. */
     void setSurfaceConstraintTolerance(Real tolerance);
 
-    // Maximum number of solver iterations for projecting the geodesic state to
-    // the surface during shooting of a curve segment over the obstacle's
-    // surface.
-    // TODO this is not connected to anything currently...
-    int getSurfaceProjectionMaxIter() const;
+    /** Get the maximum number of solver iterations allowed when enforcing the
+     * surface constraints of all obstacles. */
+    int getSurfaceProjectionMaxIter() const; // TODO not connected to anything currently.
+    /** Set the maximum number of solver iterations allowed when enforcing the
+     * surface constraints of all obstacles. */
     void setSurfaceProjectionMaxIter(int maxIter);
 
-    // TODO merge with surface constraint tolerance above?
+    /** Get the accuracy used by the numerical integrator when computing a geodesic over an obstacle. */
     Real getIntegratorAccuracy() const;
+    /** Set the accuracy used by the numerical integrator when computing a geodesic over an obstacle. */
     void setIntegratorAccuracy(Real accuracy);
 
-    // Maximum number of solver iterations for finding the optimal path.
+    /** Get the maximum number of solver iterations for finding the optimal path. */
     int getSolverMaxIter() const;
+    /** Set the maximum number of solver iterations for finding the optimal path. */
     void setSolverMaxIter(int maxIter);
 
     // TODO merge with surface constraint tolerance above?
@@ -177,12 +197,12 @@ public:
 //                     CABLE CALCULATIONS
 //------------------------------------------------------------------------------
 
-    // Get the total cable length.
-    // State must be realized to Stage::Position.
+    /** Get the total cable length.
+     * State must be realized to Stage::Position. */
     Real getLength(const State& state) const;
 
-    // Get the derivative of the total cable length.
-    // State must be realized to Stage::Position.
+    /** Get the derivative of the total cable length.
+     * State must be realized to Stage::Position. */
     Real getLengthDot(const State& state) const;
 
     void applyBodyForces(
@@ -190,6 +210,8 @@ public:
         Real tension,
         Vector_<SpatialVec>& bodyForcesInG) const;
 
+    /** Compute the cable power.
+     * State must be realized to Stage::Position. */
     Real calcCablePower(const State& state, Real tension) const;
 
     int calcPathPoints(const State& state, Real maxLengthIncrement, std::function<void(Vec3 point)>& sink) const;
