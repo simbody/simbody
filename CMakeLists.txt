@@ -486,7 +486,13 @@ add_compile_definitions(
 if(BUILD_USING_OTHER_LAPACK)
     set(LAPACK_BEING_USED ${BUILD_USING_OTHER_LAPACK} CACHE INTERNAL
         "The BLAS/LAPACK libraries that will be linked against by the Simbody libraries.")
+
+    message(CHECK_START "Trying to compile with requested BLAS/LAPACK libraries")
 else()
+    # Determine which math libraries to use for this platform.
+    # Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
+    set(BUILD_USING_OTHER_LAPACK "" CACHE STRING
+    "If you have your own Lapack and Blas, put libraries here, separated by semicolons (full paths or paths that are on the (DY)LD_LIBRARY_PATH (UNIX) or PATH (Windows)). See LAPACK_BEING_USED to see what's actually being used.")
     if(WIN32 AND NOT WINDOWS_USE_EXTERNAL_LIBS)
         set(LAPACK_PLATFORM_DEFAULT lapack;blas)
     else()
@@ -498,9 +504,38 @@ else()
             message(WARNING "Could not find blas/lapack")
         endif()
     endif()
-
     set(LAPACK_BEING_USED ${LAPACK_PLATFORM_DEFAULT} CACHE INTERNAL
         "The BLAS/LAPACK libraries that will be linked against by the Simbody libraries.")
+    message(CHECK_START "Trying to compile with system BLAS/LAPACK libraries")
+endif()
+
+
+# Try to link against the requested BLAS/LAPACK libraries
+set(CMAKE_TRY_COMPILE_TARGET_TYPE EXECUTABLE)
+try_compile(OTHER_LAPACK_FUNCTIONAL
+    SOURCE_FROM_CONTENT lapack_test.c
+"\
+#include \"SimTKlapack.h\"
+int main () {
+int* n = 2;
+int* stride = 1;
+float x[] = {1.0, 1.0};
+float y[] = {2.0, 3.0};
+
+float d = sdot_(n, x, stride, y, stride);
+
+return !(d == 5.0); // return zero if sdot_ worked
+}
+"
+    CMAKE_FLAGS -DINCLUDE_DIRECTORIES=${CMAKE_CURRENT_SOURCE_DIR}/SimTKcommon/include
+    LINK_LIBRARIES ${LAPACK_BEING_USED})
+if(OTHER_LAPACK_FUNCTIONAL)
+    message(CHECK_PASS "success.")
+    message(STATUS "Using BLAS/LAPACK libraries ${LAPACK_BEING_USED}")
+else()
+    message(CHECK_FAIL "failed.")
+    message(FATAL_ERROR "Failed to compile using the BLAS/LAPACK libraries ${LAPACK_BEING_USED}.
+        If BUILD_USING_OTHER_LAPACK was given; check that it was set correctly.")
 endif()
 
 if(UNIX)
