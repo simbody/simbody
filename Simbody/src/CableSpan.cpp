@@ -23,7 +23,7 @@
 
 #include "CableSpan_SubSystem_Impl.h"
 #include "CableSpan_Impl.h"
-#include "CableSpan_CurveSegment_Impl.h"
+#include "CableSpan_CurveSegment.h"
 #include "simbody/internal/CableSpan.h"
 
 using namespace SimTK;

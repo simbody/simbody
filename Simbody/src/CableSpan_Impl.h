@@ -24,7 +24,7 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include "CableSpan_CurveSegment_Impl.h"
+#include "CableSpan_CurveSegment.h"
 #include "simbody/internal/CableSpan.h"
 
 namespace SimTK
