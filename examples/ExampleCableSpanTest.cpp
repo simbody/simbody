@@ -224,7 +224,7 @@ void RungeKutta4Step(
 std::vector<GeodesicState> RecomputeUnconstrainedGeodesic(
     const State& state,
     const CableSpan& cable,
-    CurveSegmentIndex ix,
+    CableSpanObstacleIndex ix,
     size_t integratorSteps)
 {
     std::vector<GeodesicState> samples;
@@ -457,7 +457,7 @@ bool RunRungeKutta4Test(std::ostream& os)
 bool RunCurveSegmentShooterTest(
     const State& state,
     const CableSpan& cable,
-    CurveSegmentIndex ix,
+    CableSpanObstacleIndex ix,
     Real eps,
     int integratorSteps,
     std::ostream& os)
@@ -626,7 +626,7 @@ int main()
 
         std::ostringstream oss;
         bool testPassed = true;
-        for (CurveSegmentIndex ix(0);
+        for (CableSpanObstacleIndex ix(0);
              ix < cable.getNumSurfaceObstacles();
              ++ix) {
             testPassed &= RunCurveSegmentShooterTest(

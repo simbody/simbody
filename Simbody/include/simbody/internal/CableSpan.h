@@ -30,7 +30,7 @@
 namespace SimTK
 {
 
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(CurveSegmentIndex);
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanObstacleIndex);
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanIndex);
 
 class MultibodySystem;
@@ -52,6 +52,7 @@ class SimTK_SIMBODY_EXPORT CableSpan final
 {
 public:
     using FrenetFrame = Transform;
+    using ObstacleIndex = CableSpanObstacleIndex;
 
     // Identifies whether the cable is in contact with the obstacle surface or not.
     // TODO the InitialGuess case is added as a fix for initializing the path, and should be removed later.
@@ -100,7 +101,7 @@ public:
      * not have to lie on the contact geometry's surface, nor does it have to
      * belong to a valid cable path.
     */
-    CurveSegmentIndex addSurfaceObstacle(
+    ObstacleIndex addSurfaceObstacle(
         MobilizedBodyIndex mobod,
         Transform X_BS,
         const ContactGeometry& geometry,
@@ -108,38 +109,38 @@ public:
 
     int getNumSurfaceObstacles() const;
 
-    const MobilizedBody& getObstacleMobilizedBody(CurveSegmentIndex ix) const;
-    const MobilizedBodyIndex& getObstacleMobilizedBodyIndex(CurveSegmentIndex ix) const;
-    void setObstacleMobilizedBodyIndex(CurveSegmentIndex ix, MobilizedBodyIndex body);
+    const MobilizedBody& getObstacleMobilizedBody(ObstacleIndex ix) const;
+    const MobilizedBodyIndex& getObstacleMobilizedBodyIndex(ObstacleIndex ix) const;
+    void setObstacleMobilizedBodyIndex(ObstacleIndex ix, MobilizedBodyIndex body);
 
-    const Transform& getObstacleXformSurfaceToBody(CurveSegmentIndex ix) const;
-    void setObstacleXformSurfaceToBody(CurveSegmentIndex ix, Transform X_BS);
+    const Transform& getObstacleXformSurfaceToBody(ObstacleIndex ix) const;
+    void setObstacleXformSurfaceToBody(ObstacleIndex ix, Transform X_BS);
 
-    const ContactGeometry& getObstacleContactGeometry(CurveSegmentIndex ix) const;
-    void setObstacleContactGeometry(CurveSegmentIndex ix, ContactGeometry geometry);
+    const ContactGeometry& getObstacleContactGeometry(ObstacleIndex ix) const;
+    void setObstacleContactGeometry(ObstacleIndex ix, ContactGeometry geometry);
 
-    Vec3 getObstacleInitialContactPointHint(CurveSegmentIndex ix) const;
-    void setObstacleInitialContactPointHint(CurveSegmentIndex ix, Vec3 initialContactPointHint);
+    Vec3 getObstacleInitialContactPointHint(ObstacleIndex ix) const;
+    void setObstacleInitialContactPointHint(ObstacleIndex ix, Vec3 initialContactPointHint);
 
 //------------------------------------------------------------------------------
 //                     OBSTACLE CALCULATIONS
 //------------------------------------------------------------------------------
 
-    ObstacleWrappingStatus getObstacleWrappingStatus(const State& state, CurveSegmentIndex ix) const;
-    Real getCurveSegmentLength(const State& state, CurveSegmentIndex ix) const;
+    ObstacleWrappingStatus getObstacleWrappingStatus(const State& state, ObstacleIndex ix) const;
+    Real getCurveSegmentLength(const State& state, ObstacleIndex ix) const;
 
-    int calcCurveSegmentPathPoints(const State& state, CurveSegmentIndex ix, int nPoints, std::function<void(Vec3 point)>& sink) const;
+    int calcCurveSegmentPathPoints(const State& state, ObstacleIndex ix, int nPoints, std::function<void(Vec3 point)>& sink) const;
 
     // This is useful for debugging and visualization.
-    int calcCurveSegmentPathPointsAndTangents(const State& state, CurveSegmentIndex ix, int nPoints, std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const;
+    int calcCurveSegmentPathPointsAndTangents(const State& state, ObstacleIndex ix, int nPoints, std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const;
 
-    int getCurveSegmentNumberOfIntegratorStepsTaken(const State& state, CurveSegmentIndex ix) const;
-    Real getCurveSegmentInitialIntegratorStepSize(const State& state, CurveSegmentIndex ix) const;
+    int getCurveSegmentNumberOfIntegratorStepsTaken(const State& state, ObstacleIndex ix) const;
+    Real getCurveSegmentInitialIntegratorStepSize(const State& state, ObstacleIndex ix) const;
 
     // TODO perhaps remove this, and replace with calcTangentAtLength(), calcPosAtLength().
-    const FrenetFrame& getCurveSegmentFirstFrenetFrame(const State& state, CurveSegmentIndex ix) const;
+    const FrenetFrame& getCurveSegmentFirstFrenetFrame(const State& state, ObstacleIndex ix) const;
     // TODO perhaps remove this.
-    const FrenetFrame& getCurveSegmentLastFrenetFrame(const State& state, CurveSegmentIndex ix) const;
+    const FrenetFrame& getCurveSegmentLastFrenetFrame(const State& state, ObstacleIndex ix) const;
 
 //------------------------------------------------------------------------------
 //                     CABLE CONFIGURATION

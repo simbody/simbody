@@ -37,6 +37,8 @@ namespace SimTK
 class CableSpan::Impl
 {
 public:
+    using ObstacleIndex = CableSpan::ObstacleIndex;
+
     // Position level cache entry.
     struct PosInfo final
     {
@@ -74,7 +76,7 @@ public:
         m_TerminationBody(terminationBody), m_TerminationPoint(terminationPoint)
     {}
 
-    CurveSegmentIndex addSurfaceObstacle(
+    ObstacleIndex addSurfaceObstacle(
         MobilizedBodyIndex mobod,
         Transform X_BS,
         const ContactGeometry& geometry,
@@ -82,7 +84,7 @@ public:
     {
         invalidateTopology();
 
-        CurveSegmentIndex obstacleIx(m_CurveSegments.size());
+        ObstacleIndex obstacleIx(m_CurveSegments.size());
 
         m_CurveSegments.push_back(CurveSegment(
                     m_Subsystem,
@@ -118,12 +120,12 @@ public:
         return m_CurveSegments.size();
     }
 
-    const CurveSegment& getCurveSegment(CurveSegmentIndex ix) const
+    const CurveSegment& getCurveSegment(ObstacleIndex ix) const
     {
         return m_CurveSegments[ix];
     }
 
-    CurveSegment& updCurveSegment(CurveSegmentIndex ix)
+    CurveSegment& updCurveSegment(ObstacleIndex ix)
     {
         return m_CurveSegments[ix];
     }
@@ -276,17 +278,17 @@ private:
     // Find the last contact point before the given curve segment, skipping
     // over any that are not in contact with their respective obstacle's
     // surface.
-    Vec3 findPrevPoint(const State& state, CurveSegmentIndex ix) const;
+    Vec3 findPrevPoint(const State& state, ObstacleIndex ix) const;
     // Similarly find the first contact point after the given curve segment.
-    Vec3 findNextPoint(const State& state, CurveSegmentIndex ix) const;
+    Vec3 findNextPoint(const State& state, ObstacleIndex ix) const;
     // Similarly find the first curve segment before the given curve segment.
     const CurveSegment* findPrevActiveCurveSegment(
         const State& s,
-        CurveSegmentIndex ix) const;
+        ObstacleIndex ix) const;
     // Similarly find the first curve segment after the given curve segment.
     const CurveSegment* findNextActiveCurveSegment(
         const State& s,
-        CurveSegmentIndex ix) const;
+        ObstacleIndex ix) const;
 
     // Compute the path error vector (TODO see Scholz2015).
     template <size_t N>
@@ -329,7 +331,7 @@ private:
     MobilizedBodyIndex m_TerminationBody;
     Vec3 m_TerminationPoint;
 
-    Array_<CurveSegment, CurveSegmentIndex> m_CurveSegments{};
+    Array_<CurveSegment, ObstacleIndex> m_CurveSegments{};
 
     Real m_PathAccuracy  = 1e-4;
     size_t m_PathMaxIter = 50; // TODO set to something reasonable.

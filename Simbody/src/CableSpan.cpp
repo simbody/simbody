@@ -35,6 +35,7 @@ using WrappingStatus      = CurveSegment::WrappingStatus;
 using SolverData = CableSubsystem::Impl::SolverData;
 // TODO rename
 using Params = CurveSegment::GeodesicIntegratorParams;
+using ObstacleIndex = CableSpan::ObstacleIndex;
 
 //==============================================================================
 //                            Frenet Frame Helpers
@@ -231,7 +232,7 @@ CableSpan::CableSpan(
 
 //------------------------------------------------------------------------------
 
-CurveSegmentIndex CableSpan::addSurfaceObstacle(
+ObstacleIndex CableSpan::addSurfaceObstacle(
     MobilizedBodyIndex body,
     Transform X_BS,
     const ContactGeometry& geometry,
@@ -245,95 +246,95 @@ int CableSpan::getNumSurfaceObstacles() const
     return getImpl().getNumCurveSegments();
 }
 
-const MobilizedBody& CableSpan::getObstacleMobilizedBody(CurveSegmentIndex ix) const
+const MobilizedBody& CableSpan::getObstacleMobilizedBody(ObstacleIndex ix) const
 {
     return getImpl().getCurveSegment(ix).getMobilizedBody();
 }
 
-const MobilizedBodyIndex& CableSpan::getObstacleMobilizedBodyIndex(CurveSegmentIndex ix) const
+const MobilizedBodyIndex& CableSpan::getObstacleMobilizedBodyIndex(ObstacleIndex ix) const
 {
     return getImpl().getCurveSegment(ix).getMobilizedBodyIndex();
 }
 
-void CableSpan::setObstacleMobilizedBodyIndex(CurveSegmentIndex ix, MobilizedBodyIndex body)
+void CableSpan::setObstacleMobilizedBodyIndex(ObstacleIndex ix, MobilizedBodyIndex body)
 {
     updImpl().updCurveSegment(ix).setMobilizedBodyIndex(body);
 }
 
-const Transform& CableSpan::getObstacleXformSurfaceToBody(CurveSegmentIndex ix) const
+const Transform& CableSpan::getObstacleXformSurfaceToBody(ObstacleIndex ix) const
 {
     return getImpl().getCurveSegment(ix).getXformSurfaceToBody();
 }
-void CableSpan::setObstacleXformSurfaceToBody(CurveSegmentIndex ix, Transform X_BS)
+void CableSpan::setObstacleXformSurfaceToBody(ObstacleIndex ix, Transform X_BS)
 {
     updImpl().updCurveSegment(ix).setXformSurfaceToBody(std::move(X_BS));
 }
 
-const ContactGeometry& CableSpan::getObstacleContactGeometry(CurveSegmentIndex ix) const
+const ContactGeometry& CableSpan::getObstacleContactGeometry(ObstacleIndex ix) const
 {
     return getImpl().getCurveSegment(ix).getContactGeometry();
 }
-void CableSpan::setObstacleContactGeometry(CurveSegmentIndex ix, ContactGeometry geometry)
+void CableSpan::setObstacleContactGeometry(ObstacleIndex ix, ContactGeometry geometry)
 {
     updImpl().updCurveSegment(ix).setContactGeometry(geometry);
 }
 
-Vec3 CableSpan::getObstacleInitialContactPointHint(CurveSegmentIndex ix) const
+Vec3 CableSpan::getObstacleInitialContactPointHint(ObstacleIndex ix) const
 {
     return getImpl().getCurveSegment(ix).getContactPointHint();
 }
 
-void CableSpan::setObstacleInitialContactPointHint(CurveSegmentIndex ix, Vec3 initialContactPointHint)
+void CableSpan::setObstacleInitialContactPointHint(ObstacleIndex ix, Vec3 initialContactPointHint)
 {
     updImpl().updCurveSegment(ix).setContactPointHint(initialContactPointHint);
 }
 
 //------------------------------------------------------------------------------
 
-WrappingStatus CableSpan::getObstacleWrappingStatus(const State& state, CurveSegmentIndex ix) const
+WrappingStatus CableSpan::getObstacleWrappingStatus(const State& state, ObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).getInstanceEntry(state).status;
 }
 
-Real CableSpan::getCurveSegmentLength(const State& state, CurveSegmentIndex ix) const
+Real CableSpan::getCurveSegmentLength(const State& state, ObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).getInstanceEntry(state).length;
 }
 
-int CableSpan::calcCurveSegmentPathPoints(const State& state, CurveSegmentIndex ix, int nPoints, std::function<void(Vec3 point)>& sink) const
+int CableSpan::calcCurveSegmentPathPoints(const State& state, ObstacleIndex ix, int nPoints, std::function<void(Vec3 point)>& sink) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).calcPathPoints(state, sink, nPoints);
 }
 
 // This is useful for debugging and visualization.
-int CableSpan::calcCurveSegmentPathPointsAndTangents(const State& state, CurveSegmentIndex ix, int nPoints, std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const
+int CableSpan::calcCurveSegmentPathPointsAndTangents(const State& state, ObstacleIndex ix, int nPoints, std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).calcPathPointsAndTangents(state, sink, nPoints);
 }
 
-int CableSpan::getCurveSegmentNumberOfIntegratorStepsTaken(const State& state, CurveSegmentIndex ix) const
+int CableSpan::getCurveSegmentNumberOfIntegratorStepsTaken(const State& state, ObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).getInstanceEntry(state).samples.size();
 }
 
-Real CableSpan::getCurveSegmentInitialIntegratorStepSize(const State& state, CurveSegmentIndex ix) const
+Real CableSpan::getCurveSegmentInitialIntegratorStepSize(const State& state, ObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).getInstanceEntry(state).integratorInitialStepSize;
 }
 
-const FrenetFrame& CableSpan::getCurveSegmentFirstFrenetFrame(const State& state, CurveSegmentIndex ix) const
+const FrenetFrame& CableSpan::getCurveSegmentFirstFrenetFrame(const State& state, ObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).getPosInfo(state).X_GP;
 }
 
-const FrenetFrame& CableSpan::getCurveSegmentLastFrenetFrame(const State& state, CurveSegmentIndex ix) const
+const FrenetFrame& CableSpan::getCurveSegmentLastFrenetFrame(const State& state, ObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).getPosInfo(state).X_GQ;
@@ -586,14 +587,14 @@ int CableSpan::Impl::calcPathPoints(
 
 const CurveSegment* CableSpan::Impl::findPrevActiveCurveSegment(
     const State& s,
-    CurveSegmentIndex ix) const
+    ObstacleIndex ix) const
 {
     for (int i = ix - 1; i >= 0; --i) {
         // Find the active segment before the current.
-        if (m_CurveSegments.at(CurveSegmentIndex(i))
+        if (m_CurveSegments.at(ObstacleIndex(i))
                 .getInstanceEntry(s)
                 .isInContactWithSurface()) {
-            return &m_CurveSegments.at(CurveSegmentIndex(i));
+            return &m_CurveSegments.at(ObstacleIndex(i));
         }
     }
     return nullptr;
@@ -601,20 +602,20 @@ const CurveSegment* CableSpan::Impl::findPrevActiveCurveSegment(
 
 const CurveSegment* CableSpan::Impl::findNextActiveCurveSegment(
     const State& s,
-    CurveSegmentIndex ix) const
+    ObstacleIndex ix) const
 {
     // Find the active segment after the current.
     for (int i = ix + 1; i < m_CurveSegments.size(); ++i) {
-        if (m_CurveSegments.at(CurveSegmentIndex(i))
+        if (m_CurveSegments.at(ObstacleIndex(i))
                 .getInstanceEntry(s)
                 .isInContactWithSurface()) {
-            return &m_CurveSegments.at(CurveSegmentIndex(i));
+            return &m_CurveSegments.at(ObstacleIndex(i));
         }
     }
     return nullptr;
 }
 
-Vec3 CableSpan::Impl::findPrevPoint(const State& s, CurveSegmentIndex ix) const
+Vec3 CableSpan::Impl::findPrevPoint(const State& s, ObstacleIndex ix) const
 {
     auto CalcCurveFinalContactPoint = [&](const CurveSegment& curve) -> Vec3 {
         const Transform& X_GS = curve.calcSurfaceFrameInGround(s);
@@ -630,7 +631,7 @@ Vec3 CableSpan::Impl::findPrevPoint(const State& s, CurveSegmentIndex ix) const
                      m_OriginPoint);
 }
 
-Vec3 CableSpan::Impl::findNextPoint(const State& s, CurveSegmentIndex ix) const
+Vec3 CableSpan::Impl::findNextPoint(const State& s, ObstacleIndex ix) const
 {
     auto CalcCurveInitialContactPoint = [&](const CurveSegment& curve) -> Vec3 {
         const Transform& X_GS = curve.calcSurfaceFrameInGround(s);
@@ -1126,7 +1127,7 @@ void CableSpan::Impl::calcPathErrorJacobian(
     };
 
     auto linesIt = lines.begin();
-    for (CurveSegmentIndex ix(0); ix < getNumCurveSegments(); ++ix) {
+    for (ObstacleIndex ix(0); ix < getNumCurveSegments(); ++ix) {
         const CurveSegment& curve = getCurveSegment(ix);
         if (!curve.getInstanceEntry(s).isInContactWithSurface()) {
             continue;
@@ -1348,7 +1349,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
         // Make sure all curve segments are realized to position stage.
         // This will transform all last computed geodesics to Ground frame, and
         // will update each curve's Status.
-        for (CurveSegmentIndex ix(0); ix < getNumCurveSegments(); ++ix) {
+        for (ObstacleIndex ix(0); ix < getNumCurveSegments(); ++ix) {
             getCurveSegment(ix).realizePosition(
                 s,
                 findPrevPoint(s, ix),
@@ -2199,7 +2200,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 curve.invalidatePosEntry(s);
             }
 
-            for (CurveSegmentIndex ix(0); ix < cable.getNumCurveSegments(); ++ix) {
+            for (ObstacleIndex ix(0); ix < cable.getNumCurveSegments(); ++ix) {
                 cable.getCurveSegment(ix).realizePosition(
                         s,
                         cable.findPrevPoint(s, ix),
