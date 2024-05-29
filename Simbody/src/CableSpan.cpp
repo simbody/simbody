@@ -34,7 +34,7 @@ using LocalGeodesicSample = CurveSegment::LocalGeodesicSample;
 using WrappingStatus      = CurveSegment::WrappingStatus;
 using SolverData = CableSubsystem::Impl::SolverData;
 // TODO rename
-using Params = CurveSegment::GeodesicIntegratorParams;
+using IntegratorTolerances = CurveSegment::IntegratorTolerances;
 using ObstacleIndex = CableSpan::ObstacleIndex;
 
 //==============================================================================
@@ -1288,7 +1288,8 @@ void calcMaxAllowedCorrectionStepSize(
 void applyGeodesicCorrection(
     const CurveSegment& curve,
     const State& s,
-    const Correction& c, const Params& params)
+    const Correction& c,
+    const IntegratorTolerances& tols)
 {
     // Get the previous geodesic.
     const InstanceEntry& cache = curve.getInstanceEntry(s);
@@ -1319,7 +1320,8 @@ void applyGeodesicCorrection(
         correctedPoint_S,
         correctedTangent_S,
         correctedLength,
-        cache.integratorInitialStepSize, params);
+        cache.integratorInitialStepSize,
+        tols);
 }
 
 } // namespace
@@ -1354,7 +1356,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
                 s,
                 findPrevPoint(s, ix),
                 findNextPoint(s, ix),
-                getIntegratorParams());
+                getIntegratorTolerances());
         }
 
         // Count the number of active curve segments.
@@ -1427,7 +1429,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
         // Apply corrections to the curve segments.
         corrIt = getPathCorrections(data);
         callForEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
-            applyGeodesicCorrection(curve, s, *corrIt, getIntegratorParams());
+            applyGeodesicCorrection(curve, s, *corrIt, getIntegratorTolerances());
             ++corrIt;
         });
 
@@ -1542,7 +1544,7 @@ void shootNewGeodesic(
     Vec3 tangent_S,
     Real length,
     Real initIntegratorStepSize,
-    const Params& params,
+    const IntegratorTolerances& tols,
     InstanceEntry& cache)
 {
     cache.samples.clear();
@@ -1572,9 +1574,9 @@ void shootNewGeodesic(
         tangent_S,
         length,
         cache.integratorInitialStepSize,
-        params.intergatorAccuracy,
-        params.constraintProjectionTolerance,
-        params.constraintProjectionMaxIter,
+        tols.intergatorAccuracy,
+        tols.constraintProjectionTolerance,
+        tols.constraintProjectionMaxIter,
         cache.jacobi_Q,
         cache.jacobiDot_Q,
         logger);
@@ -1636,7 +1638,7 @@ void calcInitCurveIfNeeded(
     const State& s,
     const Vec3& prevPoint_S,
     const Vec3& nextPoint_S,
-    const Params& params)
+    const IntegratorTolerances& tols)
 {
     if (curve.getInstanceEntry(s).status != WrappingStatus::InitialGuess) {
         return;
@@ -1646,7 +1648,7 @@ void calcInitCurveIfNeeded(
         curve.getContactPointHint(),
         nextPoint_S - prevPoint_S,
         Eps,
-        NaN, params);
+        NaN, tols);
 }
 
 // Assert that previous and next point lie above the surface. Points are in
@@ -1684,7 +1686,7 @@ void calcCurveTouchdownIfNeeded(
     const State& s,
     const Vec3& prevPoint_S,
     const Vec3& nextPoint_S,
-    const Params& params)
+    const IntegratorTolerances& tols)
 {
     // Given the straight line between the point before and after this segment,
     // touchdown is detected by computing the point on that line that is
@@ -1705,8 +1707,8 @@ void calcCurveTouchdownIfNeeded(
             prevPoint_S,
             nextPoint_S,
             pointOnLineNearSurface_S,
-            params.constraintProjectionMaxIter,
-            params.constraintProjectionTolerance);
+            tols.constraintProjectionMaxIter,
+            tols.constraintProjectionTolerance);
 
     // In case of touchdown, shoot a zero-length geodesic at the touchdown
     // point.
@@ -1716,7 +1718,7 @@ void calcCurveTouchdownIfNeeded(
             pointOnLineNearSurface_S,
             nextPoint_S - prevPoint_S,
             0.,
-            cache.integratorInitialStepSize, params);
+            cache.integratorInitialStepSize, tols);
         return;
     }
 
@@ -1763,13 +1765,13 @@ void CurveSegment::calcLocalGeodesic(
     Vec3 point_S,
     Vec3 tangent_S,
     Real length,
-    Real stepSizeHint, const Params& params) const
+    Real stepSizeHint, const IntegratorTolerances& tols) const
 {
     InstanceEntry& cache = updInstanceEntry(s);
 
     cache.status = WrappingStatus::InContactWithSurface;
 
-    shootNewGeodesic(*this, point_S, tangent_S, length, stepSizeHint, params, cache);
+    shootNewGeodesic(*this, point_S, tangent_S, length, stepSizeHint, tols, cache);
 
     getSubsystem().markDiscreteVarUpdateValueRealized(s, m_InstanceIx);
 
@@ -1798,7 +1800,7 @@ void CurveSegment::realizePosition(
     const State& s,
     Vec3 prevPoint_G,
     Vec3 nextPoint_G,
-    const Params& params) const
+    const IntegratorTolerances& tols) const
 {
     if (getSubsystem().isCacheValueRealized(s, m_PosIx)) {
         // TODO use SimTK_ASSERT
@@ -1824,11 +1826,11 @@ void CurveSegment::realizePosition(
         // surface body.
         assertSurfaceBounds(*this, prevPoint_S, nextPoint_S);
 
-        calcInitCurveIfNeeded(*this, s, prevPoint_S, nextPoint_S, params);
+        calcInitCurveIfNeeded(*this, s, prevPoint_S, nextPoint_S, tols);
 
         // If previously not in contact with the surface, determine if we come
         // in contact now.
-        calcCurveTouchdownIfNeeded(*this, s, prevPoint_S, nextPoint_S, params);
+        calcCurveTouchdownIfNeeded(*this, s, prevPoint_S, nextPoint_S, tols);
 
         // When in contact with the surface, determine if we will lift off from
         // the surface now.
@@ -2192,7 +2194,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             cable.callForEachActiveCurveSegment(
                 s,
                 [&](const CurveSegment& curve) {
-                    applyGeodesicCorrection(curve, s, *corrIt, cable.getIntegratorParams());
+                    applyGeodesicCorrection(curve, s, *corrIt, cable.getIntegratorTolerances());
                     ++corrIt;
                 });
 
@@ -2205,7 +2207,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                         s,
                         cable.findPrevPoint(s, ix),
                         cable.findNextPoint(s, ix),
-                        cable.getIntegratorParams());
+                        cable.getIntegratorTolerances());
             }
 
             cable.calcLineSegments(s, ppe.originPoint_G, ppe.terminationPoint_G, data.lineSegments);

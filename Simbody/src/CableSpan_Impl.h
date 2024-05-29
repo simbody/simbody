@@ -150,29 +150,29 @@ public:
 
     Real getSurfaceConstraintTolerance() const
     {
-        return m_IntegratorParams.constraintProjectionTolerance;
+        return m_IntegratorTolerances.constraintProjectionTolerance;
     }
     void setSurfaceConstraintTolerance(Real tolerance)
     {
-        m_IntegratorParams.constraintProjectionTolerance = tolerance;
+        m_IntegratorTolerances.constraintProjectionTolerance = tolerance;
     }
 
     int getSurfaceProjectionMaxIter() const
     {
-        return m_IntegratorParams.constraintProjectionMaxIter;
+        return m_IntegratorTolerances.constraintProjectionMaxIter;
     }
     void setSurfaceProjectionMaxIter(int maxIter)
     {
-        m_IntegratorParams.constraintProjectionMaxIter = maxIter;
+        m_IntegratorTolerances.constraintProjectionMaxIter = maxIter;
     }
 
     Real getIntegratorAccuracy() const
     {
-        return m_IntegratorParams.intergatorAccuracy;
+        return m_IntegratorTolerances.intergatorAccuracy;
     }
     void setIntegratorAccuracy(Real accuracy)
     {
-        m_IntegratorParams.intergatorAccuracy = accuracy;
+        m_IntegratorTolerances.intergatorAccuracy = accuracy;
     }
 
     int getPathMaxIter() const
@@ -202,9 +202,9 @@ public:
         m_MaxCorrectionStepDeg = maxStepInDeg;
     }
 
-    const CurveSegment::GeodesicIntegratorParams& getIntegratorParams() const
+    const CurveSegment::IntegratorTolerances& getIntegratorTolerances() const
     {
-        return m_IntegratorParams;
+        return m_IntegratorTolerances;
     }
 
 //------------------------------------------------------------------------------
@@ -339,7 +339,7 @@ private:
     // For each curve segment the max allowed radial curvature.
     Real m_MaxCorrectionStepDeg = 10.; // TODO describe
 
-    CurveSegment::GeodesicIntegratorParams m_IntegratorParams {};
+    CurveSegment::IntegratorTolerances m_IntegratorTolerances {};
 
     // TOPOLOGY CACHE (set during realizeTopology())
     CacheEntryIndex m_PosInfoIx;

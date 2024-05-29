@@ -157,9 +157,13 @@ public:
         FrenetFrame X_GQ{};
     };
 
-    struct GeodesicIntegratorParams {
+    // Helper struct for collecting all parameters for setting up the
+    // integrator that computes the geodesic over the obstacle's surface.
+    struct IntegratorTolerances {
         Real intergatorAccuracy = 1e-6; // TODO set to reasonable
+        // TODO combine constraintProjectionTolerance with intergatorAccuracy?
         Real constraintProjectionTolerance = 1e-6; // TODO set to reasonable
+        // TODO this is not currently connected to anything...
         int constraintProjectionMaxIter = 50; // TODO set to reasonable
     };
 
@@ -208,7 +212,7 @@ public:
             .setResolution(3);
     }
 
-    void realizePosition(const State& s, Vec3 prevPoint_G, Vec3 nextPoint_G, const GeodesicIntegratorParams& params)
+    void realizePosition(const State& s, Vec3 prevPoint_G, Vec3 nextPoint_G, const IntegratorTolerances& tols)
         const;
 
     void invalidatePosEntry(const State& state) const
@@ -340,7 +344,7 @@ public:
         Vec3 tangent_S,
         Real length,
         Real stepSizeHint,
-        const GeodesicIntegratorParams& params) const;
+        const IntegratorTolerances& tols) const;
 
     // Lift curve from surface, and start tracking the given point.
     // This method will update the InstanceEntry cache, and invalidates the
