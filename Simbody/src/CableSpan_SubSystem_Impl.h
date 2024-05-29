@@ -24,10 +24,10 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+#include "CableSpan_CurveSegment.h"
+#include "CableSpan_Impl.h"
 #include "simbody/internal/CableSpan.h"
 #include "simbody/internal/MultibodySystem.h"
-#include "CableSpan_Impl.h"
-#include "CableSpan_CurveSegment.h"
 
 namespace SimTK
 {
@@ -116,9 +116,7 @@ public:
             new Value<CacheEntry>(cache));
     }
 
-    CableSpanIndex adoptCable(
-            CableSubsystem& subsystemHandle,
-            CableSpan& cable)
+    CableSpanIndex adoptCable(CableSubsystem& subsystemHandle, CableSpan& cable)
     {
         invalidateSubsystemTopologyCache();
 

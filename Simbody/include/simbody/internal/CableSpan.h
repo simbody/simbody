@@ -51,12 +51,15 @@ class CableSpan;
 class SimTK_SIMBODY_EXPORT CableSpan final
 {
 public:
-    using FrenetFrame = Transform;
+    using FrenetFrame   = Transform;
     using ObstacleIndex = CableSpanObstacleIndex;
 
-    // Identifies whether the cable is in contact with the obstacle surface or not.
-    // TODO the InitialGuess case is added as a fix for initializing the path, and should be removed later.
-    enum class ObstacleWrappingStatus {
+    /** Identifies whether the cable is in contact with the obstacle surface or
+     * not.
+     * TODO the InitialGuess case is added as a fix for initializing the path,
+     * and should be removed later. */
+    enum class ObstacleWrappingStatus
+    {
         InitialGuess, // Hotfix for path initialization.
         InContactWithSurface,
         LiftedFromSurface,
@@ -81,7 +84,7 @@ public:
     CableSpan(
         CableSubsystem& subsystem,
         MobilizedBodyIndex originBody,
-        const Vec3& defaultOriginPoint, //TODO rename
+        const Vec3& defaultOriginPoint, // TODO rename
         MobilizedBodyIndex terminationBody,
         const Vec3& defaultTerminationPoint);
 
@@ -95,11 +98,11 @@ public:
      * contact geometry's origin frame with respect to the mobilized body.
      * @param geometry The contact geometry over which this segment wraps.
      * @param contactPointHint A guess of the contact point of the cable
-     * span and the contact geometry to compute the initial cable path. This point
-     * is defined in the local contact geometry's frame. The point will be used as
-     * a starting point when computing the initial cable path. As such, it does
-     * not have to lie on the contact geometry's surface, nor does it have to
-     * belong to a valid cable path. */
+     * span and the contact geometry to compute the initial cable path. This
+     * point is defined in the local contact geometry's frame. The point will be
+     * used as a starting point when computing the initial cable path. As such,
+     * it does not have to lie on the contact geometry's surface, nor does it
+     * have to belong to a valid cable path. */
     ObstacleIndex addSurfaceObstacle(
         MobilizedBodyIndex mobod,
         Transform X_BS,
@@ -113,9 +116,12 @@ public:
     const MobilizedBody& getObstacleMobilizedBody(ObstacleIndex ix) const;
 
     /** Get the index of the mobilized body that the obstacle is attached to. */
-    const MobilizedBodyIndex& getObstacleMobilizedBodyIndex(ObstacleIndex ix) const;
+    const MobilizedBodyIndex& getObstacleMobilizedBodyIndex(
+        ObstacleIndex ix) const;
     /** Set the index of the mobilized body that the obstacle is attached to. */
-    void setObstacleMobilizedBodyIndex(ObstacleIndex ix, MobilizedBodyIndex body);
+    void setObstacleMobilizedBodyIndex(
+        ObstacleIndex ix,
+        MobilizedBodyIndex body);
 
     /** Get the orientation and position of the obstacle's surface with respect
      * to its mobilized body. */
@@ -126,13 +132,16 @@ public:
 
     /** Get the ContactGeometry attached to the obstacle */
     const ContactGeometry& getObstacleContactGeometry(ObstacleIndex ix) const;
-    /** Set the ContactGeometry attached to the obstacle. TODO: dont take ownership. */
+    /** Set the ContactGeometry attached to the obstacle. TODO: dont take
+     * ownership. */
     void setObstacleContactGeometry(ObstacleIndex ix, ContactGeometry geometry);
 
     /** Get the point on the obstacle used to compute the initial path. */
     Vec3 getObstacleInitialContactPointHint(ObstacleIndex ix) const;
     /** Set the point on the obstacle used to compute the initial path. */
-    void setObstacleInitialContactPointHint(ObstacleIndex ix, Vec3 initialContactPointHint);
+    void setObstacleInitialContactPointHint(
+        ObstacleIndex ix,
+        Vec3 initialContactPointHint);
 
 //------------------------------------------------------------------------------
 //                     OBSTACLE CALCULATIONS
@@ -140,56 +149,84 @@ public:
 
     /** Get the wrapping status of the cable path over the given obstacle.
      * State must be realized to Stage::Position. */
-    ObstacleWrappingStatus getObstacleWrappingStatus(const State& state, ObstacleIndex ix) const;
+    ObstacleWrappingStatus getObstacleWrappingStatus(
+        const State& state,
+        ObstacleIndex ix) const;
 
     /** Get the length of the curve segment over the given obstacle.
      * Throws an exception if the cable is not in contact with the surface.
      * State must be realized to Stage::Position. */
     Real getCurveSegmentLength(const State& state, ObstacleIndex ix) const;
 
-    int getCurveSegmentNumberOfIntegratorStepsTaken(const State& state, ObstacleIndex ix) const;
-    Real getCurveSegmentInitialIntegratorStepSize(const State& state, ObstacleIndex ix) const;
+    int getCurveSegmentNumberOfIntegratorStepsTaken(
+        const State& state,
+        ObstacleIndex ix) const;
+    Real getCurveSegmentInitialIntegratorStepSize(
+        const State& state,
+        ObstacleIndex ix) const;
 
-    int calcCurveSegmentPathPoints(const State& state, ObstacleIndex ix, int nPoints, std::function<void(Vec3 point)>& sink) const;
+    int calcCurveSegmentPathPoints(
+        const State& state,
+        ObstacleIndex ix,
+        int nPoints,
+        std::function<void(Vec3 point)>& sink) const;
     // This is useful for debugging and visualization.
-    int calcCurveSegmentPathPointsAndTangents(const State& state, ObstacleIndex ix, int nPoints, std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const;
+    int calcCurveSegmentPathPointsAndTangents(
+        const State& state,
+        ObstacleIndex ix,
+        int nPoints,
+        std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const;
 
-    // TODO perhaps remove this, and replace with calcTangentAtLength(), calcPosAtLength().
-    const FrenetFrame& getCurveSegmentFirstFrenetFrame(const State& state, ObstacleIndex ix) const;
+    // TODO perhaps remove this, and replace with calcTangentAtLength(),
+    // calcPosAtLength().
+    const FrenetFrame& getCurveSegmentFirstFrenetFrame(
+        const State& state,
+        ObstacleIndex ix) const;
     // TODO perhaps remove this.
-    const FrenetFrame& getCurveSegmentLastFrenetFrame(const State& state, ObstacleIndex ix) const;
+    const FrenetFrame& getCurveSegmentLastFrenetFrame(
+        const State& state,
+        ObstacleIndex ix) const;
 
 //------------------------------------------------------------------------------
 //                     CABLE CONFIGURATION
 //------------------------------------------------------------------------------
 
-    /** Get the tolerance used to enfore the surface constraints of all obstacles. */
+    /** Get the tolerance used to enfore the surface constraints of all
+     * obstacles. */
     Real getSurfaceConstraintTolerance() const;
-    /** Set the tolerance used to enfore the surface constraints of all obstacles. */
+    /** Set the tolerance used to enfore the surface constraints of all
+     * obstacles. */
     void setSurfaceConstraintTolerance(Real tolerance);
 
     /** Get the maximum number of solver iterations allowed when enforcing the
      * surface constraints of all obstacles. */
-    int getSurfaceProjectionMaxIter() const; // TODO not connected to anything currently.
+    int getSurfaceProjectionMaxIter()
+        const; // TODO not connected to anything currently.
     /** Set the maximum number of solver iterations allowed when enforcing the
      * surface constraints of all obstacles. */
     void setSurfaceProjectionMaxIter(int maxIter);
 
-    /** Get the accuracy used by the numerical integrator when computing a geodesic over an obstacle. */
+    /** Get the accuracy used by the numerical integrator when computing a
+     * geodesic over an obstacle. */
     Real getIntegratorAccuracy() const;
-    /** Set the accuracy used by the numerical integrator when computing a geodesic over an obstacle. */
+    /** Set the accuracy used by the numerical integrator when computing a
+     * geodesic over an obstacle. */
     void setIntegratorAccuracy(Real accuracy);
 
-    /** Get the maximum number of solver iterations for finding the optimal path. */
+    /** Get the maximum number of solver iterations for finding the optimal
+     * path. */
     int getSolverMaxIter() const;
-    /** Set the maximum number of solver iterations for finding the optimal path. */
+    /** Set the maximum number of solver iterations for finding the optimal
+     * path. */
     void setSolverMaxIter(int maxIter);
 
     // TODO merge with surface constraint tolerance above?
     Real getPathErrorAccuracy() const;
     void setPathErrorAccuracy(Real accuracy);
 
-    // TODO advanced parameter: Max allowed step during Newton iteration in angles. Using the local curvatures the max angular step is converted to a max allowed translation.
+    // TODO advanced parameter: Max allowed step during Newton iteration in
+    // angles. Using the local curvatures the max angular step is converted to a
+    // max allowed translation.
     Real getMaxRadialStepInDegrees() const;
     void setMaxRadialStepInDegrees(Real maxStepInDeg);
 
@@ -214,7 +251,10 @@ public:
      * State must be realized to Stage::Position. */
     Real calcCablePower(const State& state, Real tension) const;
 
-    int calcPathPoints(const State& state, Real maxLengthIncrement, std::function<void(Vec3 point)>& sink) const;
+    int calcPathPoints(
+        const State& state,
+        Real maxLengthIncrement,
+        std::function<void(Vec3 point)>& sink) const;
 
     class Impl;
 

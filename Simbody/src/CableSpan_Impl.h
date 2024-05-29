@@ -70,7 +70,7 @@ public:
         Vec3 originPoint,
         MobilizedBodyIndex terminationBody,
         Vec3 terminationPoint) :
-        m_Subsystem(nullptr), // Not adopted yet
+        m_Subsystem(nullptr),        // Not adopted yet
         m_Index(CableSpanIndex(-1)), // Invalid index
         m_OriginBody(originBody), m_OriginPoint(originPoint),
         m_TerminationBody(terminationBody), m_TerminationPoint(terminationPoint)
@@ -86,12 +86,8 @@ public:
 
         ObstacleIndex obstacleIx(m_CurveSegments.size());
 
-        m_CurveSegments.push_back(CurveSegment(
-                    m_Subsystem,
-                    mobod,
-                    X_BS,
-                    geometry,
-                    contactPointHint));
+        m_CurveSegments.push_back(
+            CurveSegment(m_Subsystem, mobod, X_BS, geometry, contactPointHint));
 
         return obstacleIx;
     }
@@ -215,7 +211,7 @@ public:
 
     int calcPathPoints(
         const State& state,
-    Real maxLengthIncrement,
+        Real maxLengthIncrement,
         std::function<void(Vec3 point_G)>& sink) const;
 
     void applyBodyForces(
@@ -235,7 +231,10 @@ private:
     const CableSubsystem& getSubsystem() const
     {
         if (!m_Subsystem) {
-            SimTK_ERRCHK_ALWAYS(m_Subsystem, "CableSpan::Impl::getSubsystem()", "CableSpan not yet adopted by any CableSubsystem");
+            SimTK_ERRCHK_ALWAYS(
+                m_Subsystem,
+                "CableSpan::Impl::getSubsystem()",
+                "CableSpan not yet adopted by any CableSubsystem");
         }
         return *m_Subsystem;
     }
@@ -243,8 +242,8 @@ private:
     void setSubsystem(CableSubsystem& subsystem, CableSpanIndex index)
     {
         m_Subsystem = &subsystem;
-        m_Index = index;
-        for (CurveSegment& curve: m_CurveSegments) {
+        m_Index     = index;
+        for (CurveSegment& curve : m_CurveSegments) {
             curve.setSubsystem(subsystem);
         }
     }
@@ -252,7 +251,10 @@ private:
     CableSubsystem& updSubsystem()
     {
         if (!m_Subsystem) {
-            SimTK_ERRCHK_ALWAYS(m_Subsystem, "CableSpan::Impl::updSubsystem()", "CableSpan not yet adopted by any CableSubsystem");
+            SimTK_ERRCHK_ALWAYS(
+                m_Subsystem,
+                "CableSpan::Impl::updSubsystem()",
+                "CableSpan not yet adopted by any CableSubsystem");
         }
         return *m_Subsystem;
     }
@@ -260,7 +262,10 @@ private:
     CableSpanIndex getIndex() const
     {
         if (!m_Subsystem) {
-            SimTK_ERRCHK_ALWAYS(m_Subsystem, "CableSpan::Impl::getIndex()", "CableSpan not yet adopted by any CableSubsystem");
+            SimTK_ERRCHK_ALWAYS(
+                m_Subsystem,
+                "CableSpan::Impl::getIndex()",
+                "CableSpan not yet adopted by any CableSubsystem");
         }
         return m_Index;
     }
@@ -339,7 +344,7 @@ private:
     // For each curve segment the max allowed radial curvature.
     Real m_MaxCorrectionStepDeg = 10.; // TODO describe
 
-    CurveSegment::IntegratorTolerances m_IntegratorTolerances {};
+    CurveSegment::IntegratorTolerances m_IntegratorTolerances{};
 
     // TOPOLOGY CACHE (set during realizeTopology())
     CacheEntryIndex m_PosInfoIx;

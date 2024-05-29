@@ -24,21 +24,23 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include <stdexcept>
-#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/CableSpan.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/common.h"
 #include "simmath/internal/ContactGeometry.h"
+#include <stdexcept>
 
 namespace SimTK
 {
 
-// Representation of a cable segment that does not lie on a surface: A straight line.
+// Representation of a cable segment that does not lie on a surface: A straight
+// line.
 struct LineSegment final
 {
     LineSegment() = default;
 
-    LineSegment(Vec3 a, Vec3 b) : length((b - a).norm()), direction((b - a) / length)
+    LineSegment(Vec3 a, Vec3 b) :
+        length((b - a).norm()), direction((b - a) / length)
     {}
 
     Real length = NaN;
@@ -157,7 +159,8 @@ public:
 
     // Helper struct for collecting all parameters for setting up the
     // integrator that computes the geodesic over the obstacle's surface.
-    struct IntegratorTolerances {
+    struct IntegratorTolerances
+    {
         Real intergatorAccuracy = 1e-6; // TODO set to reasonable
         // TODO combine constraintProjectionTolerance with intergatorAccuracy?
         Real constraintProjectionTolerance = 1e-6; // TODO set to reasonable
@@ -204,14 +207,18 @@ public:
             Stage::Infinity,
             new Value<PosEntry>(posInfo));
 
-        m_Decoration = getContactGeometry().createDecorativeGeometry()
-            .setColor(Orange)
-            .setOpacity(.75)
-            .setResolution(3);
+        m_Decoration = getContactGeometry()
+                           .createDecorativeGeometry()
+                           .setColor(Orange)
+                           .setOpacity(.75)
+                           .setResolution(3);
     }
 
-    void realizePosition(const State& s, Vec3 prevPoint_G, Vec3 nextPoint_G, const IntegratorTolerances& tols)
-        const;
+    void realizePosition(
+        const State& s,
+        Vec3 prevPoint_G,
+        Vec3 nextPoint_G,
+        const IntegratorTolerances& tols) const;
 
     void invalidatePosEntry(const State& state) const
     {
@@ -255,7 +262,8 @@ public:
         return m_Body;
     }
 
-    void setMobilizedBodyIndex(MobilizedBodyIndex body) {
+    void setMobilizedBodyIndex(MobilizedBodyIndex body)
+    {
         m_Body = body;
     }
 
@@ -272,7 +280,10 @@ public:
     const CableSubsystem& getSubsystem() const
     {
         if (!m_Subsystem) {
-            SimTK_ERRCHK_ALWAYS(m_Subsystem, "CurveSegment::getSubsystem()", "CableSpan not yet adopted by any CableSubsystem");
+            SimTK_ERRCHK_ALWAYS(
+                m_Subsystem,
+                "CurveSegment::getSubsystem()",
+                "CableSpan not yet adopted by any CableSubsystem");
         }
         return *m_Subsystem;
     }
@@ -280,7 +291,10 @@ public:
     CableSubsystem& updSubsystem()
     {
         if (!m_Subsystem) {
-            SimTK_ERRCHK_ALWAYS(m_Subsystem, "CurveSegment::updSubsystem()", "CableSpan not yet adopted by any CableSubsystem");
+            SimTK_ERRCHK_ALWAYS(
+                m_Subsystem,
+                "CurveSegment::updSubsystem()",
+                "CableSpan not yet adopted by any CableSubsystem");
         }
         return *m_Subsystem;
     }
