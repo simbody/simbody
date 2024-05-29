@@ -44,10 +44,6 @@ class CableSpan;
 // Representation of a cable spanning between two poins.
 // The cable can adopt surface obstacles that must be wrapped over.
 //
-// The CableSpan can be seen as consisting of alternating LineSegments and
-// CurveSegments, starting and ending with a straight LineSegment, and a
-// CurveSegment for each obstacle it comes into contact with.
-//
 // NOTE: The interaction with the obstacles is **ordered**. The cable can wrap
 // over the obstacles in the order that they are added. This means that the
 // cable can not wrap over the first obstacle twice, even though it might
@@ -57,11 +53,13 @@ class SimTK_SIMBODY_EXPORT CableSpan final
 public:
     using FrenetFrame = Transform;
 
+    // Identifies whether the cable is in contact with the obstacle surface or not.
+    // TODO the InitialGuess case is added as a fix for initializing the path, and should be removed later.
     enum class ObstacleWrappingStatus {
-        InitialGuess,
+        InitialGuess, // Hotfix for path initialization.
         InContactWithSurface,
         LiftedFromSurface,
-        Disabled,
+        Disabled, // Allow user to manually disable the obstacle.
     };
 
 //------------------------------------------------------------------------------
@@ -76,10 +74,13 @@ public:
 
 //------------------------------------------------------------------------------
 
+    // Construct a new cable, and add it to the subsystem.
+    // The cable spans from the origin point on the origin body, to the
+    // terminal point on the terminal body.
     CableSpan(
         CableSubsystem& subsystem,
         MobilizedBodyIndex originBody,
-        const Vec3& defaultOriginPoint,
+        const Vec3& defaultOriginPoint, //TODO rename
         MobilizedBodyIndex terminationBody,
         const Vec3& defaultTerminationPoint);
 
@@ -87,6 +88,18 @@ public:
 //                     OBSTACLE CONFIGURATION
 //------------------------------------------------------------------------------
 
+    /** Add an obstacle to the cable's path.
+     * @param mobod The body that the contact geometry is rigidly attached to.
+     * @param X_BS Transform specifying the location and orientation of the
+     * contact geometry's origin frame with respect to the mobilized body.
+     * @param geometry The contact geometry over which this segment wraps.
+     * @param contactPointHint A guess of the contact point of the cable
+     * span and the contact geometry to compute the initial cable path. This point
+     * is defined in the local contact geometry's frame. The point will be used as
+     * a starting point when computing the initial cable path. As such, it does
+     * not have to lie on the contact geometry's surface, nor does it have to
+     * belong to a valid cable path.
+    */
     CurveSegmentIndex addSurfaceObstacle(
         MobilizedBodyIndex mobod,
         Transform X_BS,
@@ -163,8 +176,12 @@ public:
 //                     CABLE CALCULATIONS
 //------------------------------------------------------------------------------
 
+    // Get the total cable length.
+    // State must be realized to Stage::Position.
     Real getLength(const State& state) const;
 
+    // Get the derivative of the total cable length.
+    // State must be realized to Stage::Position.
     Real getLengthDot(const State& state) const;
 
     void applyBodyForces(
