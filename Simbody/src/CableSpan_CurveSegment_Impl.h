@@ -33,7 +33,7 @@
 namespace SimTK
 {
 
-// Representation of the cable segments that do not lie on a surface.
+// Representation of a cable segment that does not lie on a surface: A straight line.
 struct LineSegment final
 {
     LineSegment() = default;
@@ -41,9 +41,7 @@ struct LineSegment final
     LineSegment(Vec3 a, Vec3 b) : length((b - a).norm()), direction((b - a) / length)
     {}
 
-    // TODO rename to length.
     Real length = NaN;
-    // TODO rename to direction.
     UnitVec3 direction{NaN, NaN, NaN};
 };
 
