@@ -64,6 +64,37 @@ public:
 
 //------------------------------------------------------------------------------
 
+    Impl()  = default;
+    ~Impl() = default;
+
+    // Copy, but clear the subsystem registration of the copy.
+    Impl(const Impl& source) :
+        m_Subsystem(nullptr),
+        m_Index(CableSpanIndex::Invalid()),
+        m_PosInfoIx(CacheEntryIndex::Invalid()),
+        m_VelInfoIx(CacheEntryIndex::Invalid()),
+        m_OriginBody(source.m_OriginBody),
+        m_OriginPoint(source.m_OriginPoint),
+        m_TerminationBody(source.m_TerminationBody),
+        m_TerminationPoint(source.m_TerminationPoint),
+        m_CurveSegments(source.m_CurveSegments),
+        m_PathAccuracy(source.m_PathAccuracy),
+        m_PathMaxIter(source.m_PathMaxIter),
+        m_MaxCorrectionStepDeg(source.m_MaxCorrectionStepDeg),
+        m_IntegratorTolerances(source.m_IntegratorTolerances)
+    {}
+
+    // Copy, but clear the subsystem registration of the copy.
+    Impl& operator=(const Impl& source)
+    {
+        return *this = Impl(source);
+    }
+
+    Impl(Impl&&) noexcept            = default;
+    Impl& operator=(Impl&&) noexcept = default;
+
+//------------------------------------------------------------------------------
+
     // Construct, but not associated with a CableSubsystem yet.
     Impl(
         MobilizedBodyIndex originBody,
@@ -105,6 +136,15 @@ public:
         }
     }
     void invalidatePositionLevelCache(const State& state) const;
+
+    void invalidateSubsystemEntry() {
+        m_Subsystem = nullptr;
+        m_Index = CableSpanIndex::Invalid();
+    }
+
+    bool isSubsystemEntryValid() const {
+        return static_cast<bool>(m_Subsystem) && m_Index.isValid();
+    }
 
     const PosInfo& getPosInfo(const State& state) const;
     const VelInfo& getVelInfo(const State& state) const;
@@ -328,14 +368,18 @@ private:
 //------------------------------------------------------------------------------
 
     // Reference back to the subsystem.
-    CableSubsystem* m_Subsystem; // TODO just a pointer?
-    CableSpanIndex m_Index;
+    CableSubsystem* m_Subsystem = nullptr;
+    CableSpanIndex m_Index = CableSpanIndex::Invalid();
 
-    MobilizedBodyIndex m_OriginBody;
-    Vec3 m_OriginPoint;
+    // TOPOLOGY CACHE (set during realizeTopology())
+    CacheEntryIndex m_PosInfoIx = CacheEntryIndex::Invalid();
+    CacheEntryIndex m_VelInfoIx = CacheEntryIndex::Invalid();
 
-    MobilizedBodyIndex m_TerminationBody;
-    Vec3 m_TerminationPoint;
+    MobilizedBodyIndex m_OriginBody = MobilizedBodyIndex::Invalid();
+    Vec3 m_OriginPoint {NaN};
+
+    MobilizedBodyIndex m_TerminationBody = MobilizedBodyIndex::Invalid();
+    Vec3 m_TerminationPoint {NaN};
 
     Array_<CurveSegment, ObstacleIndex> m_CurveSegments{};
 
@@ -346,10 +390,6 @@ private:
     Real m_MaxCorrectionStepDeg = 10.; // TODO describe
 
     CurveSegment::IntegratorTolerances m_IntegratorTolerances{};
-
-    // TOPOLOGY CACHE (set during realizeTopology())
-    CacheEntryIndex m_PosInfoIx;
-    CacheEntryIndex m_VelInfoIx;
 
     friend CableSubsystem;
     friend CableSubsystemTestHelper;

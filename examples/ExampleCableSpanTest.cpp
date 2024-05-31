@@ -614,6 +614,20 @@ int main()
             Ground,
             Vec3(1.75, 0.05, 0.)); // termination
 
+
+        {
+            CableSpan tempCable(
+                    cables,
+                    Ground,
+                    Vec3(-2., 0.1, 0.), // origin
+                    Ground,
+                    Vec3(1.75, 0.05, 0.)); // termination
+
+            if (cables.getNumCables() != 2) {
+                throw std::runtime_error("There should be two cables registered");
+            }
+        }
+
         cable.setSurfaceConstraintTolerance(projectionAccuracy);
         cable.setSurfaceProjectionMaxIter(projectionMaxIter);
         cable.setPathErrorAccuracy(pathAccuracy);
@@ -641,7 +655,29 @@ int main()
         system.realizeTopology();
         State s = system.getDefaultState();
 
+        if (cables.getNumCables() != 1) {
+            throw std::runtime_error("There should be a single cable registered");
+        }
+
         system.realize(s, Stage::Position);
+
+        // If we make a copy of a cable, it should reset it should not copy the
+        // subsystem registration.
+        {
+            bool cableCopyThrowsWhenCalled = false;
+            const CableSpan cableCopy = cable;
+            try {
+                cableCopy.getLength(s);
+            } catch (...) {
+                cableCopyThrowsWhenCalled = true;
+            }
+            if (!cableCopyThrowsWhenCalled) {
+                throw std::runtime_error("Copying a cable should not copy the registration in the subsystem.");
+            }
+        }
+
+        std::cout << "cable length = " << cable.getLength(s) << "\n";
+
 		viz.report(s);
 
         std::ostringstream oss;

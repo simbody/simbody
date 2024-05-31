@@ -216,6 +216,31 @@ int CableSubsystem::Impl::realizeSubsystemTopologyImpl(State& state) const
 //                                CABLE SPAN
 //==============================================================================
 
+// Allocate a new default-constructed CableSpan::Impl.
+CableSpan::CableSpan() : m_Impl(std::shared_ptr<Impl>(new Impl())) {}
+
+// Invalidate the CableSpan::Impl, and delete the reference. Anyone still
+// holding on to the data (like the subsystem) will know it is invalid, and
+// delete their reference as well.
+CableSpan::~CableSpan()
+{
+    if (m_Impl) {
+        m_Impl->invalidateSubsystemEntry();
+        m_Impl = nullptr;
+    }
+}
+
+CableSpan::CableSpan(const CableSpan& source) :
+    m_Impl(
+        source.m_Impl ? std::shared_ptr<Impl>(new Impl(source.getImpl()))
+                      : nullptr)
+{}
+
+CableSpan& CableSpan::operator=(const CableSpan& source)
+{
+    return *this = CableSpan(source);
+}
+
 CableSpan::CableSpan(
     CableSubsystem& subsystem,
     MobilizedBodyIndex originBody,

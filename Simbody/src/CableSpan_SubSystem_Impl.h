@@ -114,6 +114,27 @@ public:
             Stage::Instance,
             Stage::Infinity,
             new Value<CacheEntry>(cache));
+
+        // Helper for finding cables that have invalidated their registration at this subsystem.
+        auto FindFirstInvalidCable = [&]() -> CableSpan*
+        {
+            for (CableSpanIndex ix(0); ix < cables.size(); ++ix) {
+                if (!cables[ix].getImpl().isSubsystemEntryValid()) {
+                    return &cables[ix];
+                }
+            }
+            return nullptr;
+        };
+
+        // Find any unregistered cables and remove them.
+        while (true) {
+            CableSpan* invalidCable = FindFirstInvalidCable();
+            if (invalidCable) {
+                cables.erase(invalidCable);
+                continue;
+            }
+            break;
+        }
     }
 
     CableSpanIndex adoptCable(CableSubsystem& subsystemHandle, CableSpan& cable)
@@ -122,7 +143,7 @@ public:
 
         CableSpanIndex cableIx(cables.size());
         cable.updImpl().setSubsystem(subsystemHandle, cableIx);
-        cables.push_back(cable);
+        cables.emplace_back(cable.copyImpl());
         return cableIx;
     }
 
@@ -133,11 +154,13 @@ public:
 
     const CableSpan& getCable(CableSpanIndex index) const
     {
+        SimTK_ERRCHK_ALWAYS(cables[index].getImpl().isSubsystemEntryValid(), "CableSubsystem::getCable", "Attempted to access unregistered cable. Perhaps the cable was deleted after realizing topology.");
         return cables[index];
     }
 
     CableSpan& updCable(CableSpanIndex index)
     {
+        SimTK_ERRCHK_ALWAYS(cables[index].getImpl().isSubsystemEntryValid(), "CableSubsystem::updCable", "Attempted to access unregistered cable. Perhaps the cable was deleted after realizing topology.");
         return cables[index];
     }
 

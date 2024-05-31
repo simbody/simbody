@@ -68,11 +68,14 @@ public:
 
 //------------------------------------------------------------------------------
 
-    // TODO who owns the cable span? the subsystem?
-    CableSpan()                                = default;
-    ~CableSpan()                               = default;
-    CableSpan(const CableSpan&)                = default;
-    CableSpan& operator=(const CableSpan&)     = default;
+    CableSpan();
+    ~CableSpan();
+
+    /** Clones the data, but not the subsystem entry. */
+    CableSpan(const CableSpan& source);
+    /** Clones the data, but not the subsystem entry. */
+    CableSpan& operator=(const CableSpan& source);
+
     CableSpan(CableSpan&&) noexcept            = default;
     CableSpan& operator=(CableSpan&&) noexcept = default;
 
@@ -280,7 +283,13 @@ public:
     class Impl;
 
 private:
-    explicit CableSpan(Impl);
+    /** Wrap the Impl, increasing the reference count. */
+    explicit CableSpan(std::shared_ptr<Impl> impl): m_Impl(std::move(impl)) {}
+
+    /** Cheap copy of pointer to the Impl. */
+    CableSpan copyImpl() const {
+        return CableSpan(m_Impl);
+    }
 
     const Impl& getImpl() const
     {
