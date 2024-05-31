@@ -165,27 +165,36 @@ public:
         const State& state,
         ObstacleIndex ix) const;
 
+    /** Compute points along the obstacle's curve segment at equal length
+     * intervals.
+     * The computed points are interpolated from the underlying geodesic, and
+     * might slightly violate configured tolerances.
+     * State must be realized to Stage::Position.
+     *
+     * @param state System State.
+     * @param ix Index of the obstacle that the curve wraps over.
+     * @param nPoints Number of points used to resample the curve. Minimum
+     * allowed is two.
+     * @param sink Where the interpolated point will be written to. Both the
+     * length measured from the curve segment's first contact point, as well as
+     * the position are written.
+     * @return Number of points actually written. If the curve has zero length,
+     * only one point will be computed. If the cable is not in contact with
+     * this obstacle, zero points will be written. */
     int calcCurveSegmentPathPoints(
         const State& state,
         ObstacleIndex ix,
         int nPoints,
-        std::function<void(Vec3 point)>& sink) const;
-    // This is useful for debugging and visualization.
+        std::function<void(Real length, Vec3 point)> sink) const;
+
+    // TODO same as calcCurveSegmentPathPoints but also computes the curve's
+    // tangent.
     int calcCurveSegmentPathPointsAndTangents(
         const State& state,
         ObstacleIndex ix,
         int nPoints,
-        std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const;
-
-    // TODO perhaps remove this, and replace with calcTangentAtLength(),
-    // calcPosAtLength().
-    const FrenetFrame& getCurveSegmentFirstFrenetFrame(
-        const State& state,
-        ObstacleIndex ix) const;
-    // TODO perhaps remove this.
-    const FrenetFrame& getCurveSegmentLastFrenetFrame(
-        const State& state,
-        ObstacleIndex ix) const;
+        std::function<void(Real length, Vec3 point, UnitVec3 tangent)> sink)
+        const;
 
 //------------------------------------------------------------------------------
 //                     CABLE CONFIGURATION
@@ -251,10 +260,22 @@ public:
      * State must be realized to Stage::Position. */
     Real calcCablePower(const State& state, Real tension) const;
 
+    /** Compute points on the path spanned by this cable.
+     * The curve segments will be resampled from the underlying geodesic such
+     * that the computed points are at equal length intervals. The straight
+     * line segments are not resampled.
+     * State must be realized to Stage::Position.
+     *
+     * @param state System State.
+     * @param lengthInterval Each curve segments will be resampled such the the
+     * points interspacing does not exceed this value.
+     * @param sink Where the path points will be written to.
+     * @return The total number of computed points.
+     */
     int calcPathPoints(
         const State& state,
-        Real maxLengthIncrement,
-        std::function<void(Vec3 point)>& sink) const;
+        Real lengthInterval,
+        std::function<void(Real length, Vec3 point)> sink) const;
 
     class Impl;
 

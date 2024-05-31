@@ -320,7 +320,7 @@ int CableSpan::calcCurveSegmentPathPoints(
     const State& state,
     ObstacleIndex ix,
     int nPoints,
-    std::function<void(Vec3 point)>& sink) const
+    std::function<void(Real length, Vec3 point)> sink) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).calcPathPoints(state, sink, nPoints);
@@ -331,7 +331,7 @@ int CableSpan::calcCurveSegmentPathPointsAndTangents(
     const State& state,
     ObstacleIndex ix,
     int nPoints,
-    std::function<void(Vec3 point, UnitVec3 tangent)>& sink) const
+    std::function<void(Real length, Vec3 point, UnitVec3 tangent)> sink) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).calcPathPointsAndTangents(
@@ -357,22 +357,6 @@ Real CableSpan::getCurveSegmentInitialIntegratorStepSize(
         .getCurveSegment(ix)
         .getInstanceEntry(state)
         .integratorInitialStepSize;
-}
-
-const FrenetFrame& CableSpan::getCurveSegmentFirstFrenetFrame(
-    const State& state,
-    ObstacleIndex ix) const
-{
-    getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).getPosInfo(state).X_GP;
-}
-
-const FrenetFrame& CableSpan::getCurveSegmentLastFrenetFrame(
-    const State& state,
-    ObstacleIndex ix) const
-{
-    getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).getPosInfo(state).X_GQ;
 }
 
 //------------------------------------------------------------------------------
@@ -459,10 +443,10 @@ void CableSpan::applyBodyForces(
 
 int CableSpan::calcPathPoints(
     const State& state,
-    Real maxLengthIncrement,
-    std::function<void(Vec3 point_G)>& sink) const
+    Real lengthIncrement,
+    std::function<void(Real length, Vec3 point_G)> sink) const
 {
-    return getImpl().calcPathPoints(state, maxLengthIncrement, sink);
+    return getImpl().calcPathPoints(state, lengthIncrement, sink);
 }
 
 Real CableSpan::calcCablePower(const State& state, Real tension) const
@@ -590,14 +574,17 @@ size_t CableSpan::Impl::countActive(const State& s) const
 int CableSpan::Impl::calcPathPoints(
     const State& state,
     Real maxLengthIncrement,
-    std::function<void(Vec3 point_G)>& sink) const
+    std::function<void(Real length, Vec3 point_G)> sink) const
 {
+    // Count number of points written.
+    int count = 0;
+
     // Write the initial point.
     const PosInfo& pos = getPosInfo(state);
-    sink(pos.originPoint_G);
+    sink(0., pos.originPoint_G);
+    ++count;
 
     // Write points along each of the curves.
-    int count = 0; // Count number of points written.
     for (const CurveSegment& curve : m_CurveSegments) {
 
         Real curveLength = curve.getInstanceEntry(state).length;
@@ -609,10 +596,11 @@ int CableSpan::Impl::calcPathPoints(
     }
 
     // Write the termination point.
-    sink(pos.terminationPoint_G);
+    sink(pos.cableLength, pos.terminationPoint_G);
+    ++count;
 
     // Return number of points written.
-    return count + 2;
+    return count;
 }
 
 //------------------------------------------------------------------------------
@@ -866,19 +854,33 @@ void calcCurveDecorativeGeometryAndAppend(
 
     // Draw the curve segment as straight lines between prevPoint and nextPoint.
     {
-        bool isFirstSample = true;
+        // Helper function for drawing line between prevPoint and nextPoint.
         Vec3 prevPoint{NaN};
-        std::function<void(Vec3)> drawLine = [&](Vec3 nextPoint) {
-            if (!isFirstSample) {
+        std::function<void(Real, Vec3)> drawLine = [&](Real length,
+                                                       Vec3 nextPoint) {
+            if (length != 0.) {
                 decorations.push_back(DecorativeLine(prevPoint, nextPoint)
                                           .setColor(Purple)
                                           .setLineThickness(3));
             }
-            isFirstSample = false;
-            prevPoint     = nextPoint;
+            prevPoint = nextPoint;
         };
 
-        curve.calcPathPoints(s, drawLine);
+        // TODO for debugging: Choose to show the original intergrator's path
+        // points or the resampled path points.
+        constexpr bool doResampling = false;
+        if (doResampling) {
+            curve.calcPathPoints(s, drawLine);
+        } else {
+            // Use points from GeodesicIntegrator directly.
+            const std::vector<LocalGeodesicSample>& samples =
+                curve.getInstanceEntry(s).samples;
+            for (const LocalGeodesicSample& sample : samples) {
+                drawLine(
+                    sample.length,
+                    ppe.X_GS.shiftFrameStationToBase(sample.frame.p()));
+            }
+        }
     }
 
     // Draw the Frenet frame at curve start and end.
@@ -1543,7 +1545,8 @@ CurveSegment::CurveSegment(
     const Transform& X_BS,
     ContactGeometry geometry,
     Vec3 initPointGuess) :
-    m_Subsystem(subsystem), m_Body(body), m_X_BS(X_BS), m_Geometry(geometry),
+    m_Subsystem(subsystem),
+    m_Body(body), m_X_BS(X_BS), m_Geometry(geometry),
     m_ContactPointHint_S(initPointGuess)
 {
     SimTK_ASSERT(
@@ -1996,7 +1999,7 @@ using InterpolatorFn = std::function<
 // selected samples at a given length.
 // @return the number of samples used for the interpolation.
 size_t resampleGeodesic(
-    const std::vector<LocalGeodesicSample>& geodesic,
+    const std::vector<LocalGeodesicSample> geodesic,
     int nSamples, // TODO use length increment?
     InterpolatorFn& interpolator)
 {
@@ -2094,25 +2097,29 @@ size_t resampleGeodesic(
 
 int CurveSegment::calcPathPointsAndTangents(
     const State& state,
-    std::function<void(Vec3 point_G, UnitVec3 tangent_G)>& sink,
+    std::function<void(Real length, Vec3 point_G, UnitVec3 tangent_G)> sink,
     int nSamples) const
 {
-    const Transform& X_GS           = getPosInfo(state).X_GS;
     const InstanceEntry& geodesic_S = getInstanceEntry(state);
     if (!geodesic_S.isInContactWithSurface()) {
         return 0;
     }
 
-    // Do not do any resampling if nSamples==0, simply write the points from the
-    // integrator to the output buffer.
-    if (nSamples == 0) {
-        for (const LocalGeodesicSample& sample : geodesic_S.samples) {
-            sink(
-                X_GS.shiftFrameStationToBase(sample.frame.p()),
-                UnitVec3(X_GS.shiftFrameStationToBase(
-                    sample.frame.R().getAxisUnitVec(TangentAxis))));
-        }
-        return geodesic_S.samples.size();
+    const CurveSegment::PosEntry& ppe = getPosInfo(state);
+
+    // If the curve has zero length, return a single point, nothing to
+    // interpolate.
+    if (geodesic_S.length == 0.) {
+        sink(0., ppe.X_GP.p(), getTangent(ppe.X_GP));
+        return 1;
+    }
+
+    // Requesting two inerpolation points means we write the first and last
+    // contact point. Nothing to interpolate.
+    if (nSamples == 2) {
+        sink(0., ppe.X_GP.p(), getTangent(ppe.X_GP));
+        sink(geodesic_S.length, ppe.X_GQ.p(), getTangent(ppe.X_GQ));
+        return 2;
     }
 
     // Resample the points from the integrator by interpolating at equal length
@@ -2120,35 +2127,43 @@ int CurveSegment::calcPathPointsAndTangents(
     InterpolatorFn Interpolator = [&](const LocalGeodesicSample& a,
                                       const LocalGeodesicSample& b,
                                       Real l) {
+        const Transform& X_GS = ppe.X_GS;
         const Vec3 interpolatedPoint_G =
             X_GS.shiftFrameStationToBase(calcInterpolatedPoint(a, b, l));
         const UnitVec3 interpolatedTangent_G =
             UnitVec3(X_GS.xformFrameVecToBase(
                 calcInterpolatedTangent(getContactGeometry(), a, b, l)));
 
-        sink(interpolatedPoint_G, interpolatedTangent_G);
+        sink(l, interpolatedPoint_G, interpolatedTangent_G);
     };
     return resampleGeodesic(geodesic_S.samples, nSamples, Interpolator);
 }
 
 int CurveSegment::calcPathPoints(
     const State& state,
-    std::function<void(Vec3 point_G)>& sink,
+    std::function<void(Real length, Vec3 point_G)> sink,
     int nSamples) const
 {
-    const Transform& X_GS           = getPosInfo(state).X_GS;
     const InstanceEntry& geodesic_S = getInstanceEntry(state);
     if (!geodesic_S.isInContactWithSurface()) {
         return 0;
     }
 
-    // Do not do any resampling if nSamples==0, simply write the points from the
-    // integrator to the output buffer.
-    if (nSamples == 0) {
-        for (const LocalGeodesicSample& sample : geodesic_S.samples) {
-            sink(X_GS.shiftFrameStationToBase(sample.frame.p()));
-        }
-        return geodesic_S.samples.size();
+    const CurveSegment::PosEntry& ppe = getPosInfo(state);
+
+    // If the curve has zero length, return a single point, nothing to
+    // interpolate.
+    if (geodesic_S.length == 0.) {
+        sink(0., ppe.X_GP.p());
+        return 1;
+    }
+
+    // Requesting two inerpolation points means we write the first and last
+    // contact point. Nothing to interpolate.
+    if (nSamples == 2) {
+        sink(0., ppe.X_GP.p());
+        sink(geodesic_S.length, ppe.X_GQ.p());
+        return 2;
     }
 
     // Resample the points from the integrator by interpolating at equal
@@ -2159,8 +2174,10 @@ int CurveSegment::calcPathPoints(
     InterpolatorFn Interpolator = [&](const LocalGeodesicSample& a,
                                       const LocalGeodesicSample& b,
                                       Real l) {
-        const Vec3 interpolatedPoint = calcInterpolatedPoint(a, b, l);
-        sink(X_GS.shiftFrameStationToBase(interpolatedPoint));
+        const Vec3 interpolatedPoint_S = calcInterpolatedPoint(a, b, l);
+        const Vec3 interpolatedPoint_G =
+            ppe.X_GS.shiftFrameStationToBase(interpolatedPoint_S);
+        sink(l, interpolatedPoint_G);
     };
     return resampleGeodesic(geodesic_S.samples, nSamples, Interpolator);
 }

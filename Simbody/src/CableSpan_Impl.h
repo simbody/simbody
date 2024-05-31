@@ -209,10 +209,11 @@ public:
     // surface.
     size_t countActive(const State& s) const;
 
+    // See CableSpan::calcPathPoints.
     int calcPathPoints(
         const State& state,
-        Real maxLengthIncrement,
-        std::function<void(Vec3 point_G)>& sink) const;
+        Real lengthIncrement,
+        std::function<void(Real length, Vec3 point_G)> sink) const;
 
     void applyBodyForces(
         const State& state,

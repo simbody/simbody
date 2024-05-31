@@ -227,9 +227,29 @@ std::vector<GeodesicState> RecomputeUnconstrainedGeodesic(
     CableSpanObstacleIndex ix,
     size_t integratorSteps)
 {
+    const ContactGeometry& g = cable.getObstacleContactGeometry(ix);
+    const Mobod& body        = cable.getObstacleMobilizedBody(ix);
+    const Transform X_GS     = body.getBodyTransform(state).compose(
+        cable.getObstacleXformSurfaceToBody(ix));
+
     std::vector<GeodesicState> samples;
 
-    const FrenetFrame& K_P = cable.getCurveSegmentFirstFrenetFrame(state, ix);
+    FrenetFrame K_P;
+    cable.calcCurveSegmentPathPointsAndTangents(
+        state,
+        ix,
+        2,
+        [&](Real length, Vec3 point, UnitVec3 tangent) {
+            if (length == 0.) {
+                const UnitVec3 normal = calcSurfaceNormal(g, X_GS, point);
+                K_P.updR().setRotationFromTwoAxes(
+                    tangent,
+                    TangentAxis,
+                    normal,
+                    NormalAxis);
+                K_P.updP() = point;
+            }
+        });
 
     GeodesicState q;
 
@@ -242,11 +262,7 @@ std::vector<GeodesicState> RecomputeUnconstrainedGeodesic(
 
     samples.push_back(q);
 
-    const int n              = integratorSteps;
-    const ContactGeometry& g = cable.getObstacleContactGeometry(ix);
-    const Mobod& body        = cable.getObstacleMobilizedBody(ix);
-    const Transform X_GS =
-        body.getBodyTransform(state).compose(cable.getObstacleXformSurfaceToBody(ix));
+    const int n = integratorSteps;
 
     Real l  = cable.getCurveSegmentLength(state, ix);
     Real dl = l / static_cast<Real>(n);
@@ -468,8 +484,8 @@ bool RunCurveSegmentShooterTest(
 
     const ContactGeometry& g = cable.getObstacleContactGeometry(ix);
     const Mobod& body        = cable.getObstacleMobilizedBody(ix);
-    const Transform X_GS =
-        body.getBodyTransform(state).compose(cable.getObstacleXformSurfaceToBody(ix));
+    const Transform X_GS     = body.getBodyTransform(state).compose(
+        cable.getObstacleXformSurfaceToBody(ix));
 
     bool success = true;
     success &= AssertRecomputedPosition(
@@ -504,8 +520,8 @@ bool RunCurveSegmentShooterTest(
     }
 
     std::vector<Transform> frames;
-    std::function<void(Vec3 point_G, UnitVec3 tangent_G)> Logger =
-        [&](Vec3 point_G, UnitVec3 tangent_G) {
+    std::function<void(Real length, Vec3 point_G, UnitVec3 tangent_G)> Logger =
+        [&](Real length, Vec3 point_G, UnitVec3 tangent_G) {
             Transform frame;
             frame.updP() = point_G;
             frame.updR().setRotationFromTwoAxes(
@@ -516,7 +532,11 @@ bool RunCurveSegmentShooterTest(
             frames.push_back(frame);
         };
 
-    cable.calcCurveSegmentPathPointsAndTangents(state, ix, integratorSteps + 1, Logger);
+    cable.calcCurveSegmentPathPointsAndTangents(
+        state,
+        ix,
+        integratorSteps + 1,
+        Logger);
 
     if (frames.size() != testSamples.size()) {
         std::cout << frames.size() << "\n";
