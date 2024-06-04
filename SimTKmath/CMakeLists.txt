@@ -23,10 +23,6 @@
 
 project(SimTKmath VERSION ${Simbody_VERSION})
 
-# SimTKmath depends on PlatformFiles and SimTKcommon only.
-include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
-                ${SimTKCOMMON_INCLUDE_DIRECTORIES})
-
 # code is in "./src" and in each of these subdirectories/src
 set(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers Geometry)
 
@@ -35,39 +31,10 @@ set(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers Geometry)
 # into the binaries. This also determines the versioned library names
 # in which case all dependencies must use the same version.
 
-# This is the suffix if we're building and depending on versioned libraries.
-set(VN "_${SimTKmath_VERSION}")
-
 set(SIMMATH_COPYRIGHT_YEARS "2005-10")
 
 # underbar separated list of dotted authors, no spaces or commas
 set(SIMMATH_AUTHORS         "Jack.Middleton_Michael.Sherman")
-
-add_compile_definitions(
-    SimTK_SIMMATH_LIBRARY_NAME=${SimTKMATH_LIBRARY_NAME}
-    SimTK_SIMMATH_MAJOR_VERSION=${SimTKmath_VERSION_MAJOR}
-    SimTK_SIMMATH_MINOR_VERSION=${SimTKmath_VERSION_MINOR}
-    SimTK_SIMMATH_PATCH_VERSION=${SimTKmath_VERSION_PATCH}
-    SimTK_SIMMATH_COPYRIGHT_YEARS="${SIMMATH_COPYRIGHT_YEARS}"
-    SimTK_SIMMATH_AUTHORS="${SIMMATH_AUTHORS}")
-
-# -DSimTK_SIMMATH_TYPE has to be defined in the target subdirectories.
-# -Dsimmath_EXPORTS defined automatically when Windows DLL build is being done.
-
-set(SHARED_TARGET ${SimTKMATH_LIBRARY_NAME})
-set(STATIC_TARGET ${SimTKMATH_LIBRARY_NAME}_static)
-set(SHARED_TARGET_VN ${SimTKMATH_LIBRARY_NAME}${VN})
-set(STATIC_TARGET_VN ${SimTKMATH_LIBRARY_NAME}${VN}_static)
-
-## Test against the unversioned libraries if they are being built;
-## otherwise against the versioned libraries.
-if(BUILD_UNVERSIONED_LIBRARIES)
-    set(TEST_SHARED_TARGET ${SHARED_TARGET})
-    set(TEST_STATIC_TARGET ${STATIC_TARGET})
-else()
-    set(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
-    set(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
-endif()
 
 # These are all the places to search for header files which are
 # to be part of the API.
@@ -81,18 +48,8 @@ foreach(subdir . ${SIMMATH_SOURCE_SUBDIRS})
 
     # Referencing headers must always be done relative to this level.
     list(APPEND SimTKMATH_INCLUDE_DIRS
-     ${PROJECT_SOURCE_DIR}/${subdir}/include)
+        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${subdir}/include>")
 endforeach()
-
-# Include the Simmath API include directories now so that Simmath code
-# can use them.
-include_directories(${SimTKMATH_INCLUDE_DIRS})
-
-# And pass API include directories up to the parent so subsequent libraries
-# can find the headers too.
-set(SimTKMATH_INCLUDE_DIRECTORIES ${SimTKMATH_INCLUDE_DIRS}
-    PARENT_SCOPE)
-
 
 # We'll need both *relative* path names, starting with
 # their API_INCLUDE_DIRS, and absolute pathnames.
@@ -138,9 +95,6 @@ file(GLOB incl_files ./src/*.h)
 list(APPEND SOURCE_FILES         ${src_files})
 list(APPEND SOURCE_INCLUDE_FILES ${incl_files})
 
-# Add low-level source include directories if any.
-include_directories(${SOURCE_INCLUDE_DIRS})
-
 #
 # Installation
 #
@@ -159,14 +113,83 @@ install(FILES ${INTERNAL_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/sim
 file(GLOB SIMMATH_DOCS doc/*.pdf doc/*.txt doc/*.md)
 install(FILES ${SIMMATH_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
-# These are at the end because we want them processed after
-# all the various variables have been set above.
+#
+# Set up file groups for better browsing in Visual Studio.
+#
 
-if(BUILD_STATIC_LIBRARIES)
-    add_subdirectory( staticTarget )
+# Override Api headers to put them in the Api group.
+source_group("Header Files\\Api" FILES ${API_ABS_INCLUDE_FILES})
+
+# Now put things in their specified groups.
+if(SOURCE_GROUPS)
+    list(LENGTH SOURCE_GROUPS NGROUPS)
+    math(EXPR lastgrpnum ${NGROUPS}-1)
+    foreach( grpnum RANGE 0 ${lastgrpnum} )
+        list(GET SOURCE_GROUPS ${grpnum} grp)
+        list(GET SOURCE_GROUP_FILES ${grpnum} grpfile)
+        source_group("${grp}" FILES "${grpfile}")
+    endforeach()
 endif()
-if(BUILD_DYNAMIC_LIBRARIES)
-    add_subdirectory( sharedTarget )
+
+# These are defaults for files that don't otherwise get mentioned.
+source_group("Source Files\\Others" FILES ${SOURCE_FILES})
+source_group("Header Files\\Others" FILES ${SOURCE_INCLUDE_FILES})
+
+# set locally-scoped BUILD_SHARED_LIBS to globally cache'd SIMBODY_BUILD_SHARED_LIBS which defaults to
+# BUILD_SHARED_LIBS if defined, or ON otherwise
+set(BUILD_SHARED_LIBS ${SIMBODY_BUILD_SHARED_LIBS})
+
+add_library(SimTKmath
+    ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES}
+    ${API_ABS_INCLUDE_FILES})
+
+# SimTKmath depends on PlatformFiles and SimTKcommon only.
+target_link_libraries(SimTKmath PUBLIC
+    SimTKcommon ${MATH_LIBS_TO_USE}) # TODO: Do we really need to link to MATH_LIBS_TO_USE?
+
+target_include_directories(SimTKmath
+    PUBLIC
+        "$<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>"
+        ${SimTKMATH_INCLUDE_DIRS}
+    PRIVATE
+        ${PLATFORM_INCLUDE_DIRECTORIES}
+        ${SOURCE_INCLUDE_DIRS})
+
+set_target_properties(SimTKmath PROPERTIES
+    PROJECT_LABEL "Code - SimTKmath"
+    SOVERSION "${SimTKmath_VERSION_MAJOR}.${SimTKmath_VERSION_MINOR}"
+    OUTPUT_NAME ${SimTKMATH_LIBRARY_NAME}
+    ARCHIVE_OUTPUT_NAME ${SimTKMATH_LIBRARY_NAME}${SIMBODY_STATIC_LIBRARIES_POSTFIX})
+
+set(shared_lib "$<BOOL:${BUILD_SHARED_LIBS}>")
+set(static_lib "$<NOT:${shared_lib}>")
+target_compile_definitions(SimTKmath 
+    PUBLIC
+        "$<${static_lib}:SimTK_USE_STATIC_LIBRARIES>"
+    PRIVATE
+        "$<${shared_lib}:SimTK_SIMMATH_BUILDING_SHARED_LIBRARY>"
+        "$<${static_lib}:SimTK_SIMMATH_BUILDING_STATIC_LIBRARY>"
+        SimTK_SIMMATH_LIBRARY_NAME=${SimTKMATH_LIBRARY_NAME}
+        SimTK_SIMMATH_MAJOR_VERSION=${SimTKmath_VERSION_MAJOR}
+        SimTK_SIMMATH_MINOR_VERSION=${SimTKmath_VERSION_MINOR}
+        SimTK_SIMMATH_PATCH_VERSION=${SimTKmath_VERSION_PATCH}
+        SimTK_SIMMATH_COPYRIGHT_YEARS="${SIMMATH_COPYRIGHT_YEARS}"
+        SimTK_SIMMATH_AUTHORS="${SIMMATH_AUTHORS}")
+
+# install library; on Windows both .lib and .dll go in the lib directory.
+install(TARGETS SimTKmath EXPORT SimbodyTargets
+    PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ GROUP_WRITE GROUP_EXECUTE
+        WORLD_READ WORLD_EXECUTE
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ
+        DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+if(NOT SIMBODY_BUILD_SHARED_LIBS AND SIMBODY_COVERAGE)
+    add_coverage(SimTKmath)
 endif()
 
 if( BUILD_TESTING )

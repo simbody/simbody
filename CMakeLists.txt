@@ -10,25 +10,73 @@
 #    (5) Build examples
 #
 #-------------------------------------------------------------------------------
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.17) # Needed for DEPRECATION message level
 cmake_policy(SET CMP0048 NEW)
 
 project(Simbody VERSION 3.8.0)
 
+# TODO: Remove when cmake_minimum_required is bumped above 3.21
+if(CMAKE_VERSION VERSION_LESS 3.21.0)
+  if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(Simbody_IS_TOP_LEVEL ON)
+  else()
+    set(Simbody_IS_TOP_LEVEL OFF)
+  endif()
+endif()
+
 ## List of Simbody build configuration options:
 #-------------------------------------------------------------------------------
+
+### Major build options:
+#--------------------------------
+# SIMBODY_BUILD_SHARED_LIBS
+# BUILD_VISUALIZER
+# BUILD_EXAMPLES
+# BUILD_TESTING
+# INSTALL_DOCS
+
+# CMake doesn't initialize BUILD_SHARED_LIBS and add_library calls without a library type
+# default to STATIC if BUILD_SHARED_LIBS isn't defined. BUT, we don't want to pollute/affect
+# the global cache, so we define a project-prefixed variable (which defaults to the cache'd
+# BUILD_SHARED_LIBS if defined), and then set BUILD_SHARED_LIBS before each target definition.
+set(shared_lib_default ON)
+if(DEFINED BUILD_SHARED_LIBS)
+    set(shared_lib_default ${BUILD_SHARED_LIBS})
+endif()
+option(SIMBODY_BUILD_SHARED_LIBS
+    "Build dynamic (shared) Simbody libraries Defaults to ON or the value of BUILD_SHARED_LIBS if defined."
+    ${shared_lib_default})
+# TODO: Replace above with the following when cmake_minimum_required is bumped above 3.22
+# (use of DEFINED condition in cmake_dependent_option only supported after 3.22):
+# include(CMakeDependentOption)
+# cmake_dependent_option(SIMBODY_BUILD_SHARED_LIBS
+#     "Build dynamic (shared) Simbody libraries Defaults to ON or value of BUILD_SHARED_LIBS if defined."
+#     ${BUILD_SHARED_LIBS} "DEFINED BUILD_SHARED_LIBS" ON)
+
+# TODO: Remove after this version cycle?
 option(BUILD_DYNAMIC_LIBRARIES
-    "Build dynamic (shared) Simbody libraries."
-    ON)
-
-option(BUILD_STATIC_LIBRARIES
-    "Build static Simbody libraries."
+    "[DEPRECATED] Build dynamic (shared) Simbody libraries."
     OFF)
+mark_as_advanced(BUILD_DYNAMIC_LIBRARIES)
+if(BUILD_DYNAMIC_LIBRARIES)
+    message(DEPRECATION "The BUILD_DYNAMIC_LIBRARIES build option is deprecated and will be
+        ignored in future versions of Simbody. Please set SIMBODY_BUILD_SHARED_LIBS=ON instead.")
+    set(SIMBODY_BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+endif()
 
-if(NOT BUILD_DYNAMIC_LIBRARIES AND NOT BUILD_STATIC_LIBRARIES)
-    message(FATAL_ERROR
-        "BUILD_DYNAMIC_LIBRARIES and BUILD_STATIC_LIBRARIES "
-        "are both set to FALSE. No compilation is possible!")
+# TODO: Remove after this version cycle?
+option(BUILD_STATIC_LIBRARIES
+    "[DEPRECATED] Build static Simbody libraries."
+    OFF)
+mark_as_advanced(BUILD_STATIC_LIBRARIES)
+if(BUILD_STATIC_LIBRARIES)
+    message(DEPRECATION "The BUILD_STATIC_LIBRARIES build option is deprecated and will be
+        ignored in future versions of Simbody. Please set SIMBODY_BUILD_SHARED_LIBS=OFF instead.")
+    set(SIMBODY_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+endif()
+if(BUILD_DYNAMIC_LIBRARIES AND BUILD_STATIC_LIBRARIES)
+    message(FATAL_ERROR "Simultaneous static and shared library builds are no longer supported.
+        Please see the README for instructions to produce similar builds.")
 endif()
 
 option(BUILD_VISUALIZER
@@ -39,10 +87,6 @@ option(BUILD_EXAMPLES
     "Build and install Simbody examples."
     ON)
 
-option(INSTALL_DOCS
-"Build and install Simbody documentation."
-ON)
-
 # Caution: this variable is automatically created by the CMake
 # enable_testing() command, but we'll take it over here for
 # our own purposes too.
@@ -52,57 +96,49 @@ set(BUILD_TESTING ON CACHE BOOL
     or both of BUILD_TESTS_AND_EXAMPLES_STATIC and
     BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
 
+option(INSTALL_DOCS
+    "Build and install Simbody documentation."
+    ON)
+
+### Library name related options:
+#--------------------------------
+# BUILD_USING_NAMESPACE
+# BUILD_VERSIONED_LIBRARIES
+# SIMBODY_STATIC_LIBRARIES_POSTFIX
+
 set(BUILD_USING_NAMESPACE "" CACHE STRING
-    "Add a prefix to library filenames. (e.g. `BUILD_USING_NAMESPACE=ns_` would \
-produce libraries like 'libns_SimTKmath.so' on Unix).")
+    "Add a prefix to library filenames. (e.g. `BUILD_USING_NAMESPACE=ns_` would produce
+    libraries like 'libns_SimTKmath.so' on Unix).")
 mark_as_advanced(BUILD_USING_NAMESPACE)
 
-option(BUILD_UNVERSIONED_LIBRARIES
-    "Build a set of Simbody libraries without a version suffix (e.g. library names like 'libSimTKMath.so')"
-    ON)
-mark_as_advanced(BUILD_UNVERSIONED_LIBRARIES)
-
 option(BUILD_VERSIONED_LIBRARIES
-    "Build a set of Simbody libraries with a version suffix (e.g. library names like 'libSimTKMath_3.8.so')"
+    "Add a version suffix to Simbody libraries (e.g. library names like 'libSimTKMath_3.8.so')"
     OFF)
 mark_as_advanced(BUILD_VERSIONED_LIBRARIES)
 
-include(CMakeDependentOption)
-
-cmake_dependent_option(BUILD_TESTS_AND_EXAMPLES_STATIC
-    "Statically link tests and examples against static Simbody libraries.\
-Static linking increases the build time and uses more storage than dynamic \
-linking. However, statically-linked tests may be easier to debug on Windows \
-than dynamically-linked tests."
-    ON "BUILD_STATIC_LIBRARIES" OFF
-)
-mark_as_advanced(BUILD_TESTS_AND_EXAMPLES_STATIC)
-
-cmake_dependent_option(BUILD_TESTS_AND_EXAMPLES_SHARED
-    "Dynamically link tests and examples against shared Simbody libraries.\
-Dynamic linking has faster build times and uses less storage than static \
-linking."
-    ON "BUILD_DYNAMIC_LIBRARIES" OFF
-)
-mark_as_advanced(BUILD_TESTS_AND_EXAMPLES_SHARED)
-
-if(BUILD_TESTING AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
-        BUILD_TESTS_AND_EXAMPLES_SHARED))
-    message(SEND_ERROR
-        "Requested build configuration is invalid! BUILD_TESTING is set to ON, "
-        "but no tests will be built because dynamic and statically-linked tests "
-        "are disabled. (BUILD_TESTS_AND_EXAMPLES_SHARED and "
-        "BUILD_TESTS_AND_EXAMPLES_STATIC have been manually set to OFF)")
+# TODO: Remove after this version cycle?
+option(BUILD_UNVERSIONED_LIBRARIES
+    "[DEPRECATED] Opposite of BUILD_VERSIONED_LIBRARIES. Will be ignored in future versions of Simbody"
+    OFF)
+mark_as_advanced(BUILD_UNVERSIONED_LIBRARIES)
+if(BUILD_UNVERSIONED_LIBRARIES)
+    message(DEPRECATION "The BUILD_UNVERSIONED_LIBRARIES build option is deprecated and will be
+    ignored in future versions of Simbody. Please set BUILD_VERSIONED_LIBRARIES=OFF instead.")
+    set(BUILD_VERSIONED_LIBRARIES OFF CACHE FORCE)
 endif()
 
-if(BUILD_EXAMPLES AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
-        BUILD_TESTS_AND_EXAMPLES_SHARED))
-    message(SEND_ERROR
-        "Requested build configuration is invalid! BUILD_EXAMPLES is set to ON, "
-        "but no examples will be built because dynamic and statically-linked examples "
-        "are disabled. (BUILD_TESTS_AND_EXAMPLES_SHARED and "
-        "BUILD_TESTS_AND_EXAMPLES_STATIC have been manually set to OFF)")
+if(BUILD_VERSIONED_LIBRARIES AND BUILD_UNVERSIONED_LIBRARIES)
+    message(FATAL_ERROR "Simultaneous versioned and unversioned library builds are no longer supported.
+        Please see the README for instructions to produce similar builds.")
 endif()
+
+set(SIMBODY_STATIC_LIBRARIES_POSTFIX "" CACHE STRING
+    "Add a postfix to static Simbody libraries (e.g. library names like 'libSimTKMath_static.dll').
+    Typically only useful to distinguish static/dynamic libaries on DLL platforms")
+mark_as_advanced(SIMBODY_STATIC_LIBRARIES_POSTFIX)
+
+### Advanced dev options:
+#------------------------
 
 option(SIMBODY_COVERAGE
     "Generate code coverage files to assess test coverage (ignored for MSVC compilers)"
@@ -124,6 +160,23 @@ separated by semicolons (full paths or paths that are on the (DY)LD_LIBRARY_PATH
 (UNIX) or PATH (Windows)). (e.g. BUILD_USING_OTHER_LAPACK='mkl_intel_c_dll;\
 mkl_sequential_dll;mkl_core_dll' to use Intel MKL on Windows).")
 mark_as_advanced(BUILD_USING_OTHER_LAPACK)
+
+### Deprecated and ignored build options:
+#----------------------------------------
+
+if(DEFINED BUILD_TESTS_AND_EXAMPLES_STATIC)
+    message(DEPRECATION "The BUILD_TESTS_AND_EXAMPLES_STATIC is deprecated. Only one set
+        of Simbody libraries are built now (shared or static is set by SIMBODY_BUILD_SHARED_LIBS),
+        and examples and tests are linked against these libraries.")
+endif()
+
+if(DEFINED BUILD_TESTS_AND_EXAMPLES_SHARED)
+    message(DEPRECATION "The BUILD_TESTS_AND_EXAMPLES_SHARED is deprecated. Only one set
+        of Simbody libraries are built now (shared or static is set by SIMBODY_BUILD_SHARED_LIBS),
+        and examples and tests are linked against these libraries.")
+endif()
+
+#-------------------------------------------------------------------------------
 
 # Check compiler version
 if(MSVC)
@@ -152,6 +205,12 @@ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
                             "Simbody requires at least version : "
                             "${SIMBODY_REQUIRED_CLANG_VERSION}")
     endif()
+endif()
+
+if((${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
+   ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang") AND SIMBODY_COVERAGE)
+    set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+    find_package(codecov)
 endif()
 
 set(CMAKE_C_STANDARD 11)
@@ -227,41 +286,22 @@ set(NS)
 if(BUILD_USING_NAMESPACE)
     set(NS "${BUILD_USING_NAMESPACE}_")
 endif()
-# This is the suffix if we're building and depending on versioned libraries.
-set(VN "_${Simbody_VERSION}")
 
-set(SimTKSIMBODY_LIBRARY_NAME ${NS}SimTKsimbody CACHE INTERNAL
+set(VN)
+if(BUILD_VERSIONED_LIBRARIES)
+    # This is the suffix if we're building and depending on versioned libraries.
+    set(VN "_${Simbody_VERSION}")
+endif()
+
+set(SimTKSIMBODY_LIBRARY_NAME ${NS}SimTKsimbody${VN} CACHE INTERNAL
     "Base name of the SimTKsimbody library"
     )
-set(SimTKMATH_LIBRARY_NAME ${NS}SimTKmath CACHE INTERNAL
+set(SimTKMATH_LIBRARY_NAME ${NS}SimTKmath${VN} CACHE INTERNAL
     "Base name of the SimTKmath library"
     )
-set(SimTKCOMMON_LIBRARY_NAME ${NS}SimTKcommon CACHE INTERNAL
+set(SimTKCOMMON_LIBRARY_NAME ${NS}SimTKcommon${VN} CACHE INTERNAL
     "Base name of the SimTKcommon library"
     )
-
-
-set(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME})
-set(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static)
-
-set(SimTKCOMMON_LIBRARY_NAME_VN ${NS}SimTKcommon${VN})
-set(SimTKCOMMON_SHARED_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN})
-set(SimTKCOMMON_STATIC_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN}_static)
-
-set(SimTKMATH_SHARED_LIBRARY ${SimTKMATH_LIBRARY_NAME})
-set(SimTKMATH_STATIC_LIBRARY ${SimTKMATH_LIBRARY_NAME}_static)
-
-set(SimTKMATH_LIBRARY_NAME_VN ${NS}SimTKmath${VN})
-set(SimTKMATH_SHARED_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN})
-set(SimTKMATH_STATIC_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN}_static)
-
-set(SimTKSIMBODY_SHARED_LIBRARY ${SimTKSIMBODY_LIBRARY_NAME})
-set(SimTKSIMBODY_STATIC_LIBRARY ${SimTKSIMBODY_LIBRARY_NAME}_static)
-
-set(SimTKSIMBODY_LIBRARY_NAME_VN ${NS}SimTKsimbody${VN})
-set(SimTKSIMBODY_SHARED_LIBRARY_VN ${SimTKSIMBODY_LIBRARY_NAME_VN})
-set(SimTKSIMBODY_STATIC_LIBRARY_VN ${SimTKSIMBODY_LIBRARY_NAME_VN}_static)
-
 
 # In addition to the platform name we need to know the Application Binary
 # Interface (ABI) we're building for. Currently that is either x86, meaning
@@ -278,31 +318,6 @@ if(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
         "Debug, RelWithDebInfo (recommended), or Release build"
         )
-endif()
-
-
-## Choose the maximum level of x86 instruction set that the compiler is
-## allowed to use.
-## Was using sse2 but changed to let the compilers choose. Most will
-## probably use sse2 or later by default.
-## On 64 bit MSVC 2013, the default is sse2 and the argument
-## isn't recognized so don't specify it.
-if(CMAKE_CL_64)
-    set(default_build_inst_set)
-else()
-    set(default_build_inst_set)
-endif()
-
-## This can be set to a different value by the person running CMake.
-set(BUILD_INST_SET ""
-    CACHE STRING
-    "CPU instruction level compiler is permitted to use (default: let compiler decide).")
-mark_as_advanced( BUILD_INST_SET )
-
-if(BUILD_INST_SET)
-    set(inst_set_to_use ${BUILD_INST_SET})
-else()
-    set(inst_set_to_use ${default_build_inst_set})
 endif()
 
 # RPATH
@@ -349,11 +364,34 @@ if(APPLE)
 endif()
 
 
+## Choose the maximum level of x86 instruction set that the compiler is
+## allowed to use.
+## Was using sse2 but changed to let the compilers choose. Most will
+## probably use sse2 or later by default.
+## On 64 bit MSVC 2013, the default is sse2 and the argument
+## isn't recognized so don't specify it.
+if(CMAKE_CL_64)
+    set(default_build_inst_set)
+else()
+    set(default_build_inst_set)
+endif()
+
+## This can be set to a different value by the person running CMake.
+set(BUILD_INST_SET ""
+    CACHE STRING
+    "CPU instruction level compiler is permitted to use (default: let compiler decide).")
+mark_as_advanced( BUILD_INST_SET )
+
+if(BUILD_INST_SET)
+    set(inst_set_to_use ${BUILD_INST_SET})
+else()
+    set(inst_set_to_use ${default_build_inst_set})
+endif()
+
 ## When building in any of the Release modes, tell gcc/clang to use
 ## not-quite most agressive optimization.  Here we
 ## are specifying *all* of the Release flags, overriding CMake's defaults.
 ## Watch out for optimizer bugs in particular gcc versions!
-
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
    ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 
@@ -416,8 +454,6 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
         find_package(codecov)
     endif()
 elseif(MSVC)
-## Caution: can't use CMAKE_CXX_COMPILER_ID MATCHES MSVC here because
-## "MSVC" is a predefined CMAKE variable and will get expanded to 1 or 0
 
     ## When building in any of the Release modes, tell VC++ cl compiler to use
     ## intrinsics (i.e. sqrt instruction rather than sqrt subroutine) with
@@ -625,11 +661,7 @@ add_custom_target(uninstall
 
 # Make the cmake config files
 set(PKG_NAME ${PROJECT_NAME})
-set(PKG_LIBRARIES
-    ${SimTKSIMBODY_LIBRARY_NAME}
-    ${SimTKMATH_LIBRARY_NAME}
-    ${SimTKCOMMON_LIBRARY_NAME}
-    )
+set(PKG_LIBRARIES SimTKsimbody SimTKmath SimTKcommon)
 
 if(WIN32)
     set(SIMBODY_CMAKE_DIR cmake)
@@ -676,12 +708,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
 
 # Make the pkgconfig file: select the proper flags depending on the platform
 if(WIN32)
-    if(${PLATFORM_ABI} MATCHES "x64")
-        # win 64 bits
-        set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas")
-    else()
-        set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas")
-    endif()
+    set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas")
 elseif(APPLE)
     set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -ldl")
 else()

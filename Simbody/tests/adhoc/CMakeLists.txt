@@ -12,42 +12,23 @@
 # executables will be labeled "Adhoc - TheTestName" if a file
 # TheTestName.cpp is found in this directory.
 #
-# We check the BUILD_TESTS_AND_EXAMPLES_{SHARED,STATIC} variables to determine
-# whether to build dynamically linked, statically linked, or both
-# versions of the executable.
+# Tests are statically or dynamically linked to the library targets as-built,
+# depending on BUILD_SHARED_LIBS
 
 
 file(GLOB ADHOC_TESTS "*.cpp")
 foreach(TEST_PROG ${ADHOC_TESTS})
     get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)
 
-    if(BUILD_TESTS_AND_EXAMPLES_SHARED)
-        # Link with shared library
-        add_executable(${TEST_ROOT} ${TEST_PROG})
+    add_executable(${TEST_ROOT} ${TEST_PROG})
     if(GUI_NAME)
         add_dependencies(${TEST_ROOT} ${GUI_NAME})
     endif()
-        set_target_properties(${TEST_ROOT}
-        PROPERTIES
-          PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
-        target_link_libraries(${TEST_ROOT} 
-                      ${TEST_SHARED_TARGET})
-    endif()
+    set_target_properties(${TEST_ROOT} PROPERTIES
+        PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
 
-    if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
-        # Link with static library
-        set(TEST_STATIC ${TEST_ROOT}Static)
-        add_executable(${TEST_STATIC} ${TEST_PROG})
-    if(GUI_NAME)
-        add_dependencies(${TEST_STATIC} ${GUI_NAME})
-    endif()
-        set_target_properties(${TEST_STATIC}
-        PROPERTIES
-        COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
-        PROJECT_LABEL "Test_Adhoc - ${TEST_STATIC}")
-        target_link_libraries(${TEST_STATIC}
-                      ${TEST_STATIC_TARGET})
-    endif()
+    # Link with library (shared or static determined by BUILD_SHARED_LIBS)
+    target_link_libraries(${TEST_ROOT} SimTKsimbody)
 
 endforeach()
 
