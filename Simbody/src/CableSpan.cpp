@@ -1700,10 +1700,10 @@ void shootNewGeodesic(
         point_S,
         tangent_S,
         length,
-        cache.integratorInitialStepSize,
         tols.intergatorAccuracy,
         tols.constraintProjectionTolerance,
         tols.constraintProjectionMaxIterations,
+        cache.integratorInitialStepSize,
         cache.jacobi_Q,
         cache.jacobiDot_Q,
         logger);
