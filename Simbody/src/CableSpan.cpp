@@ -1823,9 +1823,9 @@ void calcCurveTouchdownIfNeeded(
         curve.getContactGeometry().calcNearestPointOnLineImplicitly(
             prevPoint_S,
             nextPoint_S,
-            pointOnLineNearSurface_S,
             tols.constraintProjectionMaxIter,
-            tols.constraintProjectionTolerance);
+            tols.constraintProjectionTolerance,
+            pointOnLineNearSurface_S);
 
     // In case of touchdown, shoot a zero-length geodesic at the touchdown
     // point.

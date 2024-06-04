@@ -773,24 +773,24 @@ trackSeparationFromLine(const Vec3& pointOnLine,
 bool ContactGeometry::calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,
-    Vec3& nearestPointOnLine,
     size_t maxIter,
-    Real tolerance) const
+    Real tolerance,
+    Vec3& nearestPointOnLine) const
 {
     return getImpl().calcNearestPointOnLineImplicitly(
             pointA,
             pointB,
-            nearestPointOnLine,
             maxIter,
-            tolerance);
+            tolerance,
+            nearestPointOnLine);
 }
 
 bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,
-    Vec3& nearestPointOnLine,
     size_t maxIter,
-    Real tolerance) const
+    Real tolerance,
+    Vec3& nearestPointOnLine) const
 {
     // TODO the sign of the constraint is such that positive is inside the surface.
 
