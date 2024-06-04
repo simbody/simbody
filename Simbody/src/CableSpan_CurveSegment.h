@@ -367,6 +367,11 @@ public:
     // PosEntry cache.
     void liftCurveFromSurface(const State& s, Vec3 trackingPoint_S) const;
 
+    void storeCurrentPath(State& state) const
+    {
+        updPrevInstanceEntry(state) = getInstanceEntry(state);
+    }
+
 //------------------------------------------------------------------------------
 
 private:

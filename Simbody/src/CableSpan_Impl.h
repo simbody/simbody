@@ -53,7 +53,8 @@ public:
         Real cableLength = NaN;
 
         // Number of iterations required by solver to compute the path.
-        size_t loopIter = 0;
+        Real pathError = NaN;
+        int loopIter = -1;
     };
 
     // Velocity level cache entry.

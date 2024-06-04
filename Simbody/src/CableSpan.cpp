@@ -479,6 +479,24 @@ Real CableSpan::calcCablePower(const State& state, Real tension) const
     return getImpl().calcCablePower(state, tension);
 }
 
+int CableSpan::getNumSolverIter(const State& state) const
+{
+    return getImpl().getPosInfo(state).loopIter;
+}
+
+Real CableSpan::getMaxPathError(const State& state) const
+{
+    return getImpl().getPosInfo(state).pathError;
+}
+
+void CableSpan::storeCurrentPath(State& state) const
+{
+    for (ObstacleIndex ix(0); ix < getImpl().getNumCurveSegments(); ++ix)
+    {
+        getImpl().getCurveSegment(ix).storeCurrentPath(state);
+    }
+}
+
 //------------------------------------------------------------------------------
 //                              CABLE SPAN IMPL
 //------------------------------------------------------------------------------
@@ -710,8 +728,8 @@ void calcUnitForceExertedByCurve(
     const Vec3 r_Q = ppe.X_GQ.p() - x_GB;
 
     // Tangent directions at contact points in ground.
-    const UnitVec3& t_P = ppe.X_GP.R().getAxisUnitVec(TangentAxis);
-    const UnitVec3& t_Q = ppe.X_GQ.R().getAxisUnitVec(TangentAxis);
+    const UnitVec3& t_P = getTangent(ppe.X_GP);
+    const UnitVec3& t_Q = getTangent(ppe.X_GQ);
 
     unitForce_G[0] = r_Q % t_Q - r_P % t_P;
     unitForce_G[1] = t_Q - t_P;
@@ -1483,11 +1501,11 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
         // line segments with the curve segment's tangent vectors at the
         // contact points.
         calcPathErrorVector<2>(s, data.lineSegments, axes, data.pathError);
-        const Real maxPathError = data.pathError.normInf();
+        ppe.pathError = data.pathError.normInf();
 
         // Stop iterating if max path error is small, or max iterations has been
         // reached.
-        if (maxPathError < m_PathAccuracy || ppe.loopIter >= m_PathMaxIter) {
+        if (ppe.pathError < m_PathAccuracy || ppe.loopIter >= m_PathMaxIter) {
             // Update cache entry and stop solver.
             ppe.cableLength =
                 calcTotalCableLength(*this, s, data.lineSegments);
@@ -1506,7 +1524,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
 
         // Compute the geodesic corrections for each curve segment: This gives
         // us a correction vector in a direction that lowers the path error.
-        calcPathCorrections(data, maxPathError);
+        calcPathCorrections(data, ppe.pathError);
 
         // Compute the maximum allowed step size that we take along the
         // correction vector.

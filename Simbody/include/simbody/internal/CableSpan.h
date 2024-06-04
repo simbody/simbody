@@ -280,6 +280,20 @@ public:
         Real lengthInterval,
         std::function<void(Real length, Vec3 point)> sink) const;
 
+    /** Number of solver iterations required to compute the cable's path.
+    * State must be realized to Stage::Position. */
+    int getNumSolverIter(const State& state) const;
+
+    /** Maximum path error of the current cable's path.
+    * TODO explain path error.
+    * State must be realized to Stage::Position. */
+    Real getMaxPathError(const State& state) const;
+
+    /** TODO Remove this?
+    * Overwrite the path used as a warmstart for the solver. This path is
+    * normally auto-updated after completing an integrator step. */
+    void storeCurrentPath(State& state) const;
+
     class Impl;
 
 private:
