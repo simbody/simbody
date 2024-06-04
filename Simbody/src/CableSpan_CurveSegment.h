@@ -148,6 +148,10 @@ public:
     // ground frame.
     struct PosEntry final
     {
+        const Vec3& getFirstContactPoint() const {return X_GP.p(); }
+
+        const Vec3& getFinalContactPoint() const {return X_GQ.p(); }
+
         // Position and orientation of contact geometry w.r.t. ground.
         Transform X_GS{};
 

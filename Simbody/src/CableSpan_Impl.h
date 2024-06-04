@@ -352,19 +352,6 @@ private:
         std::array<CoordinateAxis, N> axes,
         Matrix& J) const;
 
-    // Compute the straight line segments of this cable.
-    Real calcLineSegments(
-        const State& s,
-        Vec3 p_O,
-        Vec3 p_I,
-        std::vector<LineSegment>& lines) const;
-
-    // Call provided function for each curveSegment that is in contact with
-    // their respective obstacle's surface.
-    void callForEachActiveCurveSegment(
-        const State& s,
-        std::function<void(const CurveSegment&)> f) const;
-
 //------------------------------------------------------------------------------
 
     // Reference back to the subsystem.
