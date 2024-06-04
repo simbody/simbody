@@ -30,6 +30,7 @@
 #include "simmath/internal/ContactGeometry.h"
 #include <cassert>
 #include <iostream>
+#include <memory>
 #include <ostream>
 #include <stdexcept>
 
@@ -647,9 +648,17 @@ int main()
             ContactGeometry::Ellipsoid(Vec3{0.5, 0.7, 1.2} * Rad),
             {0., 1., 0.});
 
-        Visualizer viz(system);
-		viz.setShowFrameNumber(true);
-		system.addEventReporter(new Visualizer::Reporter(viz, 0.1 * 1. / 30));
+        const bool show = false;
+
+        std::unique_ptr<Visualizer> viz = show
+            ? std::unique_ptr<Visualizer>(new Visualizer(system))
+            : nullptr;
+
+        if (viz) {
+            viz->setShowFrameNumber(true);
+            system.addEventReporter(
+                    new Visualizer::Reporter(*viz, 0.1 * 1. / 30));
+        }
 
         // Initialize the system and state.
         system.realizeTopology();
@@ -678,7 +687,9 @@ int main()
 
         std::cout << "cable length = " << cable.getLength(s) << "\n";
 
-		viz.report(s);
+        if (viz) {
+            viz->report(s);
+        }
 
         std::ostringstream oss;
         bool testPassed = true;
