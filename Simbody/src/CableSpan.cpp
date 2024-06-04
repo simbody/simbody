@@ -1763,7 +1763,7 @@ void calcInitCurveIfNeeded(
         s,
         curve.getContactPointHint(),
         nextPoint_S - prevPoint_S,
-        Eps,
+        0.,
         NaN,
         tols);
 }
