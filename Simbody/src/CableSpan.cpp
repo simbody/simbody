@@ -396,14 +396,14 @@ void CableSpan::setSurfaceConstraintTolerance(Real accuracy)
     updImpl().setSurfaceConstraintTolerance(accuracy);
 }
 
-int CableSpan::getSurfaceProjectionMaxIter() const
+int CableSpan::getSurfaceProjectionMaxIterations() const
 {
     return getImpl().getSurfaceProjectionMaxIter();
 }
 
-void CableSpan::setSurfaceProjectionMaxIter(int maxIter)
+void CableSpan::setSurfaceProjectionMaxIterations(int maxIterations)
 {
-    updImpl().setSurfaceProjectionMaxIter(maxIter);
+    updImpl().setSurfaceProjectionMaxIter(maxIterations);
 }
 
 Real CableSpan::getIntegratorAccuracy() const
@@ -418,12 +418,12 @@ void CableSpan::setIntegratorAccuracy(Real accuracy)
 
 int CableSpan::getSolverMaxIter() const
 {
-    return getImpl().getPathMaxIter();
+    return getImpl().getSolverMaxIterations();
 }
 
-void CableSpan::setSolverMaxIter(int maxIter)
+void CableSpan::setSolverMaxIter(int maxIterations)
 {
-    updImpl().setPathMaxIter(maxIter);
+    updImpl().setSolverMaxIterations(maxIterations);
 }
 
 Real CableSpan::getPathErrorAccuracy() const
@@ -1512,7 +1512,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
 
         // Stop iterating if max path error is small, or max iterations has been
         // reached.
-        if (ppe.pathError < m_PathAccuracy || ppe.loopIter >= m_PathMaxIter) {
+        if (ppe.pathError < m_PathAccuracy || ppe.loopIter >= m_SolverMaxIterations) {
             // Update cache entry and stop solver.
             ppe.cableLength =
                 calcTotalCableLength(*this, s, data.lineSegments);
@@ -1703,7 +1703,7 @@ void shootNewGeodesic(
         cache.integratorInitialStepSize,
         tols.intergatorAccuracy,
         tols.constraintProjectionTolerance,
-        tols.constraintProjectionMaxIter,
+        tols.constraintProjectionMaxIterations,
         cache.jacobi_Q,
         cache.jacobiDot_Q,
         logger);
@@ -1823,7 +1823,7 @@ void calcCurveTouchdownIfNeeded(
         curve.getContactGeometry().calcNearestPointOnLineImplicitly(
             prevPoint_S,
             nextPoint_S,
-            tols.constraintProjectionMaxIter,
+            tols.constraintProjectionMaxIterations,
             tols.constraintProjectionTolerance,
             pointOnLineNearSurface_S);
 

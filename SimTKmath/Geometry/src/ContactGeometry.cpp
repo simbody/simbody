@@ -773,14 +773,14 @@ trackSeparationFromLine(const Vec3& pointOnLine,
 bool ContactGeometry::calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,
-    size_t maxIter,
+    size_t maxIterations,
     Real tolerance,
     Vec3& nearestPointOnLine) const
 {
     return getImpl().calcNearestPointOnLineImplicitly(
             pointA,
             pointB,
-            maxIter,
+            maxIterations,
             tolerance,
             nearestPointOnLine);
 }
@@ -788,7 +788,7 @@ bool ContactGeometry::calcNearestPointOnLineImplicitly(
 bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,
-    size_t maxIter,
+    size_t maxIterations,
     Real tolerance,
     Vec3& nearestPointOnLine) const
 {
@@ -801,7 +801,7 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
 
     size_t iter = 0;
 
-    for (; iter < maxIter; ++iter) {
+    for (; iter < maxIterations; ++iter) {
         // Touchdown point on line.
         const Vec3 pointOnLine = pointA + d * alpha;
 
@@ -844,7 +844,7 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
 
     const bool touchdown = -calcSurfaceValue(nearestPointOnLine) < tolerance;
 
-    SimTK_ASSERT_ALWAYS(iter < maxIter,
+    SimTK_ASSERT_ALWAYS(iter < maxIterations,
         "Failed to compute point on line nearest "
                                  "surface: Reached max iterations");
 
@@ -862,7 +862,7 @@ void ContactGeometry::shootGeodesicInDirectionImplicitly(
     Real& initStepSize,
     Real integratorAccuracy,
     Real constraintTolerance,
-    int maxIter,
+    int maxIterations,
     Vec2& finalJacobi,
     Vec2& finalJacobiDot,
     std::function<void(const Real& l, const Vec3& x, const Vec3& t)>& log) const
@@ -873,7 +873,7 @@ void ContactGeometry::shootGeodesicInDirectionImplicitly(
     initStepSize,
     integratorAccuracy,
     constraintTolerance,
-    maxIter,
+    maxIterations,
     finalJacobi,
     finalJacobiDot,
     log);
@@ -886,7 +886,7 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     Real& initStepSize,
     Real integratorAccuracy,
     Real constraintTolerance,
-    int maxIter,
+    int maxIterations,
     Vec2& finalJacobi,
     Vec2& finalJacobiDot,
     std::function<void(const Real& l, const Vec3& x, const Vec3& t)>& log) const

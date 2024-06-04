@@ -140,7 +140,7 @@ public:
     bool calcNearestPointOnLineImplicitly(
             const Vec3& pointA,
             const Vec3& pointB,
-            size_t maxIter,
+            size_t maxIterations,
             Real tolerance,
             Vec3& nearestPointOnLine) const;
 
@@ -158,7 +158,7 @@ public:
             Real& initStepSize,
             Real integratorAccuracy,
             Real constraintTolerance,
-            int maxIter,
+            int maxIterations,
             Vec2& finalJacobi,
             Vec2& finalJacobiDot,
             std::function<void(

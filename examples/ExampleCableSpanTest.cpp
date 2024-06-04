@@ -629,7 +629,7 @@ int main()
         }
 
         cable.setSurfaceConstraintTolerance(projectionAccuracy);
-        cable.setSurfaceProjectionMaxIter(projectionMaxIter);
+        cable.setSurfaceProjectionMaxIterations(projectionMaxIter);
         cable.setPathErrorAccuracy(pathAccuracy);
         cable.setSolverMaxIter(pathMaxIter);
         cable.setIntegratorAccuracy(integratorAccuracy);

@@ -212,11 +212,10 @@ public:
 
     /** Get the maximum number of solver iterations allowed when enforcing the
      * surface constraints of all obstacles. */
-    int getSurfaceProjectionMaxIter()
-        const; // TODO not connected to anything currently.
+    int getSurfaceProjectionMaxIterations() const; // TODO not connected to anything currently.
     /** Set the maximum number of solver iterations allowed when enforcing the
      * surface constraints of all obstacles. */
-    void setSurfaceProjectionMaxIter(int maxIter);
+    void setSurfaceProjectionMaxIterations(int maxIterations);
 
     /** Get the accuracy used by the numerical integrator when computing a
      * geodesic over an obstacle. */

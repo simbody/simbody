@@ -169,7 +169,7 @@ public:
         // TODO combine constraintProjectionTolerance with intergatorAccuracy?
         Real constraintProjectionTolerance = 1e-6; // TODO set to reasonable
         // TODO this is not currently connected to anything...
-        int constraintProjectionMaxIter = 50; // TODO set to reasonable
+        int constraintProjectionMaxIterations = 50; // TODO set to reasonable
     };
 
 //------------------------------------------------------------------------------

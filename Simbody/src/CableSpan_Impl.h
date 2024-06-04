@@ -80,7 +80,7 @@ public:
         m_TerminationPoint(source.m_TerminationPoint),
         m_CurveSegments(source.m_CurveSegments),
         m_PathAccuracy(source.m_PathAccuracy),
-        m_PathMaxIter(source.m_PathMaxIter),
+        m_SolverMaxIterations(source.m_SolverMaxIterations),
         m_MaxCorrectionStepDeg(source.m_MaxCorrectionStepDeg),
         m_IntegratorTolerances(source.m_IntegratorTolerances)
     {}
@@ -196,11 +196,11 @@ public:
 
     int getSurfaceProjectionMaxIter() const
     {
-        return m_IntegratorTolerances.constraintProjectionMaxIter;
+        return m_IntegratorTolerances.constraintProjectionMaxIterations;
     }
-    void setSurfaceProjectionMaxIter(int maxIter)
+    void setSurfaceProjectionMaxIter(int maxIterations)
     {
-        m_IntegratorTolerances.constraintProjectionMaxIter = maxIter;
+        m_IntegratorTolerances.constraintProjectionMaxIterations = maxIterations;
     }
 
     Real getIntegratorAccuracy() const
@@ -212,13 +212,13 @@ public:
         m_IntegratorTolerances.intergatorAccuracy = accuracy;
     }
 
-    int getPathMaxIter() const
+    int getSolverMaxIterations() const
     {
-        return m_PathMaxIter;
+        return m_SolverMaxIterations;
     }
-    void setPathMaxIter(int maxIter)
+    void setSolverMaxIterations(int maxIterations)
     {
-        m_PathMaxIter = maxIter;
+        m_SolverMaxIterations = maxIterations;
     }
 
     Real getPathAccuracy() const
@@ -372,7 +372,7 @@ private:
     Array_<CurveSegment, ObstacleIndex> m_CurveSegments{};
 
     Real m_PathAccuracy  = 1e-4;
-    size_t m_PathMaxIter = 50; // TODO set to something reasonable.
+    size_t m_SolverMaxIterations = 50; // TODO set to something reasonable.
 
     // For each curve segment the max allowed radial curvature.
     Real m_MaxCorrectionStepDeg = 10.; // TODO describe

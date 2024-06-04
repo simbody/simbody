@@ -238,7 +238,7 @@ bool trackSeparationFromLine(const Vec3& pointOnLine,
 bool calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,
-    size_t maxIter,
+    size_t maxIterations,
     Real tolerance,
     Vec3& nearestPointOnLine) const;
 
@@ -574,7 +574,7 @@ void shootGeodesicInDirectionImplicitly(
     Real& initStepSize,
     Real integratorAccuracy,
     Real constraintTolerance,
-    int maxIter,
+    int maxIterations,
     Vec2& finalJacobi,
     Vec2& finalJacobiDot,
     std::function<void(const Real& l, const Vec3& x, const Vec3& t)>& log) const;
