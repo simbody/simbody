@@ -1466,7 +1466,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
     while (true) {
         // Make sure all curve segments are realized to position stage.
         // This will transform all last computed geodesics to Ground frame, and
-        // will update each curve's Status.
+        // will update each curve's WrappingStatus.
         for (ObstacleIndex ix(0); ix < getNumCurveSegments(); ++ix) {
             getCurveSegment(ix).realizePosition(
                 s,
@@ -1475,7 +1475,8 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
                 getIntegratorTolerances());
         }
 
-        // Count the number of active curve segments.
+        // Now that the WrappingStatus of all curve segments is known: Count
+        // the number of obstacles in contact with the path.
         const size_t nActive = countActive(s);
 
         // If the path contains no curved segments it is a straight line.
@@ -1486,6 +1487,12 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
                 UnitVec3(x_I - x_O);
             break;
         }
+
+        // If some obstacles are in contact with the cable the path error needs
+        // to be checked. If the path error is small, i.e. there are no "kinks"
+        // anywhere, the current path is OK. If the path error is too large,
+        // corrections need to be computed for each curve segment in order to
+        // drive the path error to zero.
 
         // Grab the shared data cache for helping with computing the path
         // corrections. This data is only used as an intermediate variable, and
@@ -1514,6 +1521,11 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
             break;
         }
 
+        // If the path error is too large corrections need to be applied to
+        // each curve segment. Using the jacobian of the path error the
+        // corrections can be computed that should drive the path error to
+        // zero.
+
         // Evaluate the path error jacobian to the natural geodesic corrections
         // of each curve segment.
         calcPathErrorJacobian<2>(
@@ -1539,11 +1551,10 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
                 stepSize);
             ++corrIt;
         });
-
-        // Compute the correction with the proper step size.
         data.pathCorrection *= stepSize;
 
-        // Apply corrections to the curve segments.
+        // Apply corrections to the curve segments. This will trigger shooting
+        // new geodesics over the obstacles.
         corrIt = getPathCorrections(data);
         callForEachActiveCurveSegment(*this, s,
                 [&](const CurveSegment& curve) {

@@ -270,8 +270,8 @@ public:
      * State must be realized to Stage::Position.
      *
      * @param state System State.
-     * @param lengthInterval Each curve segments will be resampled such the the
-     * points interspacing does not exceed this value.
+     * @param lengthInterval Each curve segments will be resampled such that
+     * the point's interspacing does not exceed this value.
      * @param sink Where the path points will be written to.
      * @return The total number of computed points.
      */
