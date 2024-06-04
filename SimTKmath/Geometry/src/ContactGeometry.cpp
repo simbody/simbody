@@ -845,8 +845,7 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
     const bool touchdown = -calcSurfaceValue(nearestPointOnLine) < tolerance;
 
     SimTK_ASSERT_ALWAYS(iter < maxIterations,
-        "Failed to compute point on line nearest "
-                                 "surface: Reached max iterations");
+        "Failed to compute point on line near surface: Reached max iterations");
 
     return touchdown;
 }
