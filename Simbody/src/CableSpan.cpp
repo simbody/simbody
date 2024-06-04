@@ -1700,26 +1700,14 @@ void shootNewGeodesic(
     cache.X_SP = cache.samples.front().frame;
     cache.X_SQ = cache.samples.back().frame;
 
-    // TODO strange sign of the curvature in ContactGeometry:
-    // - expected: tangentDot = k * normal
-    // - got:      tangentDot = -k * normal
-    // We flip it here for now.
     cache.curvatures_P = {
-        -geometry.calcSurfaceCurvatureInDirection(
-            cache.X_SP.p(),
-            getTangent(cache.X_SP)),
-        -geometry.calcSurfaceCurvatureInDirection(
-            cache.X_SP.p(),
-            getBinormal(cache.X_SP)),
+        calcSurfaceCurvature(geometry, cache.X_SP, TangentAxis),
+        calcSurfaceCurvature(geometry, cache.X_SP, BinormalAxis),
     };
 
     cache.curvatures_Q = {
-        -geometry.calcSurfaceCurvatureInDirection(
-            cache.X_SQ.p(),
-            getTangent(cache.X_SQ)),
-        -geometry.calcSurfaceCurvatureInDirection(
-            cache.X_SQ.p(),
-            getBinormal(cache.X_SQ)),
+        calcSurfaceCurvature(geometry, cache.X_SQ, TangentAxis),
+        calcSurfaceCurvature(geometry, cache.X_SQ, BinormalAxis),
     };
 
     cache.torsion_P = geometry.calcSurfaceTorsionInDirection(
@@ -2032,19 +2020,11 @@ Vec3 calcInterpolatedPoint(
     return calcHermiteInterpolation(
         a.length,
         a.frame.p(),
-        a.frame.R().getAxisUnitVec(TangentAxis),
+        getTangent(a.frame),
         b.length,
         b.frame.p(),
-        b.frame.R().getAxisUnitVec(TangentAxis),
+        getTangent(b.frame),
         l);
-}
-
-Vec3 calcSurfaceTangentDot(
-    const ContactGeometry& geometry,
-    const FrenetFrame& X_S)
-{
-    const Real k = calcSurfaceCurvature(geometry, X_S, TangentAxis);
-    return k * getNormal(X_S);
 }
 
 // Compute the tangent in between two geodesic samples using Hermite
@@ -2056,7 +2036,7 @@ Vec3 calcInterpolatedTangent(
     Real l)
 {
     // Helper for calculating the derivative of the tangent.
-    auto CalcTangentDot = [&](const FrenetFrame& X_S) {
+    auto CalcTangentDot = [&](const FrenetFrame& X_S) -> Vec3 {
         const Real k = calcSurfaceCurvature(geometry, X_S, TangentAxis);
         return k * getNormal(X_S);
     };
@@ -2064,10 +2044,10 @@ Vec3 calcInterpolatedTangent(
     return calcHermiteInterpolation(
         a.length,
         getTangent(a.frame),
-        calcSurfaceTangentDot(geometry, a.frame),
+        CalcTangentDot(a.frame),
         b.length,
         getTangent(b.frame),
-        calcSurfaceTangentDot(geometry, b.frame),
+        CalcTangentDot(b.frame),
         l);
 }
 
