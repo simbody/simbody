@@ -162,9 +162,9 @@ public:
             Vec2& finalJacobi,
             Vec2& finalJacobiDot,
             std::function<void(
-                const Real& l,
+                Real l,
                 const Vec3& x,
-                const Vec3& t)>& log) const;
+                const Vec3& t)> log) const;
 
     // Given two points and previous geodesic curve close to the points, find
     // a geodesic curve connecting the points that is close to the previous geodesic.

@@ -577,7 +577,7 @@ void shootGeodesicInDirectionImplicitly(
     Real& initStepSize,
     Vec2& finalJacobi,
     Vec2& finalJacobiDot,
-    std::function<void(const Real& l, const Vec3& x, const Vec3& t)>& log) const;
+    std::function<void(Real l, const Vec3& x, const Vec3& t)> log) const;
 
 
 /** Given the current positions of two points P and Q moving on this surface, 

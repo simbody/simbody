@@ -1679,22 +1679,6 @@ void shootNewGeodesic(
 
     const ContactGeometry& geometry = curve.getContactGeometry();
 
-    // Helper function for logging the frenet frames during numerical
-    // integration.
-    std::function<void(const Real&, const Vec3&, const Vec3&)> logger =
-        [&](const Real& l, const Vec3& p, const Vec3& t) {
-            // Compute frenet frame from position, normal and tangent.
-            FrenetFrame X_Gk;
-            X_Gk.setP(p);
-            X_Gk.updR().setRotationFromTwoAxes(
-                geometry.calcSurfaceUnitNormal(p),
-                NormalAxis,
-                t,
-                TangentAxis);
-            // Add frame to logged samples.
-            cache.samples.emplace_back(l, X_Gk);
-        };
-
     // TODO implement shooting Analytic and Parametric geodesics.
     geometry.shootGeodesicInDirectionImplicitly(
         point_S,
@@ -1706,7 +1690,19 @@ void shootNewGeodesic(
         cache.integratorInitialStepSize,
         cache.jacobi_Q,
         cache.jacobiDot_Q,
-        logger);
+        // Provide function for logging the frenet frames during integration.
+        [&](const Real& l, const Vec3& p, const Vec3& t) {
+            // Compute frenet frame from position, normal and tangent.
+            FrenetFrame X_Gk;
+            X_Gk.setP(p);
+            X_Gk.updR().setRotationFromTwoAxes(
+                geometry.calcSurfaceUnitNormal(p),
+                NormalAxis,
+                t,
+                TangentAxis);
+            // Add frame to logged samples.
+            cache.samples.emplace_back(l, X_Gk);
+        });
 
     cache.X_SP = cache.samples.front().frame;
     cache.X_SQ = cache.samples.back().frame;

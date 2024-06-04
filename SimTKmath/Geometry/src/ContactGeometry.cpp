@@ -864,7 +864,7 @@ void ContactGeometry::shootGeodesicInDirectionImplicitly(
     Real& initStepSize,
     Vec2& finalJacobi,
     Vec2& finalJacobiDot,
-    std::function<void(const Real& l, const Vec3& x, const Vec3& t)>& log) const
+    std::function<void(Real l, const Vec3& x, const Vec3& t)> log) const
 {
     getImpl().shootGeodesicInDirectionImplicitly(pointApprox,
     tangentApprox,
@@ -888,7 +888,7 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     Real& initStepSize,
     Vec2& finalJacobi,
     Vec2& finalJacobiDot,
-    std::function<void(const Real& l, const Vec3& x, const Vec3& t)>& log) const
+    std::function<void(Real l, const Vec3& x, const Vec3& t)> log) const
 {
     // integrator settings
     const Real startArcLength = 0;
