@@ -82,13 +82,12 @@ endif()
 set(API_INCLUDE_DIRS) # start empty
 set(SimTKCOMMON_INCLUDE_DIRS) # start empty
 foreach(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
-    # append
-    set(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
+    list(APPEND API_INCLUDE_DIRS
      ${PROJECT_SOURCE_DIR}/${subdir}/include
      ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon
      ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon/internal)
     # Referencing headers must always be done relative to this level.
-    set(SimTKCOMMON_INCLUDE_DIRS ${SimTKCOMMON_INCLUDE_DIRS}
+    list(APPEND SimTKCOMMON_INCLUDE_DIRS
      ${PROJECT_SOURCE_DIR}/${subdir}/include)
 endforeach()
 
@@ -109,11 +108,11 @@ set(API_ABS_INCLUDE_FILES)
 
 foreach(dir ${API_INCLUDE_DIRS})
     file(GLOB fullpaths ${dir}/*.h)    # returns full pathnames
-    set(API_ABS_INCLUDE_FILES ${API_ABS_INCLUDE_FILES} ${fullpaths})
+    list(APPEND API_ABS_INCLUDE_FILES ${fullpaths})
 
     foreach(pathname ${fullpaths})
         get_filename_component(filename ${pathname} NAME)
-        set(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES} ${dir}/${filename})
+        list(APPEND API_REL_INCLUDE_FILES ${dir}/${filename})
     endforeach()
 endforeach()
 
@@ -124,8 +123,8 @@ set(SOURCE_INCLUDE_FILES)
 foreach(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     file(GLOB src_files  ${subdir}/src/*.cpp)
     file(GLOB incl_files ${subdir}/src/*.h)
-    set(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
-    set(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
+    list(APPEND SOURCE_FILES         ${src_files})
+    list(APPEND SOURCE_INCLUDE_FILES ${incl_files})
 endforeach()
 
 #
