@@ -30,6 +30,11 @@ project(SimTKsimbody VERSION ${Simbody_VERSION})
 # the Visualizer so that Simbody tests won't fail to build.
 set(SIMBODY_SOURCE_SUBDIRS . Visualizer)
 
+set(SIMBODY_COPYRIGHT_YEARS "2005-20")
+
+# underbar separated list of dotted authors, no spaces or commas
+set(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
+
 # These are all the places to search for header files which are
 # to be part of the API.
 set(API_INCLUDE_DIRS) # start empty
@@ -136,6 +141,8 @@ target_compile_definitions(SimTKsimbody
         SIMBODY_VISUALIZER_INSTALL_DIR="${SIMBODY_VISUALIZER_INSTALL_DIR}/"
         SIMBODY_VISUALIZER_REL_INSTALL_DIR="${SIMBODY_VISUALIZER_REL_INSTALL_DIR}/"
         SIMBODY_PATH_FROM_LIBDIR_TO_VIZ_DIR="${lib_dir_to_viz_dir}"
+        SimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
+        SimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}"
 )
 
 # install library; on Windows the .dll goes in the bin directory.
