@@ -294,12 +294,11 @@ public:
     class Impl;
 
 private:
-    /** Wrap the Impl, increasing the reference count. */
-    explicit CableSpan(std::shared_ptr<Impl> impl): m_Impl(std::move(impl)) {}
-
     /** Cheap copy of pointer to the Impl. */
     CableSpan copyImpl() const {
-        return CableSpan(m_Impl);
+        CableSpan copy;
+        copy.m_Impl = m_Impl;
+        return copy;
     }
 
     const Impl& getImpl() const
