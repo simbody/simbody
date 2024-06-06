@@ -863,8 +863,7 @@ void calcCurveDecorativeGeometryAndAppend(
     const State& s,
     Array_<DecorativeGeometry>& decorations)
 {
-    constexpr int LINE_THICKNESS    = 3;
-    constexpr Real INACTIVE_OPACITY = 0.25;
+    constexpr Real c_InactiveOpacity = 0.25;
 
     const bool isInContactWithSurface = curve.isInContactWithSurface(s);
     const CurveSegment::PosEntry& ppe = curve.getPosInfo(s);
@@ -878,7 +877,7 @@ void calcCurveDecorativeGeometryAndAppend(
         // Inactive surfaces are dimmed.
         const Vec3 color = isInContactWithSurface
                                ? geo.getColor()
-                               : geo.getColor() * INACTIVE_OPACITY;
+                               : geo.getColor() * c_InactiveOpacity;
 
         decorations.push_back(geo.setTransform(X_GS * X_SD).setColor(color));
     }
@@ -951,7 +950,7 @@ void calcCurveDecorativeGeometryAndAppend(
     // Draw the initial contact point hint using a yellow line.
     // TODO this is for debugging should be removed.
     {
-        constexpr int HINT_LINE_THICKNESS = 2;
+        constexpr int c_HintLineThickness = 2;
 
         const Transform& X_GS = ppe.X_GS;
 
@@ -960,7 +959,7 @@ void calcCurveDecorativeGeometryAndAppend(
                 ppe.X_GS.p(),
                 ppe.X_GS.shiftFrameStationToBase(curve.getContactPointHint()))
                 .setColor(Yellow)
-                .setLineThickness(HINT_LINE_THICKNESS));
+                .setLineThickness(c_HintLineThickness));
     }
 }
 
@@ -971,7 +970,7 @@ int CableSpan::Impl::calcDecorativeGeometryAndAppend(
     Stage stage,
     Array_<DecorativeGeometry>& decorations) const
 {
-    constexpr int LINE_THICKNESS = 3;
+    constexpr int c_LineThickness = 3;
 
     const PosInfo& ppe = getPosInfo(s);
     Vec3 prevPoint     = ppe.originPoint_G;
@@ -983,7 +982,7 @@ int CableSpan::Impl::calcDecorativeGeometryAndAppend(
             const Vec3 nextPoint = cppe.X_GP.p();
             decorations.push_back(DecorativeLine(prevPoint, nextPoint)
                                       .setColor(Purple)
-                                      .setLineThickness(LINE_THICKNESS));
+                                      .setLineThickness(c_LineThickness));
             prevPoint = cppe.X_GQ.p();
         }
 
