@@ -603,9 +603,9 @@ const Mobod& CableSpan::Impl::getTerminationBody() const
 
 //------------------------------------------------------------------------------
 
-size_t CableSpan::Impl::countActive(const State& s) const
+int CableSpan::Impl::countActive(const State& s) const
 {
-    size_t count = 0;
+    int count = 0;
     for (const CurveSegment& segment : m_CurveSegments) {
         if (segment.getInstanceEntry(s).isInContactWithSurface()) {
             ++count;
@@ -926,7 +926,7 @@ void calcCurveDecorativeGeometryAndAppend(
 
         std::function<void(const FrenetFrame& K)> DrawFrenetFrame =
             [&](const FrenetFrame& K) {
-                for (size_t i = 0; i < 3; ++i) {
+                for (int i = 0; i < 3; ++i) {
                     decorations.push_back(
                         DecorativeLine(
                             K.p(),
@@ -1094,8 +1094,8 @@ void CableSpan::Impl::calcPathErrorVector(
     std::array<CoordinateAxis, N> axes,
     Vector& pathError) const
 {
-    size_t lineIx = 0;
-    ptrdiff_t row = -1;
+    int lineIx = 0;
+    int row = -1;
 
     // Reset path error vector to zero.
     pathError *= 0;
@@ -1230,15 +1230,15 @@ void CableSpan::Impl::calcPathErrorJacobian(
     constexpr int Nq = SolverData::GEODESIC_DOF;
 
     // TODO perhaps just not make method static.
-    const size_t n = lines.size() - 1;
+    const int n = lines.size() - 1;
     J *= 0.;
 
     SimTK_ASSERT(
         J.cols() == n * Nq,
         "Invalid number of columns in jacobian matrix");
 
-    size_t row = 0;
-    size_t col = 0;
+    int row = 0;
+    int col = 0;
 
     auto AddBlock = [&](const Vec4& block, int colOffset = 0) {
         for (int ix = 0; ix < 4; ++ix) {
@@ -1477,7 +1477,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
 
         // Now that the WrappingStatus of all curve segments is known: Count
         // the number of obstacles in contact with the path.
-        const size_t nActive = countActive(s);
+        const int nActive = countActive(s);
 
         // If the path contains no curved segments it is a straight line.
         if (nActive == 0) {
@@ -2067,7 +2067,7 @@ using InterpolatorFn = std::function<
 // @param interpolator function for performing the interpolation between two
 // selected samples at a given length.
 // @return the number of samples used for the interpolation.
-size_t resampleGeodesic(
+int resampleGeodesic(
     const std::vector<LocalGeodesicSample> geodesic,
     int nSamples, // TODO use length increment?
     InterpolatorFn& interpolator)
@@ -2112,7 +2112,7 @@ size_t resampleGeodesic(
     // We can skip the first and last samples, because these are pushed
     // manually before and after this loop respectively (we start at i=1
     // and stop at i < nSamples-1).
-    for (size_t i = 0; i < nSamples - 1; ++i) {
+    for (int i = 0; i < nSamples - 1; ++i) {
 
         // Length at the current interpolation point.
         const Real length = dl * static_cast<Real>(i);
@@ -2272,7 +2272,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
         const std::array<CoordinateAxis, 2> axes{NormalAxis, BinormalAxis};
 
         // Count the number of active curve segments.
-        const size_t nActive = cable.countActive(s);
+        const int nActive = cable.countActive(s);
 
         if (nActive == 0) {
             os << "Cable has no active segments: Skipping perturbation test\n";
@@ -2282,8 +2282,8 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
         SolverData& data =
             subsystem.getImpl().updSolverData(s).updOrInsert(nActive);
 
-        constexpr size_t DOF = 4;
-        for (size_t i = 0; i < (DOF * 2 * nActive); ++i) {
+        constexpr int DOF = 4;
+        for (int i = 0; i < (DOF * 2 * nActive); ++i) {
             cable.invalidatePositionLevelCache(s);
 
             // Trigger realizing position level cache, resetting the

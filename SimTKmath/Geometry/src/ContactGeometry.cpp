@@ -773,7 +773,7 @@ trackSeparationFromLine(const Vec3& pointOnLine,
 bool ContactGeometry::calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,
-    size_t maxIterations,
+    int maxIterations,
     Real tolerance,
     Vec3& nearestPointOnLine) const
 {
@@ -788,7 +788,7 @@ bool ContactGeometry::calcNearestPointOnLineImplicitly(
 bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,
-    size_t maxIterations,
+    int maxIterations,
     Real tolerance,
     Vec3& nearestPointOnLine) const
 {
@@ -799,7 +799,7 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
     Real alpha   = -dot(d, pointA - nearestPointOnLine) / dot(d, d);
     alpha        = std::max(0., std::min(alpha, 1.));
 
-    size_t iter = 0;
+    int iter = 0;
 
     for (; iter < maxIterations; ++iter) {
         // Touchdown point on line.

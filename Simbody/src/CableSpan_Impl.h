@@ -248,7 +248,7 @@ public:
 
     // Find the number of CurveSegments that are in contact with an obstacle's
     // surface.
-    size_t countActive(const State& s) const;
+    int countActive(const State& s) const;
 
     // See CableSpan::calcPathPoints.
     int calcPathPoints(
@@ -372,7 +372,7 @@ private:
     Array_<CurveSegment, ObstacleIndex> m_CurveSegments{};
 
     Real m_PathAccuracy  = 1e-4;
-    size_t m_SolverMaxIterations = 50; // TODO set to something reasonable.
+    int m_SolverMaxIterations = 50; // TODO set to something reasonable.
 
     // For each curve segment the max allowed radial curvature.
     Real m_MaxCorrectionStepDeg = 10.; // TODO describe

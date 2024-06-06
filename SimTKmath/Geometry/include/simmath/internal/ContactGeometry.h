@@ -238,7 +238,7 @@ bool trackSeparationFromLine(const Vec3& pointOnLine,
 bool calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,
-    size_t maxIterations,
+    int maxIterations,
     Real tolerance,
     Vec3& nearestPointOnLine) const;
 
