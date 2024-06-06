@@ -39,7 +39,7 @@ set(SIMMATH_AUTHORS         "Jack.Middleton_Michael.Sherman")
 # These are all the places to search for header files which are
 # to be part of the API.
 set(API_INCLUDE_DIRS) # start empty
-set(SimTKMATH_INCLUDE_DIRS) # start empty
+set(SimTKMATH_BUILD_INCLUDE_DIRS) # start empty
 foreach(subdir . ${SIMMATH_SOURCE_SUBDIRS})
     list(APPEND API_INCLUDE_DIRS
      ${PROJECT_SOURCE_DIR}/${subdir}/include
@@ -47,7 +47,7 @@ foreach(subdir . ${SIMMATH_SOURCE_SUBDIRS})
      ${PROJECT_SOURCE_DIR}/${subdir}/include/simmath/internal)
 
     # Referencing headers must always be done relative to this level.
-    list(APPEND SimTKMATH_INCLUDE_DIRS
+    list(APPEND SimTKMATH_BUILD_INCLUDE_DIRS
         "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${subdir}/include>")
 endforeach()
 
@@ -150,7 +150,7 @@ target_link_libraries(SimTKmath PUBLIC
 target_include_directories(SimTKmath
     PUBLIC
         "$<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>"
-        ${SimTKMATH_INCLUDE_DIRS}
+        ${SimTKMATH_BUILD_INCLUDE_DIRS}
     PRIVATE
         ${PLATFORM_INCLUDE_DIRECTORIES}
         ${SOURCE_INCLUDE_DIRS})

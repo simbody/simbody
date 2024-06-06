@@ -47,14 +47,14 @@ set(SimTKCOMMON_AUTHORS "Michael.Sherman_Peter.Eastman")
 # These are all the places to search for header files which are
 # to be part of the API.
 set(API_INCLUDE_DIRS) # start empty
-set(SimTKCOMMON_INCLUDE_DIRS) # start empty
+set(SimTKCOMMON_BUILD_INCLUDE_DIRS) # start empty
 foreach(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     list(APPEND API_INCLUDE_DIRS
      ${PROJECT_SOURCE_DIR}/${subdir}/include
      ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon
      ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon/internal)
     # Referencing headers must always be done relative to this level.
-    list(APPEND SimTKCOMMON_INCLUDE_DIRS
+    list(APPEND SimTKCOMMON_BUILD_INCLUDE_DIRS
         "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${subdir}/include>")
 endforeach()
 
@@ -115,7 +115,7 @@ target_link_libraries(SimTKcommon PUBLIC ${MATH_LIBS_TO_USE})
 target_include_directories(SimTKcommon
     PUBLIC
         "$<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>"
-        ${SimTKCOMMON_INCLUDE_DIRS}
+        ${SimTKCOMMON_BUILD_INCLUDE_DIRS}
     PRIVATE
         ${PLATFORM_INCLUDE_DIRECTORIES}
     )

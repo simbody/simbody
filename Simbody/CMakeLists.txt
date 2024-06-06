@@ -38,7 +38,7 @@ set(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
 # These are all the places to search for header files which are
 # to be part of the API.
 set(API_INCLUDE_DIRS) # start empty
-set(SimTKSIMBODY_INCLUDE_DIRS) # start empty
+set(SimTKSIMBODY_BUILD_INCLUDE_DIRS) # start empty
 foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
     list(APPEND API_INCLUDE_DIRS
      ${PROJECT_SOURCE_DIR}/${subdir}/include
@@ -46,7 +46,7 @@ foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
      ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody/internal)
 
     # Referencing headers must always be done relative to this level.
-    list(APPEND SimTKSIMBODY_INCLUDE_DIRS
+    list(APPEND SimTKSIMBODY_BUILD_INCLUDE_DIRS
         "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${subdir}/include>")
 endforeach()
 
@@ -107,7 +107,7 @@ target_link_libraries(SimTKsimbody PUBLIC
 target_include_directories(SimTKsimbody
     PUBLIC
         "$<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>"
-        ${SimTKSIMBODY_INCLUDE_DIRS}
+        ${SimTKSIMBODY_BUILD_INCLUDE_DIRS}
     PRIVATE
         ${PLATFORM_INCLUDE_DIRECTORIES}
     )
