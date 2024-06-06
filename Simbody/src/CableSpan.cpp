@@ -679,32 +679,40 @@ const CurveSegment* CableSpan::Impl::findNextActiveCurveSegment(
 
 Vec3 CableSpan::Impl::findPrevPoint(const State& s, ObstacleIndex ix) const
 {
-    auto CalcCurveFinalContactPoint = [&](const CurveSegment& curve) -> Vec3 {
-        const Transform& X_GS           = curve.calcSurfaceFrameInGround(s);
-        const Vec3& finalContactPoint_S = curve.getInstanceEntry(s).X_SQ.p();
-        return X_GS.shiftFrameStationToBase(finalContactPoint_S);
-    };
-
+    // Check if there is a curve segment preceding given obstacle.
     const CurveSegment* prevCurve = findPrevActiveCurveSegment(s, ix);
-    return prevCurve
-               ? CalcCurveFinalContactPoint(*prevCurve)
-               : getOriginBody().getBodyTransform(s).shiftFrameStationToBase(
-                     m_OriginPoint);
+    if (prevCurve) {
+        // If so, the previous point is the final contact point of the previous
+        // curve.
+        const Vec3& finalContactPoint_S =
+            prevCurve->getInstanceEntry(s).X_SQ.p();
+        // Transform the contact point to ground.
+        const Transform& X_GS = prevCurve->calcSurfaceFrameInGround(s);
+        return X_GS.shiftFrameStationToBase(finalContactPoint_S);
+    }
+    // There are no curve segments before given obstacle: the previous point is
+    // the path's origin point.
+    return getOriginBody().getBodyTransform(s).shiftFrameStationToBase(m_OriginPoint);
 }
 
 Vec3 CableSpan::Impl::findNextPoint(const State& s, ObstacleIndex ix) const
 {
-    auto CalcCurveInitialContactPoint = [&](const CurveSegment& curve) -> Vec3 {
-        const Transform& X_GS             = curve.calcSurfaceFrameInGround(s);
-        const Vec3& initialContactPoint_S = curve.getInstanceEntry(s).X_SP.p();
+    // Check if there is a curve segment after given obstacle.
+    const CurveSegment* nextCurve = findNextActiveCurveSegment(s, ix);
+    if (nextCurve) {
+        // If so, the next point is the initial contact point of the next
+        // curve.
+        const Vec3& initialContactPoint_S =
+            nextCurve->getInstanceEntry(s).X_SP.p();
+        // Transform the contact point to ground.
+        const Transform& X_GS = nextCurve->calcSurfaceFrameInGround(s);
         return X_GS.shiftFrameStationToBase(initialContactPoint_S);
     };
-
-    const CurveSegment* nextCurve = findNextActiveCurveSegment(s, ix);
-    return nextCurve ? CalcCurveInitialContactPoint(*nextCurve)
-                     : getTerminationBody()
-                           .getBodyTransform(s)
-                           .shiftFrameStationToBase(m_TerminationPoint);
+    // There are no curve segments following given obstacle: the next point is
+    // the path's termination point.
+    return getTerminationBody()
+        .getBodyTransform(s)
+        .shiftFrameStationToBase(m_TerminationPoint);
 }
 
 //==============================================================================
