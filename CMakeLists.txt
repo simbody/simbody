@@ -266,12 +266,6 @@ endif()
 # Ensure that debug libraries have "_d" appended to their names.
 set(CMAKE_DEBUG_POSTFIX "_d")
 
-#
-# These are the names of all the libraries we may generate. These are
-# target names so can be used to specify dependencies of one library
-# on another. (In Debug mode the actual targets will have "_d" appended.)
-#
-
 set(NS)
 if(BUILD_USING_NAMESPACE)
     set(NS "${BUILD_USING_NAMESPACE}_")
@@ -283,6 +277,9 @@ if(BUILD_VERSIONED_LIBRARIES)
     set(VN "_${Simbody_VERSION}")
 endif()
 
+#
+# These are the output names of all the libraries we may generate.
+#
 set(SimTKSIMBODY_LIBRARY_NAME ${NS}SimTKsimbody${VN} CACHE INTERNAL
     "Base name of the SimTKsimbody library"
     )
@@ -625,6 +622,10 @@ add_subdirectory( Simbody )
 # SimTKSIMBODY_INCLUDE_DIRECTORIES now set(but not used)
 # GUI_NAME now set
 
+export(EXPORT SimbodyTargets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/SimbodyTargets.cmake"
+    )
+
 if( BUILD_EXAMPLES )
     add_subdirectory( examples )
 endif()
@@ -682,8 +683,8 @@ write_basic_package_version_file(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
         DESTINATION ${SIMBODY_CMAKE_DIR})
 
-install(EXPORT SimbodyTargets DESTINATION
-        "${SIMBODY_CMAKE_DIR}") #optionally: COMPONENT dev
+install(EXPORT SimbodyTargets
+    DESTINATION "${SIMBODY_CMAKE_DIR}") #optionally: COMPONENT dev
 
 # Install a sample CMakeLists.txt that uses SimbodyConfig.cmake.
 install(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt

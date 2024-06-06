@@ -129,14 +129,14 @@ endif()
 
 
 # These are IMPORTED targets created by SimbodyTargets.cmake
-if(@BUILD_DYNAMIC_LIBRARIES@)
-    set(Simbody_LIBRARIES @SimTKCOMMON_SHARED_LIBRARY@ @SimTKMATH_SHARED_LIBRARY@ @SimTKSIMBODY_SHARED_LIBRARY@)
+if(TARGET SimTKcommon AND TARGET SimTKmath AND TARGET SimTKsimbody)
+    if(@SIMBODY_BUILD_SHARED_LIBS@)
+        set(Simbody_LIBRARIES SimTKcommon SimTKmath SimTKsimbody)
+    else()
+        set(Simbody_STATIC_LIBRARIES SimTKcommon SimTKmath SimTKsimbody)
+    endif()
 else()
     set(Simbody_LIBRARIES Simbody_LIBRARIES-NOTFOUND)
-endif()
-if(@BUILD_STATIC_LIBRARIES@) # this is ON if static libraries were built
-    set(Simbody_STATIC_LIBRARIES @SimTKCOMMON_STATIC_LIBRARY@ @SimTKMATH_STATIC_LIBRARY@ @SimTKSIMBODY_STATIC_LIBRARY@)
-else()
     set(Simbody_STATIC_LIBRARIES Simbody_STATIC_LIBRARIES-NOTFOUND)
 endif()
 mark_as_advanced(Simbody_LIBRARIES Simbody_STATIC_LIBRARIES)
