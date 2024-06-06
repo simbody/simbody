@@ -607,7 +607,7 @@ int CableSpan::Impl::countActive(const State& s) const
 {
     int count = 0;
     for (const CurveSegment& segment : m_CurveSegments) {
-        if (segment.getInstanceEntry(s).isInContactWithSurface()) {
+        if (segment.isInContactWithSurface(s)) {
             ++count;
         }
     }
@@ -655,8 +655,7 @@ const CurveSegment* CableSpan::Impl::findPrevActiveCurveSegment(
     for (int i = ix - 1; i >= 0; --i) {
         // Find the active segment before the current.
         if (m_CurveSegments.at(ObstacleIndex(i))
-                .getInstanceEntry(s)
-                .isInContactWithSurface()) {
+                .isInContactWithSurface(s)) {
             return &m_CurveSegments.at(ObstacleIndex(i));
         }
     }
@@ -670,8 +669,7 @@ const CurveSegment* CableSpan::Impl::findNextActiveCurveSegment(
     // Find the active segment after the current.
     for (int i = ix + 1; i < m_CurveSegments.size(); ++i) {
         if (m_CurveSegments.at(ObstacleIndex(i))
-                .getInstanceEntry(s)
-                .isInContactWithSurface()) {
+                .isInContactWithSurface(s)) {
             return &m_CurveSegments.at(ObstacleIndex(i));
         }
     }
@@ -1256,7 +1254,7 @@ void CableSpan::Impl::calcPathErrorJacobian(
     auto linesIt = lines.begin();
     for (ObstacleIndex ix(0); ix < getNumCurveSegments(); ++ix) {
         const CurveSegment& curve = getCurveSegment(ix);
-        if (!curve.getInstanceEntry(s).isInContactWithSurface()) {
+        if (!curve.isInContactWithSurface(s)) {
             continue;
         }
 
