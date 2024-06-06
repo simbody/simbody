@@ -856,8 +856,8 @@ void calcCurveDecorativeGeometryAndAppend(
     const State& s,
     Array_<DecorativeGeometry>& decorations)
 {
-    static constexpr int LINE_THICKNESS    = 3;
-    static constexpr Real INACTIVE_OPACITY = 0.25;
+    constexpr int LINE_THICKNESS    = 3;
+    constexpr Real INACTIVE_OPACITY = 0.25;
 
     const bool isInContactWithSurface = curve.isInContactWithSurface(s);
     const CurveSegment::PosEntry& ppe = curve.getPosInfo(s);
@@ -915,8 +915,8 @@ void calcCurveDecorativeGeometryAndAppend(
     // Draw the Frenet frame at curve start and end.
     // TODO this is for debugging should be removed.
     {
-        static constexpr int FRENET_FRAME_LINE_THICKNESS = 5;
-        static constexpr Real FRENET_FRAME_LINE_LENGTH   = 0.5;
+        constexpr int FRENET_FRAME_LINE_THICKNESS = 5;
+        constexpr Real FRENET_FRAME_LINE_LENGTH   = 0.5;
 
         const std::array<CoordinateAxis, 3> axes = {
             TangentAxis,
@@ -944,7 +944,7 @@ void calcCurveDecorativeGeometryAndAppend(
     // Draw the initial contact point hint using a yellow line.
     // TODO this is for debugging should be removed.
     {
-        static constexpr int HINT_LINE_THICKNESS = 2;
+        constexpr int HINT_LINE_THICKNESS = 2;
 
         const Transform& X_GS = ppe.X_GS;
 
@@ -964,7 +964,7 @@ int CableSpan::Impl::calcDecorativeGeometryAndAppend(
     Stage stage,
     Array_<DecorativeGeometry>& decorations) const
 {
-    static constexpr int LINE_THICKNESS = 3;
+    constexpr int LINE_THICKNESS = 3;
 
     const PosInfo& ppe = getPosInfo(s);
     Vec3 prevPoint     = ppe.originPoint_G;
@@ -2282,7 +2282,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
         SolverData& data =
             subsystem.getImpl().updSolverData(s).updOrInsert(nActive);
 
-        static constexpr size_t DOF = 4;
+        constexpr size_t DOF = 4;
         for (size_t i = 0; i < (DOF * 2 * nActive); ++i) {
             cable.invalidatePositionLevelCache(s);
 

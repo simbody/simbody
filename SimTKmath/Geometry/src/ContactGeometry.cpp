@@ -891,14 +891,14 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     std::function<void(Real l, const Vec3& x, const Vec3& t)> log) const
 {
     // integrator settings
-    const Real startArcLength = 0;
+    constexpr Real startArcLength = 0;
 
     using Eqns = GeodesicOnImplicitSurface;
 
     Eqns eqns(*this);
     GeodesicIntegrator<GeodesicOnImplicitSurface>
         integ(eqns,integratorAccuracy,constraintTolerance);
-    static const int N = GeodesicOnImplicitSurface::N;
+    constexpr int N = GeodesicOnImplicitSurface::N;
 
     integ.initialize(startArcLength, Eqns::getInitialState(pointApprox, UnitVec3(tangentApprox)));
 
