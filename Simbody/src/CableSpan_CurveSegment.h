@@ -276,7 +276,7 @@ public:
         return m_X_BS;
     }
 
-    void setXformSurfaceToBody(Transform X_BS)
+    void setXformSurfaceToBody(const Transform& X_BS)
     {
         m_X_BS = std::move(X_BS);
     }

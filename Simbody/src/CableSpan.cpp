@@ -260,7 +260,7 @@ CableSpan::CableSpan(
 
 ObstacleIndex CableSpan::addSurfaceObstacle(
     MobilizedBodyIndex body,
-    Transform X_BS,
+    const Transform& X_BS,
     const ContactGeometry& geometry,
     Vec3 contactPointHint)
 {
@@ -295,7 +295,7 @@ const Transform& CableSpan::getObstacleXformSurfaceToBody(
 {
     return getImpl().getCurveSegment(ix).getXformSurfaceToBody();
 }
-void CableSpan::setObstacleXformSurfaceToBody(ObstacleIndex ix, Transform X_BS)
+void CableSpan::setObstacleXformSurfaceToBody(ObstacleIndex ix, const Transform& X_BS)
 {
     updImpl().updCurveSegment(ix).setXformSurfaceToBody(std::move(X_BS));
 }

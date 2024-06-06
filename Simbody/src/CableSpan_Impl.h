@@ -110,7 +110,7 @@ public:
 
     ObstacleIndex addSurfaceObstacle(
         MobilizedBodyIndex mobod,
-        Transform X_BS,
+        const Transform& X_BS,
         const ContactGeometry& geometry,
         Vec3 contactPointHint)
     {

@@ -107,7 +107,7 @@ public:
      * have to belong to a valid cable path. */
     ObstacleIndex addSurfaceObstacle(
         MobilizedBodyIndex mobod,
-        Transform X_BS,
+        const Transform& X_BS,
         const ContactGeometry& geometry,
         Vec3 contactPointHint);
 
@@ -130,7 +130,7 @@ public:
     const Transform& getObstacleXformSurfaceToBody(ObstacleIndex ix) const;
     /** Set the orientation and position of the obstacle's surface with respect
      * to its mobilized body. */
-    void setObstacleXformSurfaceToBody(ObstacleIndex ix, Transform X_BS);
+    void setObstacleXformSurfaceToBody(ObstacleIndex ix, const Transform& X_BS);
 
     /** Get the ContactGeometry attached to the obstacle */
     const ContactGeometry& getObstacleContactGeometry(ObstacleIndex ix) const;
