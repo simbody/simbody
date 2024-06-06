@@ -68,7 +68,7 @@ public:
 //------------------------------------------------------------------------------
 
     CableSpan();
-    ~CableSpan();
+    ~CableSpan() noexcept;
 
     /** Clones the data, but not the subsystem entry. */
     CableSpan(const CableSpan& source);

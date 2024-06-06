@@ -179,7 +179,7 @@ public:
     CurveSegment(const CurveSegment&)            = default;
     CurveSegment& operator=(const CurveSegment&) = default;
 
-    ~CurveSegment()                                  = default;
+    ~CurveSegment() noexcept                         = default;
     CurveSegment(CurveSegment&&) noexcept            = default;
     CurveSegment& operator=(CurveSegment&&) noexcept = default;
 

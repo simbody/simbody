@@ -101,10 +101,7 @@ public:
     };
 
     // TODO fix rule of five
-    Impl()
-    {}
-    ~Impl()
-    {}
+    Impl() = default;
 
     void realizeTopology(State& state)
     {

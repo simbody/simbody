@@ -66,7 +66,7 @@ public:
 //------------------------------------------------------------------------------
 
     Impl()  = default;
-    ~Impl() = default;
+    ~Impl() noexcept = default;
 
     // Copy, but clear the subsystem registration of the copy.
     Impl(const Impl& source) :

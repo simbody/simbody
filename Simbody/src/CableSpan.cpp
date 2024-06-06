@@ -222,7 +222,7 @@ CableSpan::CableSpan() : m_Impl(std::shared_ptr<Impl>(new Impl())) {}
 // Invalidate the CableSpan::Impl, and delete the reference. Anyone still
 // holding on to the data (like the subsystem) will know it is invalid, and
 // delete their reference as well.
-CableSpan::~CableSpan()
+CableSpan::~CableSpan() noexcept
 {
     if (m_Impl) {
         m_Impl->invalidateSubsystemEntry();
