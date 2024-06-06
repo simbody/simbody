@@ -36,7 +36,6 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanIndex);
 class MultibodySystem;
 class CableSubsystem;
 class CableSubsystemTestHelper;
-class CableSpan;
 
 //==============================================================================
 //                          CABLE SPAN
