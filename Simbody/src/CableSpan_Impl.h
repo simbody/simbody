@@ -254,7 +254,7 @@ public:
     int calcPathPoints(
         const State& state,
         Real lengthIncrement,
-        std::function<void(Real length, Vec3 point_G)> sink) const;
+        const std::function<void(Real length, Vec3 point_G)>& sink) const;
 
     void applyBodyForces(
         const State& state,

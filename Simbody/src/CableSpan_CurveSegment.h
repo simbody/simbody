@@ -343,12 +343,12 @@ public:
     // See CurveSegment::calcPathPoints for description.
     int calcPathPoints(
         const State& state,
-        std::function<void(Real length, Vec3 point_G)> sink,
+        const std::function<void(Real length, Vec3 point_G)>& sink,
         int nSamples = 0) const;
 
     int calcPathPointsAndTangents(
         const State& state,
-        std::function<void(Real length, Vec3 point_G, UnitVec3 tangent_G)> sink,
+        const std::function<void(Real length, Vec3 point_G, UnitVec3 tangent_G)>& sink,
         int nSamples) const;
 
     // Compute a new geodesic from provided initial conditions.

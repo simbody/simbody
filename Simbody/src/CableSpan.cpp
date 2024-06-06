@@ -345,7 +345,7 @@ int CableSpan::calcCurveSegmentPathPoints(
     const State& state,
     ObstacleIndex ix,
     int nPoints,
-    std::function<void(Real length, Vec3 point)> sink) const
+    const std::function<void(Real length, Vec3 point)>& sink) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).calcPathPoints(state, sink, nPoints);
@@ -356,7 +356,7 @@ int CableSpan::calcCurveSegmentPathPointsAndTangents(
     const State& state,
     ObstacleIndex ix,
     int nPoints,
-    std::function<void(Real length, Vec3 point, UnitVec3 tangent)> sink) const
+    const std::function<void(Real length, Vec3 point, UnitVec3 tangent)>& sink) const
 {
     getImpl().realizePosition(state);
     return getImpl().getCurveSegment(ix).calcPathPointsAndTangents(
@@ -469,7 +469,7 @@ void CableSpan::applyBodyForces(
 int CableSpan::calcPathPoints(
     const State& state,
     Real lengthIncrement,
-    std::function<void(Real length, Vec3 point_G)> sink) const
+    const std::function<void(Real length, Vec3 point_G)>& sink) const
 {
     return getImpl().calcPathPoints(state, lengthIncrement, sink);
 }
@@ -617,7 +617,7 @@ size_t CableSpan::Impl::countActive(const State& s) const
 int CableSpan::Impl::calcPathPoints(
     const State& state,
     Real maxLengthIncrement,
-    std::function<void(Real length, Vec3 point_G)> sink) const
+    const std::function<void(Real length, Vec3 point_G)>& sink) const
 {
     // Count number of points written.
     int count = 0;
@@ -1009,7 +1009,7 @@ Real calcPathError(const LineSegment& e, const Rotation& R, CoordinateAxis axis)
 int callForEachActiveCurveSegment(
     const CableSpan::Impl& cable,
     const State& s,
-    std::function<void(const CurveSegment& curve)> callMe)
+    const std::function<void(const CurveSegment& curve)>& callMe)
 {
     int nActive = 0;
     for (ObstacleIndex ix(0); ix < cable.getNumCurveSegments(); ++ix) {
@@ -2166,7 +2166,7 @@ size_t resampleGeodesic(
 
 int CurveSegment::calcPathPointsAndTangents(
     const State& state,
-    std::function<void(Real length, Vec3 point_G, UnitVec3 tangent_G)> sink,
+    const std::function<void(Real length, Vec3 point_G, UnitVec3 tangent_G)>& sink,
     int nSamples) const
 {
     const InstanceEntry& geodesic_S = getInstanceEntry(state);
@@ -2210,7 +2210,7 @@ int CurveSegment::calcPathPointsAndTangents(
 
 int CurveSegment::calcPathPoints(
     const State& state,
-    std::function<void(Real length, Vec3 point_G)> sink,
+    const std::function<void(Real length, Vec3 point_G)>& sink,
     int nSamples) const
 {
     const InstanceEntry& geodesic_S = getInstanceEntry(state);

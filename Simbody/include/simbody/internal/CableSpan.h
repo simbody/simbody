@@ -186,7 +186,7 @@ public:
         const State& state,
         ObstacleIndex ix,
         int nPoints,
-        std::function<void(Real length, Vec3 point)> sink) const;
+        const std::function<void(Real length, Vec3 point)>& sink) const;
 
     // TODO same as calcCurveSegmentPathPoints but also computes the curve's
     // tangent.
@@ -194,7 +194,7 @@ public:
         const State& state,
         ObstacleIndex ix,
         int nPoints,
-        std::function<void(Real length, Vec3 point, UnitVec3 tangent)> sink)
+        const std::function<void(Real length, Vec3 point, UnitVec3 tangent)>& sink)
         const;
 
 //------------------------------------------------------------------------------
@@ -275,7 +275,7 @@ public:
     int calcPathPoints(
         const State& state,
         Real lengthInterval,
-        std::function<void(Real length, Vec3 point)> sink) const;
+        const std::function<void(Real length, Vec3 point)>& sink) const;
 
     /** Number of solver iterations required to compute the cable's path.
     * State must be realized to Stage::Position. */
