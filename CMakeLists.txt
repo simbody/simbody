@@ -91,10 +91,7 @@ option(BUILD_EXAMPLES
 # enable_testing() command, but we'll take it over here for
 # our own purposes too.
 set(BUILD_TESTING ON CACHE BOOL
-    "Control building of Simbody test programs.
-    To actually build tests, one
-    or both of BUILD_TESTS_AND_EXAMPLES_STATIC and
-    BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
+    "Build tests for Simbody libraries.")
 
 option(INSTALL_DOCS
     "Build and install Simbody documentation."
