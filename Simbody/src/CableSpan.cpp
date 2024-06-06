@@ -182,8 +182,9 @@ int CableSubsystem::Impl::calcDecorativeGeometryAndAppendImpl(
     Stage stage,
     Array_<DecorativeGeometry>& decorations) const
 {
-    if (stage != Stage::Position)
+    if (stage != Stage::Position) {
         return 0;
+    }
 
     for (const CableSpan& cable : cables) {
         int returnValue = cable.getImpl().calcDecorativeGeometryAndAppend(
