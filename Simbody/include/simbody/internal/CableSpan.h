@@ -312,7 +312,7 @@ private:
         return *m_Impl;
     }
 
-    std::shared_ptr<Impl> m_Impl = nullptr;
+    std::shared_ptr<Impl> m_Impl;
 
     friend CableSubsystem;
 
