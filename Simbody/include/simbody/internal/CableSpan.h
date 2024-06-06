@@ -50,7 +50,6 @@ class CableSubsystemTestHelper;
 class SimTK_SIMBODY_EXPORT CableSpan final
 {
 public:
-    using FrenetFrame   = Transform;
     using ObstacleIndex = CableSpanObstacleIndex;
 
     /** Identifies whether the cable is in contact with the obstacle surface or
