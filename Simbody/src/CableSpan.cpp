@@ -226,7 +226,6 @@ CableSpan::~CableSpan() noexcept
 {
     if (m_Impl) {
         m_Impl->invalidateSubsystemEntry();
-        m_Impl = nullptr;
     }
 }
 
