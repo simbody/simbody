@@ -143,7 +143,7 @@ add_library(SimTKmath
     ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES}
     ${API_ABS_INCLUDE_FILES})
 
-# SimTKmath depends on PlatformFiles and SimTKcommon only.
+# SimTKmath depends on SimTKcommon only.
 target_link_libraries(SimTKmath PUBLIC
     SimTKcommon ${MATH_LIBS_TO_USE}) # TODO: Do we really need to link to MATH_LIBS_TO_USE?
 

@@ -612,11 +612,8 @@ set(MATH_LIBS_TO_USE_VN ${MATH_LIBS_TO_USE})
 
 
 add_subdirectory( SimTKcommon )
-# SimTKCOMMON_INCLUDE_DIRECTORIES now set
 add_subdirectory( SimTKmath )
-# SimTKMATH_INCLUDE_DIRECTORIES now set
 add_subdirectory( Simbody )
-# SimTKSIMBODY_INCLUDE_DIRECTORIES now set(but not used)
 # GUI_NAME now set
 
 export(EXPORT SimbodyTargets
