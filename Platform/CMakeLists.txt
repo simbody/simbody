@@ -233,23 +233,3 @@ if(WIN32 AND NOT BUILD_USING_OTHER_LAPACK)
         INTERFACE_LINK_LIBRARIES blas
         )
 endif()
-
-# There is just one item in PLATFORM_INCLUDE_DIRECTORIES.
-if(MSVC)
-    set(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_ROOT}/include")
-endif()
-# Copy to parent.
-set(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_INCLUDE_DIRECTORIES}"
-    PARENT_SCOPE)
-
-# This needs an outer loop if you add more include directories.
-file(GLOB INCL_FILES "${PLATFORM_INCLUDE_DIRECTORIES}/*.h")
-foreach(INCLF ${INCL_FILES})
-    get_filename_component(INCLF_ROOT ${INCLF} NAME)
-    install(FILES ${INCLF}
-    PERMISSIONS OWNER_READ OWNER_WRITE
-            GROUP_READ GROUP_WRITE
-                WORLD_READ
-        DESTINATION include )
-endforeach()
-

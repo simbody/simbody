@@ -154,7 +154,6 @@ target_include_directories(SimTKmath
         "$<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>"
         ${SimTKMATH_BUILD_INCLUDE_DIRS}
     PRIVATE
-        ${PLATFORM_INCLUDE_DIRECTORIES}
         ${SOURCE_INCLUDE_DIRS})
 
 set_target_properties(SimTKmath PROPERTIES

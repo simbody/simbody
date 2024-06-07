@@ -118,8 +118,6 @@ target_include_directories(SimTKcommon
     PUBLIC
         "$<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>"
         ${SimTKCOMMON_BUILD_INCLUDE_DIRS}
-    PRIVATE
-        ${PLATFORM_INCLUDE_DIRECTORIES}
     )
 
 set_target_properties(SimTKcommon PROPERTIES
