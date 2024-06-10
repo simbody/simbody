@@ -300,7 +300,7 @@ set(SimTKCOMMON_LIBRARY_NAME ${NS}SimTKcommon${VN} CACHE INTERNAL
 # Interface (ABI) we're building for. Currently that is either x86, meaning
 # 32 bit Intel instruction set, or x64 for 64 bit Intel instruction set.
 
-if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+if("${CMAKE_SIZEOF_VOID_P}" EQUAL 8)
     set(PLATFORM_ABI x64)
 else()
     set(PLATFORM_ABI x86)
