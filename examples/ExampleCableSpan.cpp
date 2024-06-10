@@ -353,7 +353,7 @@ int main()
             CableSubsystemTestHelper perturbationTestHelper;
             if (!
                     perturbationTestHelper
-                    .applyPerturbationTest(s, cables, 1e-5, 5e-2, oss)) {
+                    .applyPerturbationTest(system, cables, s, 1e-5, 5e-3, oss)) {
                 std::cout << "FAILED!\n";
                 std::cout << oss.str() << "\n";
                 throw std::runtime_error("Test failed, stopping");

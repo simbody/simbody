@@ -356,8 +356,9 @@ public:
     // to each CurveSegment's geodesic (i.e. a perturbation), and computing the
     // resulting change in the path error vector.
     bool applyPerturbationTest(
-        const State& s,
+        const MultibodySystem& system,
         const CableSubsystem& subsystem,
+        const State& s,
         Real perturbation,
         Real bound,
         std::ostream& os);

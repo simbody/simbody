@@ -2259,8 +2259,9 @@ int CurveSegment::calcPathPoints(
 //==============================================================================
 
 bool CableSubsystemTestHelper::applyPerturbationTest(
-    const State& s,
+    const MultibodySystem& system,
     const CableSubsystem& subsystem,
+    const State& s,
     Real perturbation,
     Real bound,
     std::ostream& os)
@@ -2274,8 +2275,12 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
         // Axes considered when computing the path error.
         const std::array<CoordinateAxis, 2> axes{NormalAxis, BinormalAxis};
 
+        // We do not want to mess with the actual state, so we make a copy.
+        const State sCopy = s;
+        system.realize(sCopy, Stage::Position);
+
         // Count the number of active curve segments.
-        const int nActive = cable.countActive(s);
+        const int nActive = cable.countActive(sCopy);
 
         if (nActive == 0) {
             os << "Cable has no active segments: Skipping perturbation test\n";
@@ -2283,15 +2288,15 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
         }
 
         SolverData& data =
-            subsystem.getImpl().updSolverData(s).updOrInsert(nActive);
+            subsystem.getImpl().updSolverData(sCopy).updOrInsert(nActive);
 
         constexpr int DOF = 4;
         for (int i = 0; i < (DOF * 2 * nActive); ++i) {
-            cable.invalidatePositionLevelCache(s);
+            cable.invalidatePositionLevelCache(sCopy);
 
             // Trigger realizing position level cache, resetting the
             // configuration.
-            const CableSpan::Impl::PosInfo& ppe = cable.getPosInfo(s);
+            const CableSpan::Impl::PosInfo& ppe = cable.getPosInfo(sCopy);
 
             // Define the perturbation we will use for testing the jacobian.
             perturbation *= -1.;
@@ -2300,19 +2305,19 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
 
             calcLineSegments(
                 cable,
-                s,
+                sCopy,
                 ppe.originPoint_G,
                 ppe.terminationPoint_G,
                 data.lineSegments);
 
             cable.calcPathErrorVector<2>(
-                s,
+                sCopy,
                 data.lineSegments,
                 axes,
                 data.pathError);
 
             cable.calcPathErrorJacobian<2>(
-                s,
+                sCopy,
                 data.lineSegments,
                 axes,
                 data.pathErrorJacobian);
@@ -2322,42 +2327,42 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
 
             std::vector<WrappingStatus> prevWrappingStatus{};
             for (const CurveSegment& curve : cable.m_CurveSegments) {
-                prevWrappingStatus.push_back(curve.getInstanceEntry(s).status);
+                prevWrappingStatus.push_back(curve.getInstanceEntry(sCopy).status);
             }
 
             const Correction* corrIt = getPathCorrections(data);
             forEachActiveCurveSegment(
                 cable,
-                s,
+                sCopy,
                 [&](const CurveSegment& curve) {
                     applyGeodesicCorrection(
                         curve,
-                        s,
+                        sCopy,
                         *corrIt,
                         cable.getIntegratorTolerances());
                     ++corrIt;
                 });
 
             for (const CurveSegment& curve : cable.m_CurveSegments) {
-                curve.invalidatePosEntry(s);
+                curve.invalidatePosEntry(sCopy);
             }
 
             for (ObstacleIndex ix(0); ix < cable.getNumCurveSegments(); ++ix) {
                 cable.getCurveSegment(ix).realizePosition(
-                    s,
-                    cable.findPrevPoint(s, ix),
-                    cable.findNextPoint(s, ix),
+                    sCopy,
+                    cable.findPrevPoint(sCopy, ix),
+                    cable.findNextPoint(sCopy, ix),
                     cable.getIntegratorTolerances());
             }
 
             calcLineSegments(
                 cable,
-                s,
+                sCopy,
                 ppe.originPoint_G,
                 ppe.terminationPoint_G,
                 data.lineSegments);
             cable.calcPathErrorVector<2>(
-                s,
+                sCopy,
                 data.lineSegments,
                 axes,
                 data.pathError);
@@ -2367,7 +2372,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 int ix = -1;
                 for (const CurveSegment& curve : cable.m_CurveSegments) {
                     WrappingStatusChanged |= prevWrappingStatus.at(++ix) !=
-                                             curve.getInstanceEntry(s).status;
+                                             curve.getInstanceEntry(sCopy).status;
                 }
             }
 
@@ -2396,9 +2401,6 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                << "\n";
             success &= passedTest;
         }
-    }
-    for (const CableSpan& cable : subsystem.getImpl().cables) {
-        cable.getImpl().invalidatePositionLevelCache(s);
     }
     return success;
 }

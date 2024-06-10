@@ -706,7 +706,7 @@ int main()
 
         CableSubsystemTestHelper perturbationTestHelper;
         testPassed &= perturbationTestHelper
-                          .applyPerturbationTest(s, cables, 1e-4, 1e-3, oss);
+                          .applyPerturbationTest(system, cables, s, 1e-4, 1e-3, oss);
 
         std::cout << oss.str() << "\n";
 
