@@ -309,7 +309,9 @@ int main()
 
         path1.addSurfaceObstacle(
             ball,
-            Transform(Rotation(1.5, CoordinateAxis::YCoordinateAxis()),Vec3{0.}),
+            Transform(
+                Rotation(1.5, CoordinateAxis::YCoordinateAxis()),
+                Vec3{0.}),
             ContactGeometry::Sphere(Rad),
             {0.1, 1., 0.1});
 
@@ -340,7 +342,7 @@ int main()
         // Initialize the system and s.
         system.realizeTopology();
         State s = system.getDefaultState();
-            viz.report(s);
+        viz.report(s);
 
         Real v          = 0.;
         bool continuous = false;
@@ -351,9 +353,13 @@ int main()
 
             std::ostringstream oss;
             CableSubsystemTestHelper perturbationTestHelper;
-            if (!
-                    perturbationTestHelper
-                    .applyPerturbationTest(system, cables, s, 1e-5, 5e-3, oss)) {
+            if (!perturbationTestHelper.applyPerturbationTest(
+                    system,
+                    cables,
+                    s,
+                    1e-5,
+                    5e-3,
+                    oss)) {
                 std::cout << "FAILED!\n";
                 std::cout << oss.str() << "\n";
                 throw std::runtime_error("Test failed, stopping");
@@ -374,7 +380,8 @@ int main()
             phi += 0.01;
             for (int i = 0; i < s.getNQ(); ++i) {
                 /* Random::Gaussian random; */
-                s.updQ()[i] = sin(phi * static_cast<Real>(i) + random.getValue()*1e-3);
+                s.updQ()[i] =
+                    sin(phi * static_cast<Real>(i) + random.getValue() * 1e-3);
             }
 
             if (continuous) {
