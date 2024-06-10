@@ -42,6 +42,30 @@
             }
         },
         {
+            "name": "msvc-default",
+            "displayName": "Default MSVC build configuration",
+            "description": "The right MSVC build configuration for most users",
+            "inherits": "ci-base",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "generator": "Visual Studio 17 2022",
+            "architecture": {
+                "value": "x64"
+            },
+            "cacheVariables": {
+                "BUILD_TESTING": false,
+                "CMAKE_CXX_FLAGS": "/w",
+                "CMAKE_COMPILE_WARNING_AS_ERROR": false
+            },
+            "warnings": {
+                "dev": false,
+                "deprecated": false
+            }
+        },
+        {
             "name": "dev-default",
             "displayName": "Default build configuration for devs",
             "description": "The right build configuration for most developers",
@@ -49,6 +73,25 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo",
                 "CMAKE_CXX_FLAGS": "-Wall"
+            }
+        },
+        {
+            "name": "msvc-dev-default",
+            "displayName": "Default MSVC build configuration for devs",
+            "description": "The right MSVC build configuration for most developers",
+            "inherits": "ci-base",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "generator": "Visual Studio 17 2022",
+            "architecture": {
+                "value": "x64"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_CXX_FLAGS": "/WX"
             }
         },
         {
@@ -164,6 +207,26 @@
             "configurePreset": "dev-default"
         },
         {
+            "name": "msvc-default",
+            "configurePreset": "msvc-dev-default",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "configuration": "Release"
+        },
+        {
+            "name": "msvc-dev-default",
+            "configurePreset": "msvc-dev-default",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "configuration": "RelWithDebInfo"
+        },
+        {
             "name": "ci-msvc-windows-release",
             "configurePreset": "ci-msvc-windows-release",
             "condition": {
@@ -233,15 +296,15 @@
             }
         },
         {
-            "name": "default",
-            "configurePreset": "default",
+            "name": "dev-default",
+            "configurePreset": "dev-default",
             "inherits": [
                 "base"
             ]
         },
         {
-            "name": "dev-default",
-            "configurePreset": "dev-default",
+            "name": "msvc-dev-default",
+            "configurePreset": "msvc-dev-default",
             "inherits": [
                 "base"
             ]
