@@ -22,4 +22,4 @@ set(SOURCE_GROUP_FILES ${SOURCE_GROUP_FILES} PARENT_SCOPE)
 # define tests that depend on sources here
 if(BUILD_TESTING)
     add_subdirectory(tests)
-endif(BUILD_TESTING)
+endif()
