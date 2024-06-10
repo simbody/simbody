@@ -535,7 +535,6 @@ set(SIMBODY_VISUALIZER_INSTALL_DIR
 
 # Each of these returns a list of API include directories for
 # use by the later builds.
-add_custom_target(PlatformFiles ALL)
 add_subdirectory( Platform )
 # PLATFORM_INCLUDE_DIRECTORIES now set; 'blas' and 'lapack' targets defined on Windows
 

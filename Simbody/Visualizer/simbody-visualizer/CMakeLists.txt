@@ -19,12 +19,14 @@ if(WIN32)
     else()
         set(glut32libdir "${glut32dir}/lib")
     endif()
-    set(GLUT_LIBRARIES "${glut32libdir}/glut32.lib")
-    # Update the local copy of the dll; destination is Release or Debug.
-    # Must fix slashes so that Windows "copy" command can work.
-    file(TO_NATIVE_PATH  "${glut32libdir}/glut32.dll" gl32src)
-    file(TO_NATIVE_PATH  "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/glut32.dll"
-         gl32dest)
+
+    add_library(glut32 SHARED IMPORTED)
+    set_target_properties(glut32 PROPERTIES
+        IMPORTED_IMPLIB "${glut32libdir}/glut32.lib"
+        IMPORTED_LOCATION "${glut32libdir}/glut32.dll"
+        )
+
+    set(GLUT_LIBRARIES glut32)
     set(SIMBODY_HAS_GLUT TRUE)
 else()
     find_package(GLUT) # sets GLUT_LIBRARIES
@@ -85,39 +87,40 @@ if(${SIMBODY_USE_INSTALL_RPATH})
     # @executable_path only makes sense on OSX, so if we use RPATH on
     # Linux we'll have to revisit.
 
-    # vis_dir_to_install_dir is most likely "../"
-    if (APPLE)
-        set(vis_install_dir
-                "${SIMBODY_VISUALIZER_INSTALL_DIR}/simbody-visualizer.app/Contents/MacOS")
-    else()
-        set(vis_install_dir "${SIMBODY_VISUALIZER_INSTALL_DIR}")
+        # vis_dir_to_install_dir is most likely "../"
+        if (APPLE)
+            set(vis_install_dir
+                    "${SIMBODY_VISUALIZER_INSTALL_DIR}/simbody-visualizer.app/Contents/MacOS")
+        else()
+            set(vis_install_dir "${SIMBODY_VISUALIZER_INSTALL_DIR}")
+        endif()
+        file(RELATIVE_PATH vis_dir_to_install_dir
+                "${vis_install_dir}"
+                "${CMAKE_INSTALL_PREFIX}")
+        set(vis_dir_to_lib_dir "${vis_dir_to_install_dir}${CMAKE_INSTALL_LIBDIR}")
+        set_target_properties(simbody-visualizer PROPERTIES
+            INSTALL_RPATH "\@executable_path/${vis_dir_to_lib_dir}"
+            )
     endif()
-    file(RELATIVE_PATH vis_dir_to_install_dir
-            "${vis_install_dir}"
-            "${CMAKE_INSTALL_PREFIX}")
-    set(vis_dir_to_lib_dir "${vis_dir_to_install_dir}${CMAKE_INSTALL_LIBDIR}")
-    set_target_properties(${GUI_NAME} PROPERTIES
-        INSTALL_RPATH "\@executable_path/${vis_dir_to_lib_dir}"
-        )
-endif()
 
-# SIMBODY_VISUALIZER_INSTALL_DIR is set in the root CMakeLists.txt
-install(TARGETS ${GUI_NAME}
-         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                             GROUP_READ GROUP_WRITE GROUP_EXECUTE
-                             WORLD_READ WORLD_EXECUTE
-         DESTINATION ${SIMBODY_VISUALIZER_INSTALL_DIR})
+    # SIMBODY_VISUALIZER_INSTALL_DIR is set in the root CMakeLists.txt
+    install(TARGETS simbody-visualizer
+            PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                                GROUP_READ GROUP_WRITE GROUP_EXECUTE
+                                WORLD_READ WORLD_EXECUTE
+            DESTINATION ${SIMBODY_VISUALIZER_INSTALL_DIR})
 
-# on Windows we also have to copy and later install the glut32.dll
-if(WIN32)
-    # This gets executed whenever the named target gets built.
-    add_custom_command(
-        TARGET ${GUI_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy ${gl32src} ${gl32dest}
-        COMMENT "Copying glut32.dll" VERBATIM)
-
-    install(FILES ${glut32libdir}/glut32.dll
-        DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
+    if(WIN32)
+        # on Windows we also have to copy and later install the glut32.dll
+        # no need to specify permissions on Windows
+        install(IMPORTED_RUNTIME_ARTIFACTS simbody-visualizer
+            RUNTIME_DEPENDENCY_SET glut-vendored-dlls
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+        install(RUNTIME_DEPENDENCY_SET glut-vendored-dlls
+            PRE_EXCLUDE_REGEXES "^(api|ext)-ms"
+            POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
+            )
+    endif()
 
 endif()
