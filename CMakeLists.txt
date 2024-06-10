@@ -521,29 +521,12 @@ set(MATH_LIBS_TO_USE_VN ${MATH_LIBS_TO_USE})
 #
 # Allow automated build and dashboard.
 #
-include(Dart)
-## When in Debug mode and running valgrind, some of the test
-## cases take longer than the default 1500 seconds.
-set(DART_TESTING_TIMEOUT 7200)
 
 if(BUILD_TESTING)
-    #
-    # Testing
-    #
-    enable_testing()
-
-    # Make a RUN_TESTS_PARALLEL target (thanks, Kevin!)
-    # Specify number of cores to run for testing
-    set(TESTING_PROCESSOR_COUNT 4 CACHE STRING
-        "Number of CPUs to be used by the RUN_TESTS_PARALLEL target.")
-    mark_as_advanced(TESTING_PROCESSOR_COUNT)
-    set(cmd ${CMAKE_CTEST_COMMAND} -j${TESTING_PROCESSOR_COUNT})
-    if(MSVC OR XCODE)
-        set(cmd ${cmd} -C ${CMAKE_CFG_INTDIR})
-    else()
-        set(cmd ${cmd} -C ${CMAKE_BUILD_TYPE})
-    endif()
-    add_custom_target(RUN_TESTS_PARALLEL COMMAND ${cmd})
+    include(CTest) # automatically calls enable_testing()
+    ## When in Debug mode and running valgrind, some of the test
+    ## cases take longer than the default 1500 seconds.
+    set(CTEST_TESTING_TIMEOUT 7200)
 endif()
 
 # These are used in Doxyfile.in and SimbodyConfig.cmake.in.
