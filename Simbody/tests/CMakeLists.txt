@@ -34,7 +34,7 @@ foreach(TEST_PROG ${REGR_TESTS})
         target_link_libraries(${TEST_ROOT} 
                     ${TEST_SHARED_TARGET})
         add_test(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
-    endif(BUILD_TESTS_AND_EXAMPLES_SHARED)
+    endif()
 
     if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
         # Link with static library
@@ -49,7 +49,7 @@ foreach(TEST_PROG ${REGR_TESTS})
         add_test(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
     endif()
 
-endforeach(TEST_PROG ${REGR_TESTS})
+endforeach()
 
 
 

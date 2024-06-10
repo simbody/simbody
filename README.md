@@ -1,4 +1,4 @@
-Simbody [![Travis][buildstatus_image_travis]][travisci] [![Appveyor][buildstatus_image_appveyor]][appveyorci] [![Codecov][buildstatus_image_codecov]][codecovci]
+Simbody [![CI](https://github.com/simbody/simbody/actions/workflows/continuous_integration.yml/badge.svg)](https://github.com/simbody/simbody/actions/workflows/continuous_integration.yml) [![Appveyor][buildstatus_image_appveyor]][appveyorci] [![Codecov][buildstatus_image_codecov]][codecovci]
 =======
 
 Simbody is a high-performance, open-source toolkit for science- and
@@ -100,7 +100,7 @@ Dependencies
 
 Simbody depends on the following:
 
-* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.10 or later (3.1.3 or later for Visual Studio).
+* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 3.12 or later.
 * compiler: [Visual Studio](http://www.visualstudio.com) 2015, 2017, or 2019 (Windows only), [gcc](http://gcc.gnu.org/) 4.9.0 or later (typically on Linux), [Clang](http://clang.llvm.org/) 3.4 or later, or Apple Clang (Xcode) 8 or later.
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) 3.6.0 or later and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
@@ -154,7 +154,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
   * 2017 and later: In the installer, select the *Desktop development with C++* workload.
   * Any other C++ code you plan to use with Simbody should be compiled with the
     same compiler as used for Simbody.
-2. Download and install [CMake](http://www.cmake.org/download), version 3.1.3 or higher.
+2. Download and install [CMake](http://www.cmake.org/download), version 3.12 or higher.
 3. (optional) If you want to build API documentation, download and install Doxygen, version 1.8.8 or higher.
 
 #### Download the Simbody source code
