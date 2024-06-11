@@ -67,13 +67,9 @@ public:
 //------------------------------------------------------------------------------
 
     CableSpan();
-    ~CableSpan() noexcept;
-
-    /** Clones the data, but not the subsystem entry. */
-    CableSpan(const CableSpan& source);
-    /** Clones the data, but not the subsystem entry. */
-    CableSpan& operator=(const CableSpan& source);
-
+    ~CableSpan() noexcept = default;
+    CableSpan(const CableSpan& source) = default;
+    CableSpan& operator=(const CableSpan& source) = default;
     CableSpan(CableSpan&&) noexcept            = default;
     CableSpan& operator=(CableSpan&&) noexcept = default;
 
@@ -294,13 +290,6 @@ public:
     class Impl;
 
 private:
-    /** Cheap copy of pointer to the Impl. */
-    CableSpan copyImpl() const {
-        CableSpan copy;
-        copy.m_Impl = m_Impl;
-        return copy;
-    }
-
     const Impl& getImpl() const
     {
         return *m_Impl;
@@ -334,6 +323,7 @@ public:
     CableSpan& updCable(CableSpanIndex idx);
 
     SimTK_PIMPL_DOWNCAST(CableSubsystem, Subsystem);
+
     class Impl;
     Impl& updImpl();
     const Impl& getImpl() const;

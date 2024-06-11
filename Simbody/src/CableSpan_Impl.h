@@ -65,34 +65,7 @@ public:
 
 //------------------------------------------------------------------------------
 
-    Impl()  = default;
-    ~Impl() noexcept = default;
-
-    // Copy, but clear the subsystem registration of the copy.
-    Impl(const Impl& source) :
-        m_Subsystem(nullptr),
-        m_Index(CableSpanIndex::Invalid()),
-        m_PosInfoIx(CacheEntryIndex::Invalid()),
-        m_VelInfoIx(CacheEntryIndex::Invalid()),
-        m_OriginBody(source.m_OriginBody),
-        m_OriginPoint(source.m_OriginPoint),
-        m_TerminationBody(source.m_TerminationBody),
-        m_TerminationPoint(source.m_TerminationPoint),
-        m_CurveSegments(source.m_CurveSegments),
-        m_PathAccuracy(source.m_PathAccuracy),
-        m_SolverMaxIterations(source.m_SolverMaxIterations),
-        m_MaxCorrectionStepDeg(source.m_MaxCorrectionStepDeg),
-        m_IntegratorTolerances(source.m_IntegratorTolerances)
-    {}
-
-    // Copy, but clear the subsystem registration of the copy.
-    Impl& operator=(const Impl& source)
-    {
-        return *this = Impl(source);
-    }
-
-    Impl(Impl&&) noexcept            = default;
-    Impl& operator=(Impl&&) noexcept = default;
+    Impl() = default;
 
 //------------------------------------------------------------------------------
 
@@ -102,8 +75,6 @@ public:
         Vec3 originPoint,
         MobilizedBodyIndex terminationBody,
         Vec3 terminationPoint) :
-        m_Subsystem(nullptr),        // Not adopted yet
-        m_Index(CableSpanIndex(-1)), // Invalid index
         m_OriginBody(originBody), m_OriginPoint(originPoint),
         m_TerminationBody(terminationBody), m_TerminationPoint(terminationPoint)
     {}
@@ -137,15 +108,6 @@ public:
         }
     }
     void invalidatePositionLevelCache(const State& state) const;
-
-    void invalidateSubsystemEntry() {
-        m_Subsystem = nullptr;
-        m_Index = CableSpanIndex::Invalid();
-    }
-
-    bool isSubsystemEntryValid() const {
-        return static_cast<bool>(m_Subsystem) && m_Index.isValid();
-    }
 
     const PosInfo& getPosInfo(const State& state) const;
     const VelInfo& getVelInfo(const State& state) const;
@@ -272,12 +234,10 @@ private:
     // Get the subsystem this CableSpan is part of.
     const CableSubsystem& getSubsystem() const
     {
-        if (!m_Subsystem) {
-            SimTK_ERRCHK_ALWAYS(
+        SimTK_ERRCHK_ALWAYS(
                 m_Subsystem,
                 "CableSpan::Impl::getSubsystem()",
                 "CableSpan not yet adopted by any CableSubsystem");
-        }
         return *m_Subsystem;
     }
 
@@ -292,23 +252,20 @@ private:
 
     CableSubsystem& updSubsystem()
     {
-        if (!m_Subsystem) {
-            SimTK_ERRCHK_ALWAYS(
+        SimTK_ERRCHK_ALWAYS(
                 m_Subsystem,
                 "CableSpan::Impl::updSubsystem()",
                 "CableSpan not yet adopted by any CableSubsystem");
-        }
         return *m_Subsystem;
     }
 
     CableSpanIndex getIndex() const
     {
-        if (!m_Subsystem) {
-            SimTK_ERRCHK_ALWAYS(
-                m_Subsystem,
+        SimTK_ERRCHK1_ALWAYS(
+                m_Index.isValid(),
                 "CableSpan::Impl::getIndex()",
-                "CableSpan not yet adopted by any CableSubsystem");
-        }
+                "Index %d is not valid.",
+                m_Index);
         return m_Index;
     }
 

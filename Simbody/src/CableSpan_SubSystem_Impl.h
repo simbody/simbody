@@ -111,27 +111,6 @@ public:
             Stage::Instance,
             Stage::Infinity,
             new Value<CacheEntry>(cache));
-
-        // Helper for finding cables that have invalidated their registration at this subsystem.
-        auto FindFirstInvalidCable = [&]() -> CableSpan*
-        {
-            for (CableSpanIndex ix(0); ix < cables.size(); ++ix) {
-                if (!cables[ix].getImpl().isSubsystemEntryValid()) {
-                    return &cables[ix];
-                }
-            }
-            return nullptr;
-        };
-
-        // Find any unregistered cables and remove them.
-        while (true) {
-            CableSpan* invalidCable = FindFirstInvalidCable();
-            if (invalidCable) {
-                cables.erase(invalidCable);
-                continue;
-            }
-            break;
-        }
     }
 
     CableSpanIndex adoptCable(CableSubsystem& subsystemHandle, CableSpan& cable)
@@ -140,7 +119,7 @@ public:
 
         CableSpanIndex cableIx(cables.size());
         cable.updImpl().setSubsystem(subsystemHandle, cableIx);
-        cables.emplace_back(cable.copyImpl());
+        cables.emplace_back(cable);
         return cableIx;
     }
 
@@ -151,13 +130,29 @@ public:
 
     const CableSpan& getCable(CableSpanIndex index) const
     {
-        SimTK_ERRCHK_ALWAYS(cables[index].getImpl().isSubsystemEntryValid(), "CableSubsystem::getCable", "Attempted to access unregistered cable. Perhaps the cable was deleted after realizing topology.");
+        SimTK_ERRCHK1_ALWAYS(
+                &cables[index].getImpl().getSubsystem().getImpl() == this,
+                "CableSubsystem::getCable", "Cable %d is not owned by this subsystem",
+                index);
+        SimTK_ERRCHK1_ALWAYS(
+                cables[index].getImpl().getIndex() == index,
+                "CableSubsystem::getCable",
+                "Cable %d has an invalid index",
+                index);
         return cables[index];
     }
 
     CableSpan& updCable(CableSpanIndex index)
     {
-        SimTK_ERRCHK_ALWAYS(cables[index].getImpl().isSubsystemEntryValid(), "CableSubsystem::updCable", "Attempted to access unregistered cable. Perhaps the cable was deleted after realizing topology.");
+        SimTK_ERRCHK1_ALWAYS(
+                &cables[index].getImpl().getSubsystem().getImpl() == this,
+                "CableSubsystem::updCable", "Cable %d is not owned by this subsystem",
+                index);
+        SimTK_ERRCHK1_ALWAYS(
+                cables[index].getImpl().getIndex() == index,
+                "CableSubsystem::getCable",
+                "Cable %d has an invalid index",
+                index);
         return cables[index];
     }
 
