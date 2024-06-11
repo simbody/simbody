@@ -25,6 +25,9 @@ using namespace SimTK;
 using WrappingStatus       = CableSpan::ObstacleWrappingStatus;
 using ObstacleIndex        = CableSpan::ObstacleIndex;
 
+//==============================================================================
+//                          Helper Structures
+//==============================================================================
 namespace
 {
 
@@ -99,27 +102,22 @@ static const CoordinateAxis TangentAxis  = CoordinateAxis::XCoordinateAxis();
 static const CoordinateAxis NormalAxis   = CoordinateAxis::YCoordinateAxis();
 static const CoordinateAxis BinormalAxis = CoordinateAxis::ZCoordinateAxis();
 
-const UnitVec3& getAxis(const FrenetFrame& X, CoordinateAxis axis)
-{
-    return X.R().getAxisUnitVec(axis);
-}
-
 // Helper for grabbing the tangent axis.
 const UnitVec3& getTangent(const FrenetFrame& X)
 {
-    return getAxis(X, TangentAxis);
+    return X.R().getAxisUnitVec(TangentAxis);
 }
 
 // Helper for grabbing the normal axis.
 const UnitVec3& getNormal(const FrenetFrame& X)
 {
-    return getAxis(X, NormalAxis);
+    return X.R().getAxisUnitVec(NormalAxis);
 }
 
 // Helper for grabbing the binormal axis.
 const UnitVec3& getBinormal(const FrenetFrame& X)
 {
-    return getAxis(X, BinormalAxis);
+    return X.R().getAxisUnitVec(BinormalAxis);
 }
 
 
@@ -689,8 +687,7 @@ Real calcSurfaceCurvature(
     CoordinateAxis direction)
 {
     return -geometry.calcSurfaceCurvatureInDirection(
-        X_S.p(),
-        getAxis(X_S, direction));
+        X_S.p(), X_S.R().getAxisUnitVec(direction));
 }
 
 // Helper function for flipping the sign such that positive value is outside of
@@ -1731,7 +1728,7 @@ void CableSpan::Impl::calcPathErrorJacobian(
 
         const CurveSegmentData::Pos& dataPos = curve.getPosInfo(s);
         for (CoordinateAxis axis : axes) {
-            const UnitVec3 a_P = getAxis(dataPos.X_GP, axis);
+            const UnitVec3 a_P = dataPos.X_GP.R().getAxisUnitVec(axis);
 
             AddBlock(calcJacobianOfPathErrorAtP(curve, s, l_P, a_P));
 
@@ -1742,7 +1739,7 @@ void CableSpan::Impl::calcPathErrorJacobian(
         }
 
         for (CoordinateAxis axis : axes) {
-            const UnitVec3 a_Q = getAxis(dataPos.X_GQ, axis);
+            const UnitVec3 a_Q = dataPos.X_GQ.R().getAxisUnitVec(axis);
 
             AddBlock(calcJacobianOfPathErrorAtQ(curve, s, l_Q, a_Q));
 
