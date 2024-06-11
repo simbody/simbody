@@ -16,11 +16,11 @@
  limitations under the License.
  ----------------------------------------------------------------------------*/
 
-#include "simbody/internal/CableSpan.h"
-
 #include "CableSpan_CurveSegment.h"
 #include "CableSpan_Impl.h"
-#include "CableSpan_SubSystem_Impl.h"
+
+#include "simbody/internal/CableSpan.h"
+#include "simbody/internal/MultibodySystem.h"
 
 using namespace SimTK;
 
@@ -28,10 +28,280 @@ using namespace SimTK;
 using InstanceEntry       = CurveSegment::InstanceEntry;
 using LocalGeodesicSample = CurveSegment::LocalGeodesicSample;
 using WrappingStatus      = CurveSegment::WrappingStatus;
-using SolverData          = CableSubsystem::Impl::SolverData;
-// TODO rename
 using IntegratorTolerances = CurveSegment::IntegratorTolerances;
 using ObstacleIndex        = CableSpan::ObstacleIndex;
+
+//==============================================================================
+//                      Cached Data Structures
+//==============================================================================
+// Begin anonymous namespace, limiting the data structures to this compilation
+// unit.
+namespace
+{
+
+//==============================================================================
+//                         Struct MatrixWorkspace
+//==============================================================================
+/** This is a helper struct that is used by a CableSpan to compute the
+Stage::Position level data, i.e. the spanned path.
+Computing the spanned path envolves a Newton type iteration, for which several
+matrices are computed.
+After computing the path this data is no longer needed by the CableSpan. */
+struct MatrixWorkspace
+{
+    // Number of degrees of freedom of a geodesic.
+    static constexpr int GEODESIC_DOF = 4;
+
+    // Number of path error constraints per curve segment.
+    static constexpr int NUMBER_OF_CONSTRAINTS = 4;
+
+    // Given the number of CurveSegments that are in contact with their
+    // respective obstacle's surface, contruct a MatrixWorkspace of correct
+    // dimensions.
+    MatrixWorkspace(int nActive) : nCurves(nActive)
+    {
+        static constexpr int Q = GEODESIC_DOF;
+        // 4 for the path error, and 1 for the weighting of the length.
+        static constexpr int C = NUMBER_OF_CONSTRAINTS + 1;
+        const int n            = nActive;
+
+        lineSegments.resize(n + 1);
+        pathErrorJacobian = Matrix(C * n, Q * n, 0.);
+        pathCorrection    = Vector(Q * n, 0.);
+        pathError         = Vector(C * n, 0.);
+    }
+
+    std::vector<LineSegment> lineSegments;
+
+    Matrix pathErrorJacobian;
+    Vector pathCorrection;
+    Vector pathError;
+    FactorQTZ inverse;
+    int nCurves = -1;
+};
+
+//==============================================================================
+//                      Struct PathSolverScratchData
+//==============================================================================
+// Cache entry for holding MatrixWorkspaces of different dimensions.
+//
+// CableSubsystem caches this data, such that all it's CableSpans can make use
+// of it as a scratchpad when computing the Stage::Position level data.
+class PathSolverScratchData
+{
+public:
+    PathSolverScratchData() = default;
+
+    // Get mutable access to a MatrixWorkspace of appropriate dimension.
+    // Constructs requested MatrixWorkspace of requested dimension if not done previously.
+    MatrixWorkspace& updOrInsert(int nActive)
+    {
+        SimTK_ASSERT1(nActive > 0,
+            "PathSolverScratchData::updOrInsert()"
+            "Number of obstacles in contact must be larger than zero (got %d)",
+            nActive);
+
+        // Construct all MatrixWorkspace's of requested dimension and lower.
+        for (int i = matrixWorkspaces.size(); i < nActive; ++i) {
+            matrixWorkspaces.emplace_back(i + 1);
+        }
+
+        // Return MatrixWorkspace of requested dimension.
+        return matrixWorkspaces.at(nActive - 1);
+    }
+
+private:
+    // MatrixWorkspaces of suitable dimensions for solving the cable path given
+    // a number of obstacles in contact with the cable. The ith element in the
+    // vector is used for solving a path with i+1 active obstacles.
+    std::vector<MatrixWorkspace> matrixWorkspaces;
+};
+
+}
+
+//==============================================================================
+//                      Class CableSubsystem::Impl
+//==============================================================================
+/* CableSubsystem::Impl TODO desc. */
+class CableSubsystem::Impl : public Subsystem::Guts
+{
+public:
+    // TODO fix rule of five
+    Impl() = default;
+
+    void realizeTopology(State& state)
+    {
+        PathSolverScratchData cache{};
+        m_CacheIx = allocateCacheEntry(
+            state,
+            Stage::Instance,
+            Stage::Infinity,
+            new Value<PathSolverScratchData>(cache));
+    }
+
+    CableSpanIndex adoptCable(CableSubsystem& subsystemHandle, CableSpan& cable)
+    {
+        invalidateSubsystemTopologyCache();
+
+        CableSpanIndex cableIx(cables.size());
+        cable.updImpl().setSubsystem(subsystemHandle, cableIx);
+        cables.emplace_back(cable);
+        return cableIx;
+    }
+
+    int getNumCables() const
+    {
+        return cables.size();
+    }
+
+    const CableSpan& getCable(CableSpanIndex index) const
+    {
+        SimTK_ERRCHK1_ALWAYS(
+                &cables[index].getImpl().getSubsystem().getImpl() == this,
+                "CableSubsystem::getCable", "Cable %d is not owned by this subsystem",
+                index);
+        SimTK_ERRCHK1_ALWAYS(
+                cables[index].getImpl().getIndex() == index,
+                "CableSubsystem::getCable",
+                "Cable %d has an invalid index",
+                index);
+        return cables[index];
+    }
+
+    CableSpan& updCable(CableSpanIndex index)
+    {
+        SimTK_ERRCHK1_ALWAYS(
+                &cables[index].getImpl().getSubsystem().getImpl() == this,
+                "CableSubsystem::updCable", "Cable %d is not owned by this subsystem",
+                index);
+        SimTK_ERRCHK1_ALWAYS(
+                cables[index].getImpl().getIndex() == index,
+                "CableSubsystem::getCable",
+                "Cable %d has an invalid index",
+                index);
+        return cables[index];
+    }
+
+    // Return the MultibodySystem which owns this WrappingPathSubsystem.
+    const MultibodySystem& getMultibodySystem() const
+    {
+        return MultibodySystem::downcast(getSystem());
+    }
+
+    // TODO grab correct dimension here.
+    PathSolverScratchData& updSolverData(const State& state) const
+    {
+        return Value<PathSolverScratchData>::updDowncast(updCacheEntry(state, m_CacheIx));
+    }
+
+    SimTK_DOWNCAST(Impl, Subsystem::Guts);
+
+private:
+    Impl* cloneImpl() const override
+    {
+        return new Impl(*this);
+    }
+
+    int realizeSubsystemTopologyImpl(State& state) const override
+    {
+        // Briefly allow writing into the Topology cache. After this the
+        // Topology cache is const.
+        Impl* mutableThis = const_cast<Impl*>(this);
+
+        mutableThis->realizeTopology(state);
+        for (CableSpanIndex ix(0); ix < cables.size(); ++ix) {
+            CableSpan& path = mutableThis->updCable(ix);
+            path.updImpl().realizeTopology(state);
+        }
+
+        return 0;
+    }
+
+    int calcDecorativeGeometryAndAppendImpl(
+            const State& state,
+            Stage stage,
+            Array_<DecorativeGeometry>& decorations) const override
+    {
+        if (stage != Stage::Position) {
+            return 0;
+        }
+
+        for (const CableSpan& cable : cables) {
+            int returnValue = cable.getImpl().calcDecorativeGeometryAndAppend(
+                    state,
+                    stage,
+                    decorations);
+            if (returnValue != 0) {
+                return returnValue;
+            }
+        }
+        return 0;
+    }
+
+    // TOPOLOGY STATE
+    Array_<CableSpan, CableSpanIndex> cables;
+
+    CacheEntryIndex m_CacheIx;
+
+    friend CableSubsystemTestHelper;
+};
+
+//==============================================================================
+//                          CABLE SUBSYSTEM
+//==============================================================================
+
+bool CableSubsystem::isInstanceOf(const Subsystem& s)
+{
+    return Impl::isA(s.getSubsystemGuts());
+}
+
+const CableSubsystem& CableSubsystem::downcast(const Subsystem& s)
+{
+    assert(isInstanceOf(s));
+    return static_cast<const CableSubsystem&>(s);
+}
+
+CableSubsystem& CableSubsystem::updDowncast(Subsystem& s)
+{
+    assert(isInstanceOf(s));
+    return static_cast<CableSubsystem&>(s);
+}
+
+CableSubsystem::CableSubsystem()
+{
+    adoptSubsystemGuts(new Impl());
+}
+
+CableSubsystem::CableSubsystem(MultibodySystem& mbs)
+{
+    adoptSubsystemGuts(new Impl());
+    mbs.adoptSubsystem(*this);
+}
+
+int CableSubsystem::getNumCables() const
+{
+    return getImpl().getNumCables();
+}
+
+const CableSpan& CableSubsystem::getCable(CableSpanIndex ix) const
+{
+    return getImpl().getCable(ix);
+}
+
+CableSpan& CableSubsystem::updCable(CableSpanIndex ix)
+{
+    return updImpl().updCable(ix);
+}
+
+const CableSubsystem::Impl& CableSubsystem::getImpl() const
+{
+    return SimTK_DYNAMIC_CAST_DEBUG<const Impl&>(getSubsystemGuts());
+}
+
+CableSubsystem::Impl& CableSubsystem::updImpl()
+{
+    return SimTK_DYNAMIC_CAST_DEBUG<Impl&>(updSubsystemGuts());
+}
 
 //==============================================================================
 //                            Frenet Frame Helpers
@@ -110,103 +380,6 @@ Mat33 calcSurfaceHessian(const ContactGeometry& geometry, const Vec3& point_S)
 }
 
 } // namespace
-
-//==============================================================================
-//                          CABLE SUBSYSTEM
-//==============================================================================
-
-bool CableSubsystem::isInstanceOf(const Subsystem& s)
-{
-    return Impl::isA(s.getSubsystemGuts());
-}
-
-const CableSubsystem& CableSubsystem::downcast(const Subsystem& s)
-{
-    assert(isInstanceOf(s));
-    return static_cast<const CableSubsystem&>(s);
-}
-
-CableSubsystem& CableSubsystem::updDowncast(Subsystem& s)
-{
-    assert(isInstanceOf(s));
-    return static_cast<CableSubsystem&>(s);
-}
-
-CableSubsystem::CableSubsystem()
-{
-    adoptSubsystemGuts(new Impl());
-}
-
-CableSubsystem::CableSubsystem(MultibodySystem& mbs)
-{
-    adoptSubsystemGuts(new Impl());
-    mbs.adoptSubsystem(*this);
-}
-
-int CableSubsystem::getNumCables() const
-{
-    return getImpl().getNumCables();
-}
-
-const CableSpan& CableSubsystem::getCable(CableSpanIndex ix) const
-{
-    return getImpl().getCable(ix);
-}
-
-CableSpan& CableSubsystem::updCable(CableSpanIndex ix)
-{
-    return updImpl().updCable(ix);
-}
-
-//------------------------------------------------------------------------------
-//                        CABLE SUBSYSTEM IMPL
-//------------------------------------------------------------------------------
-
-const CableSubsystem::Impl& CableSubsystem::getImpl() const
-{
-    return SimTK_DYNAMIC_CAST_DEBUG<const Impl&>(getSubsystemGuts());
-}
-
-CableSubsystem::Impl& CableSubsystem::updImpl()
-{
-    return SimTK_DYNAMIC_CAST_DEBUG<Impl&>(updSubsystemGuts());
-}
-
-int CableSubsystem::Impl::calcDecorativeGeometryAndAppendImpl(
-    const State& state,
-    Stage stage,
-    Array_<DecorativeGeometry>& decorations) const
-{
-    if (stage != Stage::Position) {
-        return 0;
-    }
-
-    for (const CableSpan& cable : cables) {
-        int returnValue = cable.getImpl().calcDecorativeGeometryAndAppend(
-            state,
-            stage,
-            decorations);
-        if (returnValue != 0) {
-            return returnValue;
-        }
-    }
-    return 0;
-}
-
-int CableSubsystem::Impl::realizeSubsystemTopologyImpl(State& state) const
-{
-    // Briefly allow writing into the Topology cache; after this the
-    // Topology cache is const.
-    Impl* wThis = const_cast<Impl*>(this);
-
-    wThis->realizeTopology(state);
-    for (CableSpanIndex ix(0); ix < cables.size(); ++ix) {
-        CableSpan& path = wThis->updCable(ix);
-        path.updImpl().realizeTopology(state);
-    }
-
-    return 0;
-}
 
 //==============================================================================
 //                                CABLE SPAN
@@ -1206,7 +1379,7 @@ void CableSpan::Impl::calcPathErrorJacobian(
     std::array<CoordinateAxis, N> axes,
     Matrix& J) const
 {
-    constexpr int Nq = SolverData::GEODESIC_DOF;
+    constexpr int Nq = MatrixWorkspace::GEODESIC_DOF;
 
     // TODO perhaps just not make method static.
     const int n = lines.size() - 1;
@@ -1272,8 +1445,8 @@ void CableSpan::Impl::calcPathErrorJacobian(
 namespace
 {
 
-constexpr int GEODESIC_DOF          = SolverData::GEODESIC_DOF;
-constexpr int NUMBER_OF_CONSTRAINTS = SolverData::NUMBER_OF_CONSTRAINTS;
+constexpr int GEODESIC_DOF          = MatrixWorkspace::GEODESIC_DOF;
+constexpr int NUMBER_OF_CONSTRAINTS = MatrixWorkspace::NUMBER_OF_CONSTRAINTS;
 
 // Natural geodesic correction vector.
 //
@@ -1286,9 +1459,9 @@ using Correction = Vec<GEODESIC_DOF>;
 
 // Solve for the geodesic corrections by attempting to set the path error to
 // zero. We call this after having filled in the pathError vector and pathError
-// jacobian in the SolverData. The result is a vector of Corrections for each
+// jacobian in the MatrixWorkspace. The result is a vector of Corrections for each
 // curve.
-void calcPathCorrections(SolverData& data, Real weight)
+void calcPathCorrections(MatrixWorkspace& data, Real weight)
 {
     // TODO add explanation...
     // Add a cost to changing the length.
@@ -1304,7 +1477,7 @@ void calcPathCorrections(SolverData& data, Real weight)
 }
 
 // Obtain iterator over the Correction per curve segment.
-const Correction* getPathCorrections(SolverData& data)
+const Correction* getPathCorrections(MatrixWorkspace& data)
 {
     static_assert(
         sizeof(Correction) == sizeof(Real) * GEODESIC_DOF,
@@ -1477,7 +1650,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, PosInfo& ppe) const
         // corrections. This data is only used as an intermediate variable, and
         // will be discarded after each iteration. Note that the number active
         // segments determines the sizes of the matrices involved.
-        SolverData& data =
+        MatrixWorkspace& data =
             getSubsystem().getImpl().updSolverData(s).updOrInsert(nActive);
 
         // Compute the straight-line segments of this cable span.
@@ -2261,7 +2434,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             continue;
         }
 
-        SolverData& data =
+        MatrixWorkspace& data =
             subsystem.getImpl().updSolverData(sCopy).updOrInsert(nActive);
 
         constexpr int DOF = 4;
