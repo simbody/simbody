@@ -109,9 +109,6 @@ public:
     /** Get the number of obstacles added to the path. */
     int getNumSurfaceObstacles() const;
 
-    // Helper function: TODO remove?
-    const MobilizedBody& getObstacleMobilizedBody(ObstacleIndex ix) const;
-
     /** Get the index of the mobilized body that the obstacle is attached to. */
     const MobilizedBodyIndex& getObstacleMobilizedBodyIndex(
         ObstacleIndex ix) const;
@@ -290,6 +287,7 @@ public:
     class Impl;
 
 private:
+
     const Impl& getImpl() const
     {
         return *m_Impl;
@@ -323,6 +321,8 @@ public:
     CableSpan& updCable(CableSpanIndex idx);
 
     SimTK_PIMPL_DOWNCAST(CableSubsystem, Subsystem);
+
+    const MultibodySystem& getMultibodySystem() const;
 
     class Impl;
     Impl& updImpl();
