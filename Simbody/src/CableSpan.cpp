@@ -134,19 +134,6 @@ FrenetFrame calcFrenetFrameFromGeodesicState(
     return X;
 }
 
-// TODO define the sample on ContactGeometry
-// Helper struct for logging the frames obtained during shooting of the
-// geodesic.
-struct LocalGeodesicSample final
-{
-    LocalGeodesicSample(Real l, FrenetFrame X) :
-        length(l), frame(std::move(X))
-    {}
-
-    Real length;
-    FrenetFrame frame;
-};
-
 }
 
 //==============================================================================
@@ -283,7 +270,7 @@ namespace CurveSegmentData
         // For an analytic contact geometry this container will be empty.
         // Otherwise, the first and last sample will contain X_SP and X_SQ
         // defined above.
-        std::vector<LocalGeodesicSample> samples;
+        std::vector<ContactGeometry::ImplicitGeodesicState> samples;
 
         // The initial integrator stepsize to try next time when shooting a
         // geodesic. This step size estimate will improve each time after
@@ -1365,8 +1352,7 @@ void calcCurveDecorativeGeometryAndAppend(
     {
         // Helper function for drawing line between prevPoint and nextPoint.
         Vec3 prevPoint{NaN};
-        std::function<void(Real, Vec3)> drawLine = [&](Real length,
-                                                       Vec3 nextPoint) {
+        auto drawLine = [&](Real length, Vec3 nextPoint) {
             if (length != 0.) {
                 decorations.push_back(DecorativeLine(prevPoint, nextPoint)
                                           .setColor(Purple)
@@ -1382,12 +1368,10 @@ void calcCurveDecorativeGeometryAndAppend(
             curve.calcPathPoints(s, drawLine);
         } else {
             // Use points from GeodesicIntegrator directly.
-            const std::vector<LocalGeodesicSample>& samples =
-                curve.getInstanceEntry(s).samples;
-            for (const LocalGeodesicSample& sample : samples) {
+            for (const ContactGeometry::ImplicitGeodesicState& sample : curve.getInstanceEntry(s).samples) {
                 drawLine(
-                    sample.length,
-                    dataPos.X_GS.shiftFrameStationToBase(sample.frame.p()));
+                    sample.arcLength,
+                    dataPos.X_GS.shiftFrameStationToBase(sample.point));
             }
         }
     }
@@ -2139,10 +2123,8 @@ void shootNewGeodesic(
         tols.constraintProjectionTolerance,
         tols.constraintProjectionMaxIterations,
         [&](const ContactGeometry::ImplicitGeodesicState& q) {
-            // Compute frenet frame from position, normal and tangent.
-            FrenetFrame X_Gk = calcFrenetFrameFromGeodesicState(geometry, q);
-            // Add frame to logged samples.
-            cache.samples.emplace_back(q.arcLength, X_Gk);
+            // Log the integrator knot points.
+            cache.samples.push_back(q);
 
             cache.jacobi_Q = {q.jacobiTrans, q.jacobiRot};
             cache.jacobiDot_Q = {q.jacobiTransDot, q.jacobiRotDot};
@@ -2165,7 +2147,7 @@ void shootNewGeodesic(
             // been larger than initIntegratorStepSize, but it might be smaller
             // if it was rejected. If rejected, we will reduce the init step
             // size for next time.
-            const Real actualFirstStepSize = cache.samples.at(1).length - cache.samples.front().length;
+            const Real actualFirstStepSize = cache.samples.at(1).arcLength - cache.samples.front().arcLength;
             const bool initStepWasRejected = actualFirstStepSize < initIntegratorStepSize;
             if (initStepWasRejected) {
                 // Reduce the init step size for next time, to avoid rejecting it again.
@@ -2175,7 +2157,7 @@ void shootNewGeodesic(
                 // try a larger step next time. The actualFirstStepSize cannot
                 // be larger than initIntegratorStepSize: we must take a look
                 // at the second step size.
-                const Real actualSecondStepSize = cache.samples.at(2).length - cache.samples.at(1).length;
+                const Real actualSecondStepSize = cache.samples.at(2).arcLength - cache.samples.at(1).arcLength;
                 // We already established that the initIntegratorStepSize was
                 // accepted, now we are only looking to increase the step size.
                 cache.integratorInitialStepSize = std::max(initIntegratorStepSize, actualSecondStepSize);
@@ -2183,8 +2165,8 @@ void shootNewGeodesic(
         }
     }
 
-    cache.X_SP = cache.samples.front().frame;
-    cache.X_SQ = cache.samples.back().frame;
+    cache.X_SP = calcFrenetFrameFromGeodesicState(geometry, cache.samples.front());
+    cache.X_SQ = calcFrenetFrameFromGeodesicState(geometry, cache.samples.back());
 
     cache.curvatures_P = {
         calcSurfaceCurvature(geometry, cache.X_SP, TangentAxis),
@@ -2503,17 +2485,17 @@ Vec3 calcHermiteInterpolation(
 // Compute the point in between two geodesic samples using Hermite
 // interpolation.
 Vec3 calcInterpolatedPoint(
-    const LocalGeodesicSample& a,
-    const LocalGeodesicSample& b,
+    const ContactGeometry::ImplicitGeodesicState& a,
+    const ContactGeometry::ImplicitGeodesicState& b,
     Real l)
 {
     return calcHermiteInterpolation(
-        a.length,
-        a.frame.p(),
-        getTangent(a.frame),
-        b.length,
-        b.frame.p(),
-        getTangent(b.frame),
+        a.arcLength,
+        a.point,
+        a.tangent,
+        b.arcLength,
+        b.point,
+        b.tangent,
         l);
 }
 
@@ -2521,28 +2503,29 @@ Vec3 calcInterpolatedPoint(
 // interpolation.
 Vec3 calcInterpolatedTangent(
     const ContactGeometry& geometry,
-    const LocalGeodesicSample& a,
-    const LocalGeodesicSample& b,
+    const ContactGeometry::ImplicitGeodesicState& a,
+    const ContactGeometry::ImplicitGeodesicState& b,
     Real l)
 {
     // Helper for calculating the derivative of the tangent.
-    auto CalcTangentDot = [&](const FrenetFrame& X_S) -> Vec3 {
+    auto CalcTangentDot = [&](const ContactGeometry::ImplicitGeodesicState& q) -> Vec3 {
+        const FrenetFrame& X_S = calcFrenetFrameFromGeodesicState(geometry, q);
         const Real k = calcSurfaceCurvature(geometry, X_S, TangentAxis);
         return k * getNormal(X_S);
     };
 
     return calcHermiteInterpolation(
-        a.length,
-        getTangent(a.frame),
-        CalcTangentDot(a.frame),
-        b.length,
-        getTangent(b.frame),
-        CalcTangentDot(b.frame),
+        a.arcLength,
+        a.tangent,
+        CalcTangentDot(a),
+        b.arcLength,
+        b.tangent,
+        CalcTangentDot(b),
         l);
 }
 
 using InterpolatorFn = std::function<
-    void(const LocalGeodesicSample& a, const LocalGeodesicSample& b, Real l)>;
+    void(const ContactGeometry::ImplicitGeodesicState& a, const ContactGeometry::ImplicitGeodesicState& b, Real l)>;
 
 // Resamples the geodesic samples at equal length intervals.
 // @param geodesic contains the original geodesic samples.
@@ -2551,7 +2534,7 @@ using InterpolatorFn = std::function<
 // selected samples at a given length.
 // @return the number of samples used for the interpolation.
 int resampleGeodesic(
-    const std::vector<LocalGeodesicSample> geodesic,
+    const std::vector<ContactGeometry::ImplicitGeodesicState> geodesic,
     int nSamples, // TODO use length increment?
     InterpolatorFn& interpolator)
 {
@@ -2561,15 +2544,15 @@ int resampleGeodesic(
         throw std::runtime_error(
             "Resampling of geodesic failed: Provided geodesic is empty.");
     }
-    if (geodesic.front().length != 0.) {
+    if (geodesic.front().arcLength != 0.) {
         // TODO use SimTK_ASSERT
         throw std::runtime_error("Resampling of geodesic failed: First frame "
-                                 "must be at length = zero");
+                                 "must be at arcLength = zero");
     }
-    if (geodesic.back().length < 0.) {
+    if (geodesic.back().arcLength < 0.) {
         // TODO use SimTK_ASSERT
         throw std::runtime_error("Resampling of geodesic failed: Last frame "
-                                 "must be at length > zero");
+                                 "must be at arcLength > zero");
     }
     if (nSamples == 0) {
         throw std::runtime_error(
@@ -2588,7 +2571,7 @@ int resampleGeodesic(
     }
 
     // Seperate the interpolation points by equal length increments.
-    const Real dl = geodesic.back().length / static_cast<Real>(nSamples - 1);
+    const Real dl = geodesic.back().arcLength / static_cast<Real>(nSamples - 1);
 
     // Compute the interpolated points from the geodesic.
     auto itGeodesic = geodesic.begin();
@@ -2598,11 +2581,11 @@ int resampleGeodesic(
     for (int i = 0; i < nSamples - 1; ++i) {
 
         // Length at the current interpolation point.
-        const Real length = dl * static_cast<Real>(i);
+        const Real arcLength = dl * static_cast<Real>(i);
 
         // Find the two samples (lhs, rhs) of the geodesic such that the
-        // length of the interpolation point lies between them.
-        // i.e. find: lhs.length <= length < rhs.length
+        // arcLength of the interpolation point lies between them.
+        // i.e. find: lhs.arcLength <= arcLength < rhs.arcLength
         while (true) {
             // Sanity check: We should stay within range.
             if ((itGeodesic + 1) == geodesic.end()) {
@@ -2613,35 +2596,35 @@ int resampleGeodesic(
             }
 
             // The candidate samples to use for interpolation.
-            const LocalGeodesicSample& lhs = *itGeodesic;
-            const LocalGeodesicSample& rhs = *(itGeodesic + 1);
+            const ContactGeometry::ImplicitGeodesicState& lhs = *itGeodesic;
+            const ContactGeometry::ImplicitGeodesicState& rhs = *(itGeodesic + 1);
 
             // Sanity check: Samples are assumed to be monotonically increasing
-            // in length.
-            if (lhs.length > rhs.length) {
+            // in arcLength.
+            if (lhs.arcLength > rhs.arcLength) {
                 // TODO use SimTK_ASSERT
                 throw std::runtime_error(
                     "Resampling of geodesic failed: Samples are not "
-                    "monotonically increasing in length.");
+                    "monotonically increasing in arcLength.");
             }
 
             // Check that the interpolation point lies between these samples:
-            // lhs.length <= length < rhs.length
-            if (length >= rhs.length) {
+            // lhs.arcLength <= arcLength < rhs.arcLength
+            if (arcLength >= rhs.arcLength) {
                 // Try the next two samples.
                 ++itGeodesic;
                 continue;
             }
 
             // Write interpolated point to the output buffer.
-            interpolator(lhs, rhs, length);
+            interpolator(lhs, rhs, arcLength);
 
             break;
         }
     }
 
     // Capture the last point of the geodesic.
-    interpolator(geodesic.front(), geodesic.back(), geodesic.back().length);
+    interpolator(geodesic.front(), geodesic.back(), geodesic.back().arcLength);
 
     return nSamples;
 }
@@ -2676,8 +2659,8 @@ int CurveSegment::calcPathPointsAndTangents(
 
     // Resample the points from the integrator by interpolating at equal length
     // intervals.
-    InterpolatorFn Interpolator = [&](const LocalGeodesicSample& a,
-                                      const LocalGeodesicSample& b,
+    InterpolatorFn Interpolator = [&](const ContactGeometry::ImplicitGeodesicState& a,
+                                      const ContactGeometry::ImplicitGeodesicState& b,
                                       Real l) {
         const Transform& X_GS = dataPos.X_GS;
         const Vec3 interpolatedPoint_G =
@@ -2723,8 +2706,8 @@ int CurveSegment::calcPathPoints(
 
     // Define the required function that interpolates between two samples, and
     // logs the interpolated sample.
-    InterpolatorFn Interpolator = [&](const LocalGeodesicSample& a,
-                                      const LocalGeodesicSample& b,
+    InterpolatorFn Interpolator = [&](const ContactGeometry::ImplicitGeodesicState& a,
+                                      const ContactGeometry::ImplicitGeodesicState& b,
                                       Real l) {
         const Vec3 interpolatedPoint_S = calcInterpolatedPoint(a, b, l);
         const Vec3 interpolatedPoint_G =
