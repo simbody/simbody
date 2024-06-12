@@ -692,7 +692,8 @@ private:
             getSubsystem().updDiscreteVarUpdateValue(state, m_InstanceIx));
     }
 
-    const CurveSegmentData::Instance& getPrevInstanceEntry(const State& state) const
+    const CurveSegmentData::Instance& getPrevInstanceEntry(
+        const State& state) const
     {
         return Value<CurveSegmentData::Instance>::downcast(
             getSubsystem().getDiscreteVariable(state, m_InstanceIx));
@@ -2859,8 +2860,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
 
             std::vector<WrappingStatus> prevWrappingStatus{};
             for (const CurveSegment& curve : cable.m_CurveSegments) {
-                prevWrappingStatus.push_back(
-                    curve.getDataInst(sCopy).status);
+                prevWrappingStatus.push_back(curve.getDataInst(sCopy).status);
             }
 
             const Correction* corrIt = getPathCorrections(data);
@@ -2904,9 +2904,8 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             {
                 int ix = -1;
                 for (const CurveSegment& curve : cable.m_CurveSegments) {
-                    WrappingStatusChanged |=
-                        prevWrappingStatus.at(++ix) !=
-                        curve.getDataInst(sCopy).status;
+                    WrappingStatusChanged |= prevWrappingStatus.at(++ix) !=
+                                             curve.getDataInst(sCopy).status;
                 }
             }
 
