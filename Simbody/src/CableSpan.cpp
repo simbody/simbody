@@ -25,17 +25,15 @@ using namespace SimTK;
 using WrappingStatus = CableSpan::ObstacleWrappingStatus;
 using ObstacleIndex  = CableSpan::ObstacleIndex;
 
-//==============================================================================
-//                          Helper Structures
-//==============================================================================
+// Begin anonymous containing helper structs.
 namespace
 {
 
 //==============================================================================
 //                          Struct Line Segment
 //==============================================================================
-// Representation of a cable segment that does not lie on a surface: A straight
-// line.
+/* Representation of a cable segment that does not lie on a surface: A straight
+line. */
 struct LineSegment final
 {
     LineSegment() = default;
@@ -50,58 +48,17 @@ struct LineSegment final
 };
 
 //==============================================================================
-//                         Struct MatrixWorkspace
-//==============================================================================
-/** This is a helper struct that is used by a CableSpan to compute the
-Stage::Position level data, i.e. the spanned path.
-Computing the spanned path involves a Newton type iteration, for which several
-matrices need to be computed. This struct provides the required matrices.
-After computing the path this data is no longer needed by the CableSpan. */
-struct MatrixWorkspace
-{
-    // Number of degrees of freedom of a geodesic.
-    static constexpr int GEODESIC_DOF = 4;
-
-    // Number of path error constraints per curve segment.
-    static constexpr int NUMBER_OF_CONSTRAINTS = 4;
-
-    // Given the number of CurveSegments that are in contact with their
-    // respective obstacle's surface, contruct a MatrixWorkspace of correct
-    // dimensions.
-    MatrixWorkspace(int nActive) : nCurves(nActive)
-    {
-        static constexpr int Q = GEODESIC_DOF;
-        // 4 for the path error, and 1 for the weighting of the length.
-        static constexpr int C = NUMBER_OF_CONSTRAINTS + 1;
-        const int n            = nActive;
-
-        lineSegments.resize(n + 1);
-        pathErrorJacobian = Matrix(C * n, Q * n, 0.);
-        pathCorrection    = Vector(Q * n, 0.);
-        pathError         = Vector(C * n, 0.);
-    }
-
-    std::vector<LineSegment> lineSegments;
-
-    Matrix pathErrorJacobian;
-    Vector pathCorrection;
-    Vector pathError;
-    FactorQTZ inverse;
-    int nCurves = -1;
-};
-
-//==============================================================================
 //                            Frenet Frame
 //==============================================================================
-// The frenet frame plays an important role in defining the state of a geodesic.
-// In the end it is simply a Transform, which is why we define it as an alias.
-//
-// The position of the frenet frame is defined to lie on the geodesic, but for
-// the orientation of the frame different conventions are used.
-// Here we define it as:
-// - X axis: tangent to geodesic
-// - Y axis: normal to surface
-// - Z axis: binormal to geodesic (tangent cross normal)
+/* The frenet frame plays an important role in defining the state of a geodesic.
+In the end it is simply a Transform, which is why we define it as an alias.
+
+The position of the frenet frame is defined to lie on the geodesic, but for
+the orientation of the frame different conventions are used.
+Here we define it as:
+- X axis: tangent to geodesic
+- Y axis: normal to surface
+- Z axis: binormal to geodesic (tangent cross normal) */
 using FrenetFrame                        = Transform;
 static const CoordinateAxis TangentAxis  = CoordinateAxis::XCoordinateAxis();
 static const CoordinateAxis NormalAxis   = CoordinateAxis::YCoordinateAxis();
@@ -140,11 +97,50 @@ FrenetFrame calcFrenetFrameFromGeodesicState(
     return X;
 }
 
+//==============================================================================
+//                         Struct MatrixWorkspace
+//==============================================================================
+/* This is a helper struct that is used by a CableSpan to compute the
+Stage::Position level data, i.e. the spanned path.
+Computing the spanned path involves a Newton type iteration, for which several
+matrices need to be computed. This struct provides the required matrices.
+After computing the path this data is no longer needed by the CableSpan. */
+struct MatrixWorkspace
+{
+    // Number of degrees of freedom of a geodesic.
+    static constexpr int GEODESIC_DOF = 4;
+
+    // Number of path error constraints per curve segment.
+    static constexpr int NUMBER_OF_CONSTRAINTS = 4;
+
+    // Given the number of CurveSegments that are in contact with their
+    // respective obstacle's surface, contruct a MatrixWorkspace of correct
+    // dimensions.
+    MatrixWorkspace(int nActive) : nCurves(nActive)
+    {
+        static constexpr int Q = GEODESIC_DOF;
+        // 4 for the path error, and 1 for the weighting of the length.
+        static constexpr int C = NUMBER_OF_CONSTRAINTS + 1;
+        const int n            = nActive;
+
+        lineSegments.resize(n + 1);
+        pathErrorJacobian = Matrix(C * n, Q * n, 0.);
+        pathCorrection    = Vector(Q * n, 0.);
+        pathError         = Vector(C * n, 0.);
+    }
+
+    std::vector<LineSegment> lineSegments;
+
+    Matrix pathErrorJacobian;
+    Vector pathCorrection;
+    Vector pathError;
+    FactorQTZ inverse;
+    int nCurves = -1;
+};
+
 } // namespace
 
-//==============================================================================
-//                      Cached Data Structures
-//==============================================================================
+
 // The following section contains data structures that are cached during a
 // simulation.
 namespace
@@ -153,10 +149,10 @@ namespace
 //==============================================================================
 //                      Struct PathSolverScratchData
 //==============================================================================
-// Cache entry for holding MatrixWorkspaces of different dimensions.
-//
-// CableSubsystem caches this data, such that all it's CableSpans can make use
-// of it as a scratchpad when computing the Stage::Position level data.
+/* Cache entry for holding MatrixWorkspaces of different dimensions.
+
+CableSubsystem::Impl caches this data, such that all it's CableSpans can make use
+of it as a scratchpad when computing the Stage::Position level data. */
 class PathSolverScratchData
 {
 public:
@@ -189,167 +185,129 @@ private:
     std::vector<MatrixWorkspace> matrixWorkspaces;
 };
 
-namespace CableSpanData
-{
 //=============================================================================
-//                          CableSpanData::Pos
+//                          CableSpanData
 //=============================================================================
-/** CurveSegmentData::Pos is a data structure used by class CableSpan::Impl to
-store quantities that can be computed at Stage::Position.
+/* CableSpanData is a data structure used by class CableSpan::Impl to store
+relevant quantities in the State's cache.
 
-Member variables with an "_G" suffix are expressed in the Ground frame. */
-struct Pos final
+The struct has two member structs Pos and Vel that correspond to the stages
+(Stage::Position and Stage::Velocity) at which they can be computed.
+
+Member variables with a "_G" suffix are expressed in the Ground frame. */
+struct CableSpanData
 {
-    // Position of the cable origin point in the ground frame.
-    Vec3 originPoint_G{NaN, NaN, NaN};
-    // Position of the cable termination point in the ground frame.
-    Vec3 terminationPoint_G{NaN, NaN, NaN};
-    // Tangent vector to the cable at the origin point, in the ground frame.
-    UnitVec3 originTangent_G{NaN, NaN, NaN};
-    // Tangent vector to the cable at the termination point, in the ground
-    // frame.
-    UnitVec3 terminationTangent_G{NaN, NaN, NaN};
-    // The total cable length.
-    Real cableLength = NaN;
-    // The maximum path error.
-    Real pathError = NaN;
-    // Number of iterations the solver used to compute the cable's path.
-    int loopIter = -1;
+    struct Pos final
+    {
+        // Position of the cable origin point in the ground frame.
+        Vec3 originPoint_G{NaN, NaN, NaN};
+        // Position of the cable termination point in the ground frame.
+        Vec3 terminationPoint_G{NaN, NaN, NaN};
+        // Tangent vector to the cable at the origin point, in the ground frame.
+        UnitVec3 originTangent_G{NaN, NaN, NaN};
+        // Tangent vector to the cable at the termination point, in the ground
+        // frame.
+        UnitVec3 terminationTangent_G{NaN, NaN, NaN};
+        // The total cable length.
+        Real cableLength = NaN;
+        // The maximum path error.
+        Real pathError = NaN;
+        // Number of iterations the solver used to compute the cable's path.
+        int loopIter = -1;
+    };
+    struct Vel final
+    {
+        // Time derivative of the total cable length.
+        Real lengthDot = NaN;
+    };
 };
 
 //=============================================================================
-//                          CableSpanData::Vel
+//                          CurveSegmentData
 //=============================================================================
-/** CurveSegmentData::Vel is a data structure used by class CableSpan::Impl to
-store quantities that can be computed at Stage::Velocity.
-TODO currently there is not much in it. */
-struct Vel final
-{
-    // Time derivative of the total cable length.
-    Real lengthDot = NaN;
-};
+/** CurveSegmentData is a data structure used by class CurveSegment to store
+relevent quantities in the State's cache.
 
-} // namespace CableSpanData
-
-namespace CurveSegmentData
-{
-
-//=============================================================================
-//                          CurveSegmentData::Instance
-//=============================================================================
-/** CurveSegmentData::Instance is a data structure used by class CurveSegment to
-store quantities that can be computed at Stage::Instance.
-
-At the heart of computing the cable path lies a Newton iteration, which
-greatly benefits from a good solution estimate. Using a discrete cache
-entry allows for starting the solver from the previous solution.
-Furthermore, by storing the previous curve segment, this allows winding over
-obstacles multiple times. Therefore this struct contains information related to
-the local (body fixed) geodesic.
-
-A discrete auto update cache variable is used because the cable path over an
-obstacle can be seen as a nonholonomic constraint. If we wish to redo
-the cable path computation for some reason, we must be able to reset to
-the previous path.
-
-This data becomes available after Stage::Instance.
+The struct has two member structs Instance and Pos that correspond to the stages
+(Stage::Instance and Stage::Position) at which they can be computed.
 
 Following Scholz2015 the following subscripts are used:
 
-Member variables with an "_P" suffix indicate the start of the geodesic.
-Member variables with an "_Q" suffix indicate the end of the geodesic.
-Member variables with an "_S" suffix are expressed in the Surface frame.
+Member variables with a "_P" suffix indicate the start of the geodesic.
+Member variables with a "_Q" suffix indicate the end of the geodesic.
+Member variables with a "_S" suffix are expressed in the Surface frame.
+Member variables with a "_G" suffix are expressed in the Ground frame.
 
 For example: point_SP would indicate the initial contact point represented and
 measured from the surface's origin frame. */
-struct Instance final
+struct CurveSegmentData
 {
-    // Frenet frame at the initial contact point w.r.t. the surface frame.
-    FrenetFrame X_SP{};
-    // Frenet frame at the final contact point w.r.t. the surface frame.
-    FrenetFrame X_SQ{};
-
-    // Length of this curve segment.
-    Real length = NaN;
-
-    // Curvatures at the contact points, with the tangential and binormal
-    // direction as the first and last element respectively.
-    Vec2 curvatures_P{NaN}; // initial contact point.
-    Vec2 curvatures_Q{NaN}; // final contact point.
-
-    // Geodesic torsion at the initial and final contact points.
-    Real torsion_P = NaN;
-    Real torsion_Q = NaN;
-
-    // Jacobi scalars at the final contact point. Contains the
-    // translational and rotational direction as the first and last
-    // element (see Scholz2015).
-    Vec2 jacobi_Q{NaN};
-    Vec2 jacobiDot_Q{NaN};
-
-    // Samples recorded from shooting the geodesic over the surface.
-    // For an analytic contact geometry this container will be empty.
-    // Otherwise, the first and last sample will contain X_SP and X_SQ
-    // defined above.
-    std::vector<ContactGeometry::ImplicitGeodesicState>
-        geodesicIntegratorStates;
-
-    // The initial integrator stepsize to try next time when shooting a
-    // geodesic. This step size estimate will improve each time after
-    // shooting a new geodesic.
-    Real integratorInitialStepSize = NaN;
-
-    // Given the line spanned by the point before and after this curve
-    // segment, the tracking point lies on that line and is nearest to the
-    // surface. This point is used to find the touchdown location when the
-    // curve is not in contact with the obstacles's surface.
-    Vec3 trackingPointOnLine_S{NaN, NaN, NaN};
-
-    // This is a flag to indicate whether the cable comes into contact with
-    // the obstacle at all. If the cable is not in contact with the
-    // surface, only trackingPointOnLine_S will contain valid data. If the
-    // cable is in contact with the surface, trackingPointOnLine_S will not
-    // contain valid data.
-    WrappingStatus status = WrappingStatus::InitialGuess;
+    struct Instance final
+    {
+        // Frenet frame at the initial contact point w.r.t. the surface frame.
+        FrenetFrame X_SP{};
+        // Frenet frame at the final contact point w.r.t. the surface frame.
+        FrenetFrame X_SQ{};
+        // Length of this curve segment.
+        Real length = NaN;
+        // Curvatures at the contact points, with the tangential and binormal
+        // direction as the first and last element respectively.
+        Vec2 curvatures_P{NaN}; // initial contact point.
+        Vec2 curvatures_Q{NaN}; // final contact point.
+        // Geodesic torsion at the initial and final contact points.
+        Real torsion_P = NaN;
+        Real torsion_Q = NaN;
+        // Jacobi scalars at the final contact point. Contains the
+        // translational and rotational direction as the first and last
+        // element (see Scholz2015).
+        Vec2 jacobi_Q{NaN};
+        Vec2 jacobiDot_Q{NaN};
+        // Samples recorded from shooting the geodesic over the surface.
+        // For an analytic contact geometry this container will be empty.
+        // Otherwise, the first and last sample will contain X_SP and X_SQ
+        // defined above.
+        std::vector<ContactGeometry::ImplicitGeodesicState>
+            geodesicIntegratorStates;
+        // The initial integrator stepsize to try next time when shooting a
+        // geodesic. This step size estimate will improve each time after
+        // shooting a new geodesic.
+        Real integratorInitialStepSize = NaN;
+        // Given the line spanned by the point before and after this curve
+        // segment, the tracking point lies on that line and is nearest to the
+        // surface. This point is used to find the touchdown location when the
+        // curve is not in contact with the obstacles's surface.
+        Vec3 trackingPointOnLine_S{NaN, NaN, NaN};
+        // This is a flag to indicate whether the cable comes into contact with
+        // the obstacle at all. If the cable is not in contact with the
+        // surface, only trackingPointOnLine_S will contain valid data. If the
+        // cable is in contact with the surface, trackingPointOnLine_S will not
+        // contain valid data.
+        WrappingStatus status = WrappingStatus::InitialGuess;
+    };
+    struct Pos final
+    {
+        // Position and orientation of contact geometry w.r.t. ground.
+        Transform X_GS{};
+        // Frenet frame at the initial contact point w.r.t. ground.
+        FrenetFrame X_GP{};
+        // Frenet frame at the final contact point w.r.t. ground.
+        FrenetFrame X_GQ{};
+    };
 };
-
-//=============================================================================
-//                          CurveSegmentData::Pos
-//=============================================================================
-/** CurveSegmentData::Pos is a data structure used by class CurveSegment to
-store quantities that can be computed at Stage::Position.
-
-Following Scholz2015 the following subscripts are used:
-
-Member variables with an "_P" suffix indicate the start of the geodesic.
-Member variables with an "_Q" suffix indicate the end of the geodesic.
-Member variables with an "_G" suffix are expressed in the ground frame.
-
-For example: point_GP would indicate the initial contact point represented and
-measured from the ground frame. */
-struct Pos final
-{
-    // Position and orientation of contact geometry w.r.t. ground.
-    Transform X_GS{};
-
-    // Frenet frame at the initial contact point w.r.t. ground.
-    FrenetFrame X_GP{};
-    // Frenet frame at the final contact point w.r.t. ground.
-    FrenetFrame X_GQ{};
-};
-
-} // namespace CurveSegmentData
 
 } // namespace
 
-//==============================================================================
-//                          Cable Span Parameters
-//==============================================================================
+
+// The following anonymous namespace contains structs that collect relevant
+// configuration parameters.
 namespace
 {
-// Helper struct for collecting all parameters for setting up the
-// integrator that computes the geodesic over the obstacle's surface.
-// TODO collect all parameters.
+
+//==============================================================================
+//                          Struct Integrator Tolerances
+//==============================================================================
+// Helper struct holding all parameters for setting up the integrator that
+// computes the geodesic over the obstacle's surface.
 struct IntegratorTolerances
 {
     Real intergatorAccuracy = 1e-6; // TODO set to reasonable
@@ -359,8 +317,13 @@ struct IntegratorTolerances
     int constraintProjectionMaxIterations = 50; // TODO set to reasonable
 };
 
-struct CableParameters final : IntegratorTolerances
+//==============================================================================
+//                          Struct CableSpanParameters
+//==============================================================================
+// Helper struct holding all configuration parameters of the CableSpan.
+struct CableSpanParameters final : IntegratorTolerances
 {
+    // TODO convert to angle in degrees.
     Real m_PathAccuracy       = 1e-4;
     int m_SolverMaxIterations = 50; // TODO set to something reasonable.
     // For each curve segment the max allowed radial curvature.
@@ -369,10 +332,10 @@ struct CableParameters final : IntegratorTolerances
 
 } // namespace
 
+
 //==============================================================================
 //              Contact Geometry Helpers For Sign Inversion
 //==============================================================================
-
 // This section contains helper functions for flipping the sign of the output
 // obtained from ContactGeometry.
 namespace
@@ -391,22 +354,9 @@ Real calcSurfaceCurvature(
 
 // Helper function for flipping the sign such that positive value is outside of
 // the surface.
-// TODO is not used?
 Real calcSurfaceValue(const ContactGeometry& geometry, const Vec3& point_S)
 {
     return -geometry.calcSurfaceValue(point_S);
-}
-// Flipping sign...
-// TODO is not used?
-Vec3 calcSurfaceGradient(const ContactGeometry& geometry, const Vec3& point_S)
-{
-    return -geometry.calcSurfaceGradient(point_S);
-}
-// Flipping sign...
-// TODO is not used?
-Mat33 calcSurfaceHessian(const ContactGeometry& geometry, const Vec3& point_S)
-{
-    return -geometry.calcSurfaceHessian(point_S);
 }
 
 } // namespace
@@ -912,12 +862,12 @@ public:
     // Cable parameters interface.
     //--------------------------------------------------------------------------
 
-    CableParameters& updParameters()
+    CableSpanParameters& updParameters()
     {
         return parameters;
     }
 
-    const CableParameters& getParameters() const
+    const CableSpanParameters& getParameters() const
     {
         return parameters;
     }
@@ -1148,7 +1098,7 @@ private:
 
     Array_<CurveSegment, ObstacleIndex> m_CurveSegments{};
 
-    CableParameters parameters{};
+    CableSpanParameters parameters{};
 
     friend CableSpan;
     friend CableSubsystem;
@@ -2008,11 +1958,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
         // new geodesics over the obstacles.
         corrIt = getPathCorrections(data);
         forEachActiveCurveSegment(*this, s, [&](const CurveSegment& curve) {
-            applyGeodesicCorrection(
-                curve,
-                s,
-                *corrIt,
-                getParameters());
+            applyGeodesicCorrection(curve, s, *corrIt, getParameters());
             ++corrIt;
         });
 
