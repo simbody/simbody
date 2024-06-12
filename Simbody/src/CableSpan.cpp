@@ -40,8 +40,9 @@ struct LineSegment final
 {
     LineSegment() = default;
 
-    LineSegment(Vec3 a, Vec3 b) :
-        length((b - a).norm()), direction((b - a) / length)
+    // Construct a new LineSegment connecting pointA and pointB.
+    LineSegment(const Vec3& pointA, const Vec3& pointB) :
+        length((pointB - pointA).norm()), direction((pointB - pointA) / length)
     {}
 
     Real length = NaN;
@@ -53,8 +54,8 @@ struct LineSegment final
 //==============================================================================
 /** This is a helper struct that is used by a CableSpan to compute the
 Stage::Position level data, i.e. the spanned path.
-Computing the spanned path envolves a Newton type iteration, for which several
-matrices are computed.
+Computing the spanned path involves a Newton type iteration, for which several
+matrices need to be computed. This struct provides the required matrices.
 After computing the path this data is no longer needed by the CableSpan. */
 struct MatrixWorkspace
 {
@@ -92,11 +93,15 @@ struct MatrixWorkspace
 //==============================================================================
 //                            Frenet Frame
 //==============================================================================
-// Define the frenet frame as the position and orientation with:
-// - position on the geodesic,
-// - tangent along X direction,
-// - surface normal along Y direction,
-// - binormal along Z direction.
+// The frenet frame plays an important role in defining the state of a geodesic.
+// In the end it is simply a Transform, which is why we define it as an alias.
+//
+// The position of the frenet frame is defined to lie on the geodesic, but for
+// the orientation of the frame different conventions are used.
+// Here we define it as:
+// - X axis: tangent to geodesic
+// - Y axis: normal to surface
+// - Z axis: binormal to geodesic (tangent cross normal)
 using FrenetFrame                        = Transform;
 static const CoordinateAxis TangentAxis  = CoordinateAxis::XCoordinateAxis();
 static const CoordinateAxis NormalAxis   = CoordinateAxis::YCoordinateAxis();
@@ -120,6 +125,7 @@ const UnitVec3& getBinormal(const FrenetFrame& X)
     return X.R().getAxisUnitVec(BinormalAxis);
 }
 
+// Helper for computing the frenet frame at a knot point of a geodesic.
 FrenetFrame calcFrenetFrameFromGeodesicState(
     const ContactGeometry& geometry,
     const ContactGeometry::ImplicitGeodesicState& q)
@@ -139,8 +145,8 @@ FrenetFrame calcFrenetFrameFromGeodesicState(
 //==============================================================================
 //                      Cached Data Structures
 //==============================================================================
-// Begin anonymous namespace, limiting the data structures to this compilation
-// unit.
+// The following section contains data structures that are cached during a
+// simulation.
 namespace
 {
 
@@ -183,34 +189,43 @@ private:
     std::vector<MatrixWorkspace> matrixWorkspaces;
 };
 
-//=============================================================================
-//                     CableSpanData
-//=============================================================================
-// TODO DESCRIPTION
 namespace CableSpanData
 {
+//=============================================================================
+//                          CableSpanData::Pos
+//=============================================================================
+/** CurveSegmentData::Pos is a data structure used by class CableSpan::Impl to
+store quantities that can be computed at Stage::Position.
 
-// TODO DESCRIPTION
+Member variables with an "_G" suffix are expressed in the Ground frame. */
 struct Pos final
 {
-    // Positions of the cable end points w.r.t. Ground.
+    // Position of the cable origin point in the ground frame.
     Vec3 originPoint_G{NaN, NaN, NaN};
+    // Position of the cable termination point in the ground frame.
     Vec3 terminationPoint_G{NaN, NaN, NaN};
-
-    // Tangents at the cable end points w.r.t. Ground.
+    // Tangent vector to the cable at the origin point, in the ground frame.
     UnitVec3 originTangent_G{NaN, NaN, NaN};
+    // Tangent vector to the cable at the termination point, in the ground
+    // frame.
     UnitVec3 terminationTangent_G{NaN, NaN, NaN};
-
+    // The total cable length.
     Real cableLength = NaN;
-
-    // Number of iterations required by solver to compute the path.
+    // The maximum path error.
     Real pathError = NaN;
-    int loopIter   = -1;
+    // Number of iterations the solver used to compute the cable's path.
+    int loopIter = -1;
 };
 
-// TODO DESCRIPTION
+//=============================================================================
+//                          CableSpanData::Vel
+//=============================================================================
+/** CurveSegmentData::Vel is a data structure used by class CableSpan::Impl to
+store quantities that can be computed at Stage::Velocity.
+TODO currently there is not much in it. */
 struct Vel final
 {
+    // Time derivative of the total cable length.
     Real lengthDot = NaN;
 };
 
@@ -218,24 +233,31 @@ struct Vel final
 
 namespace CurveSegmentData
 {
-// Discrete auto update cache entry to hold the local (body fixed) geodesic
-// information.
-//
-// At the heart of computing the cable path lies a Newton iteration, which
-// greatly benefits from a good solution estimate. Using a discrete cache
-// entry allows for starting the solver from the previous solution.
-// Furthermore, storing the previous geodesic allows winding over obstacles
-// multiple times.
-// An auto update cache variable is used because the cable path over an
-// obstacle can be seen as a nonholonomic constraint. If we wish to redo
-// the cable path computation for some reason, we must be able to reset to
-// the previous path.
-//
-// Following Scholz2015 we use the P and Q subscript to indicate the
-// curve's start and end contact point respectively. The S subscript is
-// used to indicate the surface frame. For example: point_SP would indicate
-// the initial contact point represented and measured from the surface's
-// origin frame.
+/** CurveSegmentData::Instance is a data structure used by class CurveSegment to
+store quantities that can be computed at Stage::Instance.
+
+At the heart of computing the cable path lies a Newton iteration, which
+greatly benefits from a good solution estimate. Using a discrete cache
+entry allows for starting the solver from the previous solution.
+Furthermore, by storing the previous curve segment, this allows winding over
+obstacles multiple times. Therefore this struct contains information related to
+the local (body fixed) geodesic.
+
+A discrete auto update cache variable is used because the cable path over an
+obstacle can be seen as a nonholonomic constraint. If we wish to redo
+the cable path computation for some reason, we must be able to reset to
+the previous path.
+
+This data becomes available after Stage::Instance.
+
+Following Scholz2015 the following subscripts are used:
+
+Member variables with an "_P" suffix indicate the start of the geodesic.
+Member variables with an "_Q" suffix indicate the end of the geodesic.
+Member variables with an "_S" suffix are expressed in the Surface frame.
+
+For example: point_SP would indicate the initial contact point represented and
+measured from the surface's origin frame. */
 struct Instance final
 {
     bool isInContactWithSurface() const
