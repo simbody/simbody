@@ -858,10 +858,10 @@ void ContactGeometry::shootGeodesicInDirectionImplicitly(
     Vec3 pointApprox,
     Vec3 tangentApprox,
     Real finalArcLength,
+    Real initStepSize,
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
-    Real& initStepSize,
     Vec2& finalJacobi,
     Vec2& finalJacobiDot,
     std::function<void(Real l, const Vec3& x, const Vec3& t)> log) const
@@ -869,10 +869,10 @@ void ContactGeometry::shootGeodesicInDirectionImplicitly(
     getImpl().shootGeodesicInDirectionImplicitly(pointApprox,
     tangentApprox,
     finalArcLength,
+    initStepSize,
     integratorAccuracy,
     constraintTolerance,
     maxIterations,
-    initStepSize,
     finalJacobi,
     finalJacobiDot,
     log);
@@ -882,10 +882,10 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     Vec3 pointApprox,
     Vec3 tangentApprox,
     Real finalArcLength,
+    Real initStepSize,
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
-    Real& initStepSize,
     Vec2& finalJacobi,
     Vec2& finalJacobiDot,
     std::function<void(Real l, const Vec3& x, const Vec3& t)> log) const
@@ -901,6 +901,7 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     constexpr int N = GeodesicOnImplicitSurface::N;
 
     integ.initialize(startArcLength, Eqns::getInitialState(pointApprox, UnitVec3(tangentApprox)));
+    integ.setNextStepSizeToTry(initStepSize);
 
     // Aliases for the integrators internal time and state variables.
     const Vec<N>& y = integ.getY();

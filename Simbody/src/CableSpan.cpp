@@ -2121,10 +2121,10 @@ void shootNewGeodesic(
         point_S,
         tangent_S,
         length,
+        initIntegratorStepSize,
         tols.intergatorAccuracy,
         tols.constraintProjectionTolerance,
         tols.constraintProjectionMaxIterations,
-        cache.integratorInitialStepSize,
         cache.jacobi_Q,
         cache.jacobiDot_Q,
         // Provide function for logging the frenet frames during integration.
@@ -2140,6 +2140,41 @@ void shootNewGeodesic(
             // Add frame to logged samples.
             cache.samples.emplace_back(l, X_Gk);
         });
+
+    // Update the initial integrator step size.
+    {
+        // We want to know if we should attempt a larger initIntegratorStepSize next time, or a smaller one. If the initIntegratorStepSize was rejected, it makes little sense to start with the exact same step size next time, only to find it rejected again.
+
+        // If the integrator took a single step or none: The final arc length is shorter than the initial step size attempted. The step was atleast not rejected, but we do not know if we can make it larger. So we do not update it.
+        const int numberOfIntegrationSteps = cache.samples.size() - 1;
+        if (numberOfIntegrationSteps <= 1) {
+            // Try the same step next time:
+            cache.integratorInitialStepSize = initIntegratorStepSize;
+        }
+
+        // If the integrator took two or more steps, we might want to update the next step size to try,
+        if (numberOfIntegrationSteps >= 2) {
+            // The acual initial step size taken by the integrator cannot have
+            // been larger than initIntegratorStepSize, but it might be smaller
+            // if it was rejected. If rejected, we will reduce the init step
+            // size for next time.
+            const Real actualFirstStepSize = cache.samples.at(1).length - cache.samples.front().length;
+            const bool initStepWasRejected = actualFirstStepSize < initIntegratorStepSize;
+            if (initStepWasRejected) {
+                // Reduce the init step size for next time, to avoid rejecting it again.
+                cache.integratorInitialStepSize = actualFirstStepSize;
+            } else {
+                // If the initIntegratorStepSize was accepted we might want to
+                // try a larger step next time. The actualFirstStepSize cannot
+                // be larger than initIntegratorStepSize: we must take a look
+                // at the second step size.
+                const Real actualSecondStepSize = cache.samples.at(2).length - cache.samples.at(1).length;
+                // We already established that the initIntegratorStepSize was
+                // accepted, now we are only looking to increase the step size.
+                cache.integratorInitialStepSize = std::max(initIntegratorStepSize, actualSecondStepSize);
+            }
+        }
+    }
 
     cache.X_SP = cache.samples.front().frame;
     cache.X_SQ = cache.samples.back().frame;
@@ -2192,12 +2227,16 @@ void calcInitCurveIfNeeded(
     if (curve.getInstanceEntry(s).status != WrappingStatus::InitialGuess) {
         return;
     }
+    // The first integrator stepsize to attempt is a bit arbitrary: Taking it too large will simply cause it to be rejected. Taking it too small will cause it to rapidly increase. We take it too small, to be on the safe side.
+    constexpr Real c_initIntegratorStepSize = 1e-10;
+
+    // Shoot a zero length geodesic at the contact point, with the tangent directed from prevPoint to nextPoint.
     curve.calcLocalGeodesic(
         s,
-        curve.getContactPointHint(),
-        nextPoint_S - prevPoint_S,
-        0.,
-        NaN,
+        curve.getContactPointHint(), // = location
+        nextPoint_S - prevPoint_S, // = direction
+        0., // = arc length
+        c_initIntegratorStepSize,
         tols);
 }
 
