@@ -334,9 +334,6 @@ struct Pos final
 
 } // namespace CurveSegmentData
 
-// TODO remove this.
-using InstanceEntry = CurveSegmentData::Instance;
-
 } // namespace
 
 //==============================================================================
@@ -505,11 +502,10 @@ public:
     {
         // Allocate an auto-update discrete variable for the last computed
         // geodesic.
-        Value<InstanceEntry>* cache = new Value<InstanceEntry>();
         m_InstanceIx = updSubsystem().allocateAutoUpdateDiscreteVariable(
             s,
             Stage::Report,
-            cache,
+            new Value<CurveSegmentData::Instance>(),
             Stage::Position);
 
         m_PosIx = updSubsystem().allocateCacheEntry(
@@ -623,18 +619,18 @@ public:
 
     //------------------------------------------------------------------------------
 
-    const InstanceEntry& getInstanceEntry(const State& s) const
+    const CurveSegmentData::Instance& getDataInst(const State& s) const
     {
         const CableSubsystem& subsystem = getSubsystem();
         if (!subsystem.isDiscreteVarUpdateValueRealized(s, m_InstanceIx)) {
-            updInstanceEntry(s) = getPrevInstanceEntry(s);
+            updDataInst(s) = getPrevInstanceEntry(s);
             subsystem.markDiscreteVarUpdateValueRealized(s, m_InstanceIx);
         }
-        return Value<InstanceEntry>::downcast(
+        return Value<CurveSegmentData::Instance>::downcast(
             subsystem.getDiscreteVarUpdateValue(s, m_InstanceIx));
     }
 
-    const CurveSegmentData::Pos& getPosInfo(const State& s) const
+    const CurveSegmentData::Pos& getDataPos(const State& s) const
     {
         return Value<CurveSegmentData::Pos>::downcast(
             getSubsystem().getCacheEntry(s, m_PosIx));
@@ -649,7 +645,7 @@ public:
 
     bool isInContactWithSurface(const State& s) const
     {
-        const CurveSegmentData::Instance& dataInst = getInstanceEntry(s);
+        const CurveSegmentData::Instance& dataInst = getDataInst(s);
         return dataInst.status == WrappingStatus::InContactWithSurface ||
                dataInst.status == WrappingStatus::InitialGuess;
     }
@@ -667,7 +663,7 @@ public:
         int nSamples) const;
 
     // Compute a new geodesic from provided initial conditions.
-    // This method will update the InstanceEntry cache, and invalidates the
+    // This method will update the Instance level cache, and invalidates the
     // Stage::Position level cache.
     void calcLocalGeodesic(
         const State& s,
@@ -678,33 +674,33 @@ public:
         const IntegratorTolerances& tols) const;
 
     // Lift curve from surface, and start tracking the given point.
-    // This method will update the InstanceEntry cache, and invalidates the
+    // This method will update the Instance level cache, and invalidates the
     // Stage::Position level cache.
     void liftCurveFromSurface(const State& s, Vec3 trackingPoint_S) const;
 
     void storeCurrentPath(State& state) const
     {
-        updPrevInstanceEntry(state) = getInstanceEntry(state);
+        updPrevInstanceEntry(state) = getDataInst(state);
     }
 
     //------------------------------------------------------------------------------
 
 private:
-    InstanceEntry& updInstanceEntry(const State& state) const
+    CurveSegmentData::Instance& updDataInst(const State& state) const
     {
-        return Value<InstanceEntry>::updDowncast(
+        return Value<CurveSegmentData::Instance>::updDowncast(
             getSubsystem().updDiscreteVarUpdateValue(state, m_InstanceIx));
     }
 
-    const InstanceEntry& getPrevInstanceEntry(const State& state) const
+    const CurveSegmentData::Instance& getPrevInstanceEntry(const State& state) const
     {
-        return Value<InstanceEntry>::downcast(
+        return Value<CurveSegmentData::Instance>::downcast(
             getSubsystem().getDiscreteVariable(state, m_InstanceIx));
     }
 
-    InstanceEntry& updPrevInstanceEntry(State& state) const
+    CurveSegmentData::Instance& updPrevInstanceEntry(State& state) const
     {
-        return Value<InstanceEntry>::updDowncast(
+        return Value<CurveSegmentData::Instance>::updDowncast(
             getSubsystem().updDiscreteVariable(state, m_InstanceIx));
     }
 
@@ -995,7 +991,7 @@ public:
         // Write points along each of the curves.
         for (const CurveSegment& curve : m_CurveSegments) {
 
-            Real curveLength = curve.getInstanceEntry(state).length;
+            Real curveLength = curve.getDataInst(state).length;
             int nPoints =
                 static_cast<int>(std::abs(curveLength / lengthIncrement) + 1.);
             nPoints = nPoints < 2 ? 2 : nPoints;
@@ -1092,7 +1088,7 @@ private:
             // If so, the previous point is the final contact point of the
             // previous curve.
             const Vec3& finalContactPoint_S =
-                prevCurve->getInstanceEntry(state).X_SQ.p();
+                prevCurve->getDataInst(state).X_SQ.p();
             // Transform the contact point to ground.
             const Transform& X_GS = prevCurve->calcSurfaceFrameInGround(state);
             return X_GS.shiftFrameStationToBase(finalContactPoint_S);
@@ -1112,7 +1108,7 @@ private:
             // If so, the next point is the initial contact point of the next
             // curve.
             const Vec3& initialContactPoint_S =
-                nextCurve->getInstanceEntry(state).X_SP.p();
+                nextCurve->getDataInst(state).X_SP.p();
             // Transform the contact point to ground.
             const Transform& X_GS = nextCurve->calcSurfaceFrameInGround(state);
             return X_GS.shiftFrameStationToBase(initialContactPoint_S);
@@ -1216,7 +1212,7 @@ void calcUnitForceExertedByCurve(
     const State& s,
     SpatialVec& unitForce_G)
 {
-    const CurveSegmentData::Pos& dataPos = curve.getPosInfo(s);
+    const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
     const Vec3& x_GB = curve.getMobilizedBody().getBodyOriginLocation(s);
 
     // Contact point moment arms in ground.
@@ -1355,7 +1351,7 @@ void calcCurveDecorativeGeometryAndAppend(
     constexpr Real c_InactiveOpacity = 0.25;
 
     const bool isInContactWithSurface    = curve.isInContactWithSurface(s);
-    const CurveSegmentData::Pos& dataPos = curve.getPosInfo(s);
+    const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
 
     // Draw the surface (TODO since we do not own it, should it be done here at
     // all?).
@@ -1398,7 +1394,7 @@ void calcCurveDecorativeGeometryAndAppend(
         } else {
             // Use points from GeodesicIntegrator directly.
             for (const ContactGeometry::ImplicitGeodesicState& q :
-                 curve.getInstanceEntry(s).geodesicIntegratorStates) {
+                 curve.getDataInst(s).geodesicIntegratorStates) {
                 drawLine(
                     q.arcLength,
                     dataPos.X_GS.shiftFrameStationToBase(q.point));
@@ -1465,7 +1461,7 @@ int CableSpan::Impl::calcDecorativeGeometryAndAppend(
 
     for (const CurveSegment& curve : m_CurveSegments) {
         if (curve.isInContactWithSurface(s)) {
-            const CurveSegmentData::Pos cppe = curve.getPosInfo(s);
+            const CurveSegmentData::Pos cppe = curve.getDataPos(s);
 
             const Vec3 nextPoint = cppe.X_GP.p();
             decorations.push_back(DecorativeLine(prevPoint, nextPoint)
@@ -1530,7 +1526,7 @@ void calcLineSegments(
 
     const int nActive =
         forEachActiveCurveSegment(cable, s, [&](const CurveSegment& curve) {
-            const CurveSegmentData::Pos& dataPos = curve.getPosInfo(s);
+            const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
 
             // Compute the line segment from the previous point to the
             // first curve contact point.
@@ -1567,7 +1563,7 @@ Real calcTotalCableLength(
     const int nActive =
         forEachActiveCurveSegment(cable, s, [&](const CurveSegment& curve) {
             // Update the total cable length.
-            totalCableLength += curve.getInstanceEntry(s).length;
+            totalCableLength += curve.getDataInst(s).length;
         });
 
     // Sanity check.
@@ -1599,7 +1595,7 @@ void CableSpan::Impl::calcPathErrorVector(
         s,
         // Compute the path error for each curved segment.
         [&](const CurveSegment& curve) {
-            const CurveSegmentData::Pos& dataPos = curve.getPosInfo(s);
+            const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
             // Compute path error at first contact point.
             for (CoordinateAxis axis : axes) {
                 pathError(++row) =
@@ -1629,7 +1625,7 @@ Vec4 calcJacobianOfPrevPathError(
     const LineSegment& line,
     const UnitVec3& axis)
 {
-    const Transform& X_GP = curve.getPosInfo(state).X_GP;
+    const Transform& X_GP = curve.getDataPos(state).X_GP;
 
     // Compute partial derivative of path error to first contact point position
     // (x_PS), represented in the Frenet frame.
@@ -1645,11 +1641,11 @@ Vec4 calcJacobianOfNextPathError(
     const LineSegment& line,
     const UnitVec3& axis)
 {
-    const Transform& X_GQ = curve.getPosInfo(s).X_GQ;
+    const Transform& X_GQ = curve.getDataPos(s).X_GQ;
 
-    const InstanceEntry& ie = curve.getInstanceEntry(s);
-    const Real a            = ie.jacobi_Q[0];
-    const Real r            = ie.jacobi_Q[1];
+    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
+    const Real a            = dataInst.jacobi_Q[0];
+    const Real r            = dataInst.jacobi_Q[1];
 
     // Partial derivative of path error to contact point position (x_QS),
     // represented in the frenet frame.
@@ -1665,13 +1661,13 @@ Vec4 calcJacobianOfPathErrorAtP(
     const LineSegment& line,
     const UnitVec3& axis)
 {
-    const Transform& X_GP = curve.getPosInfo(s).X_GP;
+    const Transform& X_GP = curve.getDataPos(s).X_GP;
 
-    const InstanceEntry& ie = curve.getInstanceEntry(s);
+    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
 
-    const Real tau = ie.torsion_P;
-    const Real kt  = ie.curvatures_P[0];
-    const Real kb  = ie.curvatures_P[1];
+    const Real tau = dataInst.torsion_P;
+    const Real kt  = dataInst.curvatures_P[0];
+    const Real kb  = dataInst.curvatures_P[1];
 
     // Compute partial derivative of path error to the natural geodesic
     // corrections. For derivation see TODO.
@@ -1686,19 +1682,19 @@ Vec4 calcJacobianOfPathErrorAtQ(
     const LineSegment& line,
     const UnitVec3& axis)
 {
-    const Transform& X_GQ = curve.getPosInfo(s).X_GQ;
+    const Transform& X_GQ = curve.getDataPos(s).X_GQ;
 
-    const InstanceEntry& ie = curve.getInstanceEntry(s);
+    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
 
-    const Real tau = ie.torsion_Q;
-    const Real kt  = ie.curvatures_Q[0];
-    const Real kb  = ie.curvatures_Q[1];
+    const Real tau = dataInst.torsion_Q;
+    const Real kt  = dataInst.curvatures_Q[0];
+    const Real kb  = dataInst.curvatures_Q[1];
 
-    const Real a = ie.jacobi_Q[0];
-    const Real r = ie.jacobi_Q[1];
+    const Real a = dataInst.jacobi_Q[0];
+    const Real r = dataInst.jacobi_Q[1];
 
-    const Real aDot = ie.jacobiDot_Q[0];
-    const Real rDot = ie.jacobiDot_Q[1];
+    const Real aDot = dataInst.jacobiDot_Q[0];
+    const Real rDot = dataInst.jacobiDot_Q[1];
 
     // Partial derivative of path error to the given axis, represented in the
     // frenet frame.
@@ -1753,7 +1749,7 @@ void CableSpan::Impl::calcPathErrorJacobian(
         const CurveSegment* prev = findPrevActiveCurveSegment(s, ix);
         const CurveSegment* next = findNextActiveCurveSegment(s, ix);
 
-        const CurveSegmentData::Pos& dataPos = curve.getPosInfo(s);
+        const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
         for (CoordinateAxis axis : axes) {
             const UnitVec3 a_P = dataPos.X_GP.R().getAxisUnitVec(axis);
 
@@ -1860,35 +1856,35 @@ void calcMaxAllowedCorrectionStepSize(
         maxAllowedStepSize = std::min(maxAllowedStepSize, allowedStepSize);
     };
 
-    const InstanceEntry& cache = curve.getInstanceEntry(s);
+    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
 
     // Clamp tangential displacement at the initial contact point.
     {
         const Real dxEst = c[0];
-        const Real k     = cache.curvatures_P[0];
+        const Real k     = dataInst.curvatures_P[0];
         UpdateMaxStepSize(dxEst, k);
     }
 
     // Clamp binormal displacement at the initial contact point.
     {
         const Real dxEst = c[1];
-        const Real k     = cache.curvatures_P[1];
+        const Real k     = dataInst.curvatures_P[1];
         UpdateMaxStepSize(dxEst, k);
     }
 
     // Clamp tangential displacement at the final contact point.
     {
         const Real dxEst = std::abs(c[0]) + std::abs(c[3]);
-        const Real k     = cache.curvatures_Q[0];
+        const Real k     = dataInst.curvatures_Q[0];
         UpdateMaxStepSize(dxEst, k);
     }
 
     // Clamp binormal displacement at the final contact point.
     {
-        const Real a     = cache.jacobi_Q[0];
-        const Real r     = cache.jacobi_Q[1];
+        const Real a     = dataInst.jacobi_Q[0];
+        const Real r     = dataInst.jacobi_Q[1];
         const Real dxEst = std::abs(c[1] * a) + std::abs(c[2] * r);
-        const Real k     = cache.curvatures_Q[1];
+        const Real k     = dataInst.curvatures_Q[1];
         UpdateMaxStepSize(dxEst, k);
     }
 }
@@ -1902,11 +1898,11 @@ void applyGeodesicCorrection(
     const IntegratorTolerances& tols)
 {
     // Get the previous geodesic.
-    const InstanceEntry& cache = curve.getInstanceEntry(s);
-    const FrenetFrame& X_SP    = cache.X_SP;
+    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
+    const FrenetFrame& X_SP    = dataInst.X_SP;
 
-    const Real tau   = cache.torsion_P;
-    const Real kappa = cache.curvatures_P[0];
+    const Real tau   = dataInst.torsion_P;
+    const Real kappa = dataInst.curvatures_P[0];
 
     const UnitVec3& t = getTangent(X_SP);
     const UnitVec3& n = getNormal(X_SP);
@@ -1922,7 +1918,7 @@ void applyGeodesicCorrection(
     // Take the length correction, and add to the current length.
     const Real dl = c[3]; // Length increment is the last element.
     const Real correctedLength =
-        std::max(cache.length + dl, 0.); // Clamp length to be nonnegative.
+        std::max(dataInst.length + dl, 0.); // Clamp length to be nonnegative.
 
     // Shoot the new geodesic.
     curve.calcLocalGeodesic(
@@ -1930,7 +1926,7 @@ void applyGeodesicCorrection(
         correctedPoint_S,
         correctedTangent_S,
         correctedLength,
-        cache.integratorInitialStepSize,
+        dataInst.integratorInitialStepSize,
         tols);
 }
 
@@ -2103,7 +2099,7 @@ void CableSpan::Impl::calcVelInfo(const State& s, CableSpanData::Vel& velInfo)
 
     forEachActiveCurveSegment(*this, s, [&](const CurveSegment& curve) {
         const MobilizedBody& mobod                = curve.getMobilizedBody();
-        const CurveSegmentData::Pos& curveDataPos = curve.getPosInfo(s);
+        const CurveSegmentData::Pos& curveDataPos = curve.getDataPos(s);
 
         const UnitVec3& e_G = getTangent(curveDataPos.X_GP);
 
@@ -2140,10 +2136,10 @@ void shootNewGeodesic(
     Real length,
     Real initIntegratorStepSize,
     const IntegratorTolerances& tols,
-    InstanceEntry& cache)
+    CurveSegmentData::Instance& dataInst)
 {
-    cache.geodesicIntegratorStates.clear();
-    cache.integratorInitialStepSize = initIntegratorStepSize;
+    dataInst.geodesicIntegratorStates.clear();
+    dataInst.integratorInitialStepSize = initIntegratorStepSize;
 
     const ContactGeometry& geometry = curve.getContactGeometry();
 
@@ -2158,10 +2154,10 @@ void shootNewGeodesic(
         tols.constraintProjectionMaxIterations,
         [&](const ContactGeometry::ImplicitGeodesicState& q) {
             // Log the integrator knot points.
-            cache.geodesicIntegratorStates.push_back(q);
+            dataInst.geodesicIntegratorStates.push_back(q);
 
-            cache.jacobi_Q    = {q.jacobiTrans, q.jacobiRot};
-            cache.jacobiDot_Q = {q.jacobiTransDot, q.jacobiRotDot};
+            dataInst.jacobi_Q    = {q.jacobiTrans, q.jacobiRot};
+            dataInst.jacobiDot_Q = {q.jacobiTransDot, q.jacobiRotDot};
         });
 
     // Update the initial integrator step size.
@@ -2176,10 +2172,10 @@ void shootNewGeodesic(
         // not rejected, but we do not know if we can make it larger. So we do
         // not update it.
         const int numberOfIntegrationSteps =
-            cache.geodesicIntegratorStates.size() - 1;
+            dataInst.geodesicIntegratorStates.size() - 1;
         if (numberOfIntegrationSteps <= 1) {
             // Try the same step next time:
-            cache.integratorInitialStepSize = initIntegratorStepSize;
+            dataInst.integratorInitialStepSize = initIntegratorStepSize;
         }
 
         // If the integrator took two or more steps, we might want to update the
@@ -2190,55 +2186,55 @@ void shootNewGeodesic(
             // if it was rejected. If rejected, we will reduce the init step
             // size for next time.
             const Real actualFirstStepSize =
-                cache.geodesicIntegratorStates.at(1).arcLength -
-                cache.geodesicIntegratorStates.front().arcLength;
+                dataInst.geodesicIntegratorStates.at(1).arcLength -
+                dataInst.geodesicIntegratorStates.front().arcLength;
             const bool initStepWasRejected =
                 actualFirstStepSize < initIntegratorStepSize;
             if (initStepWasRejected) {
                 // Reduce the init step size for next time, to avoid rejecting
                 // it again.
-                cache.integratorInitialStepSize = actualFirstStepSize;
+                dataInst.integratorInitialStepSize = actualFirstStepSize;
             } else {
                 // If the initIntegratorStepSize was accepted we might want to
                 // try a larger step next time. The actualFirstStepSize cannot
                 // be larger than initIntegratorStepSize: we must take a look
                 // at the second step size.
                 const Real actualSecondStepSize =
-                    cache.geodesicIntegratorStates.at(2).arcLength -
-                    cache.geodesicIntegratorStates.at(1).arcLength;
+                    dataInst.geodesicIntegratorStates.at(2).arcLength -
+                    dataInst.geodesicIntegratorStates.at(1).arcLength;
                 // We already established that the initIntegratorStepSize was
                 // accepted, now we are only looking to increase the step size.
-                cache.integratorInitialStepSize =
+                dataInst.integratorInitialStepSize =
                     std::max(initIntegratorStepSize, actualSecondStepSize);
             }
         }
     }
 
-    cache.X_SP = calcFrenetFrameFromGeodesicState(
+    dataInst.X_SP = calcFrenetFrameFromGeodesicState(
         geometry,
-        cache.geodesicIntegratorStates.front());
-    cache.X_SQ = calcFrenetFrameFromGeodesicState(
+        dataInst.geodesicIntegratorStates.front());
+    dataInst.X_SQ = calcFrenetFrameFromGeodesicState(
         geometry,
-        cache.geodesicIntegratorStates.back());
+        dataInst.geodesicIntegratorStates.back());
 
-    cache.curvatures_P = {
-        calcSurfaceCurvature(geometry, cache.X_SP, TangentAxis),
-        calcSurfaceCurvature(geometry, cache.X_SP, BinormalAxis),
+    dataInst.curvatures_P = {
+        calcSurfaceCurvature(geometry, dataInst.X_SP, TangentAxis),
+        calcSurfaceCurvature(geometry, dataInst.X_SP, BinormalAxis),
     };
 
-    cache.curvatures_Q = {
-        calcSurfaceCurvature(geometry, cache.X_SQ, TangentAxis),
-        calcSurfaceCurvature(geometry, cache.X_SQ, BinormalAxis),
+    dataInst.curvatures_Q = {
+        calcSurfaceCurvature(geometry, dataInst.X_SQ, TangentAxis),
+        calcSurfaceCurvature(geometry, dataInst.X_SQ, BinormalAxis),
     };
 
-    cache.torsion_P = geometry.calcSurfaceTorsionInDirection(
-        cache.X_SP.p(),
-        getTangent(cache.X_SP));
-    cache.torsion_Q = geometry.calcSurfaceTorsionInDirection(
-        cache.X_SQ.p(),
-        getTangent(cache.X_SQ));
+    dataInst.torsion_P = geometry.calcSurfaceTorsionInDirection(
+        dataInst.X_SP.p(),
+        getTangent(dataInst.X_SP));
+    dataInst.torsion_Q = geometry.calcSurfaceTorsionInDirection(
+        dataInst.X_SQ.p(),
+        getTangent(dataInst.X_SQ));
 
-    cache.length = length;
+    dataInst.length = length;
 }
 
 } // namespace
@@ -2266,7 +2262,7 @@ void calcInitCurveIfNeeded(
     const Vec3& nextPoint_S,
     const IntegratorTolerances& tols)
 {
-    if (curve.getInstanceEntry(s).status != WrappingStatus::InitialGuess) {
+    if (curve.getDataInst(s).status != WrappingStatus::InitialGuess) {
         return;
     }
     // The first integrator stepsize to attempt is a bit arbitrary: Taking it
@@ -2328,13 +2324,13 @@ void calcCurveTouchdownIfNeeded(
     // nearest to the surface.
 
     // Only attempt touchdown when lifted.
-    const InstanceEntry& cache = curve.getInstanceEntry(s);
-    if (cache.status != WrappingStatus::LiftedFromSurface) {
+    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
+    if (dataInst.status != WrappingStatus::LiftedFromSurface) {
         return;
     }
 
     // Use the cached tracking point as the initial guess.
-    Vec3 pointOnLineNearSurface_S = cache.trackingPointOnLine_S;
+    Vec3 pointOnLineNearSurface_S = dataInst.trackingPointOnLine_S;
 
     // Compute the point on the line nearest the surface.
     const bool touchdownDetected =
@@ -2353,7 +2349,7 @@ void calcCurveTouchdownIfNeeded(
             pointOnLineNearSurface_S,
             nextPoint_S - prevPoint_S,
             0.,
-            cache.integratorInitialStepSize,
+            dataInst.integratorInitialStepSize,
             tols);
         return;
     }
@@ -2369,29 +2365,29 @@ void calcCurveLiftoffIfNeeded(
     const Vec3& nextPoint_S)
 {
     // Only attempt liftoff when currently wrapping the surface.
-    const InstanceEntry& cache = curve.getInstanceEntry(s);
-    if (cache.status != WrappingStatus::InContactWithSurface) {
+    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
+    if (dataInst.status != WrappingStatus::InContactWithSurface) {
         return;
     }
 
     // The curve length must have shrunk completely before lifting off.
-    if (cache.length > 0.) {
+    if (dataInst.length > 0.) {
         return;
     }
 
     // For a zero-length curve, trigger liftoff when the prev and next points
     // lie above the surface plane.
-    if (dot(prevPoint_S - cache.X_SP.p(),
-            cache.X_SP.R().getAxisUnitVec(NormalAxis)) <= 0. ||
-        dot(nextPoint_S - cache.X_SP.p(),
-            cache.X_SP.R().getAxisUnitVec(NormalAxis)) <= 0.) {
+    if (dot(prevPoint_S - dataInst.X_SP.p(),
+            dataInst.X_SP.R().getAxisUnitVec(NormalAxis)) <= 0. ||
+        dot(nextPoint_S - dataInst.X_SP.p(),
+            dataInst.X_SP.R().getAxisUnitVec(NormalAxis)) <= 0.) {
         // No liftoff.
         return;
     }
 
     // Liftoff detected, initialize the tracking point from the last contact
     // point.
-    curve.liftCurveFromSurface(s, cache.X_SP.p());
+    curve.liftCurveFromSurface(s, dataInst.X_SP.p());
 }
 
 } // namespace
@@ -2404,9 +2400,9 @@ void CurveSegment::calcLocalGeodesic(
     Real stepSizeHint,
     const IntegratorTolerances& tols) const
 {
-    InstanceEntry& cache = updInstanceEntry(s);
+    CurveSegmentData::Instance& dataInst = updDataInst(s);
 
-    cache.status = WrappingStatus::InContactWithSurface;
+    dataInst.status = WrappingStatus::InContactWithSurface;
 
     shootNewGeodesic(
         *this,
@@ -2415,7 +2411,7 @@ void CurveSegment::calcLocalGeodesic(
         length,
         stepSizeHint,
         tols,
-        cache);
+        dataInst);
 
     getSubsystem().markDiscreteVarUpdateValueRealized(s, m_InstanceIx);
 
@@ -2425,10 +2421,10 @@ void CurveSegment::calcLocalGeodesic(
 void CurveSegment::liftCurveFromSurface(const State& s, Vec3 trackingPoint_S)
     const
 {
-    InstanceEntry& cache = updInstanceEntry(s);
+    CurveSegmentData::Instance& dataInst = updDataInst(s);
 
-    cache.status                = WrappingStatus::LiftedFromSurface;
-    cache.trackingPointOnLine_S = trackingPoint_S;
+    dataInst.status                = WrappingStatus::LiftedFromSurface;
+    dataInst.trackingPointOnLine_S = trackingPoint_S;
 
     getSubsystem().markDiscreteVarUpdateValueRealized(s, m_InstanceIx);
 
@@ -2451,7 +2447,7 @@ void CurveSegment::realizePosition(
             "expected not realized when calling realizePosition");
     }
 
-    if (getInstanceEntry(s).status == WrappingStatus::Disabled) {
+    if (getDataInst(s).status == WrappingStatus::Disabled) {
         return;
     }
 
@@ -2481,7 +2477,7 @@ void CurveSegment::realizePosition(
     }
 
     // At this point we have a valid geodesic in surface frame.
-    const InstanceEntry& ie = getInstanceEntry(s);
+    const CurveSegmentData::Instance& dataInst = getDataInst(s);
 
     // Start updating the position level cache.
     CurveSegmentData::Pos& dataPos = updPosInfo(s);
@@ -2492,8 +2488,8 @@ void CurveSegment::realizePosition(
         dataPos.X_GS = X_GS;
 
         // Store the local geodesic in ground frame.
-        dataPos.X_GP = X_GS.compose(ie.X_SP);
-        dataPos.X_GQ = X_GS.compose(ie.X_SQ);
+        dataPos.X_GP = X_GS.compose(dataInst.X_SP);
+        dataPos.X_GQ = X_GS.compose(dataInst.X_SQ);
     }
 
     getSubsystem().markCacheValueRealized(s, m_PosIx);
@@ -2701,8 +2697,8 @@ int CurveSegment::calcPathPointsAndTangents(
         return 0;
     }
 
-    const InstanceEntry& dataInst = getInstanceEntry(state);
-    const CurveSegmentData::Pos& dataPos = getPosInfo(state);
+    const CurveSegmentData::Instance& dataInst = getDataInst(state);
+    const CurveSegmentData::Pos& dataPos = getDataPos(state);
 
     // If the curve has zero length, return a single point, nothing to
     // interpolate.
@@ -2749,8 +2745,8 @@ int CurveSegment::calcPathPoints(
         return 0;
     }
 
-    const InstanceEntry& dataInst = getInstanceEntry(state);
-    const CurveSegmentData::Pos& dataPos = getPosInfo(state);
+    const CurveSegmentData::Instance& dataInst = getDataInst(state);
+    const CurveSegmentData::Pos& dataPos = getDataPos(state);
 
     // If the curve has zero length, return a single point, nothing to
     // interpolate.
@@ -2864,7 +2860,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             std::vector<WrappingStatus> prevWrappingStatus{};
             for (const CurveSegment& curve : cable.m_CurveSegments) {
                 prevWrappingStatus.push_back(
-                    curve.getInstanceEntry(sCopy).status);
+                    curve.getDataInst(sCopy).status);
             }
 
             const Correction* corrIt = getPathCorrections(data);
@@ -2910,7 +2906,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 for (const CurveSegment& curve : cable.m_CurveSegments) {
                     WrappingStatusChanged |=
                         prevWrappingStatus.at(++ix) !=
-                        curve.getInstanceEntry(sCopy).status;
+                        curve.getDataInst(sCopy).status;
                 }
             }
 
@@ -3169,14 +3165,14 @@ WrappingStatus CableSpan::getObstacleWrappingStatus(
     ObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).getInstanceEntry(state).status;
+    return getImpl().getCurveSegment(ix).getDataInst(state).status;
 }
 
 Real CableSpan::getCurveSegmentLength(const State& state, ObstacleIndex ix)
     const
 {
     getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).getInstanceEntry(state).length;
+    return getImpl().getCurveSegment(ix).getDataInst(state).length;
 }
 
 int CableSpan::calcCurveSegmentPathPoints(
@@ -3211,7 +3207,7 @@ int CableSpan::getCurveSegmentNumberOfIntegratorStepsTaken(
     getImpl().realizePosition(state);
     return getImpl()
         .getCurveSegment(ix)
-        .getInstanceEntry(state)
+        .getDataInst(state)
         .geodesicIntegratorStates.size();
 }
 
@@ -3222,7 +3218,7 @@ Real CableSpan::getCurveSegmentInitialIntegratorStepSize(
     getImpl().realizePosition(state);
     return getImpl()
         .getCurveSegment(ix)
-        .getInstanceEntry(state)
+        .getDataInst(state)
         .integratorInitialStepSize;
 }
 
