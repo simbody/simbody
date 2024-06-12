@@ -120,6 +120,19 @@ const UnitVec3& getBinormal(const FrenetFrame& X)
     return X.R().getAxisUnitVec(BinormalAxis);
 }
 
+FrenetFrame calcFrenetFrameFromGeodesicState(
+        const ContactGeometry& geometry,
+        const ContactGeometry::ImplicitGeodesicState& q)
+{
+    FrenetFrame X;
+    X.updP() = q.point;
+    X.updR().setRotationFromTwoAxes(
+        geometry.calcSurfaceUnitNormal(q.point),
+        NormalAxis,
+        q.tangent,
+        TangentAxis);
+    return X;
+}
 
 // TODO define the sample on ContactGeometry
 // Helper struct for logging the frames obtained during shooting of the
@@ -2125,20 +2138,14 @@ void shootNewGeodesic(
         tols.intergatorAccuracy,
         tols.constraintProjectionTolerance,
         tols.constraintProjectionMaxIterations,
-        cache.jacobi_Q,
-        cache.jacobiDot_Q,
-        // Provide function for logging the frenet frames during integration.
-        [&](const Real& l, const Vec3& p, const Vec3& t) {
+        [&](const ContactGeometry::ImplicitGeodesicState& q) {
             // Compute frenet frame from position, normal and tangent.
-            FrenetFrame X_Gk;
-            X_Gk.setP(p);
-            X_Gk.updR().setRotationFromTwoAxes(
-                geometry.calcSurfaceUnitNormal(p),
-                NormalAxis,
-                t,
-                TangentAxis);
+            FrenetFrame X_Gk = calcFrenetFrameFromGeodesicState(geometry, q);
             // Add frame to logged samples.
-            cache.samples.emplace_back(l, X_Gk);
+            cache.samples.emplace_back(q.arcLength, X_Gk);
+
+            cache.jacobi_Q = {q.jacobiTrans, q.jacobiRot};
+            cache.jacobiDot_Q = {q.jacobiTransDot, q.jacobiRotDot};
         });
 
     // Update the initial integrator step size.

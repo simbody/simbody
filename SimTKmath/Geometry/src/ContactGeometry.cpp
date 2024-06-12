@@ -862,9 +862,7 @@ void ContactGeometry::shootGeodesicInDirectionImplicitly(
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
-    Vec2& finalJacobi,
-    Vec2& finalJacobiDot,
-    const std::function<void(Real l, const Vec3& x, const Vec3& t)>& log) const
+    const std::function<void(const ImplicitGeodesicState&)>& log) const
 {
     getImpl().shootGeodesicInDirectionImplicitly(pointApprox,
     tangentApprox,
@@ -873,8 +871,6 @@ void ContactGeometry::shootGeodesicInDirectionImplicitly(
     integratorAccuracy,
     constraintTolerance,
     maxIterations,
-    finalJacobi,
-    finalJacobiDot,
     log);
 }
 
@@ -886,9 +882,7 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
-    Vec2& finalJacobi,
-    Vec2& finalJacobiDot,
-    const std::function<void(Real l, const Vec3& x, const Vec3& t)>& log) const
+    const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>& log) const
 {
     // integrator settings
     constexpr Real startArcLength = 0;
@@ -909,11 +903,17 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
 
     // Simulate it, and record geodesic knot points after each step
     int stepcnt = 0;
+
     while (true) {
-        log(
-            s,
-            Eqns::getP(y),
-            Eqns::getV(y));
+        ContactGeometry::ImplicitGeodesicState q;
+        q.arcLength = s;
+        q.point = Eqns::getP(y);
+        q.tangent = UnitVec3(Eqns::getV(y));
+        q.jacobiRot = Eqns::getJRot(y);
+        q.jacobiTrans = Eqns::getJTrans(y);
+        q.jacobiRotDot = Eqns::getJRotDot(y);
+        q.jacobiTransDot = Eqns::getJTransDot(y);
+        log(q);
 
         if (s == finalArcLength) {
             break;
@@ -924,14 +924,6 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     }
 
     initStepSize = integ.getActualInitialStepSizeTaken();
-
-    finalJacobi = {
-        Eqns::getJTrans(y),
-        Eqns::getJRot(y),};
-
-    finalJacobiDot = {
-        Eqns::getJTransDot(y),
-        Eqns::getJRotDot(y),};
 }
 
 void ContactGeometry::initGeodesic(const Vec3& xP, const Vec3& xQ,

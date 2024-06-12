@@ -122,6 +122,28 @@ class TriangleMesh;
 // TODO
 class Cone;
 
+/** The state of an implicitly defined geodesic at some point on the curve. */
+struct ImplicitGeodesicState
+{
+    // The length of the geodesic at this state.
+    Real arcLength = NaN;
+
+    // The location of the point on the curve.
+    Vec3 point {NaN};
+    // The tangent is the derivative of the point to arc length.
+    UnitVec3 tangent {NaN, NaN, NaN};
+
+    // The scalar related to the rotational jacobi field.
+    Real jacobiRot = NaN;
+    // The scalar related to the binormal translational jacobi field.
+    Real jacobiTrans = NaN;
+
+    // The derivative of jacobiRot to arc length.
+    Real jacobiRotDot = NaN;
+    // The derivative of jacobiTrans to arc length.
+    Real jacobiTransDot = NaN;
+};
+
 /** Base class default constructor creates an empty handle. **/
 ContactGeometry() : impl(0) {}
 /** Copy constructor makes a deep copy. **/
@@ -575,9 +597,7 @@ void shootGeodesicInDirectionImplicitly(
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
-    Vec2& finalJacobi,
-    Vec2& finalJacobiDot,
-    const std::function<void(Real l, const Vec3& x, const Vec3& t)>& log) const;
+    const std::function<void(const ImplicitGeodesicState&)>& log) const;
 
 
 /** Given the current positions of two points P and Q moving on this surface, 
