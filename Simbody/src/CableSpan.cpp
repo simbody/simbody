@@ -233,6 +233,10 @@ struct Vel final
 
 namespace CurveSegmentData
 {
+
+//=============================================================================
+//                          CurveSegmentData::Instance
+//=============================================================================
 /** CurveSegmentData::Instance is a data structure used by class CurveSegment to
 store quantities that can be computed at Stage::Instance.
 
@@ -309,20 +313,22 @@ struct Instance final
     WrappingStatus status = WrappingStatus::InitialGuess;
 };
 
-// Stage::Position level cache entry for holding the curve information in
-// ground frame.
+//=============================================================================
+//                          CurveSegmentData::Pos
+//=============================================================================
+/** CurveSegmentData::Pos is a data structure used by class CurveSegment to
+store quantities that can be computed at Stage::Position.
+
+Following Scholz2015 the following subscripts are used:
+
+Member variables with an "_P" suffix indicate the start of the geodesic.
+Member variables with an "_Q" suffix indicate the end of the geodesic.
+Member variables with an "_G" suffix are expressed in the ground frame.
+
+For example: point_GP would indicate the initial contact point represented and
+measured from the ground frame. */
 struct Pos final
 {
-    const Vec3& getFirstContactPoint() const
-    {
-        return X_GP.p();
-    }
-
-    const Vec3& getFinalContactPoint() const
-    {
-        return X_GQ.p();
-    }
-
     // Position and orientation of contact geometry w.r.t. ground.
     Transform X_GS{};
 
@@ -1531,11 +1537,11 @@ void calcLineSegments(
 
             // Compute the line segment from the previous point to the
             // first curve contact point.
-            lines.emplace_back(prevPathPoint, dataPos.getFirstContactPoint());
+            lines.emplace_back(prevPathPoint, dataPos.X_GP.p());
 
             // The next line segment will start at the curve's final contact
             // point.
-            prevPathPoint = dataPos.getFinalContactPoint();
+            prevPathPoint = dataPos.X_GQ.p();
         });
 
     // Compute the last line segment.
