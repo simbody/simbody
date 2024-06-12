@@ -260,12 +260,6 @@ For example: point_SP would indicate the initial contact point represented and
 measured from the surface's origin frame. */
 struct Instance final
 {
-    bool isInContactWithSurface() const
-    {
-        return status == WrappingStatus::InContactWithSurface ||
-               status == WrappingStatus::InitialGuess;
-    }
-
     // Frenet frame at the initial contact point w.r.t. the surface frame.
     FrenetFrame X_SP{};
     // Frenet frame at the final contact point w.r.t. the surface frame.
@@ -655,7 +649,9 @@ public:
 
     bool isInContactWithSurface(const State& s) const
     {
-        return getInstanceEntry(s).isInContactWithSurface();
+        const CurveSegmentData::Instance& dataInst = getInstanceEntry(s);
+        return dataInst.status == WrappingStatus::InContactWithSurface ||
+               dataInst.status == WrappingStatus::InitialGuess;
     }
 
     // See CurveSegment::calcPathPoints for description.
@@ -2701,16 +2697,16 @@ int CurveSegment::calcPathPointsAndTangents(
         sink,
     int nSamples) const
 {
-    const InstanceEntry& geodesic_S = getInstanceEntry(state);
-    if (!geodesic_S.isInContactWithSurface()) {
+    if (!isInContactWithSurface(state)) {
         return 0;
     }
 
+    const InstanceEntry& dataInst = getInstanceEntry(state);
     const CurveSegmentData::Pos& dataPos = getPosInfo(state);
 
     // If the curve has zero length, return a single point, nothing to
     // interpolate.
-    if (geodesic_S.length == 0.) {
+    if (dataInst.length == 0.) {
         sink(0., dataPos.X_GP.p(), getTangent(dataPos.X_GP));
         return 1;
     }
@@ -2719,7 +2715,7 @@ int CurveSegment::calcPathPointsAndTangents(
     // contact point. Nothing to interpolate.
     if (nSamples == 2) {
         sink(0., dataPos.X_GP.p(), getTangent(dataPos.X_GP));
-        sink(geodesic_S.length, dataPos.X_GQ.p(), getTangent(dataPos.X_GQ));
+        sink(dataInst.length, dataPos.X_GQ.p(), getTangent(dataPos.X_GQ));
         return 2;
     }
 
@@ -2739,7 +2735,7 @@ int CurveSegment::calcPathPointsAndTangents(
             sink(l, interpolatedPoint_G, interpolatedTangent_G);
         };
     return resampleGeodesic(
-        geodesic_S.geodesicIntegratorStates,
+        dataInst.geodesicIntegratorStates,
         nSamples,
         Interpolator);
 }
@@ -2749,16 +2745,16 @@ int CurveSegment::calcPathPoints(
     const std::function<void(Real length, Vec3 point_G)>& sink,
     int nSamples) const
 {
-    const InstanceEntry& geodesic_S = getInstanceEntry(state);
-    if (!geodesic_S.isInContactWithSurface()) {
+    if (!isInContactWithSurface(state)) {
         return 0;
     }
 
+    const InstanceEntry& dataInst = getInstanceEntry(state);
     const CurveSegmentData::Pos& dataPos = getPosInfo(state);
 
     // If the curve has zero length, return a single point, nothing to
     // interpolate.
-    if (geodesic_S.length == 0.) {
+    if (dataInst.length == 0.) {
         sink(0., dataPos.X_GP.p());
         return 1;
     }
@@ -2767,7 +2763,7 @@ int CurveSegment::calcPathPoints(
     // contact point. Nothing to interpolate.
     if (nSamples == 2) {
         sink(0., dataPos.X_GP.p());
-        sink(geodesic_S.length, dataPos.X_GQ.p());
+        sink(dataInst.length, dataPos.X_GQ.p());
         return 2;
     }
 
@@ -2786,7 +2782,7 @@ int CurveSegment::calcPathPoints(
             sink(l, interpolatedPoint_G);
         };
     return resampleGeodesic(
-        geodesic_S.geodesicIntegratorStates,
+        dataInst.geodesicIntegratorStates,
         nSamples,
         Interpolator);
 }
