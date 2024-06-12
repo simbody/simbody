@@ -282,7 +282,7 @@ struct CurveSegmentData
         // surface, only trackingPointOnLine_S will contain valid data. If the
         // cable is in contact with the surface, trackingPointOnLine_S will not
         // contain valid data.
-        WrappingStatus status = WrappingStatus::InitialGuess;
+        WrappingStatus wrappingStatus = WrappingStatus::InitialGuess;
     };
     struct Pos final
     {
@@ -611,8 +611,8 @@ public:
     bool isInContactWithSurface(const State& s) const
     {
         const CurveSegmentData::Instance& dataInst = getDataInst(s);
-        return dataInst.status == WrappingStatus::InContactWithSurface ||
-               dataInst.status == WrappingStatus::InitialGuess;
+        return dataInst.wrappingStatus == WrappingStatus::InContactWithSurface ||
+               dataInst.wrappingStatus == WrappingStatus::InitialGuess;
     }
 
     // See CurveSegment::calcPathPoints for description.
@@ -2167,7 +2167,7 @@ void calcInitCurveIfNeeded(
     const Vec3& nextPoint_S,
     const IntegratorTolerances& tols)
 {
-    if (curve.getDataInst(s).status != WrappingStatus::InitialGuess) {
+    if (curve.getDataInst(s).wrappingStatus != WrappingStatus::InitialGuess) {
         return;
     }
     // The first integrator stepsize to attempt is a bit arbitrary: Taking it
@@ -2230,7 +2230,7 @@ void calcCurveTouchdownIfNeeded(
 
     // Only attempt touchdown when lifted.
     const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-    if (dataInst.status != WrappingStatus::LiftedFromSurface) {
+    if (dataInst.wrappingStatus != WrappingStatus::LiftedFromSurface) {
         return;
     }
 
@@ -2271,7 +2271,7 @@ void calcCurveLiftoffIfNeeded(
 {
     // Only attempt liftoff when currently wrapping the surface.
     const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-    if (dataInst.status != WrappingStatus::InContactWithSurface) {
+    if (dataInst.wrappingStatus != WrappingStatus::InContactWithSurface) {
         return;
     }
 
@@ -2307,7 +2307,7 @@ void CurveSegment::calcLocalGeodesic(
 {
     CurveSegmentData::Instance& dataInst = updDataInst(s);
 
-    dataInst.status = WrappingStatus::InContactWithSurface;
+    dataInst.wrappingStatus = WrappingStatus::InContactWithSurface;
 
     shootNewGeodesic(
         *this,
@@ -2328,7 +2328,7 @@ void CurveSegment::liftCurveFromSurface(const State& s, Vec3 trackingPoint_S)
 {
     CurveSegmentData::Instance& dataInst = updDataInst(s);
 
-    dataInst.status                = WrappingStatus::LiftedFromSurface;
+    dataInst.wrappingStatus                = WrappingStatus::LiftedFromSurface;
     dataInst.trackingPointOnLine_S = trackingPoint_S;
 
     getSubsystem().markDiscreteVarUpdateValueRealized(s, m_InstanceIx);
@@ -2352,7 +2352,7 @@ void CurveSegment::realizePosition(
             "expected not realized when calling realizePosition");
     }
 
-    if (getDataInst(s).status == WrappingStatus::Disabled) {
+    if (getDataInst(s).wrappingStatus == WrappingStatus::Disabled) {
         return;
     }
 
@@ -2764,7 +2764,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
 
             std::vector<WrappingStatus> prevWrappingStatus{};
             for (const CurveSegment& curve : cable.m_CurveSegments) {
-                prevWrappingStatus.push_back(curve.getDataInst(sCopy).status);
+                prevWrappingStatus.push_back(curve.getDataInst(sCopy).wrappingStatus);
             }
 
             const Correction* corrIt = getPathCorrections(data);
@@ -2809,7 +2809,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 int ix = -1;
                 for (const CurveSegment& curve : cable.m_CurveSegments) {
                     WrappingStatusChanged |= prevWrappingStatus.at(++ix) !=
-                                             curve.getDataInst(sCopy).status;
+                                             curve.getDataInst(sCopy).wrappingStatus;
                 }
             }
 
@@ -3068,7 +3068,7 @@ WrappingStatus CableSpan::getObstacleWrappingStatus(
     ObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).getDataInst(state).status;
+    return getImpl().getCurveSegment(ix).getDataInst(state).wrappingStatus;
 }
 
 Real CableSpan::getCurveSegmentLength(const State& state, ObstacleIndex ix)
