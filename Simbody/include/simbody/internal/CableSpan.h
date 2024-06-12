@@ -218,10 +218,10 @@ public:
 
     /** Get the maximum number of solver iterations for finding the optimal
      * path. */
-    int getSolverMaxIter() const;
+    int getSolverMaxIterations() const;
     /** Set the maximum number of solver iterations for finding the optimal
      * path. */
-    void setSolverMaxIter(int maxIter);
+    void setSolverMaxIterations(int maxIterations);
 
     // TODO merge with surface constraint tolerance above?
     Real getPathErrorAccuracy() const;

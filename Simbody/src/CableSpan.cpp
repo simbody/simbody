@@ -3259,12 +3259,12 @@ void CableSpan::setIntegratorAccuracy(Real accuracy)
     updImpl().setIntegratorAccuracy(accuracy);
 }
 
-int CableSpan::getSolverMaxIter() const
+int CableSpan::getSolverMaxIterations() const
 {
     return getImpl().getSolverMaxIterations();
 }
 
-void CableSpan::setSolverMaxIter(int maxIterations)
+void CableSpan::setSolverMaxIterations(int maxIterations)
 {
     updImpl().setSolverMaxIterations(maxIterations);
 }
