@@ -270,7 +270,7 @@ namespace CurveSegmentData
         // For an analytic contact geometry this container will be empty.
         // Otherwise, the first and last sample will contain X_SP and X_SQ
         // defined above.
-        std::vector<ContactGeometry::ImplicitGeodesicState> samples;
+        std::vector<ContactGeometry::ImplicitGeodesicState> geodesicIntegratorStates;
 
         // The initial integrator stepsize to try next time when shooting a
         // geodesic. This step size estimate will improve each time after
@@ -1368,10 +1368,10 @@ void calcCurveDecorativeGeometryAndAppend(
             curve.calcPathPoints(s, drawLine);
         } else {
             // Use points from GeodesicIntegrator directly.
-            for (const ContactGeometry::ImplicitGeodesicState& sample : curve.getInstanceEntry(s).samples) {
+            for (const ContactGeometry::ImplicitGeodesicState& q : curve.getInstanceEntry(s).geodesicIntegratorStates) {
                 drawLine(
-                    sample.arcLength,
-                    dataPos.X_GS.shiftFrameStationToBase(sample.point));
+                    q.arcLength,
+                    dataPos.X_GS.shiftFrameStationToBase(q.point));
             }
         }
     }
@@ -2108,7 +2108,7 @@ void shootNewGeodesic(
     const IntegratorTolerances& tols,
     InstanceEntry& cache)
 {
-    cache.samples.clear();
+    cache.geodesicIntegratorStates.clear();
     cache.integratorInitialStepSize = initIntegratorStepSize;
 
     const ContactGeometry& geometry = curve.getContactGeometry();
@@ -2124,7 +2124,7 @@ void shootNewGeodesic(
         tols.constraintProjectionMaxIterations,
         [&](const ContactGeometry::ImplicitGeodesicState& q) {
             // Log the integrator knot points.
-            cache.samples.push_back(q);
+            cache.geodesicIntegratorStates.push_back(q);
 
             cache.jacobi_Q = {q.jacobiTrans, q.jacobiRot};
             cache.jacobiDot_Q = {q.jacobiTransDot, q.jacobiRotDot};
@@ -2135,7 +2135,7 @@ void shootNewGeodesic(
         // We want to know if we should attempt a larger initIntegratorStepSize next time, or a smaller one. If the initIntegratorStepSize was rejected, it makes little sense to start with the exact same step size next time, only to find it rejected again.
 
         // If the integrator took a single step or none: The final arc length is shorter than the initial step size attempted. The step was atleast not rejected, but we do not know if we can make it larger. So we do not update it.
-        const int numberOfIntegrationSteps = cache.samples.size() - 1;
+        const int numberOfIntegrationSteps = cache.geodesicIntegratorStates.size() - 1;
         if (numberOfIntegrationSteps <= 1) {
             // Try the same step next time:
             cache.integratorInitialStepSize = initIntegratorStepSize;
@@ -2147,7 +2147,7 @@ void shootNewGeodesic(
             // been larger than initIntegratorStepSize, but it might be smaller
             // if it was rejected. If rejected, we will reduce the init step
             // size for next time.
-            const Real actualFirstStepSize = cache.samples.at(1).arcLength - cache.samples.front().arcLength;
+            const Real actualFirstStepSize = cache.geodesicIntegratorStates.at(1).arcLength - cache.geodesicIntegratorStates.front().arcLength;
             const bool initStepWasRejected = actualFirstStepSize < initIntegratorStepSize;
             if (initStepWasRejected) {
                 // Reduce the init step size for next time, to avoid rejecting it again.
@@ -2157,7 +2157,7 @@ void shootNewGeodesic(
                 // try a larger step next time. The actualFirstStepSize cannot
                 // be larger than initIntegratorStepSize: we must take a look
                 // at the second step size.
-                const Real actualSecondStepSize = cache.samples.at(2).arcLength - cache.samples.at(1).arcLength;
+                const Real actualSecondStepSize = cache.geodesicIntegratorStates.at(2).arcLength - cache.geodesicIntegratorStates.at(1).arcLength;
                 // We already established that the initIntegratorStepSize was
                 // accepted, now we are only looking to increase the step size.
                 cache.integratorInitialStepSize = std::max(initIntegratorStepSize, actualSecondStepSize);
@@ -2165,8 +2165,8 @@ void shootNewGeodesic(
         }
     }
 
-    cache.X_SP = calcFrenetFrameFromGeodesicState(geometry, cache.samples.front());
-    cache.X_SQ = calcFrenetFrameFromGeodesicState(geometry, cache.samples.back());
+    cache.X_SP = calcFrenetFrameFromGeodesicState(geometry, cache.geodesicIntegratorStates.front());
+    cache.X_SQ = calcFrenetFrameFromGeodesicState(geometry, cache.geodesicIntegratorStates.back());
 
     cache.curvatures_P = {
         calcSurfaceCurvature(geometry, cache.X_SP, TangentAxis),
@@ -2671,7 +2671,7 @@ int CurveSegment::calcPathPointsAndTangents(
 
         sink(l, interpolatedPoint_G, interpolatedTangent_G);
     };
-    return resampleGeodesic(geodesic_S.samples, nSamples, Interpolator);
+    return resampleGeodesic(geodesic_S.geodesicIntegratorStates, nSamples, Interpolator);
 }
 
 int CurveSegment::calcPathPoints(
@@ -2714,7 +2714,7 @@ int CurveSegment::calcPathPoints(
             dataPos.X_GS.shiftFrameStationToBase(interpolatedPoint_S);
         sink(l, interpolatedPoint_G);
     };
-    return resampleGeodesic(geodesic_S.samples, nSamples, Interpolator);
+    return resampleGeodesic(geodesic_S.geodesicIntegratorStates, nSamples, Interpolator);
 }
 
 //==============================================================================
@@ -3129,7 +3129,7 @@ int CableSpan::getCurveSegmentNumberOfIntegratorStepsTaken(
     ObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).getInstanceEntry(state).samples.size();
+    return getImpl().getCurveSegment(ix).getInstanceEntry(state).geodesicIntegratorStates.size();
 }
 
 Real CableSpan::getCurveSegmentInitialIntegratorStepSize(
