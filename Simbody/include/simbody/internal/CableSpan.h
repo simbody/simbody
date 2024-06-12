@@ -230,8 +230,8 @@ public:
     // TODO advanced parameter: Max allowed step during Newton iteration in
     // angles. Using the local curvatures the max angular step is converted to a
     // max allowed translation.
-    Real getMaxRadialStepInDegrees() const;
-    void setMaxRadialStepInDegrees(Real maxStepInDeg);
+    Real getMaxGeodesicCorrectionInDegrees() const;
+    void setMaxGeodesicCorrectionInDegrees(Real maxCorrectionInDegrees);
 
     //------------------------------------------------------------------------------
     //                     CABLE CALCULATIONS

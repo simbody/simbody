@@ -358,6 +358,15 @@ struct IntegratorTolerances
     // TODO this is not currently connected to anything...
     int constraintProjectionMaxIterations = 50; // TODO set to reasonable
 };
+
+struct CableParameters final : IntegratorTolerances
+{
+    Real m_PathAccuracy       = 1e-4;
+    int m_SolverMaxIterations = 50; // TODO set to something reasonable.
+    // For each curve segment the max allowed radial curvature.
+    Real m_MaxCorrectionStepDeg = 10.; // TODO describe
+};
+
 } // namespace
 
 //==============================================================================
@@ -903,65 +912,14 @@ public:
     // Cable parameters interface.
     //--------------------------------------------------------------------------
 
-    // TODO collect params
-    Real getSurfaceConstraintTolerance() const
+    CableParameters& updParameters()
     {
-        return m_IntegratorTolerances.constraintProjectionTolerance;
-    }
-    void setSurfaceConstraintTolerance(Real tolerance)
-    {
-        m_IntegratorTolerances.constraintProjectionTolerance = tolerance;
+        return parameters;
     }
 
-    int getSurfaceProjectionMaxIter() const
+    const CableParameters& getParameters() const
     {
-        return m_IntegratorTolerances.constraintProjectionMaxIterations;
-    }
-    void setSurfaceProjectionMaxIter(int maxIterations)
-    {
-        m_IntegratorTolerances.constraintProjectionMaxIterations =
-            maxIterations;
-    }
-
-    Real getIntegratorAccuracy() const
-    {
-        return m_IntegratorTolerances.intergatorAccuracy;
-    }
-    void setIntegratorAccuracy(Real accuracy)
-    {
-        m_IntegratorTolerances.intergatorAccuracy = accuracy;
-    }
-
-    int getSolverMaxIterations() const
-    {
-        return m_SolverMaxIterations;
-    }
-    void setSolverMaxIterations(int maxIterations)
-    {
-        m_SolverMaxIterations = maxIterations;
-    }
-
-    Real getPathAccuracy() const
-    {
-        return m_PathAccuracy;
-    }
-    void setPathAccuracy(Real accuracy)
-    {
-        m_PathAccuracy = accuracy;
-    }
-
-    Real getMaxRadialStepInDegrees() const
-    {
-        return m_MaxCorrectionStepDeg;
-    }
-    void setMaxRadialStepInDegrees(Real maxStepInDeg)
-    {
-        m_MaxCorrectionStepDeg = maxStepInDeg;
-    }
-
-    const IntegratorTolerances& getIntegratorTolerances() const
-    {
-        return m_IntegratorTolerances;
+        return parameters;
     }
 
     //--------------------------------------------------------------------------
@@ -1190,13 +1148,7 @@ private:
 
     Array_<CurveSegment, ObstacleIndex> m_CurveSegments{};
 
-    Real m_PathAccuracy       = 1e-4;
-    int m_SolverMaxIterations = 50; // TODO set to something reasonable.
-
-    // For each curve segment the max allowed radial curvature.
-    Real m_MaxCorrectionStepDeg = 10.; // TODO describe
-
-    IntegratorTolerances m_IntegratorTolerances{};
+    CableParameters parameters{};
 
     friend CableSpan;
     friend CableSubsystem;
@@ -1970,7 +1922,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
                 s,
                 findPrevPoint(s, ix),
                 findNextPoint(s, ix),
-                getIntegratorTolerances());
+                getParameters());
         }
 
         // Now that the WrappingStatus of all curve segments is known: Count
@@ -2010,8 +1962,8 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
 
         // Stop iterating if max path error is small, or max iterations has been
         // reached.
-        if (dataPos.pathError < m_PathAccuracy ||
-            dataPos.loopIter >= m_SolverMaxIterations) {
+        if (dataPos.pathError < getParameters().m_PathAccuracy ||
+            dataPos.loopIter >= getParameters().m_SolverMaxIterations) {
             // Update cache entry and stop solver.
             dataPos.cableLength =
                 calcTotalCableLength(*this, s, data.lineSegments);
@@ -2046,7 +1998,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
                 curve,
                 s,
                 *corrIt,
-                getMaxRadialStepInDegrees(),
+                getParameters().m_MaxCorrectionStepDeg,
                 stepSize);
             ++corrIt;
         });
@@ -2060,7 +2012,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
                 curve,
                 s,
                 *corrIt,
-                getIntegratorTolerances());
+                getParameters());
             ++corrIt;
         });
 
@@ -2705,7 +2657,7 @@ int CurveSegment::calcPathPointsAndTangents(
     }
 
     const CurveSegmentData::Instance& dataInst = getDataInst(state);
-    const CurveSegmentData::Pos& dataPos = getDataPos(state);
+    const CurveSegmentData::Pos& dataPos       = getDataPos(state);
 
     // If the curve has zero length, return a single point, nothing to
     // interpolate.
@@ -2753,7 +2705,7 @@ int CurveSegment::calcPathPoints(
     }
 
     const CurveSegmentData::Instance& dataInst = getDataInst(state);
-    const CurveSegmentData::Pos& dataPos = getDataPos(state);
+    const CurveSegmentData::Pos& dataPos       = getDataPos(state);
 
     // If the curve has zero length, return a single point, nothing to
     // interpolate.
@@ -2878,7 +2830,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                         curve,
                         sCopy,
                         *corrIt,
-                        cable.getIntegratorTolerances());
+                        cable.getParameters());
                     ++corrIt;
                 });
 
@@ -2891,7 +2843,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                     sCopy,
                     cable.findPrevPoint(sCopy, ix),
                     cable.findNextPoint(sCopy, ix),
-                    cable.getIntegratorTolerances());
+                    cable.getParameters());
             }
 
             calcLineSegments(
@@ -3231,62 +3183,62 @@ Real CableSpan::getCurveSegmentInitialIntegratorStepSize(
 
 Real CableSpan::getSurfaceConstraintTolerance() const
 {
-    return getImpl().getSurfaceConstraintTolerance();
+    return getImpl().getParameters().constraintProjectionTolerance;
 }
 
-void CableSpan::setSurfaceConstraintTolerance(Real accuracy)
+void CableSpan::setSurfaceConstraintTolerance(Real tolerance)
 {
-    updImpl().setSurfaceConstraintTolerance(accuracy);
+    updImpl().updParameters().constraintProjectionTolerance = tolerance;
 }
 
 int CableSpan::getSurfaceProjectionMaxIterations() const
 {
-    return getImpl().getSurfaceProjectionMaxIter();
+    return getImpl().getParameters().constraintProjectionMaxIterations;
 }
 
 void CableSpan::setSurfaceProjectionMaxIterations(int maxIterations)
 {
-    updImpl().setSurfaceProjectionMaxIter(maxIterations);
+    updImpl().updParameters().constraintProjectionMaxIterations = maxIterations;
 }
 
 Real CableSpan::getIntegratorAccuracy() const
 {
-    return getImpl().getIntegratorAccuracy();
+    return getImpl().getParameters().intergatorAccuracy;
 }
 
 void CableSpan::setIntegratorAccuracy(Real accuracy)
 {
-    updImpl().setIntegratorAccuracy(accuracy);
+    updImpl().updParameters().intergatorAccuracy = accuracy;
 }
 
 int CableSpan::getSolverMaxIterations() const
 {
-    return getImpl().getSolverMaxIterations();
+    return getImpl().getParameters().m_SolverMaxIterations;
 }
 
 void CableSpan::setSolverMaxIterations(int maxIterations)
 {
-    updImpl().setSolverMaxIterations(maxIterations);
+    updImpl().updParameters().m_SolverMaxIterations = maxIterations;
 }
 
 Real CableSpan::getPathErrorAccuracy() const
 {
-    return getImpl().getPathAccuracy();
+    return getImpl().getParameters().m_PathAccuracy;
 }
 
 void CableSpan::setPathErrorAccuracy(Real accuracy)
 {
-    updImpl().setPathAccuracy(accuracy);
+    updImpl().updParameters().m_PathAccuracy = accuracy;
 }
 
-Real CableSpan::getMaxRadialStepInDegrees() const
+Real CableSpan::getMaxGeodesicCorrectionInDegrees() const
 {
-    return getImpl().getMaxRadialStepInDegrees();
+    return getImpl().getParameters().m_MaxCorrectionStepDeg;
 }
 
-void CableSpan::setMaxRadialStepInDegrees(Real maxStepInDeg)
+void CableSpan::setMaxGeodesicCorrectionInDegrees(Real maxCorrectionInDegrees)
 {
-    updImpl().setMaxRadialStepInDegrees(maxStepInDeg);
+    updImpl().updParameters().m_MaxCorrectionStepDeg = maxCorrectionInDegrees;
 }
 
 //------------------------------------------------------------------------------
