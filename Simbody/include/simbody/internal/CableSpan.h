@@ -64,16 +64,16 @@ public:
         Disabled, // Allow user to manually disable the obstacle.
     };
 
-//------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------
 
     CableSpan();
-    ~CableSpan() noexcept = default;
-    CableSpan(const CableSpan& source) = default;
+    ~CableSpan() noexcept                         = default;
+    CableSpan(const CableSpan& source)            = default;
     CableSpan& operator=(const CableSpan& source) = default;
-    CableSpan(CableSpan&&) noexcept            = default;
-    CableSpan& operator=(CableSpan&&) noexcept = default;
+    CableSpan(CableSpan&&) noexcept               = default;
+    CableSpan& operator=(CableSpan&&) noexcept    = default;
 
-//------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------
 
     // Construct a new cable, and add it to the subsystem.
     // The cable spans from the origin point on the origin body, to the
@@ -85,9 +85,9 @@ public:
         MobilizedBodyIndex terminationBody,
         const Vec3& defaultTerminationPoint);
 
-//------------------------------------------------------------------------------
-//                     OBSTACLE CONFIGURATION
-//------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------
+    //                     OBSTACLE CONFIGURATION
+    //------------------------------------------------------------------------------
 
     /** Add an obstacle to the cable's path.
      * @param mobod The body that the contact geometry is rigidly attached to.
@@ -137,9 +137,9 @@ public:
         ObstacleIndex ix,
         Vec3 initialContactPointHint);
 
-//------------------------------------------------------------------------------
-//                     OBSTACLE CALCULATIONS
-//------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------
+    //                     OBSTACLE CALCULATIONS
+    //------------------------------------------------------------------------------
 
     /** Get the wrapping status of the cable path over the given obstacle.
      * State must be realized to Stage::Position. */
@@ -187,12 +187,12 @@ public:
         const State& state,
         ObstacleIndex ix,
         int nPoints,
-        const std::function<void(Real length, Vec3 point, UnitVec3 tangent)>& sink)
-        const;
+        const std::function<void(Real length, Vec3 point, UnitVec3 tangent)>&
+            sink) const;
 
-//------------------------------------------------------------------------------
-//                     CABLE CONFIGURATION
-//------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------
+    //                     CABLE CONFIGURATION
+    //------------------------------------------------------------------------------
 
     /** Get the tolerance used to enfore the surface constraints of all
      * obstacles. */
@@ -203,7 +203,8 @@ public:
 
     /** Get the maximum number of solver iterations allowed when enforcing the
      * surface constraints of all obstacles. */
-    int getSurfaceProjectionMaxIterations() const; // TODO not connected to anything currently.
+    int getSurfaceProjectionMaxIterations()
+        const; // TODO not connected to anything currently.
     /** Set the maximum number of solver iterations allowed when enforcing the
      * surface constraints of all obstacles. */
     void setSurfaceProjectionMaxIterations(int maxIterations);
@@ -232,9 +233,9 @@ public:
     Real getMaxRadialStepInDegrees() const;
     void setMaxRadialStepInDegrees(Real maxStepInDeg);
 
-//------------------------------------------------------------------------------
-//                     CABLE CALCULATIONS
-//------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------
+    //                     CABLE CALCULATIONS
+    //------------------------------------------------------------------------------
 
     /** Get the total cable length.
      * State must be realized to Stage::Position. */
@@ -271,23 +272,22 @@ public:
         const std::function<void(Real length, Vec3 point)>& sink) const;
 
     /** Number of solver iterations required to compute the cable's path.
-    * State must be realized to Stage::Position. */
+     * State must be realized to Stage::Position. */
     int getNumSolverIter(const State& state) const;
 
     /** Maximum path error of the current cable's path.
-    * TODO explain path error.
-    * State must be realized to Stage::Position. */
+     * TODO explain path error.
+     * State must be realized to Stage::Position. */
     Real getMaxPathError(const State& state) const;
 
     /** TODO Remove this?
-    * Overwrite the path used as a warmstart for the solver. This path is
-    * normally auto-updated after completing an integrator step. */
+     * Overwrite the path used as a warmstart for the solver. This path is
+     * normally auto-updated after completing an integrator step. */
     void storeCurrentPath(State& state) const;
 
     class Impl;
 
 private:
-
     const Impl& getImpl() const
     {
         return *m_Impl;
