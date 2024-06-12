@@ -61,7 +61,12 @@ mark_as_advanced(BUILD_DYNAMIC_LIBRARIES)
 if(BUILD_DYNAMIC_LIBRARIES)
     message(DEPRECATION "The BUILD_DYNAMIC_LIBRARIES build option is deprecated and will be
         ignored in future versions of Simbody. Please set SIMBODY_BUILD_SHARED_LIBS=ON instead.")
-    set(SIMBODY_BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+    if(NOT DEFINED BUILD_SHARED_LIBS)
+        set(SIMBODY_BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+    else()
+        message(FATAL_ERROR "BUILD_DYNAMIC_LIBRARIES and BUILD_SHARED_LIBS have both been set, but can interfere with each other.
+            Please only use BUILD_SHARED_LIBS (or SIMBODY_BUILD_SHARED_LIBS) to control shared/static builds.")
+    endif()
 endif()
 
 # TODO: Remove after this version cycle?
@@ -72,7 +77,12 @@ mark_as_advanced(BUILD_STATIC_LIBRARIES)
 if(BUILD_STATIC_LIBRARIES)
     message(DEPRECATION "The BUILD_STATIC_LIBRARIES build option is deprecated and will be
         ignored in future versions of Simbody. Please set SIMBODY_BUILD_SHARED_LIBS=OFF instead.")
-    set(SIMBODY_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    if(NOT DEFINED BUILD_SHARED_LIBS)
+        set(SIMBODY_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    else()
+        message(FATAL_ERROR "BUILD_DYNAMIC_LIBRARIES and BUILD_SHARED_LIBS have both been set, but can interfere with each other.
+            Please only use BUILD_SHARED_LIBS (or SIMBODY_BUILD_SHARED_LIBS) to control shared/static builds.")
+    endif()
 endif()
 if(BUILD_DYNAMIC_LIBRARIES AND BUILD_STATIC_LIBRARIES)
     message(FATAL_ERROR "Simultaneous static and shared library builds are no longer supported.
