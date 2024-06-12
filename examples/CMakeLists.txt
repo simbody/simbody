@@ -118,8 +118,8 @@ foreach(EX_PROG ${EXAMPLES})
     endif()
 
     add_executable(${EX_NAME} ${EX_PROG} ${EX_HEADER})
-    if(GUI_NAME)
-        add_dependencies(${EX_NAME} ${GUI_NAME})
+    if(TARGET simbody-visualizer)
+        add_dependencies(${EX_NAME} simbody-visualizer)
     endif()
     set_target_properties(${EX_NAME}
         PROPERTIES

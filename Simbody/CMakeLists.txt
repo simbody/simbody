@@ -74,11 +74,7 @@ foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
     file(GLOB incl_files ${subdir}/src/*.h)
     list(APPEND SOURCE_FILES         ${src_files})
     list(APPEND SOURCE_INCLUDE_FILES ${incl_files})
-
-    #include_directories(${PROJECT_SOURCE_DIR}/${subdir}/include)
 endforeach()
-
-#include_directories(${PROJECT_SOURCE_DIR}/src)
 
 # libraries are installed from their subdirectories; headers here
 
@@ -170,12 +166,8 @@ if(MINGW)
         set(BUILD_VISUALIZER FALSE)
     endif()
 endif()
+
 if(BUILD_VISUALIZER)
-    # NOTE: If you change GUI_NAME, you must also change the value of GuiAppName
-    # in VisualizerProtocol.cpp
-    # TODO even that is not sufficient.
-    set(GUI_NAME "simbody-visualizer")
-    set(GUI_NAME ${GUI_NAME} PARENT_SCOPE)
     add_subdirectory(Visualizer/simbody-visualizer)
 endif()
 

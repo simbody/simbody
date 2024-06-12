@@ -59,33 +59,37 @@ endif()
 if(MISSING_DEPENDENCIES)
     message(WARNING "Visualizer will not be built because some of its dependencies (${MISSING_DEPENDENCIES}) are missing")
 else()
+    add_executable(simbody-visualizer MACOSX_BUNDLE
+        simbody-visualizer.cpp lodepng.cpp lodepng.h
+        ${GLUT32_HEADERS}) # only on Windows
 
-add_executable(${GUI_NAME} MACOSX_BUNDLE
-    simbody-visualizer.cpp lodepng.cpp lodepng.h
-    ${GLUT32_HEADERS}) # only on Windows
+    target_link_libraries(simbody-visualizer PUBLIC SimTKsimbody ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
 
+    target_include_directories(simbody-visualizer
+        PRIVATE
+            $<$<BOOL:${WIN32}>:${GLUT_INCLUDE_DIR}>)
 
-target_link_libraries(${GUI_NAME} PUBLIC SimTKsimbody ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
+    # If building as debug, append the debug postfix to the name of the executable.
+    # CMAKE_DEBUG_POSTFIX only affects non-executable targets, but we use its value
+    # to set the postfix for this executable.
+    # Setting the target property DEBUG_POSTFIX does not work for MACOSX bundles,
+    # so we use DEBUG_OUTPUT_NAME instead.
+    set_target_properties(simbody-visualizer PROPERTIES
+            PROJECT_LABEL "Code - simbody-visualizer"
+            DEBUG_OUTPUT_NAME simbody-visualizer${CMAKE_DEBUG_POSTFIX})
 
-target_include_directories(${GUI_NAME}
-    PRIVATE
-        $<$<BOOL:${WIN32}>:${GLUT_INCLUDE_DIR}>)
+    # Copy third-party libs (e.g. vendored GLUT) to the build directory
+    add_custom_command(TARGET simbody-visualizer PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:simbody-visualizer> $<TARGET_RUNTIME_DLLS:simbody-visualizer>
+        COMMAND_EXPAND_LISTS
+    )
 
-# If building as debug, append the debug postfix to the name of the executable.
-# CMAKE_DEBUG_POSTFIX only affects non-executable targets, but we use its value
-# to set the postfix for this executable.
-# Setting the target property DEBUG_POSTFIX does not work for MACOSX bundles,
-# so we use DEBUG_OUTPUT_NAME instead.
-set_target_properties(${GUI_NAME} PROPERTIES
-        PROJECT_LABEL "Code - ${GUI_NAME}"
-        DEBUG_OUTPUT_NAME ${GUI_NAME}${CMAKE_DEBUG_POSTFIX})
-
-# On OSX, bake the relative path to the Simbody libraries into the visualizer
-# executable. Then there's no need to set `DYLD_LIBRARY_PATH` to find the
-# libraries when using the visualizer.
-if(${SIMBODY_USE_INSTALL_RPATH})
-    # @executable_path only makes sense on OSX, so if we use RPATH on
-    # Linux we'll have to revisit.
+    # On OSX, bake the relative path to the Simbody libraries into the visualizer
+    # executable. Then there's no need to set `DYLD_LIBRARY_PATH` to find the
+    # libraries when using the visualizer.
+    if(${SIMBODY_USE_INSTALL_RPATH})
+        # @executable_path only makes sense on OSX, so if we use RPATH on
+        # Linux we'll have to revisit.
 
         # vis_dir_to_install_dir is most likely "../"
         if (APPLE)

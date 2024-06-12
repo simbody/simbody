@@ -21,8 +21,8 @@ foreach(TEST_PROG ${ADHOC_TESTS})
     get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)
 
     add_executable(${TEST_ROOT} ${TEST_PROG})
-    if(GUI_NAME)
-        add_dependencies(${TEST_ROOT} ${GUI_NAME})
+    if(TARGET simbody-visualizer)
+        add_dependencies(${TEST_ROOT} simbody-visualizer)
     endif()
     set_target_properties(${TEST_ROOT} PROPERTIES
         PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
