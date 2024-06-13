@@ -896,13 +896,13 @@ public:
     }
 
     // Get the origin point in body fixed coordinates.
-    const Vec3 getOriginPoint_B() const
+    const Vec3& getOriginPoint_B() const
     {
         return m_OriginPoint;
     }
 
     // Get the termination point in body fixed coordinates.
-    const Vec3 getTerminationPoint_B() const
+    const Vec3& getTerminationPoint_B() const
     {
         return m_TerminationPoint;
     }
@@ -1197,7 +1197,7 @@ void calcUnitForceAtCableOrigin(
     SpatialVec& unitForce_G)
 {
     // Origin contact point moment arm in ground.
-    const CableSpanData::Pos dataPos = cable.getPosInfo(s);
+    const CableSpanData::Pos& dataPos = cable.getPosInfo(s);
     const Vec3& arm_G =
         dataPos.originPoint_G - cable.getOriginBody().getBodyOriginLocation(s);
 
@@ -1210,7 +1210,7 @@ void calcUnitForceAtCableTermination(
     const State& s,
     SpatialVec& unitForce_G)
 {
-    const CableSpanData::Pos dataPos = cable.getPosInfo(s);
+    const CableSpanData::Pos& dataPos = cable.getPosInfo(s);
     const Vec3& arm_G                = dataPos.terminationPoint_G -
                         cable.getTerminationBody().getBodyOriginLocation(s);
 
@@ -2404,7 +2404,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
 
             // Trigger realizing position level cache, resetting the
             // configuration.
-            const CableSpanData::Pos dataPos = cable.getPosInfo(sCopy);
+            const CableSpanData::Pos& dataPos = cable.getPosInfo(sCopy);
 
             SimTK_ASSERT(
                 cable.countActive(sCopy) == nActive,
@@ -2718,7 +2718,7 @@ void CableSpan::setObstacleXformSurfaceToBody(
     ObstacleIndex ix,
     const Transform& X_BS)
 {
-    updImpl().updCurveSegment(ix).setXformSurfaceToBody(std::move(X_BS));
+    updImpl().updCurveSegment(ix).setXformSurfaceToBody(X_BS);
 }
 
 const ContactGeometry& CableSpan::getObstacleContactGeometry(
