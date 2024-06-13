@@ -171,10 +171,10 @@ public:
     }
 
     void shootGeodesicInDirectionImplicitly(
-        const Vec3& pointApprox,
-        const Vec3& tangentApprox,
+        const Vec3& initialPointApprox,
+        const Vec3& initialTangentApprox,
         Real finalArcLength,
-        Real initStepSize,
+        Real initialIntegratorStepSize,
         Real integratorAccuracy,
         Real constraintTolerance,
         int maxIterations,

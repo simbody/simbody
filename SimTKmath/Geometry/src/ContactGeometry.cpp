@@ -879,7 +879,7 @@ void ContactGeometry::shootGeodesicInDirectionImplicitly(
     const Vec3& initialPointApprox,
     const Vec3& initialTangentApprox,
     Real finalArcLength,
-    Real initStepSize,
+    Real initialIntegratorStepSize,
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
@@ -890,7 +890,7 @@ void ContactGeometry::shootGeodesicInDirectionImplicitly(
         initialPointApprox,
         initialTangentApprox,
         finalArcLength,
-        initStepSize,
+        initialIntegratorStepSize,
         integratorAccuracy,
         constraintTolerance,
         maxIterations,
@@ -901,10 +901,10 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     const Vec3& initialPointApprox,
     const Vec3& initialTangentApprox,
     Real finalArcLength,
-    Real initStepSize,
+    Real initialIntegratorStepSize,
     Real integratorAccuracy,
     Real constraintTolerance,
-    int maxIterations,
+    int maxIterations, // TODO not connected (needs to be exposed?)
     const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>&
         geodesicKnotPointsSink) const
 {
@@ -925,7 +925,7 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
         Eqns::getInitialState(
             initialPointApprox,
             UnitVec3(initialTangentApprox)));
-    integ.setNextStepSizeToTry(initStepSize);
+    integ.setNextStepSizeToTry(initialIntegratorStepSize);
 
     // Aliases for the integrators internal time and state variables.
     const Vec<N>& y = integ.getY();
