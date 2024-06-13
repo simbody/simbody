@@ -17,6 +17,7 @@
  ----------------------------------------------------------------------------*/
 
 #include "simbody/internal/CableSpan.h"
+
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 
@@ -140,7 +141,6 @@ struct MatrixWorkspace
 
 } // namespace
 
-
 // The following section contains data structures that are cached during a
 // simulation.
 namespace
@@ -151,8 +151,8 @@ namespace
 //==============================================================================
 /* Cache entry for holding MatrixWorkspaces of different dimensions.
 
-CableSubsystem::Impl caches this data, such that all it's CableSpans can make use
-of it as a scratchpad when computing the Stage::Position level data. */
+CableSubsystem::Impl caches this data, such that all it's CableSpans can make
+use of it as a scratchpad when computing the Stage::Position level data. */
 class PathSolverScratchData
 {
 public:
@@ -297,7 +297,6 @@ struct CurveSegmentData
 
 } // namespace
 
-
 // The following anonymous namespace contains structs that collect relevant
 // configuration parameters.
 namespace
@@ -331,7 +330,6 @@ struct CableSpanParameters final : IntegratorTolerances
 };
 
 } // namespace
-
 
 //==============================================================================
 //              Contact Geometry Helpers For Sign Inversion
@@ -611,7 +609,8 @@ public:
     bool isInContactWithSurface(const State& s) const
     {
         const CurveSegmentData::Instance& dataInst = getDataInst(s);
-        return dataInst.wrappingStatus == WrappingStatus::InContactWithSurface ||
+        return dataInst.wrappingStatus ==
+                   WrappingStatus::InContactWithSurface ||
                dataInst.wrappingStatus == WrappingStatus::InitialGuess;
     }
 
@@ -2721,9 +2720,14 @@ int CurveSegment::calcPathPoints(
 }
 
 //==============================================================================
-//                      SUBSYSTEM TESTING HELPER
+//                         CableSubsystemTestHelper
 //==============================================================================
-
+// Test correctness of the path error jacobian by applying a small perturbation
+// and comparing the effect on the path error. The perturbation is applied in
+// the form of a small geodesic correction along each degree of freedom
+// subsequently.
+// Only curve segments that are in contact with their respective obstacles are
+// tested.
 bool CableSubsystemTestHelper::applyPerturbationTest(
     const MultibodySystem& system,
     const CableSubsystem& subsystem,
@@ -2732,7 +2736,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
     Real bound,
     std::ostream& os)
 {
-    // Output of this perturbation test.
+    // Result of this perturbation test.
     bool success = true;
 
     for (const CableSpan& cableIt : subsystem.getImpl().cables) {
@@ -2749,8 +2753,12 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             continue;
         }
 
-        constexpr int DOF = 4;
-        for (int i = 0; i < (DOF * 2 * nActive); ++i) {
+        // Apply a small perturbation to each of the curve segments in the form
+        // of a geodesic correction. There are 4 DOF for each geodesic, and
+        // just to be sure we apply a negative and positive perturbation along
+        // each DOF of each geodesic.
+        for (int i = 0; i < (MatrixWorkspace::GEODESIC_DOF * 2 * nActive);
+             ++i) {
             // We do not want to mess with the actual state, so we make a copy.
             const State sCopy = s;
             system.realize(sCopy, Stage::Position);
@@ -2796,7 +2804,8 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
 
             std::vector<WrappingStatus> prevWrappingStatus{};
             for (const CurveSegment& curve : cable.m_CurveSegments) {
-                prevWrappingStatus.push_back(curve.getDataInst(sCopy).wrappingStatus);
+                prevWrappingStatus.push_back(
+                    curve.getDataInst(sCopy).wrappingStatus);
             }
 
             const Correction* corrIt = getPathCorrections(data);
@@ -2836,15 +2845,20 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 axes,
                 data.pathError);
 
+            // We can only use the path error jacobian if the small
+            // perturbation did not trigger any liftoff or touchdown on any
+            // obstacles. If any CurveSegment's WrappingStatus has changed, we
+            // will not continue with the test. Since the perturbation is
+            // small, this is unlikely to happen often.
             bool WrappingStatusChanged = false;
             {
                 int ix = -1;
                 for (const CurveSegment& curve : cable.m_CurveSegments) {
-                    WrappingStatusChanged |= prevWrappingStatus.at(++ix) !=
-                                             curve.getDataInst(sCopy).wrappingStatus;
+                    WrappingStatusChanged |=
+                        prevWrappingStatus.at(++ix) !=
+                        curve.getDataInst(sCopy).wrappingStatus;
                 }
             }
-
             if (WrappingStatusChanged) {
                 os << "Wrapping status changed: Stopping test\n";
                 break;
@@ -2857,17 +2871,23 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             if (!passedTest) {
                 os << "FAILED perturbation test for correction = "
                    << data.pathCorrection << "\n";
+                os << "    Got      : " << data.pathError << "\n";
+                os << "    Predicted: " << predictedPathError << "\n";
+                os << "    Err      : "
+                   << (predictedPathError - data.pathError) / perturbation
+                   << "\n";
+                os << "    Err norm : "
+                   << (predictedPathError - data.pathError).normInf() /
+                          perturbation
+                   << "\n";
             } else {
                 os << "PASSED perturbation test for correction = "
                    << data.pathCorrection << "\n";
+                os << " ( error = "
+                   << (predictedPathError - data.pathError).normInf() /
+                          perturbation
+                   << " )\n";
             }
-            os << "    Got      : " << data.pathError << "\n";
-            os << "    Predicted: " << predictedPathError << "\n";
-            os << "    Err      : "
-               << (predictedPathError - data.pathError) / perturbation << "\n";
-            os << "    Err norm : "
-               << (predictedPathError - data.pathError).normInf() / perturbation
-               << "\n";
             success &= passedTest;
         }
     }
