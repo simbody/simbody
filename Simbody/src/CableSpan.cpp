@@ -925,19 +925,6 @@ public:
     // CableSpan interface.
     //--------------------------------------------------------------------------
 
-    // Find the number of CurveSegments that are in contact with an obstacle's
-    // surface.
-    int countActive(const State& s) const
-    {
-        int count = 0;
-        for (const CurveSegment& segment : m_CurveSegments) {
-            if (segment.isInContactWithSurface(s)) {
-                ++count;
-            }
-        }
-        return count;
-    }
-
     void applyBodyForces(
         const State& state,
         Real tension,
@@ -987,6 +974,34 @@ public:
             prevPoint_G  = nextPoint_G;
             isFirstPoint = false;
         });
+    }
+
+    //--------------------------------------------------------------------------
+    // Helpers
+    //--------------------------------------------------------------------------
+
+    // Iterate over the cable's curve segments, and call provided function for
+    // those that are in contact with the obstacle's surfacce.
+    void forEachActiveCurveSegment(
+        const State& s,
+        const std::function<void(const CurveSegment& curve)>& callMe) const
+    {
+        for (ObstacleIndex ix(0); ix < getNumCurveSegments(); ++ix) {
+            const CurveSegment& curve = getCurveSegment(ix);
+            if (!curve.isInContactWithSurface(s)) {
+                continue;
+            }
+            callMe(curve);
+        }
+    }
+
+    // Count the number of CurveSegments that are in contact with the obstacle's
+    // surface.
+    int countActive(const State& s) const
+    {
+        int counter = 0;
+        forEachActiveCurveSegment(s, [&](const CurveSegment&) { ++counter; });
+        return counter;
     }
 
 private:
@@ -1041,7 +1056,53 @@ private:
     }
 
     void calcPosInfo(const State& s, CableSpanData::Pos& dataPos) const;
-    void calcVelInfo(const State& s, CableSpanData::Vel& dataVel) const;
+    void calcVelInfo(const State& s, CableSpanData::Vel& dataVel) const
+    {
+        const CableSpanData::Pos& dataPos = getPosInfo(s);
+
+        auto CalcPointVelocityInGround = [&](const MobilizedBody& mobod,
+                                             const Vec3& point_G) -> Vec3 {
+            // Not using MobilizedBody::findStationVelocityInGround because the
+            // point is already in ground frame.
+
+            // Get body kinematics in ground frame.
+            const Vec3& x_BG = mobod.getBodyOriginLocation(s);
+            const Vec3& w_BG = mobod.getBodyAngularVelocity(s);
+            const Vec3& v_BG = mobod.getBodyOriginVelocity(s);
+
+            // Compute surface point velocity in ground frame.
+            return v_BG + w_BG % (point_G - x_BG);
+        };
+
+        Real& lengthDot = (dataVel.lengthDot = 0.);
+
+        Vec3 v_GQ =
+            getOriginBody().findStationVelocityInGround(s, m_OriginPoint);
+        Vec3 x_GQ = m_OriginPoint;
+
+        forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
+            const MobilizedBody& mobod = curve.getMobilizedBody();
+            const CurveSegmentData::Pos& curveDataPos = curve.getDataPos(s);
+
+            const UnitVec3& e_G = getTangent(curveDataPos.X_GP);
+
+            const Vec3 v_GP =
+                CalcPointVelocityInGround(mobod, curveDataPos.X_GP.p());
+
+            lengthDot += dot(e_G, v_GP - v_GQ);
+
+            x_GQ = curveDataPos.X_GQ.p();
+            v_GQ = CalcPointVelocityInGround(mobod, x_GQ);
+        });
+
+        const Vec3 v_GP = getTerminationBody().findStationVelocityInGround(
+            s,
+            m_TerminationPoint);
+
+        const UnitVec3 e_G(dataPos.terminationPoint_G - x_GQ);
+
+        lengthDot += dot(e_G, v_GP - v_GQ);
+    }
 
     //------------------------------------------------------------------------------
     //                      HELPER FUNCTIONS
@@ -1312,25 +1373,6 @@ Real calcPathError(const LineSegment& e, const Rotation& R, CoordinateAxis axis)
     return dot(e.direction, R.getAxisUnitVec(axis));
 }
 
-// Iterate over the cable's curve segments, and call provided function for
-// those that are in contact with the obstacle's surfacce.
-int forEachActiveCurveSegment(
-    const CableSpan::Impl& cable,
-    const State& s,
-    const std::function<void(const CurveSegment& curve)>& callMe)
-{
-    int nActive = 0;
-    for (ObstacleIndex ix(0); ix < cable.getNumCurveSegments(); ++ix) {
-        const CurveSegment& curve = cable.getCurveSegment(ix);
-        if (!curve.isInContactWithSurface(s)) {
-            continue;
-        }
-        callMe(curve);
-        ++nActive;
-    }
-    return nActive;
-}
-
 // Compute the straight line segments in between the obstacles.
 void calcLineSegments(
     const CableSpan::Impl& cable,
@@ -1342,27 +1384,20 @@ void calcLineSegments(
     lines.clear();
     Vec3 prevPathPoint(pathOriginPoint);
 
-    const int nActive =
-        forEachActiveCurveSegment(cable, s, [&](const CurveSegment& curve) {
-            const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
+    cable.forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
+        const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
 
-            // Compute the line segment from the previous point to the
-            // first curve contact point.
-            lines.emplace_back(prevPathPoint, dataPos.X_GP.p());
+        // Compute the line segment from the previous point to the
+        // first curve contact point.
+        lines.emplace_back(prevPathPoint, dataPos.X_GP.p());
 
-            // The next line segment will start at the curve's final contact
-            // point.
-            prevPathPoint = dataPos.X_GQ.p();
-        });
+        // The next line segment will start at the curve's final contact
+        // point.
+        prevPathPoint = dataPos.X_GQ.p();
+    });
 
     // Compute the last line segment.
     lines.emplace_back(prevPathPoint, pathTerminationPoint);
-
-    // Sanity check.
-    if (lines.size() != nActive + 1) {
-        throw std::runtime_error(
-            "Number of line segments does not match number of curve segments");
-    }
 }
 
 Real calcTotalCableLength(
@@ -1372,29 +1407,23 @@ Real calcTotalCableLength(
 {
     Real totalCableLength = 0.;
 
-    // Add length of all line segments.
+    // Add length of each line segments.
     for (const LineSegment& line : lines) {
         totalCableLength += line.length;
     }
 
     // Add length of each curve segment.
-    const int nActive =
-        forEachActiveCurveSegment(cable, s, [&](const CurveSegment& curve) {
-            // Update the total cable length.
-            totalCableLength += curve.getDataInst(s).length;
-        });
-
-    // Sanity check.
-    if (lines.size() != nActive + 1) {
-        throw std::runtime_error(
-            "Number of line segments does not match number of curve segments");
-    }
+    cable.forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
+        // Update the total cable length.
+        totalCableLength += curve.getDataInst(s).length;
+    });
 
     return totalCableLength;
 }
 
 } // namespace
 
+// Compute the path error for each curve segment at the boundary points, and stack them in a vector.
 template <size_t N>
 void CableSpan::Impl::calcPathErrorVector(
     const State& s,
@@ -1402,30 +1431,28 @@ void CableSpan::Impl::calcPathErrorVector(
     std::array<CoordinateAxis, N> axes,
     Vector& pathError) const
 {
-    int lineIx = 0;
-    int row    = -1;
-
     // Reset path error vector to zero.
     pathError *= 0;
 
-    forEachActiveCurveSegment(
-        *this,
-        s,
-        // Compute the path error for each curved segment.
-        [&](const CurveSegment& curve) {
-            const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
-            // Compute path error at first contact point.
-            for (CoordinateAxis axis : axes) {
-                pathError(++row) =
-                    calcPathError(lines.at(lineIx), dataPos.X_GP.R(), axis);
-            }
-            ++lineIx;
-            // Compute path error at final contact point.
-            for (CoordinateAxis axis : axes) {
-                pathError(++row) =
-                    calcPathError(lines.at(lineIx), dataPos.X_GQ.R(), axis);
-            }
-        });
+    // The element in the path error vector to write to.
+    int pathErrorIx = -1;
+    // Iterator over the straight line segments connecting each curve segment.
+    auto lineIt = lines.begin();
+
+    forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
+        const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
+        // Compute path error at first contact point.
+        for (CoordinateAxis axis : axes) {
+            pathError(++pathErrorIx) =
+                calcPathError(*lineIt, dataPos.X_GP.R(), axis);
+        }
+        ++lineIt;
+        // Compute path error at final contact point.
+        for (CoordinateAxis axis : axes) {
+            pathError(++pathErrorIx) =
+                calcPathError(*lineIt, dataPos.X_GQ.R(), axis);
+        }
+    });
 }
 
 //==============================================================================
@@ -1852,7 +1879,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
         // correction vector.
         Real stepSize            = 1.;
         const Correction* corrIt = getPathCorrections(data);
-        forEachActiveCurveSegment(*this, s, [&](const CurveSegment& curve) {
+        forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
             calcMaxAllowedCorrectionStepSize(
                 curve,
                 s,
@@ -1866,7 +1893,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
         // Apply corrections to the curve segments. This will trigger shooting
         // new geodesics over the obstacles.
         corrIt = getPathCorrections(data);
-        forEachActiveCurveSegment(*this, s, [&](const CurveSegment& curve) {
+        forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
             applyGeodesicCorrection(curve, s, *corrIt, getParameters());
             ++corrIt;
         });
@@ -1881,57 +1908,6 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
 
         ++dataPos.loopIter;
     }
-}
-
-//==============================================================================
-//                      CABLE SPAN VELOCITY LEVEL CACHE
-//==============================================================================
-
-void CableSpan::Impl::calcVelInfo(const State& s, CableSpanData::Vel& dataVel)
-    const
-{
-    const CableSpanData::Pos& dataPos = getPosInfo(s);
-
-    auto CalcPointVelocityInGround = [&](const MobilizedBody& mobod,
-                                         const Vec3& point_G) -> Vec3 {
-        // Not using MobilizedBody::findStationVelocityInGround because the
-        // point is already in ground frame.
-
-        // Get body kinematics in ground frame.
-        const Vec3& x_BG = mobod.getBodyOriginLocation(s);
-        const Vec3& w_BG = mobod.getBodyAngularVelocity(s);
-        const Vec3& v_BG = mobod.getBodyOriginVelocity(s);
-
-        // Compute surface point velocity in ground frame.
-        return v_BG + w_BG % (point_G - x_BG);
-    };
-
-    Real& lengthDot = (dataVel.lengthDot = 0.);
-
-    Vec3 v_GQ = getOriginBody().findStationVelocityInGround(s, m_OriginPoint);
-    Vec3 x_GQ = m_OriginPoint;
-
-    forEachActiveCurveSegment(*this, s, [&](const CurveSegment& curve) {
-        const MobilizedBody& mobod                = curve.getMobilizedBody();
-        const CurveSegmentData::Pos& curveDataPos = curve.getDataPos(s);
-
-        const UnitVec3& e_G = getTangent(curveDataPos.X_GP);
-
-        const Vec3 v_GP =
-            CalcPointVelocityInGround(mobod, curveDataPos.X_GP.p());
-
-        lengthDot += dot(e_G, v_GP - v_GQ);
-
-        x_GQ = curveDataPos.X_GQ.p();
-        v_GQ = CalcPointVelocityInGround(mobod, x_GQ);
-    });
-
-    const Vec3 v_GP =
-        getTerminationBody().findStationVelocityInGround(s, m_TerminationPoint);
-
-    const UnitVec3 e_G(dataPos.terminationPoint_G - x_GQ);
-
-    lengthDot += dot(e_G, v_GP - v_GQ);
 }
 
 //==============================================================================
@@ -2444,8 +2420,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             }
 
             const Correction* corrIt = getPathCorrections(data);
-            forEachActiveCurveSegment(
-                cable,
+            cable.forEachActiveCurveSegment(
                 sCopy,
                 [&](const CurveSegment& curve) {
                     applyGeodesicCorrection(
