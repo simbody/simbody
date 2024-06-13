@@ -614,17 +614,67 @@ public:
                dataInst.wrappingStatus == WrappingStatus::InitialGuess;
     }
 
-    // See CurveSegment::calcPathPoints for description.
-    int calcPathPoints(
+    void calcGeodesicKnots(
         const State& state,
-        const std::function<void(Real length, Vec3 point_G)>& sink,
-        int nSamples) const;
+        const std::function<void(
+            const ContactGeometry::ImplicitGeodesicState& geodesicKnot_S,
+            const Transform& X_GS)>& sink) const
+    {
+        if (!isInContactWithSurface(state)) {
+            return;
+        }
 
-    int calcPathPointsAndTangents(
-        const State& state,
-        const std::function<
-            void(Real length, Vec3 point_G, UnitVec3 tangent_G)>& sink,
-        int nSamples) const;
+        const CurveSegmentData::Instance& dataInst = getDataInst(state);
+        const Transform& X_GS                      = getDataPos(state).X_GS;
+
+        if (getContactGeometry().isAnalyticFormAvailable()) {
+            // TODO Depending on what is actually desired by the end-user, this
+            // might need revision.
+
+            // For analytic surfaces there is no numerical integrator to give a
+            // natural interspacing of knots. So instead I just assume you
+            // would like some OK granularity. This can be done by interspacing
+            // the knots by a certain "angle" (e.g. 5 degrees is pretty fine),
+            // and using the radius of curvature to convert the angle to a
+            // spatial interspacing of the samples.
+            constexpr Real c_AngularSpacingInDegrees = 5.;
+
+            // To convert the angular spacing to a spatial spacing we need the
+            // curvature. The curvature is generally not constant along a
+            // geodesic, but there are not a lot of analytic surfaces at the
+            // moment (sphere and cylinder?). For these we can just look at the
+            // curvature at the boundary frames to know the curvature along the
+            // entire geodesic.
+            const Real maxCurvature_P = max(abs(dataInst.curvatures_P));
+            const Real maxCurvature_Q = max(abs(dataInst.curvatures_P));
+            const Real minRadiusOfCurvature =
+                1. / std::max(maxCurvature_P, maxCurvature_Q);
+
+            // Estimate the spatial interspacing from the angular spacing and
+            // the radius of curvature.
+            const Real lengthInterspacing =
+                minRadiusOfCurvature * c_AngularSpacingInDegrees / 180. * Pi;
+
+            // Now shoot the geodesic analytically with the desired granularity.
+            const int numberOfKnotPoints =
+                static_cast<int>(dataInst.length / lengthInterspacing);
+            getContactGeometry().shootGeodesicInDirectionAnalytically(
+                dataInst.X_SP.p(),
+                getTangent(dataInst.X_SP),
+                dataInst.length,
+                std::max(numberOfKnotPoints, 2),
+                [&](const ContactGeometry::ImplicitGeodesicState&
+                        geodesicKnot_S) { sink(geodesicKnot_S, X_GS); });
+            return;
+        }
+
+        // If the surface did not have an analytic form, we simply forward the
+        // knots from the GeodesicIntegrator.
+        for (const ContactGeometry::ImplicitGeodesicState& q :
+             dataInst.geodesicIntegratorStates) {
+            sink(q, X_GS);
+        }
+    }
 
     // Compute a new geodesic from provided initial conditions.
     // This method will update the Instance level cache, and invalidates the
@@ -888,39 +938,6 @@ public:
         return count;
     }
 
-    // See CableSpan::calcPathPoints.
-    int calcPathPoints(
-        const State& state,
-        Real lengthIncrement,
-        const std::function<void(Real length, Vec3 point_G)>& sink) const
-    {
-        // Count number of points written.
-        int count = 0;
-
-        // Write the initial point.
-        const CableSpanData::Pos& pos = getPosInfo(state);
-        sink(0., pos.originPoint_G);
-        ++count;
-
-        // Write points along each of the curves.
-        for (const CurveSegment& curve : m_CurveSegments) {
-
-            Real curveLength = curve.getDataInst(state).length;
-            int nPoints =
-                static_cast<int>(std::abs(curveLength / lengthIncrement) + 1.);
-            nPoints = nPoints < 2 ? 2 : nPoints;
-
-            count += curve.calcPathPoints(state, sink, nPoints);
-        }
-
-        // Write the termination point.
-        sink(pos.cableLength, pos.terminationPoint_G);
-        ++count;
-
-        // Return number of points written.
-        return count;
-    }
-
     void applyBodyForces(
         const State& state,
         Real tension,
@@ -928,10 +945,49 @@ public:
 
     Real calcCablePower(const State& state, Real tension) const;
 
-    int calcDecorativeGeometryAndAppend(
+    void calcDecorativePathPoints(
         const State& state,
-        Stage stage,
-        Array_<DecorativeGeometry>& decorations) const;
+        const std::function<void(Vec3 point_G)>& sink) const
+    {
+        // Write the initial point.
+        const CableSpanData::Pos& dataPos = getPosInfo(state);
+        sink(dataPos.originPoint_G);
+
+        // Write points along each of the curves.
+        for (const CurveSegment& curve : m_CurveSegments) {
+            curve.calcGeodesicKnots(
+                state,
+                [&](const ContactGeometry::ImplicitGeodesicState&
+                        geodesicKnot_S,
+                    const Transform& X_GS) {
+                    // Transform to ground frame and write to output.
+                    sink(X_GS.shiftFrameStationToBase(geodesicKnot_S.point));
+                });
+        }
+
+        // Write the termination point.
+        sink(dataPos.terminationPoint_G);
+    }
+
+    void calcDecorativeGeometryAndAppend(
+        const State& state,
+        Array_<DecorativeGeometry>& decorations) const
+    {
+        const Vec3 c_Color            = Purple;
+        constexpr int c_LineThickness = 3;
+
+        bool isFirstPoint = true;
+        Vec3 prevPoint_G{NaN};
+        calcDecorativePathPoints(state, [&](Vec3 nextPoint_G) {
+            if (!isFirstPoint) {
+                decorations.push_back(DecorativeLine(prevPoint_G, nextPoint_G)
+                                          .setColor(c_Color)
+                                          .setLineThickness(c_LineThickness));
+            }
+            prevPoint_G  = nextPoint_G;
+            isFirstPoint = false;
+        });
+    }
 
 private:
     // Get the subsystem this CableSpan is part of.
@@ -1241,151 +1297,6 @@ Real CableSpan::Impl::calcCablePower(const State& state, Real tension) const
     }
 
     return unitPower * tension;
-}
-
-//==============================================================================
-//                             CABLE VISUALIZATION
-//==============================================================================
-
-namespace
-{
-
-// Helper for drawing a pretty curve segment.
-void calcCurveDecorativeGeometryAndAppend(
-    const CurveSegment& curve,
-    const State& s,
-    Array_<DecorativeGeometry>& decorations)
-{
-    constexpr Real c_InactiveOpacity = 0.25;
-
-    const bool isInContactWithSurface    = curve.isInContactWithSurface(s);
-    const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
-
-    // Draw the surface (TODO since we do not own it, should it be done here at
-    // all?).
-    {
-        DecorativeGeometry geo = curve.getDecoration(); // TODO clone it?
-        const Transform& X_GS  = dataPos.X_GS;
-        const Transform& X_SD  = geo.getTransform();
-        // Inactive surfaces are dimmed.
-        const Vec3 color = isInContactWithSurface
-                               ? geo.getColor()
-                               : geo.getColor() * c_InactiveOpacity;
-
-        decorations.push_back(geo.setTransform(X_GS * X_SD).setColor(color));
-    }
-
-    // Check wrapping status to see if there is a curve to draw.
-    if (!isInContactWithSurface) {
-        return;
-    }
-
-    // Draw the curve segment as straight lines between prevPoint and nextPoint.
-    {
-        // Helper function for drawing line between prevPoint and nextPoint.
-        Vec3 prevPoint{NaN};
-        auto drawLine = [&](Real length, Vec3 nextPoint) {
-            if (length != 0.) {
-                decorations.push_back(DecorativeLine(prevPoint, nextPoint)
-                                          .setColor(Purple)
-                                          .setLineThickness(3));
-            }
-            prevPoint = nextPoint;
-        };
-
-        // TODO for debugging: Choose to show the original intergrator's path
-        // points or the resampled path points.
-        constexpr bool doResampling = true;
-        if (doResampling) {
-            curve.calcPathPoints(s, drawLine, 10);
-        } else {
-            // Use points from GeodesicIntegrator directly.
-            for (const ContactGeometry::ImplicitGeodesicState& q :
-                 curve.getDataInst(s).geodesicIntegratorStates) {
-                drawLine(
-                    q.arcLength,
-                    dataPos.X_GS.shiftFrameStationToBase(q.point));
-            }
-        }
-    }
-
-    // Draw the Frenet frame at curve start and end.
-    // TODO this is for debugging should be removed.
-    {
-        constexpr int FRENET_FRAME_LINE_THICKNESS = 5;
-        constexpr Real FRENET_FRAME_LINE_LENGTH   = 0.5;
-
-        const std::array<CoordinateAxis, 3> axes = {
-            TangentAxis,
-            NormalAxis,
-            BinormalAxis};
-        const std::array<Vec3, 3> colors = {Red, Green, Blue};
-
-        std::function<void(const FrenetFrame& K)> DrawFrenetFrame =
-            [&](const FrenetFrame& K) {
-                for (int i = 0; i < 3; ++i) {
-                    decorations.push_back(
-                        DecorativeLine(
-                            K.p(),
-                            K.p() + FRENET_FRAME_LINE_LENGTH *
-                                        K.R().getAxisUnitVec(axes.at(i)))
-                            .setColor(colors.at(i))
-                            .setLineThickness(FRENET_FRAME_LINE_THICKNESS));
-                }
-            };
-
-        DrawFrenetFrame(dataPos.X_GP);
-        DrawFrenetFrame(dataPos.X_GQ);
-    }
-
-    // Draw the initial contact point hint using a yellow line.
-    // TODO this is for debugging should be removed.
-    {
-        constexpr int c_HintLineThickness = 2;
-
-        const Transform& X_GS = dataPos.X_GS;
-
-        decorations.push_back(DecorativeLine(
-                                  dataPos.X_GS.p(),
-                                  dataPos.X_GS.shiftFrameStationToBase(
-                                      curve.getContactPointHint()))
-                                  .setColor(Yellow)
-                                  .setLineThickness(c_HintLineThickness));
-    }
-}
-
-} // namespace
-
-int CableSpan::Impl::calcDecorativeGeometryAndAppend(
-    const State& s,
-    Stage stage,
-    Array_<DecorativeGeometry>& decorations) const
-{
-    constexpr int c_LineThickness = 3;
-
-    const CableSpanData::Pos& dataPos = getPosInfo(s);
-    Vec3 prevPoint                    = dataPos.originPoint_G;
-
-    for (const CurveSegment& curve : m_CurveSegments) {
-        if (curve.isInContactWithSurface(s)) {
-            const CurveSegmentData::Pos cppe = curve.getDataPos(s);
-
-            const Vec3 nextPoint = cppe.X_GP.p();
-            decorations.push_back(DecorativeLine(prevPoint, nextPoint)
-                                      .setColor(Purple)
-                                      .setLineThickness(c_LineThickness));
-            prevPoint = cppe.X_GQ.p();
-        }
-
-        calcCurveDecorativeGeometryAndAppend(curve, s, decorations);
-    }
-
-    // TODO choose colors.
-    decorations.push_back(DecorativeLine(prevPoint, dataPos.terminationPoint_G)
-                              .setColor(Purple)
-                              .setLineThickness(3));
-
-    return 0;
 }
 
 //==============================================================================
@@ -2047,14 +1958,15 @@ void shootNewGeodesic(
 
     // Shoot a new geodesic over the surface, and compute the geodesic state at
     // the first and last contact point of the surface.
-    std::array<ContactGeometry::ImplicitGeodesicState,2 > geodesicBoundaryStates;
+    std::array<ContactGeometry::ImplicitGeodesicState, 2>
+        geodesicBoundaryStates;
 
     if (useAnalyticGeodesic) {
 
         // For analytic surfaces we can compute the inital and final frenet
         // frames without computing any intermediate knot points.
         int numberOfKnotPoints = 2;
-        int knotIx = 0;
+        int knotIx             = 0;
         geometry.shootGeodesicInDirectionAnalytically(
             point_S,
             tangent_S,
@@ -2447,279 +2359,6 @@ void CurveSegment::realizePosition(
 }
 
 //==============================================================================
-//                      RESAMPLING GEODESIC PATH POINTS
-//==============================================================================
-
-// Helper functions for resampling the frenet frames obtained from shooting the
-// geodesic.
-namespace
-{
-
-// Compute the y at x using cubic Hermite interpolation between (y0, y0Dot) at
-// x0, and (y1, y1Dot) at x1.
-Vec3 calcHermiteInterpolation(
-    Real x0,
-    const Vec3& y0,
-    const Vec3& y0Dot,
-    Real x1,
-    const Vec3& y1,
-    const Vec3& y1Dot,
-    Real x)
-{
-    if (x == x0) {
-        return y0;
-    }
-    if (x == x1) {
-        return y1;
-    }
-
-    // Interpolation is done by computing the coefficients of the polynomial:
-    // f(s) = c0 + c1 * s + c2 * s^2 + c3 * s^3
-    // followed by evaluating the polynomial for s = x - x0.
-
-    const Real dx    = x1 - x0;
-    const Vec3 dy    = y1 - y0;
-    const Vec3 dyDot = y1Dot - y0Dot;
-
-    // Compute the coefficients of the polynomial.
-    const Vec3& c0 = y0;
-    const Vec3& c1 = y0Dot;
-    const Vec3 c3 =
-        -2. * (dy - y0Dot * dx - 0.5 * dx * dyDot) / std::pow(dx, 3);
-    const Vec3 c2 = (dyDot / dx - 3. * c3 * dx) / 2.;
-
-    // Evaluate the polynomial.
-    const Real s = x - x0;
-    return c0 + s * (c1 + s * (c2 + s * c3));
-}
-
-// Compute the point in between two geodesic samples using Hermite
-// interpolation.
-Vec3 calcInterpolatedPoint(
-    const ContactGeometry::ImplicitGeodesicState& a,
-    const ContactGeometry::ImplicitGeodesicState& b,
-    Real l)
-{
-    return calcHermiteInterpolation(
-        a.arcLength,
-        a.point,
-        a.tangent,
-        b.arcLength,
-        b.point,
-        b.tangent,
-        l);
-}
-
-// Compute the tangent in between two geodesic samples using Hermite
-// interpolation.
-Vec3 calcInterpolatedTangent(
-    const ContactGeometry& geometry,
-    const ContactGeometry::ImplicitGeodesicState& a,
-    const ContactGeometry::ImplicitGeodesicState& b,
-    Real l)
-{
-    // Helper for calculating the derivative of the tangent.
-    auto CalcTangentDot =
-        [&](const ContactGeometry::ImplicitGeodesicState& q) -> Vec3 {
-        const FrenetFrame& X_S = calcFrenetFrameFromGeodesicState(geometry, q);
-        const Real k = calcSurfaceCurvature(geometry, X_S, TangentAxis);
-        return k * getNormal(X_S);
-    };
-
-    return calcHermiteInterpolation(
-        a.arcLength,
-        a.tangent,
-        CalcTangentDot(a),
-        b.arcLength,
-        b.tangent,
-        CalcTangentDot(b),
-        l);
-}
-
-using InterpolatorFn = std::function<void(
-    const ContactGeometry::ImplicitGeodesicState& a,
-    const ContactGeometry::ImplicitGeodesicState& b,
-    Real l)>;
-
-// Resamples the geodesic samples at equal length intervals.
-// @param geodesic contains the original geodesic samples.
-// @param nSamples the number of samples to obtain.
-// @param interpolator function for performing the interpolation between two
-// selected samples at a given length.
-// @return the number of samples used for the interpolation.
-int resampleGeodesic(
-    const std::vector<ContactGeometry::ImplicitGeodesicState>& geodesic,
-    int nSamples, // TODO use length increment?
-    const InterpolatorFn& interpolator)
-{
-    // Some sanity checks.
-    SimTK_ASSERT_ALWAYS(!geodesic.empty(),
-        "Resampling of geodesic failed: Provided geodesic is empty.");
-    SimTK_ASSERT_ALWAYS(geodesic.front().arcLength == 0.,
-        "Resampling of geodesic failed: First frame must be at arcLength = zero");
-    SimTK_ASSERT_ALWAYS(geodesic.back().arcLength >= 0.,
-        "Resampling of geodesic failed: Last frame must be at arcLength >= zero");
-
-    // If there is but one sample in the geodesic, write that sample.
-    if (geodesic.size() == 1) {
-        interpolator(geodesic.front(), geodesic.front(), 0.);
-        return 1;
-    }
-
-    // Compute the interpolated points from the geodesic.
-    auto itGeodesic = geodesic.begin();
-    for (int i = 0; i < nSamples; ++i) {
-
-        // Length at the current interpolation point.
-        const Real arcLength = geodesic.back().arcLength * (static_cast<Real>(i) / static_cast<Real>(nSamples - 1));
-
-        // Find the two samples (lhs, rhs) of the geodesic such that the
-        // arcLength of the interpolation point lies between them.
-        // i.e. find: lhs.arcLength <= arcLength < rhs.arcLength
-        while (true) {
-            SimTK_ASSERT_ALWAYS((itGeodesic + 1) != geodesic.end(),
-                "Resampling of geodesic failed:"
-                "Accessing out-of-range element");
-
-            // The candidate samples to use for interpolation.
-            const ContactGeometry::ImplicitGeodesicState& lhs = *itGeodesic;
-            const ContactGeometry::ImplicitGeodesicState& rhs =
-                *(itGeodesic + 1);
-
-            SimTK_ASSERT_ALWAYS(lhs.arcLength < rhs.arcLength,
-                "Resampling of geodesic failed:"
-                "Samples are not monotonically increasing in arcLength.");
-
-            // Check that the interpolation point lies between these samples:
-            // lhs.arcLength <= arcLength <= rhs.arcLength
-            if (arcLength > rhs.arcLength) {
-                // Try the next two samples.
-                ++itGeodesic;
-                continue;
-            }
-
-            // Write interpolated point to the output buffer.
-            interpolator(lhs, rhs, arcLength);
-
-            break;
-        }
-    }
-
-    return nSamples;
-}
-} // namespace
-
-int CurveSegment::calcPathPointsAndTangents(
-    const State& state,
-    const std::function<void(Real length, Vec3 point_G, UnitVec3 tangent_G)>& sink,
-    int nSamples) const
-{
-    if (!isInContactWithSurface(state)) {
-        return 0;
-    }
-
-    SimTK_ERRCHK1_ALWAYS(nSamples >= 2,
-        "CurveSegment::calcPathPointsAndTangents",
-        "Invalid argument: nSamples must be larger or equal to 2, but got %d", nSamples);
-
-    const CurveSegmentData::Instance& dataInst = getDataInst(state);
-    const CurveSegmentData::Pos& dataPos       = getDataPos(state);
-
-    if (nSamples == 2)
-    {
-        sink(dataInst.length, dataPos.X_GP.p(), getTangent(dataPos.X_GP));
-        sink(dataInst.length, dataPos.X_GQ.p(), getTangent(dataPos.X_GQ));
-    }
-
-    if (getContactGeometry().isAnalyticFormAvailable()) {
-        getContactGeometry().shootGeodesicInDirectionAnalytically(
-            dataInst.X_SP.p(),
-            getTangent(dataInst.X_SP), dataInst.length, nSamples,
-            [&](const ContactGeometry::ImplicitGeodesicState& q) {
-            const Transform& X_GS = dataPos.X_GS;
-            // Compute the interpolated point between a-b in ground frame.
-            const Vec3 point_G = X_GS.shiftFrameStationToBase(q.point);
-            // Compute the interpolated tangent between a-b in ground frame.
-            const UnitVec3 tangent_G = UnitVec3(X_GS.xformFrameVecToBase(q.tangent));
-            // Write result to the sink.
-            sink(q.arcLength, point_G, tangent_G);
-            });
-        return nSamples;
-    }
-
-    // Resample the points from the integrator at equal length intervals.
-    return resampleGeodesic(
-        dataInst.geodesicIntegratorStates,
-        nSamples,
-        [&](const ContactGeometry::ImplicitGeodesicState& a,
-            const ContactGeometry::ImplicitGeodesicState& b,
-            Real l) {
-            const Transform& X_GS = dataPos.X_GS;
-            // Compute the interpolated point between a-b in ground frame.
-            const Vec3 interpolatedPoint_G =
-                X_GS.shiftFrameStationToBase(calcInterpolatedPoint(a, b, l));
-            // Compute the interpolated tangent between a-b in ground frame.
-            const UnitVec3 interpolatedTangent_G =
-                UnitVec3(X_GS.xformFrameVecToBase(
-                    calcInterpolatedTangent(getContactGeometry(), a, b, l)));
-            // Write result to the sink.
-            sink(l, interpolatedPoint_G, interpolatedTangent_G);
-        });
-}
-
-int CurveSegment::calcPathPoints(
-    const State& state,
-    const std::function<void(Real length, Vec3 point_G)>& sink,
-    int nSamples) const
-{
-    if (!isInContactWithSurface(state)) {
-        return 0;
-    }
-
-    SimTK_ERRCHK1_ALWAYS(nSamples >= 2,
-        "CurveSegment::calcPathPoints",
-        "Invalid argument: nSamples must be larger or equal to 2, but got %d", nSamples);
-
-    const CurveSegmentData::Instance& dataInst = getDataInst(state);
-    const CurveSegmentData::Pos& dataPos       = getDataPos(state);
-
-    if (nSamples == 2)
-    {
-        sink(dataInst.length, dataPos.X_GP.p());
-        sink(dataInst.length, dataPos.X_GQ.p());
-    }
-
-    if (getContactGeometry().isAnalyticFormAvailable()) {
-        getContactGeometry().shootGeodesicInDirectionAnalytically(
-            dataInst.X_SP.p(),
-            getTangent(dataInst.X_SP), dataInst.length, nSamples,
-            [&](const ContactGeometry::ImplicitGeodesicState& q) {
-            const Vec3 point_G = dataPos.X_GS.shiftFrameStationToBase(q.point);
-            // Write result to the sink.
-            sink(q.arcLength, point_G);
-            });
-        return nSamples;
-    }
-
-    // Resample the points from the integrator at equal length intervals.
-    return resampleGeodesic(
-        dataInst.geodesicIntegratorStates,
-        nSamples,
-        // Define the required function that interpolates between two samples, and
-        // logs the interpolated sample.
-        [&](const ContactGeometry::ImplicitGeodesicState& a,
-            const ContactGeometry::ImplicitGeodesicState& b,
-            Real l) {
-            // Compute the interpolated point between a-b in ground frame.
-            const Vec3 interpolatedPoint_S = calcInterpolatedPoint(a, b, l);
-            const Vec3 interpolatedPoint_G =
-                dataPos.X_GS.shiftFrameStationToBase(interpolatedPoint_S);
-            // Write result to the sink.
-            sink(l, interpolatedPoint_G);
-        });
-}
-
-//==============================================================================
 //                         CableSubsystemTestHelper
 //==============================================================================
 // Test correctness of the path error jacobian by applying a small perturbation
@@ -2951,15 +2590,8 @@ int CableSubsystem::Impl::calcDecorativeGeometryAndAppendImpl(
     if (stage != Stage::Position) {
         return 0;
     }
-
     for (const CableSpan& cable : cables) {
-        int returnValue = cable.getImpl().calcDecorativeGeometryAndAppend(
-            state,
-            stage,
-            decorations);
-        if (returnValue != 0) {
-            return returnValue;
-        }
+        cable.getImpl().calcDecorativeGeometryAndAppend(state, decorations);
     }
     return 0;
 }
@@ -3130,51 +2762,15 @@ Real CableSpan::getCurveSegmentLength(const State& state, ObstacleIndex ix)
     return getImpl().getCurveSegment(ix).getDataInst(state).length;
 }
 
-int CableSpan::calcCurveSegmentPathPoints(
+void CableSpan::calcCurveSegmentKnots(
     const State& state,
     ObstacleIndex ix,
-    int nPoints,
-    const std::function<void(Real length, Vec3 point)>& sink) const
+    const std::function<void(
+        const ContactGeometry::ImplicitGeodesicState& geodesicKnot_S,
+        const Transform& X_GS)>& sink) const
 {
     getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).calcPathPoints(state, sink, nPoints);
-}
-
-// This is useful for debugging and visualization.
-int CableSpan::calcCurveSegmentPathPointsAndTangents(
-    const State& state,
-    ObstacleIndex ix,
-    int nPoints,
-    const std::function<void(Real length, Vec3 point, UnitVec3 tangent)>& sink)
-    const
-{
-    getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).calcPathPointsAndTangents(
-        state,
-        sink,
-        nPoints);
-}
-
-int CableSpan::getCurveSegmentNumberOfIntegratorStepsTaken(
-    const State& state,
-    ObstacleIndex ix) const
-{
-    getImpl().realizePosition(state);
-    return getImpl()
-        .getCurveSegment(ix)
-        .getDataInst(state)
-        .geodesicIntegratorStates.size();
-}
-
-Real CableSpan::getCurveSegmentInitialIntegratorStepSize(
-    const State& state,
-    ObstacleIndex ix) const
-{
-    getImpl().realizePosition(state);
-    return getImpl()
-        .getCurveSegment(ix)
-        .getDataInst(state)
-        .integratorInitialStepSize;
+    getImpl().getCurveSegment(ix).calcGeodesicKnots(state, sink);
 }
 
 //------------------------------------------------------------------------------
@@ -3259,12 +2855,11 @@ void CableSpan::applyBodyForces(
     return getImpl().applyBodyForces(s, tension, bodyForcesInG);
 }
 
-int CableSpan::calcPathPoints(
+void CableSpan::calcDecorativePathPoints(
     const State& state,
-    Real lengthIncrement,
-    const std::function<void(Real length, Vec3 point_G)>& sink) const
+    const std::function<void(Vec3 point_G)>& sink) const
 {
-    return getImpl().calcPathPoints(state, lengthIncrement, sink);
+    getImpl().calcDecorativePathPoints(state, sink);
 }
 
 Real CableSpan::calcCablePower(const State& state, Real tension) const

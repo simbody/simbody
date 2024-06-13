@@ -152,43 +152,21 @@ public:
      * State must be realized to Stage::Position. */
     Real getCurveSegmentLength(const State& state, ObstacleIndex ix) const;
 
-    int getCurveSegmentNumberOfIntegratorStepsTaken(
-        const State& state,
-        ObstacleIndex ix) const;
-    Real getCurveSegmentInitialIntegratorStepSize(
-        const State& state,
-        ObstacleIndex ix) const;
+    /** Compute knot points of the curve segment (i.e. the geodesic) on the
+    obstacle in local coordinates, together with the transform for conversion to
+    ground frame. If the cable is not in contact with the given obstacle,
+    nothing will be written.
 
-    /** Compute points along the obstacle's curve segment at equal length
-     * intervals.
-     * The computed points are interpolated from the underlying geodesic, and
-     * might slightly violate configured tolerances.
-     * State must be realized to Stage::Position.
-     *
-     * @param state System State.
-     * @param ix Index of the obstacle that the curve wraps over.
-     * @param nPoints Number of points used to resample the curve. Minimum
-     * allowed is two.
-     * @param sink Where the interpolated point will be written to. Both the
-     * length measured from the curve segment's first contact point, as well as
-     * the position are written.
-     * @return Number of points actually written. If the curve has zero length,
-     * only one point will be computed. If the cable is not in contact with
-     * this obstacle, zero points will be written. */
-    int calcCurveSegmentPathPoints(
+    TODO I'm unsure what kind of info we would like from the geodesics.
+    TODO it feels like access to some info on the geodesic would be nice.
+    TODO Feedback is welcome!
+    */
+    void calcCurveSegmentKnots(
         const State& state,
         ObstacleIndex ix,
-        int nPoints,
-        const std::function<void(Real length, Vec3 point)>& sink) const;
-
-    // TODO same as calcCurveSegmentPathPoints but also computes the curve's
-    // tangent.
-    int calcCurveSegmentPathPointsAndTangents(
-        const State& state,
-        ObstacleIndex ix,
-        int nPoints,
-        const std::function<void(Real length, Vec3 point, UnitVec3 tangent)>&
-            sink) const;
+        const std::function<void(
+            const ContactGeometry::ImplicitGeodesicState& geodesicKnot_S,
+            const Transform& X_GS)>& sink) const;
 
     //------------------------------------------------------------------------------
     //                     CABLE CONFIGURATION
@@ -254,22 +232,16 @@ public:
      * State must be realized to Stage::Position. */
     Real calcCablePower(const State& state, Real tension) const;
 
-    /** Compute points on the path spanned by this cable.
-     * The curve segments will be resampled from the underlying geodesic such
-     * that the computed points are at equal length intervals. The straight
-     * line segments are not resampled.
-     * State must be realized to Stage::Position.
-     *
-     * @param state System State.
-     * @param lengthInterval Each curve segments will be resampled such that
-     * the point's interspacing does not exceed this value.
-     * @param sink Where the path points will be written to.
-     * @return The total number of computed points.
-     */
-    int calcPathPoints(
+    /** Compute points on the path spanned by this cable suitable for
+    visualization purposes.
+
+    State must be realized to Stage::Position.
+
+    @param state System State.
+    @param sink Where the path points (in ground frame) will be written to. */
+    void calcDecorativePathPoints(
         const State& state,
-        Real lengthInterval,
-        const std::function<void(Real length, Vec3 point)>& sink) const;
+        const std::function<void(Vec3 point_G)>& sink) const;
 
     /** Number of solver iterations required to compute the cable's path.
      * State must be realized to Stage::Position. */
