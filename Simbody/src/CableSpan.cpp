@@ -619,7 +619,7 @@ public:
     int calcPathPoints(
         const State& state,
         const std::function<void(Real length, Vec3 point_G)>& sink,
-        int nSamples = 0) const;
+        int nSamples) const;
 
     int calcPathPointsAndTangents(
         const State& state,
@@ -1295,11 +1295,10 @@ void calcCurveDecorativeGeometryAndAppend(
         };
 
         // TODO for debugging: Choose to show the original intergrator's path
-        // TODO this is actually broken
         // points or the resampled path points.
-        constexpr bool doResampling = false;
+        constexpr bool doResampling = true;
         if (doResampling) {
-            curve.calcPathPoints(s, drawLine);
+            curve.calcPathPoints(s, drawLine, 10);
         } else {
             // Use points from GeodesicIntegrator directly.
             for (const ContactGeometry::ImplicitGeodesicState& q :
@@ -2043,95 +2042,90 @@ void shootNewGeodesic(
     const IntegratorTolerances& tols,
     CurveSegmentData::Instance& dataInst)
 {
-    dataInst.geodesicIntegratorStates.clear();
-    dataInst.integratorInitialStepSize = initIntegratorStepSize;
-
+    // First determine if this geometry has an analytic form.
     const ContactGeometry& geometry = curve.getContactGeometry();
+    const bool useAnalyticGeodesic  = geometry.isAnalyticFormAvailable();
 
-    // TODO implement shooting Analytic and Parametric geodesics.
-    geometry.shootGeodesicInDirectionImplicitly(
-        point_S,
-        tangent_S,
-        length,
-        initIntegratorStepSize,
-        tols.intergatorAccuracy,
-        tols.constraintProjectionTolerance,
-        tols.constraintProjectionMaxIterations,
-        [&](const ContactGeometry::ImplicitGeodesicState& q) {
-            // Log the integrator knot points.
-            dataInst.geodesicIntegratorStates.push_back(q);
+    // Shoot a new geodesic over the surface, and compute the geodesic state at
+    // the first and last contact point of the surface.
+    std::array<ContactGeometry::ImplicitGeodesicState,2 > geodesicBoundaryStates;
 
-            dataInst.jacobi_Q    = {q.jacobiTrans, q.jacobiRot};
-            dataInst.jacobiDot_Q = {q.jacobiTransDot, q.jacobiRotDot};
-        });
+    if (useAnalyticGeodesic) {
 
-    // Update the initial integrator step size.
-    {
-        // We want to know if we should attempt a larger initIntegratorStepSize
-        // next time, or a smaller one. If the initIntegratorStepSize was
-        // rejected, it makes little sense to start with the exact same step
-        // size next time, only to find it rejected again.
+        // For analytic surfaces we can compute the inital and final frenet
+        // frames without computing any intermediate knot points.
+        int numberOfKnotPoints = 2;
+        int knotIx = 0;
+        geometry.shootGeodesicInDirectionAnalytically(
+            point_S,
+            tangent_S,
+            length,
+            numberOfKnotPoints,
+            // Copy the state at the boundary frames.
+            [&](const ContactGeometry::ImplicitGeodesicState& q) {
+                geodesicBoundaryStates.at(knotIx) = q;
+                ++knotIx;
+            });
 
-        // If the integrator took a single step or none: The final arc length is
-        // shorter than the initial step size attempted. The step was atleast
-        // not rejected, but we do not know if we can make it larger. So we do
-        // not update it.
-        const int numberOfIntegrationSteps =
-            dataInst.geodesicIntegratorStates.size() - 1;
-        if (numberOfIntegrationSteps <= 1) {
-            // Try the same step next time:
-            dataInst.integratorInitialStepSize = initIntegratorStepSize;
-        }
+    } else {
 
-        // If the integrator took two or more steps, we might want to update the
-        // next step size to try,
-        if (numberOfIntegrationSteps >= 2) {
-            // The acual initial step size taken by the integrator cannot have
-            // been larger than initIntegratorStepSize, but it might be smaller
-            // if it was rejected. If rejected, we will reduce the init step
-            // size for next time.
-            const Real actualFirstStepSize =
-                dataInst.geodesicIntegratorStates.at(1).arcLength -
-                dataInst.geodesicIntegratorStates.front().arcLength;
-            const bool initStepWasRejected =
-                actualFirstStepSize < initIntegratorStepSize;
-            if (initStepWasRejected) {
-                // Reduce the init step size for next time, to avoid rejecting
-                // it again.
-                dataInst.integratorInitialStepSize = actualFirstStepSize;
-            } else {
-                // If the initIntegratorStepSize was accepted we might want to
-                // try a larger step next time. The actualFirstStepSize cannot
-                // be larger than initIntegratorStepSize: we must take a look
-                // at the second step size.
-                const Real actualSecondStepSize =
-                    dataInst.geodesicIntegratorStates.at(2).arcLength -
-                    dataInst.geodesicIntegratorStates.at(1).arcLength;
-                // We already established that the initIntegratorStepSize was
-                // accepted, now we are only looking to increase the step size.
-                dataInst.integratorInitialStepSize =
-                    std::max(initIntegratorStepSize, actualSecondStepSize);
-            }
-        }
+        // For implicit surfaces we must use a numerical integrator to compute
+        // the initial and final frames. Because this is relatively
+        // costly, we will cache this geodesic.
+        dataInst.geodesicIntegratorStates.clear();
+        geometry.shootGeodesicInDirectionImplicitly(
+            point_S,
+            tangent_S,
+            length,
+            initIntegratorStepSize,
+            tols.intergatorAccuracy,
+            tols.constraintProjectionTolerance,
+            tols.constraintProjectionMaxIterations,
+            [&](const ContactGeometry::ImplicitGeodesicState& q) {
+                // Store the knot points in the cache.
+                dataInst.geodesicIntegratorStates.push_back(q);
+            });
+
+        // Copy the state at the boundary frames.
+        geodesicBoundaryStates = {
+            dataInst.geodesicIntegratorStates.front(),
+            dataInst.geodesicIntegratorStates.back(),
+        };
+
     }
 
-    dataInst.X_SP = calcFrenetFrameFromGeodesicState(
-        geometry,
-        dataInst.geodesicIntegratorStates.front());
-    dataInst.X_SQ = calcFrenetFrameFromGeodesicState(
-        geometry,
-        dataInst.geodesicIntegratorStates.back());
+    // Use the geodeis state at the boundary frames to compute the fields in
+    // CurveSegmentData::Instance.
 
+    // Compute the Frenet frames at the boundary frames.
+    dataInst.X_SP = calcFrenetFrameFromGeodesicState(
+            geometry,
+            geodesicBoundaryStates.front());
+    dataInst.X_SQ = calcFrenetFrameFromGeodesicState(
+            geometry,
+            geodesicBoundaryStates.back());
+
+    // Compute the jacobi field scalars at the final frame.
+    dataInst.jacobi_Q    = {
+        geodesicBoundaryStates.back().jacobiTrans,
+        geodesicBoundaryStates.back().jacobiRot,
+    };
+    dataInst.jacobiDot_Q = {
+        geodesicBoundaryStates.back().jacobiTransDot,
+        geodesicBoundaryStates.back().jacobiRotDot,
+    };
+
+    // Compute the curvatures at the boundary frames.
     dataInst.curvatures_P = {
         calcSurfaceCurvature(geometry, dataInst.X_SP, TangentAxis),
         calcSurfaceCurvature(geometry, dataInst.X_SP, BinormalAxis),
     };
-
     dataInst.curvatures_Q = {
         calcSurfaceCurvature(geometry, dataInst.X_SQ, TangentAxis),
         calcSurfaceCurvature(geometry, dataInst.X_SQ, BinormalAxis),
     };
 
+    // Compute the geodesic torsion at the boundary frames.
     dataInst.torsion_P = geometry.calcSurfaceTorsionInDirection(
         dataInst.X_SP.p(),
         getTangent(dataInst.X_SP));
@@ -2139,7 +2133,60 @@ void shootNewGeodesic(
         dataInst.X_SQ.p(),
         getTangent(dataInst.X_SQ));
 
+    // Store the arc length.
     dataInst.length = length;
+
+    // Update the initial integrator step size:
+    if (!useAnalyticGeodesic) { // does not apply to analytic surfaces.
+
+        // We want to know if we should attempt a larger initial step size next
+        // time, or a smaller one. If the initIntegratorStepSize was rejected,
+        // it makes little sense to start with the exact same step size next
+        // time, only to find it rejected again.
+
+        const int numStepsTaken = dataInst.geodesicIntegratorStates.size() - 1;
+
+        // If the integrator took a single step or none: The final arc
+        // length is shorter than the initial step size attempted. The step
+        // was atleast not rejected, but we do not know if we can make it
+        // larger. So we do not update it.
+        if (numStepsTaken <= 1) {
+            // Try the same step next time:
+            dataInst.integratorInitialStepSize = initIntegratorStepSize;
+        }
+
+        // If the integrator took two or more steps, we might want to update
+        // the next step size to try,
+        if (numStepsTaken >= 2) {
+            // The acual initial step size taken by the integrator cannot
+            // have been larger than initIntegratorStepSize, but it might be
+            // smaller if it was rejected. If rejected, we will reduce the
+            // init step size for next time.
+            const Real actualFirstStepSize =
+                dataInst.geodesicIntegratorStates.at(1).arcLength -
+                dataInst.geodesicIntegratorStates.front().arcLength;
+            const bool initStepWasRejected =
+                actualFirstStepSize < initIntegratorStepSize;
+            if (initStepWasRejected) {
+                // Reduce the init step size for next time, to avoid
+                // rejecting it again.
+                dataInst.integratorInitialStepSize = actualFirstStepSize;
+            } else {
+                // If the initIntegratorStepSize was accepted we might want
+                // to try a larger step next time. The actualFirstStepSize
+                // cannot be larger than initIntegratorStepSize: we must
+                // take a look at the second step size.
+                const Real actualSecondStepSize =
+                    dataInst.geodesicIntegratorStates.at(2).arcLength -
+                    dataInst.geodesicIntegratorStates.at(1).arcLength;
+                // We already established that the initIntegratorStepSize
+                // was accepted, now we are only looking to increase the
+                // step size.
+                dataInst.integratorInitialStepSize =
+                    std::max(initIntegratorStepSize, actualSecondStepSize);
+            }
+        }
+    }
 }
 
 } // namespace
@@ -2328,7 +2375,7 @@ void CurveSegment::liftCurveFromSurface(const State& s, Vec3 trackingPoint_S)
 {
     CurveSegmentData::Instance& dataInst = updDataInst(s);
 
-    dataInst.wrappingStatus                = WrappingStatus::LiftedFromSurface;
+    dataInst.wrappingStatus        = WrappingStatus::LiftedFromSurface;
     dataInst.trackingPointOnLine_S = trackingPoint_S;
 
     getSubsystem().markDiscreteVarUpdateValueRealized(s, m_InstanceIx);
@@ -2420,6 +2467,13 @@ Vec3 calcHermiteInterpolation(
     const Vec3& y1Dot,
     Real x)
 {
+    if (x == x0) {
+        return y0;
+    }
+    if (x == x1) {
+        return y1;
+    }
+
     // Interpolation is done by computing the coefficients of the polynomial:
     // f(s) = c0 + c1 * s + c2 * s^2 + c3 * s^3
     // followed by evaluating the polynomial for s = x - x0.
@@ -2495,84 +2549,51 @@ using InterpolatorFn = std::function<void(
 // selected samples at a given length.
 // @return the number of samples used for the interpolation.
 int resampleGeodesic(
-    const std::vector<ContactGeometry::ImplicitGeodesicState> geodesic,
+    const std::vector<ContactGeometry::ImplicitGeodesicState>& geodesic,
     int nSamples, // TODO use length increment?
-    InterpolatorFn& interpolator)
+    const InterpolatorFn& interpolator)
 {
     // Some sanity checks.
-    if (geodesic.empty()) {
-        // TODO use SimTK_ASSERT
-        throw std::runtime_error(
-            "Resampling of geodesic failed: Provided geodesic is empty.");
-    }
-    if (geodesic.front().arcLength != 0.) {
-        // TODO use SimTK_ASSERT
-        throw std::runtime_error("Resampling of geodesic failed: First frame "
-                                 "must be at arcLength = zero");
-    }
-    if (geodesic.back().arcLength < 0.) {
-        // TODO use SimTK_ASSERT
-        throw std::runtime_error("Resampling of geodesic failed: Last frame "
-                                 "must be at arcLength > zero");
-    }
-    if (nSamples == 0) {
-        throw std::runtime_error(
-            "Invalid parameter: nSamples must be larger than zero.");
-    }
+    SimTK_ASSERT_ALWAYS(!geodesic.empty(),
+        "Resampling of geodesic failed: Provided geodesic is empty.");
+    SimTK_ASSERT_ALWAYS(geodesic.front().arcLength == 0.,
+        "Resampling of geodesic failed: First frame must be at arcLength = zero");
+    SimTK_ASSERT_ALWAYS(geodesic.back().arcLength >= 0.,
+        "Resampling of geodesic failed: Last frame must be at arcLength >= zero");
 
-    if (nSamples == 1 && geodesic.size() != 1) {
-        // TODO use SimTK_ASSERT
-        throw std::runtime_error("Resampling of geodesic failed: Requested "
-                                 "number of samples must be unequal to 1");
-    }
-
-    // If there is but one sample in the geodesic, write that sample and exit.
+    // If there is but one sample in the geodesic, write that sample.
     if (geodesic.size() == 1) {
+        interpolator(geodesic.front(), geodesic.front(), 0.);
         return 1;
     }
 
-    // Seperate the interpolation points by equal length increments.
-    const Real dl = geodesic.back().arcLength / static_cast<Real>(nSamples - 1);
-
     // Compute the interpolated points from the geodesic.
     auto itGeodesic = geodesic.begin();
-    // We can skip the first and last samples, because these are pushed
-    // manually before and after this loop respectively (we start at i=1
-    // and stop at i < nSamples-1).
-    for (int i = 0; i < nSamples - 1; ++i) {
+    for (int i = 0; i < nSamples; ++i) {
 
         // Length at the current interpolation point.
-        const Real arcLength = dl * static_cast<Real>(i);
+        const Real arcLength = geodesic.back().arcLength * (static_cast<Real>(i) / static_cast<Real>(nSamples - 1));
 
         // Find the two samples (lhs, rhs) of the geodesic such that the
         // arcLength of the interpolation point lies between them.
         // i.e. find: lhs.arcLength <= arcLength < rhs.arcLength
         while (true) {
-            // Sanity check: We should stay within range.
-            if ((itGeodesic + 1) == geodesic.end()) {
-                // TODO use SimTK_ASSERT
-                throw std::runtime_error(
-                    "Resampling of geodesic failed: Attempted to read out of "
-                    "array range");
-            }
+            SimTK_ASSERT_ALWAYS((itGeodesic + 1) != geodesic.end(),
+                "Resampling of geodesic failed:"
+                "Accessing out-of-range element");
 
             // The candidate samples to use for interpolation.
             const ContactGeometry::ImplicitGeodesicState& lhs = *itGeodesic;
             const ContactGeometry::ImplicitGeodesicState& rhs =
                 *(itGeodesic + 1);
 
-            // Sanity check: Samples are assumed to be monotonically increasing
-            // in arcLength.
-            if (lhs.arcLength > rhs.arcLength) {
-                // TODO use SimTK_ASSERT
-                throw std::runtime_error(
-                    "Resampling of geodesic failed: Samples are not "
-                    "monotonically increasing in arcLength.");
-            }
+            SimTK_ASSERT_ALWAYS(lhs.arcLength < rhs.arcLength,
+                "Resampling of geodesic failed:"
+                "Samples are not monotonically increasing in arcLength.");
 
             // Check that the interpolation point lies between these samples:
-            // lhs.arcLength <= arcLength < rhs.arcLength
-            if (arcLength >= rhs.arcLength) {
+            // lhs.arcLength <= arcLength <= rhs.arcLength
+            if (arcLength > rhs.arcLength) {
                 // Try the next two samples.
                 ++itGeodesic;
                 continue;
@@ -2585,60 +2606,66 @@ int resampleGeodesic(
         }
     }
 
-    // Capture the last point of the geodesic.
-    interpolator(geodesic.front(), geodesic.back(), geodesic.back().arcLength);
-
     return nSamples;
 }
 } // namespace
 
 int CurveSegment::calcPathPointsAndTangents(
     const State& state,
-    const std::function<void(Real length, Vec3 point_G, UnitVec3 tangent_G)>&
-        sink,
+    const std::function<void(Real length, Vec3 point_G, UnitVec3 tangent_G)>& sink,
     int nSamples) const
 {
     if (!isInContactWithSurface(state)) {
         return 0;
     }
 
+    SimTK_ERRCHK1_ALWAYS(nSamples >= 2,
+        "CurveSegment::calcPathPointsAndTangents",
+        "Invalid argument: nSamples must be larger or equal to 2, but got %d", nSamples);
+
     const CurveSegmentData::Instance& dataInst = getDataInst(state);
     const CurveSegmentData::Pos& dataPos       = getDataPos(state);
 
-    // If the curve has zero length, return a single point, nothing to
-    // interpolate.
-    if (dataInst.length == 0.) {
-        sink(0., dataPos.X_GP.p(), getTangent(dataPos.X_GP));
-        return 1;
-    }
-
-    // Requesting two inerpolation points means we write the first and last
-    // contact point. Nothing to interpolate.
-    if (nSamples == 2) {
-        sink(0., dataPos.X_GP.p(), getTangent(dataPos.X_GP));
+    if (nSamples == 2)
+    {
+        sink(dataInst.length, dataPos.X_GP.p(), getTangent(dataPos.X_GP));
         sink(dataInst.length, dataPos.X_GQ.p(), getTangent(dataPos.X_GQ));
-        return 2;
     }
 
-    // Resample the points from the integrator by interpolating at equal length
-    // intervals.
-    InterpolatorFn Interpolator =
+    if (getContactGeometry().isAnalyticFormAvailable()) {
+        getContactGeometry().shootGeodesicInDirectionAnalytically(
+            dataInst.X_SP.p(),
+            getTangent(dataInst.X_SP), dataInst.length, nSamples,
+            [&](const ContactGeometry::ImplicitGeodesicState& q) {
+            const Transform& X_GS = dataPos.X_GS;
+            // Compute the interpolated point between a-b in ground frame.
+            const Vec3 point_G = X_GS.shiftFrameStationToBase(q.point);
+            // Compute the interpolated tangent between a-b in ground frame.
+            const UnitVec3 tangent_G = UnitVec3(X_GS.xformFrameVecToBase(q.tangent));
+            // Write result to the sink.
+            sink(q.arcLength, point_G, tangent_G);
+            });
+        return nSamples;
+    }
+
+    // Resample the points from the integrator at equal length intervals.
+    return resampleGeodesic(
+        dataInst.geodesicIntegratorStates,
+        nSamples,
         [&](const ContactGeometry::ImplicitGeodesicState& a,
             const ContactGeometry::ImplicitGeodesicState& b,
             Real l) {
             const Transform& X_GS = dataPos.X_GS;
+            // Compute the interpolated point between a-b in ground frame.
             const Vec3 interpolatedPoint_G =
                 X_GS.shiftFrameStationToBase(calcInterpolatedPoint(a, b, l));
+            // Compute the interpolated tangent between a-b in ground frame.
             const UnitVec3 interpolatedTangent_G =
                 UnitVec3(X_GS.xformFrameVecToBase(
                     calcInterpolatedTangent(getContactGeometry(), a, b, l)));
-
+            // Write result to the sink.
             sink(l, interpolatedPoint_G, interpolatedTangent_G);
-        };
-    return resampleGeodesic(
-        dataInst.geodesicIntegratorStates,
-        nSamples,
-        Interpolator);
+        });
 }
 
 int CurveSegment::calcPathPoints(
@@ -2650,42 +2677,47 @@ int CurveSegment::calcPathPoints(
         return 0;
     }
 
+    SimTK_ERRCHK1_ALWAYS(nSamples >= 2,
+        "CurveSegment::calcPathPoints",
+        "Invalid argument: nSamples must be larger or equal to 2, but got %d", nSamples);
+
     const CurveSegmentData::Instance& dataInst = getDataInst(state);
     const CurveSegmentData::Pos& dataPos       = getDataPos(state);
 
-    // If the curve has zero length, return a single point, nothing to
-    // interpolate.
-    if (dataInst.length == 0.) {
-        sink(0., dataPos.X_GP.p());
-        return 1;
-    }
-
-    // Requesting two inerpolation points means we write the first and last
-    // contact point. Nothing to interpolate.
-    if (nSamples == 2) {
-        sink(0., dataPos.X_GP.p());
+    if (nSamples == 2)
+    {
+        sink(dataInst.length, dataPos.X_GP.p());
         sink(dataInst.length, dataPos.X_GQ.p());
-        return 2;
     }
 
-    // Resample the points from the integrator by interpolating at equal
-    // intervals.
+    if (getContactGeometry().isAnalyticFormAvailable()) {
+        getContactGeometry().shootGeodesicInDirectionAnalytically(
+            dataInst.X_SP.p(),
+            getTangent(dataInst.X_SP), dataInst.length, nSamples,
+            [&](const ContactGeometry::ImplicitGeodesicState& q) {
+            const Vec3 point_G = dataPos.X_GS.shiftFrameStationToBase(q.point);
+            // Write result to the sink.
+            sink(q.arcLength, point_G);
+            });
+        return nSamples;
+    }
 
-    // Define the required function that interpolates between two samples, and
-    // logs the interpolated sample.
-    InterpolatorFn Interpolator =
-        [&](const ContactGeometry::ImplicitGeodesicState& a,
-            const ContactGeometry::ImplicitGeodesicState& b,
-            Real l) {
-            const Vec3 interpolatedPoint_S = calcInterpolatedPoint(a, b, l);
-            const Vec3 interpolatedPoint_G =
-                dataPos.X_GS.shiftFrameStationToBase(interpolatedPoint_S);
-            sink(l, interpolatedPoint_G);
-        };
+    // Resample the points from the integrator at equal length intervals.
     return resampleGeodesic(
         dataInst.geodesicIntegratorStates,
         nSamples,
-        Interpolator);
+        // Define the required function that interpolates between two samples, and
+        // logs the interpolated sample.
+        [&](const ContactGeometry::ImplicitGeodesicState& a,
+            const ContactGeometry::ImplicitGeodesicState& b,
+            Real l) {
+            // Compute the interpolated point between a-b in ground frame.
+            const Vec3 interpolatedPoint_S = calcInterpolatedPoint(a, b, l);
+            const Vec3 interpolatedPoint_G =
+                dataPos.X_GS.shiftFrameStationToBase(interpolatedPoint_S);
+            // Write result to the sink.
+            sink(l, interpolatedPoint_G);
+        });
 }
 
 //==============================================================================

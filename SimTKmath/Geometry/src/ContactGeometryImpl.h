@@ -151,15 +151,35 @@ public:
     void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
             const GeodesicOptions& options, Geodesic& geod) const;
 
+    virtual bool isAnalyticFormAvailable() const
+    {
+        return false;
+    }
+
+    virtual void shootGeodesicInDirectionAnalytically(
+        const Vec3& initialPointApprox,
+        const Vec3& initialTangentApprox,
+        Real finalArcLength,
+        int numberOfKnotPoints,
+        const std::function<
+            void(const ContactGeometry::ImplicitGeodesicState&)>&
+            geodesicKnotPointsSink) const
+    {
+        SimTK_THROW2(Exception::UnimplementedVirtualMethod,
+            "ContactGeometryImpl",
+            "shootGeodesicInDirectionAnalytically");
+    }
+
     void shootGeodesicInDirectionImplicitly(
-            Vec3 pointApprox,
-            Vec3 tangentApprox,
-            Real finalArcLength,
-            Real initStepSize,
-            Real integratorAccuracy,
-            Real constraintTolerance,
-            int maxIterations,
-            const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>& log) const;
+        const Vec3& pointApprox,
+        const Vec3& tangentApprox,
+        Real finalArcLength,
+        Real initStepSize,
+        Real integratorAccuracy,
+        Real constraintTolerance,
+        int maxIterations,
+        const std::function<
+            void(const ContactGeometry::ImplicitGeodesicState&)>& log) const;
 
     // Given two points and previous geodesic curve close to the points, find
     // a geodesic curve connecting the points that is close to the previous geodesic.
@@ -670,6 +690,19 @@ public:
     }
     void calcCurvature(const Vec3& point, Vec2& curvature, 
                        Rotation& orientation) const override;
+
+    bool isAnalyticFormAvailable() const override {
+        return true;
+    }
+
+    void shootGeodesicInDirectionAnalytically(
+        const Vec3& initialPointApprox,
+        const Vec3& initialTangentApprox,
+        Real finalArcLength,
+        int numberOfKnotPoints,
+        const std::function<
+            void(const ContactGeometry::ImplicitGeodesicState&)>&
+            geodesicKnotPointsSink) const override;
 
     void shootGeodesicInDirectionUntilLengthReachedAnalytical
        (const Vec3& xP, const UnitVec3& tP, const Real& terminatingLength, 

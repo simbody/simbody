@@ -589,16 +589,26 @@ is closest to that point. Otherwise, find the shortest length geodesic.
 void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
         const GeodesicOptions& options, Geodesic& geod) const;
 
+bool isAnalyticFormAvailable() const;
+
+void shootGeodesicInDirectionAnalytically(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    int numberOfKnotPoints,
+    const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>&
+        geodesicKnotPointsSink) const;
+
 void shootGeodesicInDirectionImplicitly(
-    Vec3 pointApprox,
-    Vec3 tangentApprox,
+    const Vec3& pointApprox,
+    const Vec3& tangentApprox,
     Real finalArcLength,
     Real initStepSize,
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
-    const std::function<void(const ImplicitGeodesicState&)>& log) const;
-
+    const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>&
+        log) const;
 
 /** Given the current positions of two points P and Q moving on this surface, 
 and the previous geodesic curve G' connecting prior locations P' and Q' of

@@ -854,35 +854,59 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
 //                  GEODESIC EVALUATORS in CONTACT GEOMETRY
 //==============================================================================
 
+bool ContactGeometry::isAnalyticFormAvailable() const
+{
+    return getImpl().isAnalyticFormAvailable();
+}
+
+void ContactGeometry::shootGeodesicInDirectionAnalytically(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    int numberOfKnotPoints,
+    const std::function<void(const ImplicitGeodesicState&)>&
+        geodesicKnotPointsSink) const
+{
+    return getImpl().shootGeodesicInDirectionAnalytically(
+        initialPointApprox,
+        initialTangentApprox,
+        finalArcLength,
+        numberOfKnotPoints,
+        geodesicKnotPointsSink);
+}
+
 void ContactGeometry::shootGeodesicInDirectionImplicitly(
-    Vec3 pointApprox,
-    Vec3 tangentApprox,
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
     Real finalArcLength,
     Real initStepSize,
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
-    const std::function<void(const ImplicitGeodesicState&)>& log) const
+    const std::function<void(const ImplicitGeodesicState&)>&
+        geodesicKnotPointsSink) const
 {
-    getImpl().shootGeodesicInDirectionImplicitly(pointApprox,
-    tangentApprox,
-    finalArcLength,
-    initStepSize,
-    integratorAccuracy,
-    constraintTolerance,
-    maxIterations,
-    log);
+    getImpl().shootGeodesicInDirectionImplicitly(
+        initialPointApprox,
+        initialTangentApprox,
+        finalArcLength,
+        initStepSize,
+        integratorAccuracy,
+        constraintTolerance,
+        maxIterations,
+        geodesicKnotPointsSink);
 }
 
 void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
-    Vec3 pointApprox,
-    Vec3 tangentApprox,
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
     Real finalArcLength,
     Real initStepSize,
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
-    const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>& log) const
+    const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>&
+        geodesicKnotPointsSink) const
 {
     // integrator settings
     constexpr Real startArcLength = 0;
@@ -890,30 +914,36 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     using Eqns = GeodesicOnImplicitSurface;
 
     Eqns eqns(*this);
-    GeodesicIntegrator<GeodesicOnImplicitSurface>
-        integ(eqns,integratorAccuracy,constraintTolerance);
+    GeodesicIntegrator<GeodesicOnImplicitSurface> integ(
+        eqns,
+        integratorAccuracy,
+        constraintTolerance);
     constexpr int N = GeodesicOnImplicitSurface::N;
 
-    integ.initialize(startArcLength, Eqns::getInitialState(pointApprox, UnitVec3(tangentApprox)));
+    integ.initialize(
+        startArcLength,
+        Eqns::getInitialState(
+            initialPointApprox,
+            UnitVec3(initialTangentApprox)));
     integ.setNextStepSizeToTry(initStepSize);
 
     // Aliases for the integrators internal time and state variables.
     const Vec<N>& y = integ.getY();
-    const Real&   s = integ.getTime();  // arc length
+    const Real& s   = integ.getTime(); // arc length
 
     // Simulate it, and record geodesic knot points after each step
     int stepcnt = 0;
 
     while (true) {
         ContactGeometry::ImplicitGeodesicState q;
-        q.arcLength = s;
-        q.point = Eqns::getP(y);
-        q.tangent = UnitVec3(Eqns::getV(y));
-        q.jacobiRot = Eqns::getJRot(y);
-        q.jacobiTrans = Eqns::getJTrans(y);
-        q.jacobiRotDot = Eqns::getJRotDot(y);
+        q.arcLength      = s;
+        q.point          = Eqns::getP(y);
+        q.tangent        = UnitVec3(Eqns::getV(y));
+        q.jacobiRot      = Eqns::getJRot(y);
+        q.jacobiTrans    = Eqns::getJTrans(y);
+        q.jacobiRotDot   = Eqns::getJRotDot(y);
         q.jacobiTransDot = Eqns::getJTransDot(y);
-        log(q);
+        geodesicKnotPointsSink(q);
 
         if (s == finalArcLength) {
             break;
