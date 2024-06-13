@@ -117,7 +117,7 @@ struct MatrixWorkspace
     // Given the number of CurveSegments that are in contact with their
     // respective obstacle's surface, contruct a MatrixWorkspace of correct
     // dimensions.
-    MatrixWorkspace(int nActive) : nCurves(nActive)
+    explicit MatrixWorkspace(int nActive) : nCurves(nActive)
     {
         static constexpr int Q = GEODESIC_DOF;
         // 4 for the path error, and 1 for the weighting of the length.
@@ -1887,7 +1887,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
 //                      CABLE SPAN VELOCITY LEVEL CACHE
 //==============================================================================
 
-void CableSpan::Impl::calcVelInfo(const State& s, CableSpanData::Vel& velInfo)
+void CableSpan::Impl::calcVelInfo(const State& s, CableSpanData::Vel& dataVel)
     const
 {
     const CableSpanData::Pos& dataPos = getPosInfo(s);
@@ -1906,7 +1906,7 @@ void CableSpan::Impl::calcVelInfo(const State& s, CableSpanData::Vel& velInfo)
         return v_BG + w_BG % (point_G - x_BG);
     };
 
-    Real& lengthDot = (velInfo.lengthDot = 0.);
+    Real& lengthDot = (dataVel.lengthDot = 0.);
 
     Vec3 v_GQ = getOriginBody().findStationVelocityInGround(s, m_OriginPoint);
     Vec3 x_GQ = m_OriginPoint;
@@ -1962,7 +1962,6 @@ void shootNewGeodesic(
         geodesicBoundaryStates;
 
     if (useAnalyticGeodesic) {
-
         // For analytic surfaces we can compute the inital and final frenet
         // frames without computing any intermediate knot points.
         int numberOfKnotPoints = 2;
@@ -1977,9 +1976,7 @@ void shootNewGeodesic(
                 geodesicBoundaryStates.at(knotIx) = q;
                 ++knotIx;
             });
-
     } else {
-
         // For implicit surfaces we must use a numerical integrator to compute
         // the initial and final frames. Because this is relatively
         // costly, we will cache this geodesic.
@@ -2002,7 +1999,6 @@ void shootNewGeodesic(
             dataInst.geodesicIntegratorStates.front(),
             dataInst.geodesicIntegratorStates.back(),
         };
-
     }
 
     // Use the geodeis state at the boundary frames to compute the fields in
@@ -2010,14 +2006,14 @@ void shootNewGeodesic(
 
     // Compute the Frenet frames at the boundary frames.
     dataInst.X_SP = calcFrenetFrameFromGeodesicState(
-            geometry,
-            geodesicBoundaryStates.front());
+        geometry,
+        geodesicBoundaryStates.front());
     dataInst.X_SQ = calcFrenetFrameFromGeodesicState(
-            geometry,
-            geodesicBoundaryStates.back());
+        geometry,
+        geodesicBoundaryStates.back());
 
     // Compute the jacobi field scalars at the final frame.
-    dataInst.jacobi_Q    = {
+    dataInst.jacobi_Q = {
         geodesicBoundaryStates.back().jacobiTrans,
         geodesicBoundaryStates.back().jacobiRot,
     };

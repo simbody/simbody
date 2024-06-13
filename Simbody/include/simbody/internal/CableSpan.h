@@ -243,7 +243,7 @@ public:
         const State& state,
         const std::function<void(Vec3 point_G)>& sink) const;
 
-    /** Number of solver iterations required to compute the cable's path.
+    /** Number of solver iterations used to compute the current cable's path.
      * State must be realized to Stage::Position. */
     int getNumSolverIter(const State& state) const;
 
@@ -289,8 +289,8 @@ public:
     explicit CableSubsystem(MultibodySystem&);
 
     int getNumCables() const;
-    const CableSpan& getCable(CableSpanIndex idx) const;
-    CableSpan& updCable(CableSpanIndex idx);
+    const CableSpan& getCable(CableSpanIndex ix) const;
+    CableSpan& updCable(CableSpanIndex ix);
 
     SimTK_PIMPL_DOWNCAST(CableSubsystem, Subsystem);
 
