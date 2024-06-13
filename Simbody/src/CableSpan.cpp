@@ -1104,6 +1104,7 @@ private:
         lengthDot += dot(e_G, v_GP - v_GQ);
     }
 
+public:
     //------------------------------------------------------------------------------
     //                      HELPER FUNCTIONS
     //------------------------------------------------------------------------------
@@ -1180,22 +1181,7 @@ private:
         return nullptr;
     }
 
-    // Compute the path error vector (TODO see Scholz2015).
-    template <size_t N>
-    void calcPathErrorVector(
-        const State& state,
-        const std::vector<LineSegment>& lines,
-        std::array<CoordinateAxis, N> axes,
-        Vector& pathError) const;
-
-    // Compute the path error jacobian (TODO see Scholz2015).
-    template <size_t N>
-    void calcPathErrorJacobian(
-        const State& state,
-        const std::vector<LineSegment>& lines,
-        std::array<CoordinateAxis, N> axes,
-        Matrix& J) const;
-
+private:
     //------------------------------------------------------------------------------
 
     // Reference back to the subsystem.
@@ -1259,6 +1245,7 @@ void calcUnitForceAtCableOrigin(
 {
     // Origin contact point moment arm in ground.
     const CableSpanData::Pos& dataPos = cable.getPosInfo(s);
+
     const Vec3& arm_G =
         dataPos.originPoint_G - cable.getOriginBody().getBodyOriginLocation(s);
 
@@ -1361,17 +1348,10 @@ Real CableSpan::Impl::calcCablePower(const State& state, Real tension) const
 }
 
 //==============================================================================
-//                             PATH ERROR VECTOR
+//                         Straight Line Segments
 //==============================================================================
-
 namespace
 {
-
-// Helper for computing a single element of the path error vector.
-Real calcPathError(const LineSegment& e, const Rotation& R, CoordinateAxis axis)
-{
-    return dot(e.direction, R.getAxisUnitVec(axis));
-}
 
 // Compute the straight line segments in between the obstacles.
 void calcLineSegments(
@@ -1423,13 +1403,37 @@ Real calcTotalCableLength(
 
 } // namespace
 
-// Compute the path error for each curve segment at the boundary points, and stack them in a vector.
+//==============================================================================
+//                             PATH ERROR VECTOR
+//==============================================================================
+namespace
+{
+
+// Helper for computing a single element of the path error vector.
+// The algorithm for finding the correct path will attempt to drive this path
+// error to zero. Since we would like the curve's tangents to be aligned with
+// the straight line segments, the path error is defined as the alignment of the
+// line segments with the normal and binormal axes.
+// In that case: zero path error -> no alignment of line segments with normal
+// and binormal -> line segments must be aligned with the tangents.
+Real calcPathErrorElement(
+    const LineSegment& e,
+    const FrenetFrame& X,
+    CoordinateAxis axis)
+{
+    return dot(e.direction, X.R().getAxisUnitVec(axis));
+}
+
+// Compute the path error for each curve segment at the boundary frames, and
+// stack them in a vector. At each boundary frame (X_GP, X_GQ) the path error
+// along the given axes is computed, in that order.
 template <size_t N>
-void CableSpan::Impl::calcPathErrorVector(
+void calcPathErrorVector(
+    const CableSpan::Impl& cable,
     const State& s,
     const std::vector<LineSegment>& lines,
     std::array<CoordinateAxis, N> axes,
-    Vector& pathError) const
+    Vector& pathError)
 {
     // Reset path error vector to zero.
     pathError *= 0;
@@ -1439,28 +1443,29 @@ void CableSpan::Impl::calcPathErrorVector(
     // Iterator over the straight line segments connecting each curve segment.
     auto lineIt = lines.begin();
 
-    forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
+    cable.forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
         const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
         // Compute path error at first contact point.
         for (CoordinateAxis axis : axes) {
             pathError(++pathErrorIx) =
-                calcPathError(*lineIt, dataPos.X_GP.R(), axis);
+                calcPathErrorElement(*lineIt, dataPos.X_GP.R(), axis);
         }
         ++lineIt;
         // Compute path error at final contact point.
         for (CoordinateAxis axis : axes) {
             pathError(++pathErrorIx) =
-                calcPathError(*lineIt, dataPos.X_GQ.R(), axis);
+                calcPathErrorElement(*lineIt, dataPos.X_GQ.R(), axis);
         }
     });
 }
 
-//==============================================================================
-//                             PATH ERROR JACOBIAN
-//==============================================================================
+} // namespace
 
-// This section contains helper functions for computing the contribution of each
-// curve segment to the total path error jacobian.
+//==============================================================================
+//                             Path Error Jacobian
+//==============================================================================
+// This section contains helper functions for computing the jacobian of the
+// previously defined path error vector to the natural geodesic corrections.
 namespace
 {
 
@@ -1489,8 +1494,8 @@ Vec4 calcJacobianOfNextPathError(
     const Transform& X_GQ = curve.getDataPos(s).X_GQ;
 
     const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-    const Real a            = dataInst.jacobi_Q[0];
-    const Real r            = dataInst.jacobi_Q[1];
+    const Real a                               = dataInst.jacobi_Q[0];
+    const Real r                               = dataInst.jacobi_Q[1];
 
     // Partial derivative of path error to contact point position (x_QS),
     // represented in the frenet frame.
@@ -1553,28 +1558,34 @@ Vec4 calcJacobianOfPathErrorAtQ(
            calcJacobianOfNextPathError(curve, s, line, axis);
 }
 
-} // namespace
-
 template <size_t N>
-void CableSpan::Impl::calcPathErrorJacobian(
+void calcPathErrorJacobian(
+    const CableSpan::Impl& cable,
     const State& s,
     const std::vector<LineSegment>& lines,
     std::array<CoordinateAxis, N> axes,
-    Matrix& J) const
+    Matrix& J)
 {
-    constexpr int Nq = MatrixWorkspace::GEODESIC_DOF;
+    // Number of free coordinates for a generic geodesic.
+    constexpr int NQ = MatrixWorkspace::GEODESIC_DOF;
 
-    // TODO perhaps just not make method static.
-    const int n = lines.size() - 1;
+    const int numberOfCurvesInContact = lines.size() - 1;
+
+    // Reset the values in the jacobian.
     J *= 0.;
-
     SimTK_ASSERT(
-        J.cols() == n * Nq,
+        J.cols() == numberOfCurvesInContact * NQ,
+        "Invalid number of columns in jacobian matrix");
+    SimTK_ASSERT(
+        J.rows() ==
+            numberOfCurvesInContact * MatrixWorkspace::NUMBER_OF_CONSTRAINTS,
         "Invalid number of columns in jacobian matrix");
 
+    // Current indexes to write the elements of the jacobian to,
     int row = 0;
     int col = 0;
 
+    // Helper for writing a computed block to the jacobian.
     auto AddBlock = [&](const Vec4& block, int colOffset = 0) {
         for (int ix = 0; ix < 4; ++ix) {
             J.updElt(row, col + colOffset + ix) += block[ix];
@@ -1582,8 +1593,8 @@ void CableSpan::Impl::calcPathErrorJacobian(
     };
 
     auto linesIt = lines.begin();
-    for (ObstacleIndex ix(0); ix < getNumCurveSegments(); ++ix) {
-        const CurveSegment& curve = getCurveSegment(ix);
+    for (ObstacleIndex ix(0); ix < cable.getNumCurveSegments(); ++ix) {
+        const CurveSegment& curve = cable.getCurveSegment(ix);
         if (!curve.isInContactWithSurface(s)) {
             continue;
         }
@@ -1591,8 +1602,8 @@ void CableSpan::Impl::calcPathErrorJacobian(
         const LineSegment& l_P = *linesIt;
         const LineSegment& l_Q = *++linesIt;
 
-        const CurveSegment* prev = findPrevActiveCurveSegment(s, ix);
-        const CurveSegment* next = findNextActiveCurveSegment(s, ix);
+        const CurveSegment* prev = cable.findPrevActiveCurveSegment(s, ix);
+        const CurveSegment* next = cable.findNextActiveCurveSegment(s, ix);
 
         const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
         for (CoordinateAxis axis : axes) {
@@ -1601,7 +1612,7 @@ void CableSpan::Impl::calcPathErrorJacobian(
             AddBlock(calcJacobianOfPathErrorAtP(curve, s, l_P, a_P));
 
             if (prev) {
-                AddBlock(calcJacobianOfNextPathError(*prev, s, l_P, a_P), -Nq);
+                AddBlock(calcJacobianOfNextPathError(*prev, s, l_P, a_P), -NQ);
             }
             ++row;
         }
@@ -1612,14 +1623,16 @@ void CableSpan::Impl::calcPathErrorJacobian(
             AddBlock(calcJacobianOfPathErrorAtQ(curve, s, l_Q, a_Q));
 
             if (next) {
-                AddBlock(calcJacobianOfPrevPathError(*next, s, l_Q, a_Q), Nq);
+                AddBlock(calcJacobianOfPrevPathError(*next, s, l_Q, a_Q), NQ);
             }
             ++row;
         }
 
-        col += Nq;
+        col += NQ;
     };
 }
+
+} // namespace
 
 //==============================================================================
 //                      SOLVING FOR GEODESIC CORRECTIONS
@@ -1744,14 +1757,15 @@ void applyGeodesicCorrection(
 {
     // Get the previous geodesic.
     const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-    const FrenetFrame& X_SP    = dataInst.X_SP;
+
+    // Frenet frame at initial contact point.
+    const FrenetFrame& X_SP = dataInst.X_SP;
+    const UnitVec3& t       = getTangent(X_SP);
+    const UnitVec3& n       = getNormal(X_SP);
+    const UnitVec3& b       = getBinormal(X_SP);
 
     const Real tau   = dataInst.torsion_P;
     const Real kappa = dataInst.curvatures_P[0];
-
-    const UnitVec3& t = getTangent(X_SP);
-    const UnitVec3& n = getNormal(X_SP);
-    const UnitVec3& b = getBinormal(X_SP);
 
     // Get corrected initial conditions.
     const Vec3 dx               = t * c[0] + b * c[1];
@@ -1843,7 +1857,12 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
         // Evaluate the current path error as the misalignment of the straight
         // line segments with the curve segment's tangent vectors at the
         // contact points.
-        calcPathErrorVector<2>(s, data.lineSegments, axes, data.pathError);
+        calcPathErrorVector<2>(
+            *this,
+            s,
+            data.lineSegments,
+            axes,
+            data.pathError);
         dataPos.pathError = data.pathError.normInf();
 
         // Stop iterating if max path error is small, or max iterations has been
@@ -1866,6 +1885,7 @@ void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
         // Evaluate the path error jacobian to the natural geodesic corrections
         // of each curve segment.
         calcPathErrorJacobian<2>(
+            *this,
             s,
             data.lineSegments,
             axes,
@@ -2398,13 +2418,15 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 dataPos.terminationPoint_G,
                 data.lineSegments);
 
-            cable.calcPathErrorVector<2>(
+            calcPathErrorVector<2>(
+                cable,
                 sCopy,
                 data.lineSegments,
                 axes,
                 data.pathError);
 
-            cable.calcPathErrorJacobian<2>(
+            calcPathErrorJacobian<2>(
+                cable,
                 sCopy,
                 data.lineSegments,
                 axes,
@@ -2449,7 +2471,8 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 dataPos.originPoint_G,
                 dataPos.terminationPoint_G,
                 data.lineSegments);
-            cable.calcPathErrorVector<2>(
+            calcPathErrorVector<2>(
+                cable,
                 sCopy,
                 data.lineSegments,
                 axes,
