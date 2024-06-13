@@ -952,8 +952,6 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
         integ.takeOneStep(finalArcLength);
         ++stepcnt;
     }
-
-    initStepSize = integ.getActualInitialStepSizeTaken();
 }
 
 void ContactGeometry::initGeodesic(const Vec3& xP, const Vec3& xQ,
