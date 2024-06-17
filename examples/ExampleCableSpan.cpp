@@ -312,7 +312,7 @@ int main()
             Transform(
                 Rotation(1.5, CoordinateAxis::YCoordinateAxis()),
                 Vec3{0.}),
-            ContactGeometry::Sphere(Rad),
+            std::shared_ptr<const ContactGeometry>(new ContactGeometry::Sphere(Rad)),
             {0.1, 1., 0.1});
 
         Body::Rigid ball2Body(MassProperties(1.0, Vec3(0), Inertia(1)));
@@ -329,7 +329,7 @@ int main()
         path1.addSurfaceObstacle(
             ball2,
             Transform(),
-            ContactGeometry::Ellipsoid({Rad2, Rad2 * 2., Rad2 * 0.9}),
+            std::shared_ptr<const ContactGeometry>(new ContactGeometry::Ellipsoid({Rad2, Rad2 * 2., Rad2 * 0.9})),
             /* ContactGeometry::Sphere(Rad2), */
             {0., 1., 0.});
 

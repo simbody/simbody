@@ -464,7 +464,7 @@ public:
         CableSubsystem* subsystem,
         MobilizedBodyIndex body,
         const Transform& X_BS,
-        ContactGeometry geometry,
+        std::shared_ptr<const ContactGeometry> geometry,
         Vec3 initPointGuess) :
         m_Subsystem(subsystem),
         m_Body(body), m_X_BS(X_BS), m_Geometry(geometry),
@@ -491,12 +491,6 @@ public:
             Stage::Position,
             Stage::Infinity,
             new Value<CurveSegmentData::Pos>());
-
-        m_Decoration = getContactGeometry()
-                           .createDecorativeGeometry()
-                           .setColor(Orange)
-                           .setOpacity(.75)
-                           .setResolution(3);
     }
 
     void realizePosition(
@@ -528,16 +522,11 @@ public:
 
     const ContactGeometry& getContactGeometry() const
     {
-        return m_Geometry;
+        return *m_Geometry;
     }
-    void setContactGeometry(ContactGeometry geometry)
+    void setContactGeometry(std::shared_ptr<const ContactGeometry> geometry)
     {
         m_Geometry = geometry;
-    }
-
-    const DecorativeGeometry& getDecoration() const
-    {
-        return m_Decoration;
     }
 
     const MobilizedBody& getMobilizedBody() const
@@ -769,8 +758,7 @@ private:
     Transform m_X_BS;
 
     // Obstacle surface.
-    ContactGeometry m_Geometry;
-    DecorativeGeometry m_Decoration;
+    std::shared_ptr<const ContactGeometry> m_Geometry;
 
     // Topology cache.
     CacheEntryIndex indexDataPos        = CacheEntryIndex::Invalid();
@@ -878,7 +866,7 @@ public:
     ObstacleIndex addSurfaceObstacle(
         MobilizedBodyIndex mobod,
         const Transform& X_BS,
-        const ContactGeometry& geometry,
+        std::shared_ptr<const ContactGeometry> geometry,
         Vec3 contactPointHint)
     {
         invalidateTopology();
@@ -2736,7 +2724,7 @@ CableSpan::CableSpan(
 ObstacleIndex CableSpan::addSurfaceObstacle(
     MobilizedBodyIndex body,
     const Transform& X_BS,
-    const ContactGeometry& geometry,
+    std::shared_ptr<const ContactGeometry> geometry,
     Vec3 contactPointHint)
 {
     return updImpl().addSurfaceObstacle(body, X_BS, geometry, contactPointHint);
@@ -2779,7 +2767,7 @@ const ContactGeometry& CableSpan::getObstacleContactGeometry(
 }
 void CableSpan::setObstacleContactGeometry(
     ObstacleIndex ix,
-    ContactGeometry geometry)
+    std::shared_ptr<const ContactGeometry> geometry)
 {
     updImpl().updCurveSegment(ix).setContactGeometry(geometry);
 }

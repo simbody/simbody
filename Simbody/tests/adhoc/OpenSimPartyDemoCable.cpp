@@ -367,7 +367,7 @@ int main() {
     path2.addSurfaceObstacle(
         pendulumFemur,
         patchTransform,
-        ContactGeometry::SmoothHeightMap(patch),
+        std::shared_ptr<const ContactGeometry>(new ContactGeometry::SmoothHeightMap(patch)),
         Vec3{0, 0, 0});
 
     // Sphere
@@ -381,7 +381,7 @@ int main() {
     path2.addSurfaceObstacle(
         pendulumTibia,
         sphTransform,
-        ContactGeometry::Sphere(sphRadius),
+        std::shared_ptr<const ContactGeometry>(new ContactGeometry::Sphere(sphRadius)),
         Vec3{-3, 0, 0});
 
     // Make cable a spring

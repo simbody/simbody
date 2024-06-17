@@ -91,7 +91,7 @@ public:
     ObstacleIndex addSurfaceObstacle(
         MobilizedBodyIndex mobod,
         const Transform& X_BS,
-        const ContactGeometry& geometry,
+        std::shared_ptr<const ContactGeometry> geometry,
         Vec3 contactPointHint);
 
     /** Get the number of obstacles added to the path. */
@@ -116,7 +116,7 @@ public:
     const ContactGeometry& getObstacleContactGeometry(ObstacleIndex ix) const;
     /** Set the ContactGeometry attached to the obstacle. TODO: dont take
      * ownership. */
-    void setObstacleContactGeometry(ObstacleIndex ix, ContactGeometry geometry);
+    void setObstacleContactGeometry(ObstacleIndex ix, std::shared_ptr<const ContactGeometry> geometry);
 
     /** Get the point on the obstacle used to compute the initial path. */
     Vec3 getObstacleInitialContactPointHint(ObstacleIndex ix) const;
