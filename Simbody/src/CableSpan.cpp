@@ -704,18 +704,14 @@ public:
     void setContactWithSurfaceToDisabled(const State& state) const
     {
         updDataInst(state).wrappingStatus = WrappingStatus::Disabled;
-        getSubsystem().markDiscreteVarUpdateValueRealized(
-                state,
-                indexDataInst);
+        getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
         state.invalidateAllCacheAtOrAbove(Stage::Position);
     }
 
     void setContactWithSurfaceToEnabled(const State& state) const
     {
         updDataInst(state).wrappingStatus = WrappingStatus::InitialGuess;
-        getSubsystem().markDiscreteVarUpdateValueRealized(
-                state,
-                indexDataInst);
+        getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
         state.invalidateAllCacheAtOrAbove(Stage::Position);
     }
 
@@ -728,8 +724,7 @@ private:
             getSubsystem().updDiscreteVarUpdateValue(state, indexDataInst));
     }
 
-    const CurveSegmentData::Instance& getPrevDataInst(
-        const State& state) const
+    const CurveSegmentData::Instance& getPrevDataInst(const State& state) const
     {
         return Value<CurveSegmentData::Instance>::downcast(
             getSubsystem().getDiscreteVariable(state, indexDataInst));
@@ -945,7 +940,8 @@ public:
     void setObstacleContactDisabled(const State& state, ObstacleIndex ix) const
     {
         // Only disable the obstacle, if it was not disabled already.
-        if (getCurveSegment(ix).getDataInst(state).wrappingStatus != WrappingStatus::Disabled) {
+        if (getCurveSegment(ix).getDataInst(state).wrappingStatus !=
+            WrappingStatus::Disabled) {
             getCurveSegment(ix).setContactWithSurfaceToDisabled(state);
         }
     }
@@ -953,7 +949,8 @@ public:
     void setObstacleContactEnabled(const State& state, ObstacleIndex ix) const
     {
         // Only enable the obstacle, if it was not enabled already.
-        if (getCurveSegment(ix).getDataInst(state).wrappingStatus == WrappingStatus::Disabled) {
+        if (getCurveSegment(ix).getDataInst(state).wrappingStatus ==
+            WrappingStatus::Disabled) {
             getCurveSegment(ix).setContactWithSurfaceToEnabled(state);
         }
     }
@@ -1296,7 +1293,8 @@ void calcUnitForceAtCableTermination(
     SpatialVec& unitForce_G)
 {
     const CableSpanData::Pos& dataPos = cable.getDataPos(s);
-    const Vec3& arm_G                = dataPos.terminationPoint_G -
+
+    const Vec3& arm_G = dataPos.terminationPoint_G -
                         cable.getTerminationBody().getBodyOriginLocation(s);
 
     unitForce_G[0] = -arm_G % dataPos.terminationTangent_G;

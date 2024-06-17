@@ -116,7 +116,9 @@ public:
     const ContactGeometry& getObstacleContactGeometry(ObstacleIndex ix) const;
     /** Set the ContactGeometry attached to the obstacle. TODO: dont take
      * ownership. */
-    void setObstacleContactGeometry(ObstacleIndex ix, std::shared_ptr<const ContactGeometry> geometry);
+    void setObstacleContactGeometry(
+        ObstacleIndex ix,
+        std::shared_ptr<const ContactGeometry> geometry);
 
     /** Get the point on the obstacle used to compute the initial path. */
     Vec3 getObstacleInitialContactPointHint(ObstacleIndex ix) const;
