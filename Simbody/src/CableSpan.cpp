@@ -23,7 +23,7 @@
 
 using namespace SimTK;
 
-using ObstacleIndex = CableSpan::ObstacleIndex;
+using ObstacleIndex = CableSpanObstacleIndex;
 
 // Begin anonymous containing helper structs.
 namespace
@@ -320,27 +320,33 @@ namespace
 //==============================================================================
 //                          Struct Integrator Tolerances
 //==============================================================================
-// Helper struct holding all parameters for setting up the integrator that
-// computes the geodesic over the obstacle's surface.
+/** Helper struct holding all parameters for setting up the integrator that
+computes the geodesic over the obstacle's surface.
+
+TODO These need reasonable default values. */
 struct IntegratorTolerances
 {
-    Real intergatorAccuracy = 1e-6; // TODO set to reasonable
-    // TODO combine constraintProjectionTolerance with intergatorAccuracy?
-    Real constraintProjectionTolerance = 1e-6; // TODO set to reasonable
-    // TODO this is not currently connected to anything...
-    int constraintProjectionMaxIterations = 50; // TODO set to reasonable
+    Real intergatorAccuracy = 1e-6;
+    Real constraintProjectionTolerance = 1e-6;
+    // Used for finding the tracking point when status is WrappingStatus::LiftedFromSurface.
+    // TODO should be used during numerical integration as well, but not connected yet.
+    int constraintProjectionMaxIterations = 50;
 };
 
 //==============================================================================
 //                          Struct CableSpanParameters
 //==============================================================================
-// Helper struct holding all configuration parameters of the CableSpan.
+/** Helper struct holding all configuration parameters of the CableSpan.
+
+TODO These need reasonable default values. */
 struct CableSpanParameters final : IntegratorTolerances
 {
     // TODO convert to angle in degrees.
     Real m_PathAccuracy       = 1e-4;
-    int m_SolverMaxIterations = 50; // TODO set to something reasonable.
-    // For each curve segment the max allowed radial curvature.
+    int m_SolverMaxIterations = 50;
+    // For each curve segment the max allowed stepsize in degrees. This is
+    // converted to a max allowed linear stepsize using the local radius of
+    // curvature.
     Real m_MaxCorrectionStepDeg = 10.; // TODO describe
 };
 
@@ -454,10 +460,6 @@ private:
 class CurveSegment final
 {
 public:
-    //--------------------------------------------------------------------------
-    // Constructors.
-    //--------------------------------------------------------------------------
-
     CurveSegment() = default;
 
     CurveSegment(
@@ -782,12 +784,12 @@ public:
     // registered at any CableSubsystem.
     Impl(
         MobilizedBodyIndex originBody,
-        Vec3 originPoint,
+        Vec3 originPoint_B,
         MobilizedBodyIndex terminationBody,
-        Vec3 terminationPoint) :
+        Vec3 terminationPoint_B) :
         m_OriginBody(originBody),
-        m_OriginPoint(originPoint), m_TerminationBody(terminationBody),
-        m_TerminationPoint(terminationPoint)
+        m_OriginPoint(originPoint_B), m_TerminationBody(terminationBody),
+        m_TerminationPoint(terminationPoint_B)
     {}
 
     //--------------------------------------------------------------------------
@@ -2637,23 +2639,6 @@ int CableSubsystem::Impl::calcDecorativeGeometryAndAppendImpl(
 //                          Cable Subsystem
 //==============================================================================
 
-bool CableSubsystem::isInstanceOf(const Subsystem& s)
-{
-    return Impl::isA(s.getSubsystemGuts());
-}
-
-const CableSubsystem& CableSubsystem::downcast(const Subsystem& s)
-{
-    assert(isInstanceOf(s));
-    return static_cast<const CableSubsystem&>(s);
-}
-
-CableSubsystem& CableSubsystem::updDowncast(Subsystem& s)
-{
-    assert(isInstanceOf(s));
-    return static_cast<CableSubsystem&>(s);
-}
-
 CableSubsystem::CableSubsystem()
 {
     adoptSubsystemGuts(new Impl());
@@ -2663,6 +2648,11 @@ CableSubsystem::CableSubsystem(MultibodySystem& mbs)
 {
     adoptSubsystemGuts(new Impl());
     mbs.adoptSubsystem(*this);
+}
+
+const MultibodySystem& CableSubsystem::getMultibodySystem() const
+{
+    return getImpl().getMultibodySystem();
 }
 
 int CableSubsystem::getNumCables() const
@@ -2680,6 +2670,23 @@ CableSpan& CableSubsystem::updCable(CableSpanIndex ix)
     return updImpl().updCable(ix);
 }
 
+bool CableSubsystem::isInstanceOf(const Subsystem& s)
+{
+    return Impl::isA(s.getSubsystemGuts());
+}
+
+const CableSubsystem& CableSubsystem::downcast(const Subsystem& s)
+{
+    assert(isInstanceOf(s));
+    return static_cast<const CableSubsystem&>(s);
+}
+
+CableSubsystem& CableSubsystem::updDowncast(Subsystem& s)
+{
+    assert(isInstanceOf(s));
+    return static_cast<CableSubsystem&>(s);
+}
+
 const CableSubsystem::Impl& CableSubsystem::getImpl() const
 {
     return SimTK_DYNAMIC_CAST_DEBUG<const Impl&>(getSubsystemGuts());
@@ -2688,11 +2695,6 @@ const CableSubsystem::Impl& CableSubsystem::getImpl() const
 CableSubsystem::Impl& CableSubsystem::updImpl()
 {
     return SimTK_DYNAMIC_CAST_DEBUG<Impl&>(updSubsystemGuts());
-}
-
-const MultibodySystem& CableSubsystem::getMultibodySystem() const
-{
-    return getImpl().getMultibodySystem();
 }
 
 //==============================================================================
@@ -2706,14 +2708,14 @@ CableSpan::CableSpan() : m_Impl(new Impl())
 CableSpan::CableSpan(
     CableSubsystem& subsystem,
     MobilizedBodyIndex originBody,
-    const Vec3& defaultOriginPoint,
+    const Vec3& originPoint_B,
     MobilizedBodyIndex terminationBody,
-    const Vec3& defaultTerminationPoint) :
+    const Vec3& terminationPoint_B) :
     m_Impl(std::shared_ptr<Impl>(new Impl(
         originBody,
-        defaultOriginPoint,
+        originPoint_B,
         terminationBody,
-        defaultTerminationPoint)))
+        terminationPoint_B)))
 {
     CableSpanIndex ix = subsystem.updImpl().adoptCable(*this);
     updImpl().setSubsystem(subsystem, ix);
@@ -2791,13 +2793,6 @@ bool CableSpan::isInContactWithObstacle(const State& state, ObstacleIndex ix)
     return getImpl().getCurveSegment(ix).isInContactWithSurface(state);
 }
 
-Real CableSpan::getCurveSegmentLength(const State& state, ObstacleIndex ix)
-    const
-{
-    getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).getDataInst(state).length;
-}
-
 void CableSpan::calcCurveSegmentKnots(
     const State& state,
     ObstacleIndex ix,
@@ -2819,16 +2814,6 @@ Real CableSpan::getSurfaceConstraintTolerance() const
 void CableSpan::setSurfaceConstraintTolerance(Real tolerance)
 {
     updImpl().updParameters().constraintProjectionTolerance = tolerance;
-}
-
-int CableSpan::getSurfaceProjectionMaxIterations() const
-{
-    return getImpl().getParameters().constraintProjectionMaxIterations;
-}
-
-void CableSpan::setSurfaceProjectionMaxIterations(int maxIterations)
-{
-    updImpl().updParameters().constraintProjectionMaxIterations = maxIterations;
 }
 
 Real CableSpan::getIntegratorAccuracy() const
