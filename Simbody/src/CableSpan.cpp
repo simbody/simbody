@@ -387,7 +387,7 @@ public:
     void realizeTopology(State& state)
     {
         PathSolverScratchData cache{};
-        m_CacheIx = allocateCacheEntry(
+        indexDataInst = allocateCacheEntry(
             state,
             Stage::Instance,
             Stage::Infinity,
@@ -422,7 +422,7 @@ public:
     PathSolverScratchData& updSolverData(const State& state) const
     {
         return Value<PathSolverScratchData>::updDowncast(
-            updCacheEntry(state, m_CacheIx));
+            updCacheEntry(state, indexDataInst));
     }
 
     SimTK_DOWNCAST(Impl, Subsystem::Guts);
@@ -443,7 +443,7 @@ private:
     // TOPOLOGY STATE
     Array_<CableSpan, CableSpanIndex> cables;
 
-    CacheEntryIndex m_CacheIx;
+    CacheEntryIndex indexDataInst = CacheEntryIndex::Invalid();
 
     friend CableSubsystemTestHelper;
 };
@@ -480,13 +480,13 @@ public:
     {
         // Allocate an auto-update discrete variable for the last computed
         // geodesic.
-        m_InstanceIx = updSubsystem().allocateAutoUpdateDiscreteVariable(
+        indexDataInst = updSubsystem().allocateAutoUpdateDiscreteVariable(
             s,
             Stage::Position,
             new Value<CurveSegmentData::Instance>(),
             Stage::Instance);
 
-        m_PosIx = updSubsystem().allocateCacheEntry(
+        indexDataPos = updSubsystem().allocateCacheEntry(
             s,
             Stage::Position,
             Stage::Infinity,
@@ -507,7 +507,7 @@ public:
 
     void invalidatePosEntry(const State& state) const
     {
-        getSubsystem().markCacheValueNotRealized(state, m_PosIx);
+        getSubsystem().markCacheValueNotRealized(state, indexDataPos);
     }
 
     //------------------------------------------------------------------------------
@@ -600,18 +600,18 @@ public:
     const CurveSegmentData::Instance& getDataInst(const State& s) const
     {
         const CableSubsystem& subsystem = getSubsystem();
-        if (!subsystem.isDiscreteVarUpdateValueRealized(s, m_InstanceIx)) {
-            updDataInst(s) = getPrevInstanceEntry(s);
-            subsystem.markDiscreteVarUpdateValueRealized(s, m_InstanceIx);
+        if (!subsystem.isDiscreteVarUpdateValueRealized(s, indexDataInst)) {
+            updDataInst(s) = getPrevDataInst(s);
+            subsystem.markDiscreteVarUpdateValueRealized(s, indexDataInst);
         }
         return Value<CurveSegmentData::Instance>::downcast(
-            subsystem.getDiscreteVarUpdateValue(s, m_InstanceIx));
+            subsystem.getDiscreteVarUpdateValue(s, indexDataInst));
     }
 
     const CurveSegmentData::Pos& getDataPos(const State& s) const
     {
         return Value<CurveSegmentData::Pos>::downcast(
-            getSubsystem().getCacheEntry(s, m_PosIx));
+            getSubsystem().getCacheEntry(s, indexDataPos));
     }
 
     //------------------------------------------------------------------------------
@@ -709,7 +709,7 @@ public:
 
     void storeCurrentPath(State& state) const
     {
-        updPrevInstanceEntry(state) = getDataInst(state);
+        updPrevDataInst(state) = getDataInst(state);
     }
 
     void setContactWithSurfaceToDisabled(const State& state) const
@@ -717,7 +717,7 @@ public:
         updDataInst(state).wrappingStatus = WrappingStatus::Disabled;
         getSubsystem().markDiscreteVarUpdateValueRealized(
                 state,
-                m_InstanceIx);
+                indexDataInst);
         state.invalidateAllCacheAtOrAbove(Stage::Position);
     }
 
@@ -726,7 +726,7 @@ public:
         updDataInst(state).wrappingStatus = WrappingStatus::InitialGuess;
         getSubsystem().markDiscreteVarUpdateValueRealized(
                 state,
-                m_InstanceIx);
+                indexDataInst);
         state.invalidateAllCacheAtOrAbove(Stage::Position);
     }
 
@@ -736,26 +736,26 @@ private:
     CurveSegmentData::Instance& updDataInst(const State& state) const
     {
         return Value<CurveSegmentData::Instance>::updDowncast(
-            getSubsystem().updDiscreteVarUpdateValue(state, m_InstanceIx));
+            getSubsystem().updDiscreteVarUpdateValue(state, indexDataInst));
     }
 
-    const CurveSegmentData::Instance& getPrevInstanceEntry(
+    const CurveSegmentData::Instance& getPrevDataInst(
         const State& state) const
     {
         return Value<CurveSegmentData::Instance>::downcast(
-            getSubsystem().getDiscreteVariable(state, m_InstanceIx));
+            getSubsystem().getDiscreteVariable(state, indexDataInst));
     }
 
-    CurveSegmentData::Instance& updPrevInstanceEntry(State& state) const
+    CurveSegmentData::Instance& updPrevDataInst(State& state) const
     {
         return Value<CurveSegmentData::Instance>::updDowncast(
-            getSubsystem().updDiscreteVariable(state, m_InstanceIx));
+            getSubsystem().updDiscreteVariable(state, indexDataInst));
     }
 
-    CurveSegmentData::Pos& updPosInfo(const State& state) const
+    CurveSegmentData::Pos& updDataPos(const State& state) const
     {
         return Value<CurveSegmentData::Pos>::updDowncast(
-            getSubsystem().updCacheEntry(state, m_PosIx));
+            getSubsystem().updCacheEntry(state, indexDataPos));
     }
 
     //------------------------------------------------------------------------------
@@ -773,8 +773,8 @@ private:
     DecorativeGeometry m_Decoration;
 
     // Topology cache.
-    CacheEntryIndex m_PosIx;
-    DiscreteVariableIndex m_InstanceIx;
+    CacheEntryIndex indexDataPos        = CacheEntryIndex::Invalid();
+    DiscreteVariableIndex indexDataInst = DiscreteVariableIndex::Invalid();
 
     // Initial contact point hint used to setup the initial path.
     Vec3 m_ContactPointHint_S{NaN, NaN, NaN};
@@ -843,7 +843,7 @@ public:
         if (getSubsystem().isCacheValueRealized(state, indexDataPos)) {
             return;
         }
-        calcPosInfo(state, updPosInfo(state));
+        calcDataPos(state, updDataPos(state));
         getSubsystem().markCacheValueRealized(state, indexDataPos);
     }
 
@@ -853,18 +853,18 @@ public:
         if (getSubsystem().isCacheValueRealized(state, indexDataVel)) {
             return;
         }
-        calcVelInfo(state, updVelInfo(state));
+        calcDataVel(state, updDataVel(state));
         getSubsystem().markCacheValueRealized(state, indexDataVel);
     }
 
-    const CableSpanData::Pos& getPosInfo(const State& state) const
+    const CableSpanData::Pos& getDataPos(const State& state) const
     {
         realizePosition(state);
         return Value<CableSpanData::Pos>::downcast(
             getSubsystem().getCacheEntry(state, indexDataPos));
     }
 
-    const CableSpanData::Vel& getVelInfo(const State& state) const
+    const CableSpanData::Vel& getDataVel(const State& state) const
     {
         realizeVelocity(state);
         return Value<CableSpanData::Vel>::downcast(
@@ -986,7 +986,7 @@ public:
         const std::function<void(Vec3 point_G)>& sink) const
     {
         // Write the initial point.
-        const CableSpanData::Pos& dataPos = getPosInfo(state);
+        const CableSpanData::Pos& dataPos = getDataPos(state);
         sink(dataPos.originPoint_G);
 
         // Write points along each of the curves.
@@ -1092,22 +1092,22 @@ private:
         return m_Index;
     }
 
-    CableSpanData::Pos& updPosInfo(const State& state) const
+    CableSpanData::Pos& updDataPos(const State& state) const
     {
         return Value<CableSpanData::Pos>::updDowncast(
             getSubsystem().updCacheEntry(state, indexDataPos));
     }
 
-    CableSpanData::Vel& updVelInfo(const State& state) const
+    CableSpanData::Vel& updDataVel(const State& state) const
     {
         return Value<CableSpanData::Vel>::updDowncast(
             getSubsystem().updCacheEntry(state, indexDataVel));
     }
 
-    void calcPosInfo(const State& s, CableSpanData::Pos& dataPos) const;
-    void calcVelInfo(const State& s, CableSpanData::Vel& dataVel) const
+    void calcDataPos(const State& s, CableSpanData::Pos& dataPos) const;
+    void calcDataVel(const State& s, CableSpanData::Vel& dataVel) const
     {
-        const CableSpanData::Pos& dataPos = getPosInfo(s);
+        const CableSpanData::Pos& dataPos = getDataPos(s);
 
         auto CalcPointVelocityInGround = [&](const MobilizedBody& mobod,
                                              const Vec3& point_G) -> Vec3 {
@@ -1293,7 +1293,7 @@ void calcUnitForceAtCableOrigin(
     SpatialVec& unitForce_G)
 {
     // Origin contact point moment arm in ground.
-    const CableSpanData::Pos& dataPos = cable.getPosInfo(s);
+    const CableSpanData::Pos& dataPos = cable.getDataPos(s);
 
     const Vec3& arm_G =
         dataPos.originPoint_G - cable.getOriginBody().getBodyOriginLocation(s);
@@ -1307,7 +1307,7 @@ void calcUnitForceAtCableTermination(
     const State& s,
     SpatialVec& unitForce_G)
 {
-    const CableSpanData::Pos& dataPos = cable.getPosInfo(s);
+    const CableSpanData::Pos& dataPos = cable.getDataPos(s);
     const Vec3& arm_G                = dataPos.terminationPoint_G -
                         cable.getTerminationBody().getBodyOriginLocation(s);
 
@@ -1844,7 +1844,7 @@ void applyGeodesicCorrection(
 //                      CABLE SPAN POSITION LEVEL CACHE
 //==============================================================================
 
-void CableSpan::Impl::calcPosInfo(const State& s, CableSpanData::Pos& dataPos)
+void CableSpan::Impl::calcDataPos(const State& s, CableSpanData::Pos& dataPos)
     const
 {
     // Path origin and termination point.
@@ -2317,7 +2317,7 @@ void CurveSegment::calcLocalGeodesic(
         tols,
         dataInst);
 
-    getSubsystem().markDiscreteVarUpdateValueRealized(s, m_InstanceIx);
+    getSubsystem().markDiscreteVarUpdateValueRealized(s, indexDataInst);
 
     invalidatePosEntry(s);
 }
@@ -2330,7 +2330,7 @@ void CurveSegment::liftCurveFromSurface(const State& s, Vec3 trackingPoint_S)
     dataInst.wrappingStatus        = WrappingStatus::LiftedFromSurface;
     dataInst.trackingPointOnLine_S = trackingPoint_S;
 
-    getSubsystem().markDiscreteVarUpdateValueRealized(s, m_InstanceIx);
+    getSubsystem().markDiscreteVarUpdateValueRealized(s, indexDataInst);
 
     invalidatePosEntry(s);
 }
@@ -2345,14 +2345,14 @@ void CurveSegment::realizePosition(
     Vec3 nextPoint_G,
     const IntegratorTolerances& tols) const
 {
-    if (getSubsystem().isCacheValueRealized(s, m_PosIx)) {
+    if (getSubsystem().isCacheValueRealized(s, indexDataPos)) {
         // TODO use SimTK_ASSERT
         throw std::runtime_error(
             "expected not realized when calling realizePosition");
     }
 
     if (getDataInst(s).wrappingStatus == WrappingStatus::Disabled) {
-        getSubsystem().markCacheValueRealized(s, m_PosIx);
+        getSubsystem().markCacheValueRealized(s, indexDataPos);
         return;
     }
 
@@ -2385,7 +2385,7 @@ void CurveSegment::realizePosition(
     const CurveSegmentData::Instance& dataInst = getDataInst(s);
 
     // Start updating the position level cache.
-    CurveSegmentData::Pos& dataPos = updPosInfo(s);
+    CurveSegmentData::Pos& dataPos = updDataPos(s);
 
     // Transform geodesic in local surface coordinates to ground.
     {
@@ -2397,7 +2397,7 @@ void CurveSegment::realizePosition(
         dataPos.X_GQ = X_GS.compose(dataInst.X_SQ);
     }
 
-    getSubsystem().markCacheValueRealized(s, m_PosIx);
+    getSubsystem().markCacheValueRealized(s, indexDataPos);
 }
 
 //==============================================================================
@@ -2458,7 +2458,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
 
             // Trigger realizing position level cache, resetting the
             // configuration.
-            const CableSpanData::Pos& dataPos = cable.getPosInfo(sCopy);
+            const CableSpanData::Pos& dataPos = cable.getDataPos(sCopy);
 
             MatrixWorkspace& data =
                 subsystem.getImpl().updSolverData(sCopy).updOrInsert(nActive);
@@ -2889,12 +2889,12 @@ void CableSpan::setMaxGeodesicCorrectionInDegrees(Real maxCorrectionInDegrees)
 
 Real CableSpan::getLength(const State& s) const
 {
-    return getImpl().getPosInfo(s).cableLength;
+    return getImpl().getDataPos(s).cableLength;
 }
 
 Real CableSpan::getLengthDot(const State& s) const
 {
-    return getImpl().getVelInfo(s).lengthDot;
+    return getImpl().getDataVel(s).lengthDot;
 }
 
 void CableSpan::applyBodyForces(
@@ -2919,12 +2919,12 @@ Real CableSpan::calcCablePower(const State& state, Real tension) const
 
 int CableSpan::getNumSolverIter(const State& state) const
 {
-    return getImpl().getPosInfo(state).loopIter;
+    return getImpl().getDataPos(state).loopIter;
 }
 
 Real CableSpan::getMaxPathError(const State& state) const
 {
-    return getImpl().getPosInfo(state).pathError;
+    return getImpl().getDataPos(state).pathError;
 }
 
 void CableSpan::storeCurrentPath(State& state) const
