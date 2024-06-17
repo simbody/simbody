@@ -25,11 +25,12 @@ using namespace SimTK;
 
 using ObstacleIndex = CableSpanObstacleIndex;
 
-// Begin anonymous containing helper structs.
+// Begin anonymous namespace with some helper structs.
 namespace
 {
 
-/* This enum gives the wrapping status of a CableSpan w.r.t. an obstacle. */
+/** This enum gives the wrapping status for the CurveSegment of a cable path
+that lies on an obstacle. */
 enum class WrappingStatus
 {
     // InitialGuess: The path must be initialized from the initial contact
@@ -873,7 +874,7 @@ public:
         return obstacleIx;
     }
 
-    int getNumCurveSegments() const
+    int getNumObstacles() const
     {
         return m_CurveSegments.size();
     }
@@ -1019,7 +1020,7 @@ public:
         const State& s,
         const std::function<void(const CurveSegment& curve)>& callMe) const
     {
-        for (ObstacleIndex ix(0); ix < getNumCurveSegments(); ++ix) {
+        for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
             const CurveSegment& curve = getCurveSegment(ix);
             if (!curve.isInContactWithSurface(s)) {
                 continue;
@@ -1627,7 +1628,7 @@ void calcPathErrorJacobian(
     };
 
     auto linesIt = lines.begin();
-    for (ObstacleIndex ix(0); ix < cable.getNumCurveSegments(); ++ix) {
+    for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
         const CurveSegment& curve = cable.getCurveSegment(ix);
         if (!curve.isInContactWithSurface(s)) {
             continue;
@@ -1851,7 +1852,7 @@ void CableSpan::Impl::calcDataPos(const State& s, CableSpanData::Pos& dataPos)
         // Make sure all curve segments are realized to position stage.
         // This will transform all last computed geodesics to Ground frame, and
         // will update each curve's WrappingStatus.
-        for (ObstacleIndex ix(0); ix < getNumCurveSegments(); ++ix) {
+        for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
             getCurveSegment(ix).realizePosition(
                 s,
                 findPrevPoint(s, ix),
@@ -2499,7 +2500,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 curve.invalidatePosEntry(sCopy);
             }
 
-            for (ObstacleIndex ix(0); ix < cable.getNumCurveSegments(); ++ix) {
+            for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
                 cable.getCurveSegment(ix).realizePosition(
                     sCopy,
                     cable.findPrevPoint(sCopy, ix),
@@ -2729,7 +2730,7 @@ ObstacleIndex CableSpan::addSurfaceObstacle(
 
 int CableSpan::getNumSurfaceObstacles() const
 {
-    return getImpl().getNumCurveSegments();
+    return getImpl().getNumObstacles();
 }
 
 const MobilizedBodyIndex& CableSpan::getObstacleMobilizedBodyIndex(
@@ -2897,7 +2898,7 @@ Real CableSpan::getMaxPathError(const State& state) const
 
 void CableSpan::storeCurrentPath(State& state) const
 {
-    for (ObstacleIndex ix(0); ix < getImpl().getNumCurveSegments(); ++ix) {
+    for (ObstacleIndex ix(0); ix < getImpl().getNumObstacles(); ++ix) {
         getImpl().getCurveSegment(ix).storeCurrentPath(state);
     }
 }
