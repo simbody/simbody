@@ -879,12 +879,12 @@ public:
         return m_CurveSegments.size();
     }
 
-    const CurveSegment& getCurveSegment(ObstacleIndex ix) const
+    const CurveSegment& getObstacleCurveSegment(ObstacleIndex ix) const
     {
         return m_CurveSegments[ix];
     }
 
-    CurveSegment& updCurveSegment(ObstacleIndex ix)
+    CurveSegment& updObstacleCurveSegment(ObstacleIndex ix)
     {
         return m_CurveSegments[ix];
     }
@@ -940,18 +940,18 @@ public:
     void setObstacleContactDisabled(const State& state, ObstacleIndex ix) const
     {
         // Only disable the obstacle, if it was not disabled already.
-        if (getCurveSegment(ix).getDataInst(state).wrappingStatus !=
+        if (getObstacleCurveSegment(ix).getDataInst(state).wrappingStatus !=
             WrappingStatus::Disabled) {
-            getCurveSegment(ix).setContactWithSurfaceToDisabled(state);
+            getObstacleCurveSegment(ix).setContactWithSurfaceToDisabled(state);
         }
     }
 
     void setObstacleContactEnabled(const State& state, ObstacleIndex ix) const
     {
         // Only enable the obstacle, if it was not enabled already.
-        if (getCurveSegment(ix).getDataInst(state).wrappingStatus ==
+        if (getObstacleCurveSegment(ix).getDataInst(state).wrappingStatus ==
             WrappingStatus::Disabled) {
-            getCurveSegment(ix).setContactWithSurfaceToEnabled(state);
+            getObstacleCurveSegment(ix).setContactWithSurfaceToEnabled(state);
         }
     }
 
@@ -1021,7 +1021,7 @@ public:
         const std::function<void(const CurveSegment& curve)>& callMe) const
     {
         for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
-            const CurveSegment& curve = getCurveSegment(ix);
+            const CurveSegment& curve = getObstacleCurveSegment(ix);
             if (!curve.isInContactWithSurface(s)) {
                 continue;
             }
@@ -1629,7 +1629,7 @@ void calcPathErrorJacobian(
 
     auto linesIt = lines.begin();
     for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
-        const CurveSegment& curve = cable.getCurveSegment(ix);
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
         if (!curve.isInContactWithSurface(s)) {
             continue;
         }
@@ -1853,7 +1853,7 @@ void CableSpan::Impl::calcDataPos(const State& s, CableSpanData::Pos& dataPos)
         // This will transform all last computed geodesics to Ground frame, and
         // will update each curve's WrappingStatus.
         for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
-            getCurveSegment(ix).realizePosition(
+            getObstacleCurveSegment(ix).realizePosition(
                 s,
                 findPrevPoint(s, ix),
                 findNextPoint(s, ix),
@@ -2501,7 +2501,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             }
 
             for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
-                cable.getCurveSegment(ix).realizePosition(
+                cable.getObstacleCurveSegment(ix).realizePosition(
                     sCopy,
                     cable.findPrevPoint(sCopy, ix),
                     cable.findNextPoint(sCopy, ix),
@@ -2736,50 +2736,50 @@ int CableSpan::getNumSurfaceObstacles() const
 const MobilizedBodyIndex& CableSpan::getObstacleMobilizedBodyIndex(
     ObstacleIndex ix) const
 {
-    return getImpl().getCurveSegment(ix).getMobilizedBodyIndex();
+    return getImpl().getObstacleCurveSegment(ix).getMobilizedBodyIndex();
 }
 
 void CableSpan::setObstacleMobilizedBodyIndex(
     ObstacleIndex ix,
     MobilizedBodyIndex body)
 {
-    updImpl().updCurveSegment(ix).setMobilizedBodyIndex(body);
+    updImpl().updObstacleCurveSegment(ix).setMobilizedBodyIndex(body);
 }
 
 const Transform& CableSpan::getObstacleXformSurfaceToBody(
     ObstacleIndex ix) const
 {
-    return getImpl().getCurveSegment(ix).getXformSurfaceToBody();
+    return getImpl().getObstacleCurveSegment(ix).getXformSurfaceToBody();
 }
 void CableSpan::setObstacleXformSurfaceToBody(
     ObstacleIndex ix,
     const Transform& X_BS)
 {
-    updImpl().updCurveSegment(ix).setXformSurfaceToBody(X_BS);
+    updImpl().updObstacleCurveSegment(ix).setXformSurfaceToBody(X_BS);
 }
 
 const ContactGeometry& CableSpan::getObstacleContactGeometry(
     ObstacleIndex ix) const
 {
-    return getImpl().getCurveSegment(ix).getContactGeometry();
+    return getImpl().getObstacleCurveSegment(ix).getContactGeometry();
 }
 void CableSpan::setObstacleContactGeometry(
     ObstacleIndex ix,
     std::shared_ptr<const ContactGeometry> geometry)
 {
-    updImpl().updCurveSegment(ix).setContactGeometry(geometry);
+    updImpl().updObstacleCurveSegment(ix).setContactGeometry(geometry);
 }
 
 Vec3 CableSpan::getObstacleInitialContactPointHint(ObstacleIndex ix) const
 {
-    return getImpl().getCurveSegment(ix).getContactPointHint();
+    return getImpl().getObstacleCurveSegment(ix).getContactPointHint();
 }
 
 void CableSpan::setObstacleInitialContactPointHint(
     ObstacleIndex ix,
     Vec3 initialContactPointHint)
 {
-    updImpl().updCurveSegment(ix).setContactPointHint(initialContactPointHint);
+    updImpl().updObstacleCurveSegment(ix).setContactPointHint(initialContactPointHint);
 }
 
 //------------------------------------------------------------------------------
@@ -2788,7 +2788,7 @@ bool CableSpan::isInContactWithObstacle(const State& state, ObstacleIndex ix)
     const
 {
     getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).isInContactWithSurface(state);
+    return getImpl().getObstacleCurveSegment(ix).isInContactWithSurface(state);
 }
 
 void CableSpan::calcCurveSegmentKnots(
@@ -2799,7 +2799,7 @@ void CableSpan::calcCurveSegmentKnots(
         const Transform& X_GS)>& sink) const
 {
     getImpl().realizePosition(state);
-    getImpl().getCurveSegment(ix).calcGeodesicKnots(state, sink);
+    getImpl().getObstacleCurveSegment(ix).calcGeodesicKnots(state, sink);
 }
 
 //------------------------------------------------------------------------------
@@ -2899,7 +2899,7 @@ Real CableSpan::getMaxPathError(const State& state) const
 void CableSpan::storeCurrentPath(State& state) const
 {
     for (ObstacleIndex ix(0); ix < getImpl().getNumObstacles(); ++ix) {
-        getImpl().getCurveSegment(ix).storeCurrentPath(state);
+        getImpl().getObstacleCurveSegment(ix).storeCurrentPath(state);
     }
 }
 
