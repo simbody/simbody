@@ -387,9 +387,6 @@ Real calcSurfaceValue(const ContactGeometry& geometry, const Vec3& point_S)
 class CableSubsystem::Impl : public Subsystem::Guts
 {
 public:
-    // TODO fix rule of five
-    Impl() = default;
-
     void realizeTopology(State& state)
     {
         PathSolverScratchData cache{};
