@@ -23,12 +23,27 @@
 
 using namespace SimTK;
 
-using WrappingStatus = CableSpan::ObstacleWrappingStatus;
-using ObstacleIndex  = CableSpan::ObstacleIndex;
+using ObstacleIndex = CableSpan::ObstacleIndex;
 
 // Begin anonymous containing helper structs.
 namespace
 {
+
+/* This enum gives the wrapping status of a CableSpan w.r.t. an obstacle. */
+enum class WrappingStatus
+{
+    // InitialGuess: The path must be initialized from the initial contact
+    // point parameter. This will be used as the starting point for computing
+    // the optimal cable path.
+    InitialGuess,
+    // InContactWithSurface: The cable comes into contact with the obstacle.
+    InContactWithSurface,
+    // LiftedFromSurface: The cable does not come into contact with the
+    // obstacle.
+    LiftedFromSurface,
+    // Disabled: The obstacle was disabled through the public interface.
+    Disabled,
+};
 
 //==============================================================================
 //                          Struct Line Segment
@@ -2303,6 +2318,7 @@ void CurveSegment::realizePosition(
     }
 
     if (getDataInst(s).wrappingStatus == WrappingStatus::Disabled) {
+        getSubsystem().markCacheValueRealized(s, m_PosIx);
         return;
     }
 
@@ -2393,15 +2409,22 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             // We do not want to mess with the actual state, so we make a copy.
             const State sCopy = s;
             system.realize(sCopy, Stage::Position);
+            cable.realizePosition(sCopy);
+
+            // The wrapping status of each obstacle is reset after copying the
+            // state. The matrix sizes are no longer compatible if this results
+            // in a change in wrapping status (if we are touching down during
+            // this realization for example). We can only test the jacobian if
+            // the wrapping status of all obstacles remains the same.
+            if (cable.countActive(sCopy) != nActive) {
+                os << "Cable wrapping status changed after cloning the state: "
+                      "Skipping perturbation test\n";
+                break;
+            }
 
             // Trigger realizing position level cache, resetting the
             // configuration.
             const CableSpanData::Pos& dataPos = cable.getPosInfo(sCopy);
-
-            SimTK_ASSERT(
-                cable.countActive(sCopy) == nActive,
-                "Unexpected change in number of wrapping segments during "
-                "perturbation test");
 
             MatrixWorkspace& data =
                 subsystem.getImpl().updSolverData(sCopy).updOrInsert(nActive);
@@ -2741,12 +2764,11 @@ void CableSpan::setObstacleInitialContactPointHint(
 
 //------------------------------------------------------------------------------
 
-WrappingStatus CableSpan::getObstacleWrappingStatus(
-    const State& state,
-    ObstacleIndex ix) const
+bool CableSpan::isInContactWithObstacle(const State& state, ObstacleIndex ix)
+    const
 {
     getImpl().realizePosition(state);
-    return getImpl().getCurveSegment(ix).getDataInst(state).wrappingStatus;
+    return getImpl().getCurveSegment(ix).isInContactWithSurface(state);
 }
 
 Real CableSpan::getCurveSegmentLength(const State& state, ObstacleIndex ix)

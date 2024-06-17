@@ -52,18 +52,6 @@ class SimTK_SIMBODY_EXPORT CableSpan final
 public:
     using ObstacleIndex = CableSpanObstacleIndex;
 
-    /** Identifies whether the cable is in contact with the obstacle surface or
-     * not.
-     * TODO the InitialGuess case is added as a fix for initializing the path,
-     * and should be removed later. */
-    enum class ObstacleWrappingStatus
-    {
-        InitialGuess, // Hotfix for path initialization.
-        InContactWithSurface,
-        LiftedFromSurface,
-        Disabled, // Allow user to manually disable the obstacle.
-    };
-
     //------------------------------------------------------------------------------
 
     CableSpan();
@@ -141,11 +129,9 @@ public:
     //                     OBSTACLE CALCULATIONS
     //------------------------------------------------------------------------------
 
-    /** Get the wrapping status of the cable path over the given obstacle.
-     * State must be realized to Stage::Position. */
-    ObstacleWrappingStatus getObstacleWrappingStatus(
-        const State& state,
-        ObstacleIndex ix) const;
+    /** Returns true when the cable is in contact with the obstacle.
+    State must be realized to Stage::Position. */
+    bool isInContactWithObstacle(const State& state, ObstacleIndex ix) const;
 
     /** Get the length of the curve segment over the given obstacle.
      * Throws an exception if the cable is not in contact with the surface.
