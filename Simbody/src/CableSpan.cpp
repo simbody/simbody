@@ -744,7 +744,7 @@ private:
     //------------------------------------------------------------------------------
 
     // Subsystem info.
-    CableSubsystem* m_Subsystem; // TODO manage reference count?
+    CableSubsystem* m_Subsystem;
 
     // MobilizedBody that surface is attached to.
     MobilizedBodyIndex m_Body;
