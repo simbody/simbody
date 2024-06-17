@@ -712,6 +712,24 @@ public:
         updPrevInstanceEntry(state) = getDataInst(state);
     }
 
+    void setContactWithSurfaceToDisabled(const State& state) const
+    {
+        updDataInst(state).wrappingStatus = WrappingStatus::Disabled;
+        getSubsystem().markDiscreteVarUpdateValueRealized(
+                state,
+                m_InstanceIx);
+        state.invalidateAllCacheAtOrAbove(Stage::Position);
+    }
+
+    void setContactWithSurfaceToEnabled(const State& state) const
+    {
+        updDataInst(state).wrappingStatus = WrappingStatus::InitialGuess;
+        getSubsystem().markDiscreteVarUpdateValueRealized(
+                state,
+                m_InstanceIx);
+        state.invalidateAllCacheAtOrAbove(Stage::Position);
+    }
+
     //------------------------------------------------------------------------------
 
 private:
@@ -934,6 +952,22 @@ public:
     const CableSpanParameters& getParameters() const
     {
         return parameters;
+    }
+
+    void setObstacleContactDisabled(const State& state, ObstacleIndex ix) const
+    {
+        // Only disable the obstacle, if it was not disabled already.
+        if (getCurveSegment(ix).getDataInst(state).wrappingStatus != WrappingStatus::Disabled) {
+            getCurveSegment(ix).setContactWithSurfaceToDisabled(state);
+        }
+    }
+
+    void setObstacleContactEnabled(const State& state, ObstacleIndex ix) const
+    {
+        // Only enable the obstacle, if it was not enabled already.
+        if (getCurveSegment(ix).getDataInst(state).wrappingStatus == WrappingStatus::Disabled) {
+            getCurveSegment(ix).setContactWithSurfaceToEnabled(state);
+        }
     }
 
     //--------------------------------------------------------------------------
@@ -2898,4 +2932,16 @@ void CableSpan::storeCurrentPath(State& state) const
     for (ObstacleIndex ix(0); ix < getImpl().getNumCurveSegments(); ++ix) {
         getImpl().getCurveSegment(ix).storeCurrentPath(state);
     }
+}
+
+void CableSpan::setObstacleContactDisabled(const State& state, ObstacleIndex ix)
+    const
+{
+    getImpl().setObstacleContactDisabled(state, ix);
+}
+
+void CableSpan::setObstacleContactEnabled(const State& state, ObstacleIndex ix)
+    const
+{
+    getImpl().setObstacleContactEnabled(state, ix);
 }

@@ -154,6 +154,9 @@ public:
             const ContactGeometry::ImplicitGeodesicState& geodesicKnot_S,
             const Transform& X_GS)>& sink) const;
 
+    void setObstacleContactDisabled(const State& state, ObstacleIndex ix) const;
+    void setObstacleContactEnabled(const State& state, ObstacleIndex ix) const;
+
     //------------------------------------------------------------------------------
     //                     CABLE CONFIGURATION
     //------------------------------------------------------------------------------
