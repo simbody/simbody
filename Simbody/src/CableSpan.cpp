@@ -482,9 +482,9 @@ public:
         // geodesic.
         m_InstanceIx = updSubsystem().allocateAutoUpdateDiscreteVariable(
             s,
-            Stage::Report,
+            Stage::Position,
             new Value<CurveSegmentData::Instance>(),
-            Stage::Position);
+            Stage::Instance);
 
         m_PosIx = updSubsystem().allocateCacheEntry(
             s,
