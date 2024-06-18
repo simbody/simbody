@@ -18,37 +18,25 @@
 
 #include "simbody/internal/CableSpan.h"
 
+#include "SimTKcommon/internal/State.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 
 using namespace SimTK;
 
-using ObstacleIndex = CableSpanObstacleIndex;
-
-// Begin anonymous namespace with some helper structs.
+//==============================================================================
+//                            Data Structures
+//==============================================================================
+// The following section contains data structures that are cached during a
+// simulation.
 namespace
 {
 
-/** This enum gives the wrapping status for the CurveSegment of a cable path
-that lies on an obstacle. */
-enum class WrappingStatus
-{
-    // InitialGuess: The path must be initialized from the initial contact
-    // point parameter. This will be used as the starting point for computing
-    // the optimal cable path.
-    InitialGuess,
-    // InContactWithSurface: The cable comes into contact with the obstacle.
-    InContactWithSurface,
-    // LiftedFromSurface: The cable does not come into contact with the
-    // obstacle.
-    LiftedFromSurface,
-    // Disabled: The obstacle was disabled through the public interface.
-    Disabled,
-};
+using ObstacleIndex = CableSpanObstacleIndex;
 
-//==============================================================================
+//------------------------------------------------------------------------------
 //                          Struct Line Segment
-//==============================================================================
+//------------------------------------------------------------------------------
 /* Representation of a cable segment that does not lie on a surface: A straight
 line. */
 struct LineSegment final
@@ -64,9 +52,29 @@ struct LineSegment final
     UnitVec3 direction{NaN, NaN, NaN};
 };
 
-//==============================================================================
+//------------------------------------------------------------------------------
+//                          Wrapping Status
+//------------------------------------------------------------------------------
+/** This enum gives the wrapping status for the CurveSegment of a cable path
+that lies on an obstacle. */
+enum class ObstacleWrappingStatus
+{
+    // InitialGuess: The path must be initialized from the initial contact
+    // point parameter. This will be used as the starting point for computing
+    // the optimal cable path.
+    InitialGuess,
+    // InContactWithSurface: The cable comes into contact with the obstacle.
+    InContactWithSurface,
+    // LiftedFromSurface: The cable does not come into contact with the
+    // obstacle.
+    LiftedFromSurface,
+    // Disabled: The obstacle was disabled through the public interface.
+    Disabled,
+};
+
+//------------------------------------------------------------------------------
 //                            Frenet Frame
-//==============================================================================
+//------------------------------------------------------------------------------
 /* The frenet frame plays an important role in defining the state of a geodesic.
 In the end it is simply a Transform, which is why we define it as an alias.
 
@@ -81,42 +89,9 @@ static const CoordinateAxis TangentAxis  = CoordinateAxis::XCoordinateAxis();
 static const CoordinateAxis NormalAxis   = CoordinateAxis::YCoordinateAxis();
 static const CoordinateAxis BinormalAxis = CoordinateAxis::ZCoordinateAxis();
 
-// Helper for grabbing the tangent axis.
-const UnitVec3& getTangent(const FrenetFrame& X)
-{
-    return X.R().getAxisUnitVec(TangentAxis);
-}
-
-// Helper for grabbing the normal axis.
-const UnitVec3& getNormal(const FrenetFrame& X)
-{
-    return X.R().getAxisUnitVec(NormalAxis);
-}
-
-// Helper for grabbing the binormal axis.
-const UnitVec3& getBinormal(const FrenetFrame& X)
-{
-    return X.R().getAxisUnitVec(BinormalAxis);
-}
-
-// Helper for computing the frenet frame at a knot point of a geodesic.
-FrenetFrame calcFrenetFrameFromGeodesicState(
-    const ContactGeometry& geometry,
-    const ContactGeometry::ImplicitGeodesicState& q)
-{
-    FrenetFrame X;
-    X.updP() = q.point;
-    X.updR().setRotationFromTwoAxes(
-        geometry.calcSurfaceUnitNormal(q.point),
-        NormalAxis,
-        q.tangent,
-        TangentAxis);
-    return X;
-}
-
-//==============================================================================
+//------------------------------------------------------------------------------
 //                         Struct MatrixWorkspace
-//==============================================================================
+//------------------------------------------------------------------------------
 /* This is a helper struct that is used by a CableSpan to compute the
 Stage::Position level data, i.e. the spanned path.
 Computing the spanned path involves a Newton type iteration, for which several
@@ -133,12 +108,12 @@ struct MatrixWorkspace
     // Given the number of CurveSegments that are in contact with their
     // respective obstacle's surface, contruct a MatrixWorkspace of correct
     // dimensions.
-    explicit MatrixWorkspace(int nActive) : nCurves(nActive)
+    explicit MatrixWorkspace(int problemSize) : nCurves(problemSize)
     {
         static constexpr int Q = GEODESIC_DOF;
         // 4 for the path error, and 1 for the weighting of the length.
         static constexpr int C = NUMBER_OF_CONSTRAINTS + 1;
-        const int n            = nActive;
+        const int n            = problemSize;
 
         lineSegments.resize(n + 1);
         pathErrorJacobian = Matrix(C * n, Q * n, 0.);
@@ -155,64 +130,57 @@ struct MatrixWorkspace
     int nCurves = -1;
 };
 
-} // namespace
-
-// The following section contains data structures that are cached during a
-// simulation.
-namespace
-{
-
-//==============================================================================
-//                      Struct PathSolverScratchData
-//==============================================================================
-/* Cache entry for holding MatrixWorkspaces of different dimensions.
-
-CableSubsystem::Impl caches this data, such that all it's CableSpans can make
-use of it as a scratchpad when computing the Stage::Position level data. */
-class PathSolverScratchData
-{
-public:
-    PathSolverScratchData() = default;
-
-    // Get mutable access to a MatrixWorkspace of appropriate dimension.
-    // Constructs requested MatrixWorkspace of requested dimension if not done
-    // previously.
-    MatrixWorkspace& updOrInsert(int nActive)
-    {
-        SimTK_ASSERT1(
-            nActive > 0,
-            "PathSolverScratchData::updOrInsert()"
-            "Number of obstacles in contact must be larger than zero (got %d)",
-            nActive);
-
-        // Construct all MatrixWorkspace's of requested dimension and lower.
-        for (int i = matrixWorkspaces.size(); i < nActive; ++i) {
-            matrixWorkspaces.emplace_back(i + 1);
-        }
-
-        // Return MatrixWorkspace of requested dimension.
-        return matrixWorkspaces.at(nActive - 1);
-    }
-
-private:
-    // MatrixWorkspaces of suitable dimensions for solving the cable path given
-    // a number of obstacles in contact with the cable. The ith element in the
-    // vector is used for solving a path with i+1 active obstacles.
-    std::vector<MatrixWorkspace> matrixWorkspaces;
-};
-
-//=============================================================================
+//------------------------------------------------------------------------------
 //                          CableSpanData
-//=============================================================================
+//------------------------------------------------------------------------------
 /* CableSpanData is a data structure used by class CableSpan::Impl to store
 relevant quantities in the State's cache.
 
-The struct has two member structs Pos and Vel that correspond to the stages
-(Stage::Position and Stage::Velocity) at which they can be computed.
+The struct has three members Instance, Pos and Vel that correspond to the
+stages (Stage::Instance, Stage::Position and Stage::Velocity) at which they can
+be computed.
 
 Member variables with a "_G" suffix are expressed in the Ground frame. */
 struct CableSpanData
 {
+    /* Cache entry for holding MatrixWorkspaces of different dimensions. This
+    acts as a scratchpad when computing Stage::Position level data, during
+    which the path is essentially computed. During that computation the
+    dimension of the matrices changes as the cable touches down- or lifts off
+    from obstacle surfaces. After having completed the Stage::Position level
+    data, the data in the MatrixWorkspaces is no longer used. */
+    class Instance
+    {
+        public:
+            Instance() = default;
+
+            // Get mutable access to a MatrixWorkspace of appropriate dimension.
+            // Constructs requested MatrixWorkspace of requested dimension if not done
+            // previously.
+            MatrixWorkspace& updOrInsert(int nActive)
+            {
+                SimTK_ASSERT1(
+                        nActive > 0,
+                        "PathSolverScratchData::updOrInsert()"
+                        "Number of obstacles in contact must be larger than zero (got %d)",
+                        nActive);
+
+                // Construct all MatrixWorkspaces for up to and including the
+                // requested dimension.
+                for (int i = matrixWorkspaces.size(); i < nActive; ++i) {
+                    matrixWorkspaces.emplace_back(i + 1);
+                }
+
+                // Return MatrixWorkspace of requested dimension.
+                return matrixWorkspaces.at(nActive - 1);
+            }
+
+        private:
+            // MatrixWorkspaces of suitable dimensions for solving the cable path given
+            // a number of obstacles in contact with the cable. The ith element in the
+            // vector is used for solving a path with i+1 active obstacles.
+            std::vector<MatrixWorkspace> matrixWorkspaces;
+    };
     struct Pos final
     {
         // Position of the cable origin point in the ground frame.
@@ -238,9 +206,9 @@ struct CableSpanData
     };
 };
 
-//=============================================================================
+//------------------------------------------------------------------------------
 //                          CurveSegmentData
-//=============================================================================
+//------------------------------------------------------------------------------
 /** CurveSegmentData is a data structure used by class CurveSegment to store
 relevent quantities in the State's cache.
 
@@ -298,7 +266,7 @@ struct CurveSegmentData
         // surface, only trackingPointOnLine_S will contain valid data. If the
         // cable is in contact with the surface, trackingPointOnLine_S will not
         // contain valid data.
-        WrappingStatus wrappingStatus = WrappingStatus::InitialGuess;
+        ObstacleWrappingStatus wrappingStatus = ObstacleWrappingStatus::InitialGuess;
     };
     struct Pos final
     {
@@ -313,31 +281,29 @@ struct CurveSegmentData
 
 } // namespace
 
+
+//==============================================================================
+//                          Configuration Parameters
+//==============================================================================
 // The following anonymous namespace contains structs that collect relevant
 // configuration parameters.
 namespace
 {
 
-//==============================================================================
-//                          Struct Integrator Tolerances
-//==============================================================================
-/** Helper struct holding all parameters for setting up the integrator that
-computes the geodesic over the obstacle's surface.
+/** These are all the parameters needed to configure the GeodesicIntegrator
+when computing a new geodesic over the obstacle's surface.
 
 TODO These need reasonable default values. */
 struct IntegratorTolerances
 {
     Real intergatorAccuracy = 1e-6;
     Real constraintProjectionTolerance = 1e-6;
-    // Used for finding the tracking point when status is WrappingStatus::LiftedFromSurface.
     // TODO should be used during numerical integration as well, but not connected yet.
     int constraintProjectionMaxIterations = 50;
 };
 
-//==============================================================================
-//                          Struct CableSpanParameters
-//==============================================================================
-/** Helper struct holding all configuration parameters of the CableSpan.
+/** These are all the parameters for configuring the solver steps in the
+ * CableSpan.
 
 TODO These need reasonable default values. */
 struct CableSpanParameters final : IntegratorTolerances
@@ -353,13 +319,45 @@ struct CableSpanParameters final : IntegratorTolerances
 
 } // namespace
 
+
 //==============================================================================
-//              Contact Geometry Helpers For Sign Inversion
+//                Contact Geometry Related Helper Functions
 //==============================================================================
-// This section contains helper functions for flipping the sign of the output
-// obtained from ContactGeometry.
 namespace
 {
+
+// Helper for grabbing the tangent axis.
+const UnitVec3& getTangent(const FrenetFrame& X)
+{
+    return X.R().getAxisUnitVec(TangentAxis);
+}
+
+// Helper for grabbing the normal axis.
+const UnitVec3& getNormal(const FrenetFrame& X)
+{
+    return X.R().getAxisUnitVec(NormalAxis);
+}
+
+// Helper for grabbing the binormal axis.
+const UnitVec3& getBinormal(const FrenetFrame& X)
+{
+    return X.R().getAxisUnitVec(BinormalAxis);
+}
+
+// Helper for computing the frenet frame at a knot point of a geodesic.
+FrenetFrame calcFrenetFrameFromGeodesicState(
+    const ContactGeometry& geometry,
+    const ContactGeometry::ImplicitGeodesicState& q)
+{
+    FrenetFrame X;
+    X.updP() = q.point;
+    X.updR().setRotationFromTwoAxes(
+        geometry.calcSurfaceUnitNormal(q.point),
+        NormalAxis,
+        q.tangent,
+        TangentAxis);
+    return X;
+}
 
 // Flip sign of curvature, such that tangentDot = curvature * normal
 Real calcSurfaceCurvature(
@@ -390,12 +388,6 @@ class CableSubsystem::Impl : public Subsystem::Guts
 public:
     void realizeTopology(State& state)
     {
-        PathSolverScratchData cache{};
-        indexDataInst = allocateCacheEntry(
-            state,
-            Stage::Instance,
-            Stage::Infinity,
-            new Value<PathSolverScratchData>(cache));
     }
 
     CableSpanIndex adoptCable(CableSpan& cable)
@@ -422,13 +414,6 @@ public:
         return MultibodySystem::downcast(getSystem());
     }
 
-    // TODO grab correct dimension here.
-    PathSolverScratchData& updSolverData(const State& state) const
-    {
-        return Value<PathSolverScratchData>::updDowncast(
-            updCacheEntry(state, indexDataInst));
-    }
-
     SimTK_DOWNCAST(Impl, Subsystem::Guts);
 
 private:
@@ -446,8 +431,6 @@ private:
 
     // TOPOLOGY STATE
     Array_<CableSpan, CableSpanIndex> cables;
-
-    CacheEntryIndex indexDataInst = CacheEntryIndex::Invalid();
 
     friend CableSubsystemTestHelper;
 };
@@ -614,8 +597,8 @@ public:
     {
         const CurveSegmentData::Instance& dataInst = getDataInst(s);
         return dataInst.wrappingStatus ==
-                   WrappingStatus::InContactWithSurface ||
-               dataInst.wrappingStatus == WrappingStatus::InitialGuess;
+                   ObstacleWrappingStatus::InContactWithSurface ||
+               dataInst.wrappingStatus == ObstacleWrappingStatus::InitialGuess;
     }
 
     void calcGeodesicKnots(
@@ -703,14 +686,14 @@ public:
 
     void setContactWithSurfaceToDisabled(const State& state) const
     {
-        updDataInst(state).wrappingStatus = WrappingStatus::Disabled;
+        updDataInst(state).wrappingStatus = ObstacleWrappingStatus::Disabled;
         getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
         state.invalidateAllCacheAtOrAbove(Stage::Position);
     }
 
     void setContactWithSurfaceToEnabled(const State& state) const
     {
-        updDataInst(state).wrappingStatus = WrappingStatus::InitialGuess;
+        updDataInst(state).wrappingStatus = ObstacleWrappingStatus::InitialGuess;
         getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
         state.invalidateAllCacheAtOrAbove(Stage::Position);
     }
@@ -795,8 +778,10 @@ public:
     //--------------------------------------------------------------------------
 
     // Allocate state variables and cache entries.
-    void realizeTopology(State& state)
+    void realizeTopology(State& state, CacheEntryIndex indexOfDataInstEntry)
     {
+        indexDataInst = indexOfDataInstEntry;
+
         indexDataPos = updSubsystem().allocateCacheEntry(
             state,
             Stage::Position,
@@ -941,7 +926,7 @@ public:
     {
         // Only disable the obstacle, if it was not disabled already.
         if (getObstacleCurveSegment(ix).getDataInst(state).wrappingStatus !=
-            WrappingStatus::Disabled) {
+            ObstacleWrappingStatus::Disabled) {
             getObstacleCurveSegment(ix).setContactWithSurfaceToDisabled(state);
         }
     }
@@ -950,7 +935,7 @@ public:
     {
         // Only enable the obstacle, if it was not enabled already.
         if (getObstacleCurveSegment(ix).getDataInst(state).wrappingStatus ==
-            WrappingStatus::Disabled) {
+            ObstacleWrappingStatus::Disabled) {
             getObstacleCurveSegment(ix).setContactWithSurfaceToEnabled(state);
         }
     }
@@ -1089,6 +1074,12 @@ private:
             getSubsystem().updCacheEntry(state, indexDataVel));
     }
 
+    CableSpanData::Instance& updDataInst(const State& state) const
+    {
+        return Value<CableSpanData::Instance>::updDowncast(
+            getSubsystem().updCacheEntry(state, indexDataInst));
+    }
+
     void calcDataPos(const State& s, CableSpanData::Pos& dataPos) const;
     void calcDataVel(const State& s, CableSpanData::Vel& dataVel) const
     {
@@ -1223,6 +1214,7 @@ private:
     CableSpanIndex m_Index      = CableSpanIndex::Invalid();
 
     // TOPOLOGY CACHE (set during realizeTopology())
+    CacheEntryIndex indexDataInst = CacheEntryIndex::Invalid();
     CacheEntryIndex indexDataPos = CacheEntryIndex::Invalid();
     CacheEntryIndex indexDataVel = CacheEntryIndex::Invalid();
 
@@ -1883,8 +1875,7 @@ void CableSpan::Impl::calcDataPos(const State& s, CableSpanData::Pos& dataPos)
         // corrections. This data is only used as an intermediate variable, and
         // will be discarded after each iteration. Note that the number active
         // segments determines the sizes of the matrices involved.
-        MatrixWorkspace& data =
-            getSubsystem().getImpl().updSolverData(s).updOrInsert(nActive);
+        MatrixWorkspace& data = updDataInst(s).updOrInsert(nActive);
 
         // Compute the straight-line segments of this cable span.
         calcLineSegments(*this, s, x_O, x_I, data.lineSegments);
@@ -2152,7 +2143,7 @@ void calcInitCurveIfNeeded(
     const Vec3& nextPoint_S,
     const IntegratorTolerances& tols)
 {
-    if (curve.getDataInst(s).wrappingStatus != WrappingStatus::InitialGuess) {
+    if (curve.getDataInst(s).wrappingStatus != ObstacleWrappingStatus::InitialGuess) {
         return;
     }
     // The first integrator stepsize to attempt is a bit arbitrary: Taking it
@@ -2215,7 +2206,7 @@ void calcCurveTouchdownIfNeeded(
 
     // Only attempt touchdown when lifted.
     const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-    if (dataInst.wrappingStatus != WrappingStatus::LiftedFromSurface) {
+    if (dataInst.wrappingStatus != ObstacleWrappingStatus::LiftedFromSurface) {
         return;
     }
 
@@ -2256,7 +2247,7 @@ void calcCurveLiftoffIfNeeded(
 {
     // Only attempt liftoff when currently wrapping the surface.
     const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-    if (dataInst.wrappingStatus != WrappingStatus::InContactWithSurface) {
+    if (dataInst.wrappingStatus != ObstacleWrappingStatus::InContactWithSurface) {
         return;
     }
 
@@ -2292,7 +2283,7 @@ void CurveSegment::calcLocalGeodesic(
 {
     CurveSegmentData::Instance& dataInst = updDataInst(s);
 
-    dataInst.wrappingStatus = WrappingStatus::InContactWithSurface;
+    dataInst.wrappingStatus = ObstacleWrappingStatus::InContactWithSurface;
 
     shootNewGeodesic(
         *this,
@@ -2313,7 +2304,7 @@ void CurveSegment::liftCurveFromSurface(const State& s, Vec3 trackingPoint_S)
 {
     CurveSegmentData::Instance& dataInst = updDataInst(s);
 
-    dataInst.wrappingStatus        = WrappingStatus::LiftedFromSurface;
+    dataInst.wrappingStatus        = ObstacleWrappingStatus::LiftedFromSurface;
     dataInst.trackingPointOnLine_S = trackingPoint_S;
 
     getSubsystem().markDiscreteVarUpdateValueRealized(s, indexDataInst);
@@ -2337,7 +2328,7 @@ void CurveSegment::realizePosition(
             "expected not realized when calling realizePosition");
     }
 
-    if (getDataInst(s).wrappingStatus == WrappingStatus::Disabled) {
+    if (getDataInst(s).wrappingStatus == ObstacleWrappingStatus::Disabled) {
         getSubsystem().markCacheValueRealized(s, indexDataPos);
         return;
     }
@@ -2446,8 +2437,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             // configuration.
             const CableSpanData::Pos& dataPos = cable.getDataPos(sCopy);
 
-            MatrixWorkspace& data =
-                subsystem.getImpl().updSolverData(sCopy).updOrInsert(nActive);
+            MatrixWorkspace& data = cable.updDataInst(s).updOrInsert(nActive);
 
             // Define the perturbation we will use for testing the jacobian.
             perturbation *= -1.;
@@ -2478,7 +2468,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             Vector predictedPathError =
                 data.pathErrorJacobian * data.pathCorrection + data.pathError;
 
-            std::vector<WrappingStatus> prevWrappingStatus{};
+            std::vector<ObstacleWrappingStatus> prevWrappingStatus{};
             for (const CurveSegment& curve : cable.m_CurveSegments) {
                 prevWrappingStatus.push_back(
                     curve.getDataInst(sCopy).wrappingStatus);
@@ -2580,10 +2570,17 @@ int CableSubsystem::Impl::realizeSubsystemTopologyImpl(State& state) const
     // Topology cache is const.
     Impl* mutableThis = const_cast<Impl*>(this);
 
+    CableSpanData::Instance dataInst{};
+    CacheEntryIndex indexDataInst = mutableThis->allocateCacheEntry(
+            state,
+            Stage::Instance,
+            Stage::Infinity,
+            new Value<CableSpanData::Instance>(dataInst));
+
     mutableThis->realizeTopology(state);
     for (CableSpanIndex ix(0); ix < cables.size(); ++ix) {
         CableSpan& path = mutableThis->updCable(ix);
-        path.updImpl().realizeTopology(state);
+        path.updImpl().realizeTopology(state, indexDataInst);
     }
 
     return 0;
