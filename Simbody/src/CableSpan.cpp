@@ -131,6 +131,18 @@ struct MatrixWorkspace
 };
 
 //------------------------------------------------------------------------------
+//                    Natural geodesic correction vector
+//------------------------------------------------------------------------------
+/*
+
+The elements are (in order):
+- Tangential correction of initial contact point,
+- Binormal correction of initial contact point,
+- Directional correction of initial contact tangent,
+- Lengthening correction of geodesic */
+using NaturalGeodesicCorrection = Vec<MatrixWorkspace::GEODESIC_DOF>;
+
+//------------------------------------------------------------------------------
 //                          CableSpanData
 //------------------------------------------------------------------------------
 /* CableSpanData is a data structure used by class CableSpan::Impl to store
@@ -151,35 +163,37 @@ struct CableSpanData
     data, the data in the MatrixWorkspaces is no longer used. */
     class Instance
     {
-        public:
-            Instance() = default;
+    public:
+        Instance() = default;
 
-            // Get mutable access to a MatrixWorkspace of appropriate dimension.
-            // Constructs requested MatrixWorkspace of requested dimension if not done
-            // previously.
-            MatrixWorkspace& updOrInsert(int nActive)
-            {
-                SimTK_ASSERT1(
-                        nActive > 0,
-                        "PathSolverScratchData::updOrInsert()"
-                        "Number of obstacles in contact must be larger than zero (got %d)",
-                        nActive);
+        // Get mutable access to a MatrixWorkspace of appropriate dimension.
+        // Constructs requested MatrixWorkspace of requested dimension if not
+        // done previously.
+        MatrixWorkspace& updOrInsert(int nActive)
+        {
+            SimTK_ASSERT1(
+                nActive > 0,
+                "PathSolverScratchData::updOrInsert()"
+                "Number of obstacles in contact must be larger than zero (got "
+                "%d)",
+                nActive);
 
-                // Construct all MatrixWorkspaces for up to and including the
-                // requested dimension.
-                for (int i = matrixWorkspaces.size(); i < nActive; ++i) {
-                    matrixWorkspaces.emplace_back(i + 1);
-                }
-
-                // Return MatrixWorkspace of requested dimension.
-                return matrixWorkspaces.at(nActive - 1);
+            // Construct all MatrixWorkspaces for up to and including the
+            // requested dimension.
+            for (int i = matrixWorkspaces.size(); i < nActive; ++i) {
+                matrixWorkspaces.emplace_back(i + 1);
             }
 
-        private:
-            // MatrixWorkspaces of suitable dimensions for solving the cable path given
-            // a number of obstacles in contact with the cable. The ith element in the
-            // vector is used for solving a path with i+1 active obstacles.
-            std::vector<MatrixWorkspace> matrixWorkspaces;
+            // Return MatrixWorkspace of requested dimension.
+            return matrixWorkspaces.at(nActive - 1);
+        }
+
+    private:
+        // MatrixWorkspaces of suitable dimensions for solving the cable path
+        // given a number of obstacles in contact with the cable. The ith
+        // element in the vector is used for solving a path with i+1 active
+        // obstacles.
+        std::vector<MatrixWorkspace> matrixWorkspaces;
     };
     struct Pos final
     {
@@ -266,7 +280,8 @@ struct CurveSegmentData
         // surface, only trackingPointOnLine_S will contain valid data. If the
         // cable is in contact with the surface, trackingPointOnLine_S will not
         // contain valid data.
-        ObstacleWrappingStatus wrappingStatus = ObstacleWrappingStatus::InitialGuess;
+        ObstacleWrappingStatus wrappingStatus =
+            ObstacleWrappingStatus::InitialGuess;
     };
     struct Pos final
     {
@@ -280,7 +295,6 @@ struct CurveSegmentData
 };
 
 } // namespace
-
 
 //==============================================================================
 //                          Configuration Parameters
@@ -296,9 +310,10 @@ when computing a new geodesic over the obstacle's surface.
 TODO These need reasonable default values. */
 struct IntegratorTolerances
 {
-    Real intergatorAccuracy = 1e-6;
+    Real intergatorAccuracy            = 1e-6;
     Real constraintProjectionTolerance = 1e-6;
-    // TODO should be used during numerical integration as well, but not connected yet.
+    // TODO should be used during numerical integration as well, but not
+    // connected yet.
     int constraintProjectionMaxIterations = 50;
 };
 
@@ -318,7 +333,6 @@ struct CableSpanParameters final : IntegratorTolerances
 };
 
 } // namespace
-
 
 //==============================================================================
 //                Contact Geometry Related Helper Functions
@@ -377,6 +391,19 @@ Real calcSurfaceValue(const ContactGeometry& geometry, const Vec3& point_S)
     return -geometry.calcSurfaceValue(point_S);
 }
 
+bool isPointAboveSurface(const ContactGeometry& geometry, const Vec3& point_S)
+{
+    // Try block was added here because some surfaces throw an exception when
+    // calling calcSurfaceValue outside of a given range.
+    try {
+        // TODO surface value is negative above surface.
+        return geometry.calcSurfaceValue(point_S) < 0.;
+    } catch (...) {
+        // TODO this is a bit too risky.
+        return true;
+    }
+}
+
 } // namespace
 
 //==============================================================================
@@ -386,10 +413,6 @@ Real calcSurfaceValue(const ContactGeometry& geometry, const Vec3& point_S)
 class CableSubsystem::Impl : public Subsystem::Guts
 {
 public:
-    void realizeTopology(State& state)
-    {
-    }
-
     CableSpanIndex adoptCable(CableSpan& cable)
     {
         invalidateSubsystemTopologyCache();
@@ -407,6 +430,8 @@ public:
     const CableSpan& getCable(CableSpanIndex index) const;
 
     CableSpan& updCable(CableSpanIndex index);
+
+    const CableSpan::Impl& getCableImpl(CableSpanIndex index) const;
 
     // Return the MultibodySystem which owns this WrappingPathSubsystem.
     const MultibodySystem& getMultibodySystem() const
@@ -445,12 +470,15 @@ public:
 
     CurveSegment(
         CableSubsystem* subsystem,
+        CableSpanIndex cableIndex,
+        ObstacleIndex obstacleIndex,
         MobilizedBodyIndex body,
-        const Transform& X_BS,
+        Transform X_BS,
         std::shared_ptr<const ContactGeometry> geometry,
-        Vec3 initPointGuess) :
+        const Vec3& initPointGuess) :
         m_Subsystem(subsystem),
-        m_Body(body), m_X_BS(X_BS), m_Geometry(geometry),
+        m_CableIndex(cableIndex), m_obstacleIndex(obstacleIndex), m_Body(body),
+        m_X_BS(std::move(X_BS)), m_Geometry(std::move(geometry)),
         m_ContactPointHint_S(initPointGuess)
     {}
 
@@ -459,28 +487,22 @@ public:
     //--------------------------------------------------------------------------
 
     // Allocate state variables and cache entries.
-    void realizeTopology(State& s)
+    void realizeTopology(State& state)
     {
         // Allocate an auto-update discrete variable for the last computed
         // geodesic.
         indexDataInst = updSubsystem().allocateAutoUpdateDiscreteVariable(
-            s,
+            state,
             Stage::Position,
             new Value<CurveSegmentData::Instance>(),
             Stage::Instance);
 
         indexDataPos = updSubsystem().allocateCacheEntry(
-            s,
+            state,
             Stage::Position,
             Stage::Infinity,
             new Value<CurveSegmentData::Pos>());
     }
-
-    void realizePosition(
-        const State& s,
-        Vec3 prevPoint_G,
-        Vec3 nextPoint_G,
-        const IntegratorTolerances& tols) const;
 
     void invalidatePosEntry(const State& state) const
     {
@@ -509,7 +531,7 @@ public:
     }
     void setContactGeometry(std::shared_ptr<const ContactGeometry> geometry)
     {
-        m_Geometry = geometry;
+        m_Geometry = std::move(geometry);
     }
 
     const MobilizedBody& getMobilizedBody() const
@@ -567,40 +589,495 @@ public:
         m_Subsystem = &subsystem;
     }
 
+    const CableSpan::Impl& getCable() const
+    {
+        return getSubsystem().getImpl().getCableImpl(m_CableIndex);
+    }
+
     //------------------------------------------------------------------------------
 
-    const CurveSegmentData::Instance& getDataInst(const State& s) const
+    const CurveSegmentData::Instance& getDataInst(const State& state) const
     {
         const CableSubsystem& subsystem = getSubsystem();
-        if (!subsystem.isDiscreteVarUpdateValueRealized(s, indexDataInst)) {
-            updDataInst(s) = getPrevDataInst(s);
-            subsystem.markDiscreteVarUpdateValueRealized(s, indexDataInst);
+        if (!subsystem.isDiscreteVarUpdateValueRealized(state, indexDataInst)) {
+            updDataInst(state) = getPrevDataInst(state);
+            subsystem.markDiscreteVarUpdateValueRealized(state, indexDataInst);
         }
         return Value<CurveSegmentData::Instance>::downcast(
-            subsystem.getDiscreteVarUpdateValue(s, indexDataInst));
+            subsystem.getDiscreteVarUpdateValue(state, indexDataInst));
     }
 
-    const CurveSegmentData::Pos& getDataPos(const State& s) const
+    const CurveSegmentData::Pos& getDataPos(const State& state) const
     {
         return Value<CurveSegmentData::Pos>::downcast(
-            getSubsystem().getCacheEntry(s, indexDataPos));
+            getSubsystem().getCacheEntry(state, indexDataPos));
     }
 
     //------------------------------------------------------------------------------
+    //                           Utility functions.
+    //------------------------------------------------------------------------------
 
-    Transform calcSurfaceFrameInGround(const State& s) const
+    Transform calcSurfaceFrameInGround(const State& state) const
     {
-        return getMobilizedBody().getBodyTransform(s).compose(m_X_BS);
+        return getMobilizedBody().getBodyTransform(state).compose(m_X_BS);
     }
 
-    bool isInContactWithSurface(const State& s) const
+    Vec3 calcInitialContactPoint_G(const State& state) const
     {
-        const CurveSegmentData::Instance& dataInst = getDataInst(s);
+        return calcSurfaceFrameInGround(state).shiftFrameStationToBase(
+            getDataInst(state).X_SP.p());
+    }
+
+    Vec3 calcFinalContactPoint_G(const State& state) const
+    {
+        return calcSurfaceFrameInGround(state).shiftFrameStationToBase(
+            getDataInst(state).X_SQ.p());
+    }
+
+    bool isInContactWithSurface(const State& state) const
+    {
+        const CurveSegmentData::Instance& dataInst = getDataInst(state);
         return dataInst.wrappingStatus ==
                    ObstacleWrappingStatus::InContactWithSurface ||
                dataInst.wrappingStatus == ObstacleWrappingStatus::InitialGuess;
     }
 
+    //------------------------------------------------------------------------------
+    //                          Accessing CableSpan::Impl
+    //------------------------------------------------------------------------------
+    // These are defined after declaring CableSpan::Impl.
+
+    const IntegratorTolerances& getIntegratorTolerances() const;
+
+    ObstacleIndex findPrevObstacleInContactWithCable(const State& state) const;
+    ObstacleIndex findNextObstacleInContactWithCable(const State& state) const;
+
+    // Find the last contact point before the given curve segment, skipping
+    // over any that are not in contact with their respective obstacle's
+    // surface.
+    Vec3 findPrevPathPoint_G(const State& state) const;
+    Vec3 findNextPathPoint_G(const State& state) const;
+
+    Vec3 findPrevPathPoint_S(const State& state) const
+    {
+        const Vec3 prevPoint_S =
+            calcSurfaceFrameInGround(state).shiftBaseStationToFrame(
+                findPrevPathPoint_G(state));
+        SimTK_ERRCHK_ALWAYS(
+            isPointAboveSurface(getContactGeometry(), prevPoint_S),
+            "CurveSegment::Impl::assertSurfaceBounds",
+            "Preceding point lies inside the surface");
+        return prevPoint_S;
+    }
+
+    Vec3 findNextPathPoint_S(const State& state) const
+    {
+        const Vec3 nextPoint_S =
+            calcSurfaceFrameInGround(state).shiftBaseStationToFrame(
+                findNextPathPoint_G(state));
+        SimTK_ERRCHK_ALWAYS(
+            isPointAboveSurface(getContactGeometry(), nextPoint_S),
+            "CurveSegment::Impl::assertSurfaceBounds",
+            "Next point lies inside the surface");
+        return nextPoint_S;
+    }
+
+    //------------------------------------------------------------------------------
+    //                  Updating CurveSegmentData::Instance Helpers
+    //------------------------------------------------------------------------------
+
+    // Compute a new geodesic from provided initial conditions.
+    void shootNewGeodesic(
+        const Vec3& point_S,
+        const Vec3& tangent_S,
+        Real length,
+        Real initIntegratorStepSize,
+        CurveSegmentData::Instance& dataInst) const
+    {
+        // Shoot a new geodesic over the surface, and compute the geodesic state
+        // at the first and last contact point of the surface.
+        std::array<ContactGeometry::ImplicitGeodesicState, 2>
+            geodesicBoundaryStates;
+
+        // First determine if this geometry has an analytic form.
+        const ContactGeometry& geometry = getContactGeometry();
+        const bool useAnalyticGeodesic  = geometry.isAnalyticFormAvailable();
+
+        if (useAnalyticGeodesic) {
+            // For analytic surfaces we can compute the inital and final frenet
+            // frames without computing any intermediate knot points.
+            int numberOfKnotPoints = 2;
+            int knotIx             = 0;
+            geometry.shootGeodesicInDirectionAnalytically(
+                point_S,
+                tangent_S,
+                length,
+                numberOfKnotPoints,
+                // Copy the state at the boundary frames.
+                [&](const ContactGeometry::ImplicitGeodesicState& q) {
+                    geodesicBoundaryStates.at(knotIx) = q;
+                    ++knotIx;
+                });
+        } else {
+            // For implicit surfaces we must use a numerical integrator to
+            // compute the initial and final frames. Because this is relatively
+            // costly, we will cache this geodesic.
+            dataInst.geodesicIntegratorStates.clear();
+            const IntegratorTolerances& tols = getIntegratorTolerances();
+            geometry.shootGeodesicInDirectionImplicitly(
+                point_S,
+                tangent_S,
+                length,
+                initIntegratorStepSize,
+                tols.intergatorAccuracy,
+                tols.constraintProjectionTolerance,
+                tols.constraintProjectionMaxIterations,
+                [&](const ContactGeometry::ImplicitGeodesicState& q) {
+                    // Store the knot points in the cache.
+                    dataInst.geodesicIntegratorStates.push_back(q);
+                });
+
+            // Copy the state at the boundary frames.
+            geodesicBoundaryStates = {
+                dataInst.geodesicIntegratorStates.front(),
+                dataInst.geodesicIntegratorStates.back(),
+            };
+        }
+
+        // Use the geodeis state at the boundary frames to compute the fields in
+        // CurveSegmentData::Instance.
+
+        // Compute the Frenet frames at the boundary frames.
+        dataInst.X_SP = calcFrenetFrameFromGeodesicState(
+            geometry,
+            geodesicBoundaryStates.front());
+        dataInst.X_SQ = calcFrenetFrameFromGeodesicState(
+            geometry,
+            geodesicBoundaryStates.back());
+
+        // Compute the jacobi field scalars at the final frame.
+        dataInst.jacobi_Q = {
+            geodesicBoundaryStates.back().jacobiTrans,
+            geodesicBoundaryStates.back().jacobiRot,
+        };
+        dataInst.jacobiDot_Q = {
+            geodesicBoundaryStates.back().jacobiTransDot,
+            geodesicBoundaryStates.back().jacobiRotDot,
+        };
+
+        // Compute the curvatures at the boundary frames.
+        // NOTE: flipped sign such that tDot = k * N
+        dataInst.curvatures_P = {
+            -geometry.calcSurfaceCurvatureInDirection(
+                dataInst.X_SP.p(),
+                getTangent(dataInst.X_SP)),
+            -geometry.calcSurfaceCurvatureInDirection(
+                dataInst.X_SP.p(),
+                getBinormal(dataInst.X_SP)),
+        };
+        dataInst.curvatures_Q = {
+            -geometry.calcSurfaceCurvatureInDirection(
+                dataInst.X_SQ.p(),
+                getTangent(dataInst.X_SQ)),
+            -geometry.calcSurfaceCurvatureInDirection(
+                dataInst.X_SQ.p(),
+                getBinormal(dataInst.X_SQ)),
+        };
+
+        // Compute the geodesic torsion at the boundary frames.
+        dataInst.torsion_P = geometry.calcSurfaceTorsionInDirection(
+            dataInst.X_SP.p(),
+            getTangent(dataInst.X_SP));
+        dataInst.torsion_Q = geometry.calcSurfaceTorsionInDirection(
+            dataInst.X_SQ.p(),
+            getTangent(dataInst.X_SQ));
+
+        // Store the arc length.
+        dataInst.length = length;
+
+        // Update the initial integrator step size:
+        if (!useAnalyticGeodesic) { // does not apply to analytic surfaces.
+
+            // We want to know if we should attempt a larger initial step size
+            // next time, or a smaller one. If the initIntegratorStepSize was
+            // rejected, it makes little sense to start with the exact same step
+            // size next time, only to find it rejected again.
+
+            const int numStepsTaken =
+                dataInst.geodesicIntegratorStates.size() - 1;
+
+            // If the integrator took a single step or none: The final arc
+            // length is shorter than the initial step size attempted. The step
+            // was atleast not rejected, but we do not know if we can make it
+            // larger. So we do not update it.
+            if (numStepsTaken <= 1) {
+                // Try the same step next time:
+                dataInst.integratorInitialStepSize = initIntegratorStepSize;
+            }
+
+            // If the integrator took two or more steps, we might want to update
+            // the next step size to try,
+            if (numStepsTaken >= 2) {
+                // The acual initial step size taken by the integrator cannot
+                // have been larger than initIntegratorStepSize, but it might be
+                // smaller if it was rejected. If rejected, we will reduce the
+                // init step size for next time.
+                const Real actualFirstStepSize =
+                    dataInst.geodesicIntegratorStates.at(1).arcLength -
+                    dataInst.geodesicIntegratorStates.front().arcLength;
+                const bool initStepWasRejected =
+                    actualFirstStepSize < initIntegratorStepSize;
+                if (initStepWasRejected) {
+                    // Reduce the init step size for next time, to avoid
+                    // rejecting it again.
+                    dataInst.integratorInitialStepSize = actualFirstStepSize;
+                } else {
+                    // If the initIntegratorStepSize was accepted we might want
+                    // to try a larger step next time. The actualFirstStepSize
+                    // cannot be larger than initIntegratorStepSize: we must
+                    // take a look at the second step size.
+                    const Real actualSecondStepSize =
+                        dataInst.geodesicIntegratorStates.at(2).arcLength -
+                        dataInst.geodesicIntegratorStates.at(1).arcLength;
+                    // We already established that the initIntegratorStepSize
+                    // was accepted, now we are only looking to increase the
+                    // step size.
+                    dataInst.integratorInitialStepSize =
+                        std::max(initIntegratorStepSize, actualSecondStepSize);
+                }
+            }
+        }
+
+        dataInst.wrappingStatus = ObstacleWrappingStatus::InContactWithSurface;
+    }
+
+    // Lift curve from surface, and start tracking the given point.
+    void liftCurveFromSurface(
+        const Vec3& trackingPoint_S,
+        CurveSegmentData::Instance& dataInst) const
+    {
+        dataInst.wrappingStatus = ObstacleWrappingStatus::LiftedFromSurface;
+        dataInst.trackingPointOnLine_S = trackingPoint_S;
+    }
+
+    //------------------------------------------------------------------------------
+    //                 Computing CurveSegmentData Cache
+    //------------------------------------------------------------------------------
+
+    void setContactWithSurfaceToDisabled(const State& state) const
+    {
+        updDataInst(state).wrappingStatus = ObstacleWrappingStatus::Disabled;
+        getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
+        state.invalidateAllCacheAtOrAbove(Stage::Position);
+    }
+
+    void setContactWithSurfaceToEnabled(const State& state) const
+    {
+        updDataInst(state).wrappingStatus =
+            ObstacleWrappingStatus::InitialGuess;
+        getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
+        state.invalidateAllCacheAtOrAbove(Stage::Position);
+    }
+
+    void storeCurrentPath(State& state) const
+    {
+        updPrevDataInst(state) = getDataInst(state);
+    }
+
+    // Helper function for computing the initial wrapping path as a zero length
+    // geodesic.
+    // TODO use the first four stages?
+    void calcInitCurve(const State& state) const
+    {
+        // The first integrator stepsize to attempt is a bit arbitrary: Taking
+        // it too large will simply cause it to be rejected. Taking it too small
+        // will cause it to rapidly increase. We take it too small, to be on the
+        // safe side.
+        constexpr Real c_initIntegratorStepSize = 1e-10;
+
+        // Shoot a zero length geodesic at the contact point with tangent
+        // directed from prevPoint to nextPoint:
+        const Vec3 prevPoint_S = findPrevPathPoint_S(state);
+        const Vec3 nextPoint_S = findNextPathPoint_S(state);
+        shootNewGeodesic(
+            getContactPointHint(),     // = location
+            nextPoint_S - prevPoint_S, // = tangent
+            0.,                        // = arc length
+            c_initIntegratorStepSize,
+            updDataInst(state));
+    }
+
+    // Helper function for detecting touchdown on the obstacle's surface, and
+    // the location of the touchdown point if so.
+    void calcCurveTouchdownIfNeeded(const State& state) const
+    {
+        // Only attempt touchdown when lifted.
+        const CurveSegmentData::Instance& dataInst = getDataInst(state);
+        if (dataInst.wrappingStatus !=
+            ObstacleWrappingStatus::LiftedFromSurface) {
+            return;
+        }
+
+        // Given the straight line between the point before and after this
+        // segment, touchdown is detected by computing the point on that line
+        // that is nearest to the surface.
+        const Vec3 prevPoint_S = findPrevPathPoint_S(state);
+        const Vec3 nextPoint_S = findNextPathPoint_S(state);
+
+        // Use the cached tracking point as the initial guess.
+        Vec3 pointOnLineNearSurface_S = dataInst.trackingPointOnLine_S;
+
+        // Compute the point on the line nearest the surface.
+        const IntegratorTolerances& tols = getIntegratorTolerances();
+        const bool touchdownDetected =
+            getContactGeometry().calcNearestPointOnLineImplicitly(
+                prevPoint_S,
+                nextPoint_S,
+                tols.constraintProjectionMaxIterations,
+                tols.constraintProjectionTolerance,
+                pointOnLineNearSurface_S);
+
+        // In case of touchdown, shoot a zero-length geodesic at the touchdown
+        // point.
+        if (touchdownDetected) {
+            shootNewGeodesic(
+                pointOnLineNearSurface_S,
+                nextPoint_S - prevPoint_S,
+                0.,
+                dataInst.integratorInitialStepSize,
+                updDataInst(state));
+            return;
+        }
+
+        // Not touchingdown indicates liftoff:
+        liftCurveFromSurface(pointOnLineNearSurface_S, updDataInst(state));
+    }
+
+    // Helper function for detecting liftoff from the obstacle's surface.
+    void calcCurveLiftoffIfNeeded(const State& state) const
+    {
+        // Only attempt liftoff when currently wrapping the surface.
+        const CurveSegmentData::Instance& dataInst = getDataInst(state);
+        if (dataInst.wrappingStatus !=
+            ObstacleWrappingStatus::InContactWithSurface) {
+            return;
+        }
+
+        // The curve length must have shrunk completely before lifting off.
+        if (dataInst.length > 0.) {
+            return;
+        }
+
+        // For a zero-length curve, trigger liftoff when the prev and next
+        // points lie above the surface plane.
+        const Vec3 prevPoint_S = findPrevPathPoint_S(state);
+        const Vec3 nextPoint_S = findNextPathPoint_S(state);
+        if (dot(prevPoint_S - dataInst.X_SP.p(),
+                dataInst.X_SP.R().getAxisUnitVec(NormalAxis)) <= 0. ||
+            dot(nextPoint_S - dataInst.X_SP.p(),
+                dataInst.X_SP.R().getAxisUnitVec(NormalAxis)) <= 0.) {
+            // No liftoff.
+            return;
+        }
+
+        // Liftoff detected, initialize the tracking point from the last contact
+        // point.
+        liftCurveFromSurface(dataInst.X_SP.p(), updDataInst(state));
+    }
+
+    // Apply the correction to the initial condition of the geodesic, and
+    // shoot a new geodesic, updating the cache variable.
+    void applyGeodesicCorrection(
+        const State& state,
+        const NaturalGeodesicCorrection& c) const
+    {
+        // Get the previous geodesic.
+        const CurveSegmentData::Instance& dataInst = getDataInst(state);
+
+        // Frenet frame at initial contact point.
+        const FrenetFrame& X_SP = dataInst.X_SP;
+        const UnitVec3& t       = getTangent(X_SP);
+        const UnitVec3& n       = getNormal(X_SP);
+        const UnitVec3& b       = getBinormal(X_SP);
+
+        const Real tau   = dataInst.torsion_P;
+        const Real kappa = dataInst.curvatures_P[0];
+
+        // Get corrected initial conditions.
+        const Vec3 dx               = t * c[0] + b * c[1];
+        const Vec3 correctedPoint_S = X_SP.p() + dx;
+
+        const Vec3 w = (kappa * c[0] - tau * c[1]) * b - c[2] * n;
+        const Vec3 correctedTangent_S = t + cross(w, t);
+
+        // Take the length correction, and add to the current length.
+        const Real dl = c[3]; // Length increment is the last element.
+        const Real correctedLength = std::max(
+            dataInst.length + dl,
+            0.); // Clamp length to be nonnegative.
+
+        // Shoot the new geodesic.
+        shootNewGeodesic(
+            correctedPoint_S,
+            correctedTangent_S,
+            correctedLength,
+            dataInst.integratorInitialStepSize,
+            updDataInst(state));
+
+        getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
+        invalidatePosEntry(state);
+    }
+
+    const CurveSegmentData::Instance& calcDataInst(const State& state) const
+    {
+        // Update the CurveSegmentData::Instance cache depending on the current
+        // wrapping status.
+        switch (getDataInst(state).wrappingStatus) {
+        case ObstacleWrappingStatus::Disabled:
+            break;
+        case ObstacleWrappingStatus::InitialGuess:
+            // Path needs to be initialized.
+            calcInitCurve(state);
+            break;
+        case ObstacleWrappingStatus::InContactWithSurface:
+            // If in contact with obstacle: detect lifting off.
+            calcCurveLiftoffIfNeeded(state);
+            break;
+        case ObstacleWrappingStatus::LiftedFromSurface:
+            // If not in contact with obstacle: detect touching down.
+            calcCurveTouchdownIfNeeded(state);
+            break;
+        }
+
+        getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
+        return getDataInst(state);
+    }
+
+    const CurveSegmentData::Pos& calcDataPos(const State& state) const
+    {
+        // Make sure the Instance level data is up to date.
+        const CurveSegmentData::Instance& dataInst = calcDataInst(state);
+
+        // Update the Stage::Position level cache.
+        CurveSegmentData::Pos& dataPos = updDataPos(state);
+
+        // Check if the obstacle is enabled.
+        if (dataInst.wrappingStatus != ObstacleWrappingStatus::Disabled) {
+            // Store tramsform from local surface frame to ground.
+            dataPos.X_GS = calcSurfaceFrameInGround(state);
+            // Store the geodesic's frenet frames in ground frame.
+            dataPos.X_GP = dataPos.X_GS.compose(dataInst.X_SP);
+            dataPos.X_GQ = dataPos.X_GS.compose(dataInst.X_SQ);
+        }
+
+        getSubsystem().markCacheValueRealized(state, indexDataPos);
+
+        return dataPos;
+    }
+
+    //------------------------------------------------------------------------------
+    //                 Generating Geodesic Points For Visualization
+    //------------------------------------------------------------------------------
     void calcGeodesicKnots(
         const State& state,
         const std::function<void(
@@ -663,43 +1140,6 @@ public:
         }
     }
 
-    // Compute a new geodesic from provided initial conditions.
-    // This method will update the Instance level cache, and invalidates the
-    // Stage::Position level cache.
-    void calcLocalGeodesic(
-        const State& s,
-        Vec3 point_S,
-        Vec3 tangent_S,
-        Real length,
-        Real stepSizeHint,
-        const IntegratorTolerances& tols) const;
-
-    // Lift curve from surface, and start tracking the given point.
-    // This method will update the Instance level cache, and invalidates the
-    // Stage::Position level cache.
-    void liftCurveFromSurface(const State& s, Vec3 trackingPoint_S) const;
-
-    void storeCurrentPath(State& state) const
-    {
-        updPrevDataInst(state) = getDataInst(state);
-    }
-
-    void setContactWithSurfaceToDisabled(const State& state) const
-    {
-        updDataInst(state).wrappingStatus = ObstacleWrappingStatus::Disabled;
-        getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
-        state.invalidateAllCacheAtOrAbove(Stage::Position);
-    }
-
-    void setContactWithSurfaceToEnabled(const State& state) const
-    {
-        updDataInst(state).wrappingStatus = ObstacleWrappingStatus::InitialGuess;
-        getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
-        state.invalidateAllCacheAtOrAbove(Stage::Position);
-    }
-
-    //------------------------------------------------------------------------------
-
 private:
     CurveSegmentData::Instance& updDataInst(const State& state) const
     {
@@ -729,6 +1169,10 @@ private:
 
     // Subsystem info.
     CableSubsystem* m_Subsystem;
+    // The index of this CurveSegment's cable in the CableSubsystem.
+    CableSpanIndex m_CableIndex;
+    // The index of this CurveSegment's obstacle in the cable.
+    ObstacleIndex m_obstacleIndex;
 
     // MobilizedBody that surface is attached to.
     MobilizedBodyIndex m_Body;
@@ -748,6 +1192,68 @@ private:
     // Helper class for unit tests.
     friend CableSubsystemTestHelper;
 };
+
+//==============================================================================
+//                      APPLYING GEODESIC CORRECTIONS
+//==============================================================================
+
+namespace
+{
+
+// Given a correction vector computed from minimizing the cost function,
+// compute the maximum allowed stepsize along that correction vector.
+// The allowed step is computed by approximating the surface locally as
+// a circle in each direction, and limiting the radial displacement on that
+// circle.
+void calcMaxAllowedCorrectionStepSize(
+    const CurveSegment& curve,
+    const State& s,
+    const NaturalGeodesicCorrection& c,
+    Real maxAngularDisplacementInDegrees,
+    Real& maxAllowedStepSize)
+{
+    auto UpdateMaxStepSize = [&](Real maxDisplacementEstimate, Real curvature) {
+        const Real maxAngle = maxAngularDisplacementInDegrees / 180. * M_PI;
+        const Real maxAllowedDisplacement = maxAngle / curvature;
+        const Real allowedStepSize =
+            std::abs(maxAllowedDisplacement / maxDisplacementEstimate);
+        maxAllowedStepSize = std::min(maxAllowedStepSize, allowedStepSize);
+    };
+
+    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
+
+    // Clamp tangential displacement at the initial contact point.
+    {
+        const Real dxEst = c[0];
+        const Real k     = dataInst.curvatures_P[0];
+        UpdateMaxStepSize(dxEst, k);
+    }
+
+    // Clamp binormal displacement at the initial contact point.
+    {
+        const Real dxEst = c[1];
+        const Real k     = dataInst.curvatures_P[1];
+        UpdateMaxStepSize(dxEst, k);
+    }
+
+    // Clamp tangential displacement at the final contact point.
+    {
+        const Real dxEst = std::abs(c[0]) + std::abs(c[3]);
+        const Real k     = dataInst.curvatures_Q[0];
+        UpdateMaxStepSize(dxEst, k);
+    }
+
+    // Clamp binormal displacement at the final contact point.
+    {
+        const Real a     = dataInst.jacobi_Q[0];
+        const Real r     = dataInst.jacobi_Q[1];
+        const Real dxEst = std::abs(c[1] * a) + std::abs(c[2] * r);
+        const Real k     = dataInst.curvatures_Q[1];
+        UpdateMaxStepSize(dxEst, k);
+    }
+}
+
+} // namespace
 
 //==============================================================================
 //                         Class Cablespan::Impl
@@ -853,8 +1359,14 @@ public:
 
         ObstacleIndex obstacleIx(m_CurveSegments.size());
 
-        m_CurveSegments.push_back(
-            CurveSegment(m_Subsystem, mobod, X_BS, geometry, contactPointHint));
+        m_CurveSegments.push_back(CurveSegment(
+            m_Subsystem,
+            getIndex(),
+            obstacleIx,
+            mobod,
+            X_BS,
+            geometry,
+            contactPointHint));
 
         return obstacleIx;
     }
@@ -1215,8 +1727,8 @@ private:
 
     // TOPOLOGY CACHE (set during realizeTopology())
     CacheEntryIndex indexDataInst = CacheEntryIndex::Invalid();
-    CacheEntryIndex indexDataPos = CacheEntryIndex::Invalid();
-    CacheEntryIndex indexDataVel = CacheEntryIndex::Invalid();
+    CacheEntryIndex indexDataPos  = CacheEntryIndex::Invalid();
+    CacheEntryIndex indexDataVel  = CacheEntryIndex::Invalid();
 
     MobilizedBodyIndex m_OriginBody = MobilizedBodyIndex::Invalid();
     Vec3 m_OriginPoint{NaN};
@@ -1233,9 +1745,84 @@ private:
     friend CableSubsystemTestHelper;
 };
 
-//------------------------------------------------------------------------------
+//==============================================================================
+//          CurveSegment Utility Functions Using CableSpan Handle
+//==============================================================================
+// These helper functions are defined here as they depend on the declarations
+// in CableSpan::Impl.
 
-//------------------------------------------------------------------------------
+const IntegratorTolerances& CurveSegment::getIntegratorTolerances() const
+{
+    return getCable().getParameters();
+}
+
+ObstacleIndex CurveSegment::findPrevObstacleInContactWithCable(
+    const State& state) const
+{
+    const CableSpan::Impl& cable = getCable();
+    // Find the first obstacle that makes contact before this CurveSegment.
+    for (ObstacleIndex ix(m_obstacleIndex - 1); ix >= 0; --ix) {
+        if (cable.getObstacleCurveSegment(ix).isInContactWithSurface(state)) {
+            return ix;
+        }
+    }
+    // No obstacles in contact before this segment.
+    return ObstacleIndex::Invalid();
+}
+
+ObstacleIndex CurveSegment::findNextObstacleInContactWithCable(
+    const State& state) const
+{
+    const CableSpan::Impl& cable = getCable();
+    // Find the first obstacle that makes contact after this CurveSegment.
+    for (ObstacleIndex ix(m_obstacleIndex + 1); ix < cable.getNumObstacles();
+         ++ix) {
+        if (cable.getObstacleCurveSegment(ix).isInContactWithSurface(state)) {
+            return ix;
+        }
+    }
+    // No obstacles in contact after this segment.
+    return ObstacleIndex::Invalid();
+}
+
+Vec3 CurveSegment::findPrevPathPoint_G(const State& state) const
+{
+    // Check if there is a curve segment preceding given obstacle.
+    const ObstacleIndex prevObstacle =
+        findPrevObstacleInContactWithCable(state);
+    if (prevObstacle.isValid()) {
+        // The previous point is the final contact point of the previous curve.
+        return getCable()
+            .getObstacleCurveSegment(prevObstacle)
+            .calcFinalContactPoint_G(state);
+    }
+    // There are no curve segments before given obstacle: the previous point
+    // is the path's origin point.
+    const CableSpan::Impl& cable = getCable();
+    return getCable()
+        .getOriginBody()
+        .getBodyTransform(state)
+        .shiftFrameStationToBase(cable.getOriginPoint_B());
+}
+
+Vec3 CurveSegment::findNextPathPoint_G(const State& state) const
+{
+    // Check if there is a curve segment after given obstacle.
+    const ObstacleIndex nextObstacle =
+        findNextObstacleInContactWithCable(state);
+    if (nextObstacle.isValid()) {
+        // The next point is the initial contact point of the next curve.
+        return getCable()
+            .getObstacleCurveSegment(nextObstacle)
+            .calcInitialContactPoint_G(state);
+    };
+    // There are no curve segments following given obstacle: the next point
+    // is the path's termination point.
+    const CableSpan::Impl& cable = getCable();
+    return cable.getTerminationBody()
+        .getBodyTransform(state)
+        .shiftFrameStationToBase(cable.getTerminationPoint_B());
+}
 
 //==============================================================================
 //                      CABLE FORCE COMPUTATIONS
@@ -1715,110 +2302,6 @@ const Correction* getPathCorrections(MatrixWorkspace& data)
 } // namespace
 
 //==============================================================================
-//                      APPLYING GEODESIC CORRECTIONS
-//==============================================================================
-
-namespace
-{
-
-// Given a correction vector computed from minimizing the cost function,
-// compute the maximum allowed stepsize along that correction vector.
-// The allowed step is computed by approximating the surface locally as
-// a circle in each direction, and limiting the radial displacement on that
-// circle.
-void calcMaxAllowedCorrectionStepSize(
-    const CurveSegment& curve,
-    const State& s,
-    const Correction& c,
-    Real maxAngularDisplacementInDegrees,
-    Real& maxAllowedStepSize)
-{
-    auto UpdateMaxStepSize = [&](Real maxDisplacementEstimate, Real curvature) {
-        const Real maxAngle = maxAngularDisplacementInDegrees / 180. * M_PI;
-        const Real maxAllowedDisplacement = maxAngle / curvature;
-        const Real allowedStepSize =
-            std::abs(maxAllowedDisplacement / maxDisplacementEstimate);
-        maxAllowedStepSize = std::min(maxAllowedStepSize, allowedStepSize);
-    };
-
-    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-
-    // Clamp tangential displacement at the initial contact point.
-    {
-        const Real dxEst = c[0];
-        const Real k     = dataInst.curvatures_P[0];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp binormal displacement at the initial contact point.
-    {
-        const Real dxEst = c[1];
-        const Real k     = dataInst.curvatures_P[1];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp tangential displacement at the final contact point.
-    {
-        const Real dxEst = std::abs(c[0]) + std::abs(c[3]);
-        const Real k     = dataInst.curvatures_Q[0];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp binormal displacement at the final contact point.
-    {
-        const Real a     = dataInst.jacobi_Q[0];
-        const Real r     = dataInst.jacobi_Q[1];
-        const Real dxEst = std::abs(c[1] * a) + std::abs(c[2] * r);
-        const Real k     = dataInst.curvatures_Q[1];
-        UpdateMaxStepSize(dxEst, k);
-    }
-}
-
-// Apply the correction to the initial condition of the geodesic, and
-// shoot a new geodesic, updating the cache variable.
-void applyGeodesicCorrection(
-    const CurveSegment& curve,
-    const State& s,
-    const Correction& c,
-    const IntegratorTolerances& tols)
-{
-    // Get the previous geodesic.
-    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-
-    // Frenet frame at initial contact point.
-    const FrenetFrame& X_SP = dataInst.X_SP;
-    const UnitVec3& t       = getTangent(X_SP);
-    const UnitVec3& n       = getNormal(X_SP);
-    const UnitVec3& b       = getBinormal(X_SP);
-
-    const Real tau   = dataInst.torsion_P;
-    const Real kappa = dataInst.curvatures_P[0];
-
-    // Get corrected initial conditions.
-    const Vec3 dx               = t * c[0] + b * c[1];
-    const Vec3 correctedPoint_S = X_SP.p() + dx;
-
-    const Vec3 w                  = (kappa * c[0] - tau * c[1]) * b - c[2] * n;
-    const Vec3 correctedTangent_S = t + cross(w, t);
-
-    // Take the length correction, and add to the current length.
-    const Real dl = c[3]; // Length increment is the last element.
-    const Real correctedLength =
-        std::max(dataInst.length + dl, 0.); // Clamp length to be nonnegative.
-
-    // Shoot the new geodesic.
-    curve.calcLocalGeodesic(
-        s,
-        correctedPoint_S,
-        correctedTangent_S,
-        correctedLength,
-        dataInst.integratorInitialStepSize,
-        tols);
-}
-
-} // namespace
-
-//==============================================================================
 //                      CABLE SPAN POSITION LEVEL CACHE
 //==============================================================================
 
@@ -1845,11 +2328,7 @@ void CableSpan::Impl::calcDataPos(const State& s, CableSpanData::Pos& dataPos)
         // This will transform all last computed geodesics to Ground frame, and
         // will update each curve's WrappingStatus.
         for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
-            getObstacleCurveSegment(ix).realizePosition(
-                s,
-                findPrevPoint(s, ix),
-                findNextPoint(s, ix),
-                getParameters());
+            getObstacleCurveSegment(ix).calcDataPos(s);
         }
 
         // Now that the WrappingStatus of all curve segments is known: Count
@@ -1940,7 +2419,7 @@ void CableSpan::Impl::calcDataPos(const State& s, CableSpanData::Pos& dataPos)
         // new geodesics over the obstacles.
         corrIt = getPathCorrections(data);
         forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
-            applyGeodesicCorrection(curve, s, *corrIt, getParameters());
+            curve.applyGeodesicCorrection(s, *corrIt);
             ++corrIt;
         });
 
@@ -1954,427 +2433,6 @@ void CableSpan::Impl::calcDataPos(const State& s, CableSpanData::Pos& dataPos)
 
         ++dataPos.loopIter;
     }
-}
-
-//==============================================================================
-//                      SHOOTING GEODESICS HELPER
-//==============================================================================
-
-namespace
-{
-
-// Helper for shooting a new geodesic for this curve segment.
-// The resulting geodesic is written to the provided cache variable.
-void shootNewGeodesic(
-    const CurveSegment& curve,
-    Vec3 point_S,
-    Vec3 tangent_S,
-    Real length,
-    Real initIntegratorStepSize,
-    const IntegratorTolerances& tols,
-    CurveSegmentData::Instance& dataInst)
-{
-    // First determine if this geometry has an analytic form.
-    const ContactGeometry& geometry = curve.getContactGeometry();
-    const bool useAnalyticGeodesic  = geometry.isAnalyticFormAvailable();
-
-    // Shoot a new geodesic over the surface, and compute the geodesic state at
-    // the first and last contact point of the surface.
-    std::array<ContactGeometry::ImplicitGeodesicState, 2>
-        geodesicBoundaryStates;
-
-    if (useAnalyticGeodesic) {
-        // For analytic surfaces we can compute the inital and final frenet
-        // frames without computing any intermediate knot points.
-        int numberOfKnotPoints = 2;
-        int knotIx             = 0;
-        geometry.shootGeodesicInDirectionAnalytically(
-            point_S,
-            tangent_S,
-            length,
-            numberOfKnotPoints,
-            // Copy the state at the boundary frames.
-            [&](const ContactGeometry::ImplicitGeodesicState& q) {
-                geodesicBoundaryStates.at(knotIx) = q;
-                ++knotIx;
-            });
-    } else {
-        // For implicit surfaces we must use a numerical integrator to compute
-        // the initial and final frames. Because this is relatively
-        // costly, we will cache this geodesic.
-        dataInst.geodesicIntegratorStates.clear();
-        geometry.shootGeodesicInDirectionImplicitly(
-            point_S,
-            tangent_S,
-            length,
-            initIntegratorStepSize,
-            tols.intergatorAccuracy,
-            tols.constraintProjectionTolerance,
-            tols.constraintProjectionMaxIterations,
-            [&](const ContactGeometry::ImplicitGeodesicState& q) {
-                // Store the knot points in the cache.
-                dataInst.geodesicIntegratorStates.push_back(q);
-            });
-
-        // Copy the state at the boundary frames.
-        geodesicBoundaryStates = {
-            dataInst.geodesicIntegratorStates.front(),
-            dataInst.geodesicIntegratorStates.back(),
-        };
-    }
-
-    // Use the geodeis state at the boundary frames to compute the fields in
-    // CurveSegmentData::Instance.
-
-    // Compute the Frenet frames at the boundary frames.
-    dataInst.X_SP = calcFrenetFrameFromGeodesicState(
-        geometry,
-        geodesicBoundaryStates.front());
-    dataInst.X_SQ = calcFrenetFrameFromGeodesicState(
-        geometry,
-        geodesicBoundaryStates.back());
-
-    // Compute the jacobi field scalars at the final frame.
-    dataInst.jacobi_Q = {
-        geodesicBoundaryStates.back().jacobiTrans,
-        geodesicBoundaryStates.back().jacobiRot,
-    };
-    dataInst.jacobiDot_Q = {
-        geodesicBoundaryStates.back().jacobiTransDot,
-        geodesicBoundaryStates.back().jacobiRotDot,
-    };
-
-    // Compute the curvatures at the boundary frames.
-    dataInst.curvatures_P = {
-        calcSurfaceCurvature(geometry, dataInst.X_SP, TangentAxis),
-        calcSurfaceCurvature(geometry, dataInst.X_SP, BinormalAxis),
-    };
-    dataInst.curvatures_Q = {
-        calcSurfaceCurvature(geometry, dataInst.X_SQ, TangentAxis),
-        calcSurfaceCurvature(geometry, dataInst.X_SQ, BinormalAxis),
-    };
-
-    // Compute the geodesic torsion at the boundary frames.
-    dataInst.torsion_P = geometry.calcSurfaceTorsionInDirection(
-        dataInst.X_SP.p(),
-        getTangent(dataInst.X_SP));
-    dataInst.torsion_Q = geometry.calcSurfaceTorsionInDirection(
-        dataInst.X_SQ.p(),
-        getTangent(dataInst.X_SQ));
-
-    // Store the arc length.
-    dataInst.length = length;
-
-    // Update the initial integrator step size:
-    if (!useAnalyticGeodesic) { // does not apply to analytic surfaces.
-
-        // We want to know if we should attempt a larger initial step size next
-        // time, or a smaller one. If the initIntegratorStepSize was rejected,
-        // it makes little sense to start with the exact same step size next
-        // time, only to find it rejected again.
-
-        const int numStepsTaken = dataInst.geodesicIntegratorStates.size() - 1;
-
-        // If the integrator took a single step or none: The final arc
-        // length is shorter than the initial step size attempted. The step
-        // was atleast not rejected, but we do not know if we can make it
-        // larger. So we do not update it.
-        if (numStepsTaken <= 1) {
-            // Try the same step next time:
-            dataInst.integratorInitialStepSize = initIntegratorStepSize;
-        }
-
-        // If the integrator took two or more steps, we might want to update
-        // the next step size to try,
-        if (numStepsTaken >= 2) {
-            // The acual initial step size taken by the integrator cannot
-            // have been larger than initIntegratorStepSize, but it might be
-            // smaller if it was rejected. If rejected, we will reduce the
-            // init step size for next time.
-            const Real actualFirstStepSize =
-                dataInst.geodesicIntegratorStates.at(1).arcLength -
-                dataInst.geodesicIntegratorStates.front().arcLength;
-            const bool initStepWasRejected =
-                actualFirstStepSize < initIntegratorStepSize;
-            if (initStepWasRejected) {
-                // Reduce the init step size for next time, to avoid
-                // rejecting it again.
-                dataInst.integratorInitialStepSize = actualFirstStepSize;
-            } else {
-                // If the initIntegratorStepSize was accepted we might want
-                // to try a larger step next time. The actualFirstStepSize
-                // cannot be larger than initIntegratorStepSize: we must
-                // take a look at the second step size.
-                const Real actualSecondStepSize =
-                    dataInst.geodesicIntegratorStates.at(2).arcLength -
-                    dataInst.geodesicIntegratorStates.at(1).arcLength;
-                // We already established that the initIntegratorStepSize
-                // was accepted, now we are only looking to increase the
-                // step size.
-                dataInst.integratorInitialStepSize =
-                    std::max(initIntegratorStepSize, actualSecondStepSize);
-            }
-        }
-    }
-}
-
-} // namespace
-
-//==============================================================================
-//                  CURVE SEGMENT STATUS HANDLING
-//==============================================================================
-// Helpers for:
-// - Shooting the initial geodesic.
-// - Asserting path validity.
-// - Detecting surface liftoff.
-// - Detecting surface touchdown.
-
-// Section containing helpers for curveSegment status handling.
-namespace
-{
-
-// Helper function for computing the initial wrapping path as a zero length
-// geodesic.
-// TODO use the first four stages?
-void calcInitCurveIfNeeded(
-    const CurveSegment& curve,
-    const State& s,
-    const Vec3& prevPoint_S,
-    const Vec3& nextPoint_S,
-    const IntegratorTolerances& tols)
-{
-    if (curve.getDataInst(s).wrappingStatus != ObstacleWrappingStatus::InitialGuess) {
-        return;
-    }
-    // The first integrator stepsize to attempt is a bit arbitrary: Taking it
-    // too large will simply cause it to be rejected. Taking it too small will
-    // cause it to rapidly increase. We take it too small, to be on the safe
-    // side.
-    constexpr Real c_initIntegratorStepSize = 1e-10;
-
-    // Shoot a zero length geodesic at the contact point, with the tangent
-    // directed from prevPoint to nextPoint.
-    curve.calcLocalGeodesic(
-        s,
-        curve.getContactPointHint(), // = location
-        nextPoint_S - prevPoint_S,   // = direction
-        0.,                          // = arc length
-        c_initIntegratorStepSize,
-        tols);
-}
-
-// Assert that previous and next point lie above the surface. Points are in
-// surface coordinates.
-void assertSurfaceBounds(
-    const CurveSegment& curve,
-    const Vec3& prevPoint_S,
-    const Vec3& nextPoint_S)
-{
-    // Try block was added here because some surfaces throw an exception when
-    // calling calcSurfaceValue outside of a given range.
-    auto IsPointAboveSurface = [&](const Vec3 point) -> bool {
-        try {
-            // TODO surface value is negative above surface.
-            return curve.getContactGeometry().calcSurfaceValue(point) < 0.;
-        } catch (...) {
-            // TODO this is a bit too risky.
-            return true;
-        }
-    };
-
-    // Make sure that the previous point does not lie inside the surface.
-    SimTK_ERRCHK_ALWAYS(
-        IsPointAboveSurface(prevPoint_S),
-        "CurveSegment::Impl::assertSurfaceBounds",
-        "Preceding point lies inside the surface");
-    SimTK_ERRCHK_ALWAYS(
-        IsPointAboveSurface(nextPoint_S),
-        "CurveSegment::Impl::assertSurfaceBounds",
-        "Next point lies inside the surface");
-}
-
-void calcCurveTouchdownIfNeeded(
-    const CurveSegment& curve,
-    const State& s,
-    const Vec3& prevPoint_S,
-    const Vec3& nextPoint_S,
-    const IntegratorTolerances& tols)
-{
-    // Given the straight line between the point before and after this segment,
-    // touchdown is detected by computing the point on that line that is
-    // nearest to the surface.
-
-    // Only attempt touchdown when lifted.
-    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-    if (dataInst.wrappingStatus != ObstacleWrappingStatus::LiftedFromSurface) {
-        return;
-    }
-
-    // Use the cached tracking point as the initial guess.
-    Vec3 pointOnLineNearSurface_S = dataInst.trackingPointOnLine_S;
-
-    // Compute the point on the line nearest the surface.
-    const bool touchdownDetected =
-        curve.getContactGeometry().calcNearestPointOnLineImplicitly(
-            prevPoint_S,
-            nextPoint_S,
-            tols.constraintProjectionMaxIterations,
-            tols.constraintProjectionTolerance,
-            pointOnLineNearSurface_S);
-
-    // In case of touchdown, shoot a zero-length geodesic at the touchdown
-    // point.
-    if (touchdownDetected) {
-        curve.calcLocalGeodesic(
-            s,
-            pointOnLineNearSurface_S,
-            nextPoint_S - prevPoint_S,
-            0.,
-            dataInst.integratorInitialStepSize,
-            tols);
-        return;
-    }
-
-    // Not touchingdown indicates liftoff:
-    curve.liftCurveFromSurface(s, pointOnLineNearSurface_S);
-}
-
-void calcCurveLiftoffIfNeeded(
-    const CurveSegment& curve,
-    const State& s,
-    const Vec3& prevPoint_S,
-    const Vec3& nextPoint_S)
-{
-    // Only attempt liftoff when currently wrapping the surface.
-    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-    if (dataInst.wrappingStatus != ObstacleWrappingStatus::InContactWithSurface) {
-        return;
-    }
-
-    // The curve length must have shrunk completely before lifting off.
-    if (dataInst.length > 0.) {
-        return;
-    }
-
-    // For a zero-length curve, trigger liftoff when the prev and next points
-    // lie above the surface plane.
-    if (dot(prevPoint_S - dataInst.X_SP.p(),
-            dataInst.X_SP.R().getAxisUnitVec(NormalAxis)) <= 0. ||
-        dot(nextPoint_S - dataInst.X_SP.p(),
-            dataInst.X_SP.R().getAxisUnitVec(NormalAxis)) <= 0.) {
-        // No liftoff.
-        return;
-    }
-
-    // Liftoff detected, initialize the tracking point from the last contact
-    // point.
-    curve.liftCurveFromSurface(s, dataInst.X_SP.p());
-}
-
-} // namespace
-
-void CurveSegment::calcLocalGeodesic(
-    const State& s,
-    Vec3 point_S,
-    Vec3 tangent_S,
-    Real length,
-    Real stepSizeHint,
-    const IntegratorTolerances& tols) const
-{
-    CurveSegmentData::Instance& dataInst = updDataInst(s);
-
-    dataInst.wrappingStatus = ObstacleWrappingStatus::InContactWithSurface;
-
-    shootNewGeodesic(
-        *this,
-        point_S,
-        tangent_S,
-        length,
-        stepSizeHint,
-        tols,
-        dataInst);
-
-    getSubsystem().markDiscreteVarUpdateValueRealized(s, indexDataInst);
-
-    invalidatePosEntry(s);
-}
-
-void CurveSegment::liftCurveFromSurface(const State& s, Vec3 trackingPoint_S)
-    const
-{
-    CurveSegmentData::Instance& dataInst = updDataInst(s);
-
-    dataInst.wrappingStatus        = ObstacleWrappingStatus::LiftedFromSurface;
-    dataInst.trackingPointOnLine_S = trackingPoint_S;
-
-    getSubsystem().markDiscreteVarUpdateValueRealized(s, indexDataInst);
-
-    invalidatePosEntry(s);
-}
-
-//==============================================================================
-//                  CURVE SEGMENT: REALIZE POSITION LEVEL CACHE
-//==============================================================================
-
-void CurveSegment::realizePosition(
-    const State& s,
-    Vec3 prevPoint_G,
-    Vec3 nextPoint_G,
-    const IntegratorTolerances& tols) const
-{
-    if (getSubsystem().isCacheValueRealized(s, indexDataPos)) {
-        // TODO use SimTK_ASSERT
-        throw std::runtime_error(
-            "expected not realized when calling realizePosition");
-    }
-
-    if (getDataInst(s).wrappingStatus == ObstacleWrappingStatus::Disabled) {
-        getSubsystem().markCacheValueRealized(s, indexDataPos);
-        return;
-    }
-
-    // Compute tramsform from local surface frame to ground.
-    const Transform X_GS = calcSurfaceFrameInGround(s);
-
-    // Given the previous and next point determine if the cable wraps over
-    // the obstacle surface at all.
-    {
-        // Transform the prev and next path points to the surface frame.
-        const Vec3 prevPoint_S = X_GS.shiftBaseStationToFrame(prevPoint_G);
-        const Vec3 nextPoint_S = X_GS.shiftBaseStationToFrame(nextPoint_G);
-
-        // Make sure that the previous and next point do not lie inside the
-        // surface body.
-        assertSurfaceBounds(*this, prevPoint_S, nextPoint_S);
-
-        calcInitCurveIfNeeded(*this, s, prevPoint_S, nextPoint_S, tols);
-
-        // If previously not in contact with the surface, determine if we come
-        // in contact now.
-        calcCurveTouchdownIfNeeded(*this, s, prevPoint_S, nextPoint_S, tols);
-
-        // When in contact with the surface, determine if we will lift off from
-        // the surface now.
-        calcCurveLiftoffIfNeeded(*this, s, prevPoint_S, nextPoint_S);
-    }
-
-    // At this point we have a valid geodesic in surface frame.
-    const CurveSegmentData::Instance& dataInst = getDataInst(s);
-
-    // Start updating the position level cache.
-    CurveSegmentData::Pos& dataPos = updDataPos(s);
-
-    // Transform geodesic in local surface coordinates to ground.
-    {
-        // Store the local geodesic in ground frame.
-        dataPos.X_GS = X_GS;
-
-        // Store the local geodesic in ground frame.
-        dataPos.X_GP = X_GS.compose(dataInst.X_SP);
-        dataPos.X_GQ = X_GS.compose(dataInst.X_SQ);
-    }
-
-    getSubsystem().markCacheValueRealized(s, indexDataPos);
 }
 
 //==============================================================================
@@ -2420,7 +2478,10 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             // We do not want to mess with the actual state, so we make a copy.
             const State sCopy = s;
             system.realize(sCopy, Stage::Position);
-            cable.realizePosition(sCopy);
+
+            // Trigger realizing position level cache, resetting the
+            // configuration.
+            const CableSpanData::Pos& dataPos = cable.getDataPos(sCopy);
 
             // The wrapping status of each obstacle is reset after copying the
             // state. The matrix sizes are no longer compatible if this results
@@ -2432,10 +2493,6 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                       "Skipping perturbation test\n";
                 break;
             }
-
-            // Trigger realizing position level cache, resetting the
-            // configuration.
-            const CableSpanData::Pos& dataPos = cable.getDataPos(sCopy);
 
             MatrixWorkspace& data = cable.updDataInst(s).updOrInsert(nActive);
 
@@ -2478,11 +2535,9 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             cable.forEachActiveCurveSegment(
                 sCopy,
                 [&](const CurveSegment& curve) {
-                    applyGeodesicCorrection(
-                        curve,
+                    curve.applyGeodesicCorrection(
                         sCopy,
-                        *corrIt,
-                        cable.getParameters());
+                        *corrIt);
                     ++corrIt;
                 });
 
@@ -2491,11 +2546,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             }
 
             for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
-                cable.getObstacleCurveSegment(ix).realizePosition(
-                    sCopy,
-                    cable.findPrevPoint(sCopy, ix),
-                    cable.findNextPoint(sCopy, ix),
-                    cable.getParameters());
+                cable.getObstacleCurveSegment(ix).calcDataPos(sCopy);
             }
 
             calcLineSegments(
@@ -2564,6 +2615,11 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
 //                          CableSubsystem::Impl
 //==============================================================================
 
+const CableSpan::Impl& CableSubsystem::Impl::getCableImpl(CableSpanIndex index) const
+{
+    return getCable(index).getImpl();
+}
+
 int CableSubsystem::Impl::realizeSubsystemTopologyImpl(State& state) const
 {
     // Briefly allow writing into the Topology cache. After this the
@@ -2572,12 +2628,11 @@ int CableSubsystem::Impl::realizeSubsystemTopologyImpl(State& state) const
 
     CableSpanData::Instance dataInst{};
     CacheEntryIndex indexDataInst = mutableThis->allocateCacheEntry(
-            state,
-            Stage::Instance,
-            Stage::Infinity,
-            new Value<CableSpanData::Instance>(dataInst));
+        state,
+        Stage::Instance,
+        Stage::Infinity,
+        new Value<CableSpanData::Instance>(dataInst));
 
-    mutableThis->realizeTopology(state);
     for (CableSpanIndex ix(0); ix < cables.size(); ++ix) {
         CableSpan& path = mutableThis->updCable(ix);
         path.updImpl().realizeTopology(state, indexDataInst);
@@ -2776,7 +2831,8 @@ void CableSpan::setObstacleInitialContactPointHint(
     ObstacleIndex ix,
     Vec3 initialContactPointHint)
 {
-    updImpl().updObstacleCurveSegment(ix).setContactPointHint(initialContactPointHint);
+    updImpl().updObstacleCurveSegment(ix).setContactPointHint(
+        initialContactPointHint);
 }
 
 //------------------------------------------------------------------------------
