@@ -108,7 +108,7 @@ struct MatrixWorkspace
     // Given the number of CurveSegments that are in contact with their
     // respective obstacle's surface, contruct a MatrixWorkspace of correct
     // dimensions.
-    explicit MatrixWorkspace(int problemSize) : nCurves(problemSize)
+    explicit MatrixWorkspace(int problemSize) : nObstaclesInContact(problemSize)
     {
         static constexpr int Q = GEODESIC_DOF;
         // 4 for the path error, and 1 for the weighting of the length.
@@ -127,7 +127,9 @@ struct MatrixWorkspace
     Vector pathCorrection;
     Vector pathError;
     FactorQTZ inverse;
-    int nCurves = -1;
+
+    Real maxPathError = NaN;
+    int nObstaclesInContact = -1;
 };
 
 //------------------------------------------------------------------------------
@@ -172,7 +174,7 @@ struct CableSpanData
         MatrixWorkspace& updOrInsert(int nActive)
         {
             SimTK_ASSERT1(
-                nActive > 0,
+                nActive >= 0,
                 "PathSolverScratchData::updOrInsert()"
                 "Number of obstacles in contact must be larger than zero (got "
                 "%d)",
@@ -180,12 +182,12 @@ struct CableSpanData
 
             // Construct all MatrixWorkspaces for up to and including the
             // requested dimension.
-            for (int i = matrixWorkspaces.size(); i < nActive; ++i) {
-                matrixWorkspaces.emplace_back(i + 1);
+            for (int i = matrixWorkspaces.size(); i <= nActive; ++i) {
+                matrixWorkspaces.emplace_back(i);
             }
 
             // Return MatrixWorkspace of requested dimension.
-            return matrixWorkspaces.at(nActive - 1);
+            return matrixWorkspaces.at(nActive);
         }
 
     private:
@@ -1317,7 +1319,7 @@ public:
         if (getSubsystem().isCacheValueRealized(state, indexDataPos)) {
             return;
         }
-        calcDataPos(state, updDataPos(state));
+        calcDataPos(state);
         getSubsystem().markCacheValueRealized(state, indexDataPos);
     }
 
@@ -1592,7 +1594,29 @@ private:
             getSubsystem().updCacheEntry(state, indexDataInst));
     }
 
-    void calcDataPos(const State& s, CableSpanData::Pos& dataPos) const;
+    //------------------------------------------------------------------------------
+    //                      HELPER FUNCTIONS
+    //------------------------------------------------------------------------------
+    Vec3 calcOriginPointInGround(const State& state) const
+    {
+        return
+        getOriginBody().getBodyTransform(state).shiftFrameStationToBase(
+                m_OriginPoint);
+    }
+
+    Vec3 calcTerminationPointInGround(const State& state) const
+    {
+        return getTerminationBody().getBodyTransform(state).shiftFrameStationToBase(
+                m_TerminationPoint);
+    }
+
+    //------------------------------------------------------------------------------
+    //                      Cache Computations
+    //------------------------------------------------------------------------------
+    const MatrixWorkspace& calcDataInst(const State& state) const;
+
+    const CableSpanData::Pos& calcDataPos(const State& state) const;
+
     void calcDataVel(const State& s, CableSpanData::Vel& dataVel) const
     {
         const CableSpanData::Pos& dataPos = getDataPos(s);
@@ -2271,14 +2295,14 @@ using Correction = Vec<GEODESIC_DOF>;
 // zero. We call this after having filled in the pathError vector and pathError
 // jacobian in the MatrixWorkspace. The result is a vector of Corrections for
 // each curve.
-void calcPathCorrections(MatrixWorkspace& data, Real weight)
+void calcPathCorrections(MatrixWorkspace& data)
 {
     // TODO add explanation...
     // Add a cost to changing the length.
-    for (int i = 0; i < data.nCurves; ++i) {
-        int r = data.nCurves * NUMBER_OF_CONSTRAINTS + i;
+    for (int i = 0; i < data.nObstaclesInContact; ++i) {
+        int r = data.nObstaclesInContact * NUMBER_OF_CONSTRAINTS + i;
         int c = GEODESIC_DOF * (i + 1) - 1;
-        data.pathErrorJacobian.set(r, c, weight);
+        data.pathErrorJacobian.set(r, c, data.maxPathError);
     }
 
     data.inverse = data.pathErrorJacobian;
@@ -2287,13 +2311,13 @@ void calcPathCorrections(MatrixWorkspace& data, Real weight)
 }
 
 // Obtain iterator over the Correction per curve segment.
-const Correction* getPathCorrections(MatrixWorkspace& data)
+const Correction* getPathCorrections(const MatrixWorkspace& data)
 {
     static_assert(
         sizeof(Correction) == sizeof(Real) * GEODESIC_DOF,
         "Invalid size of geodesic correction.");
     if (data.pathCorrection.size() * sizeof(Real) !=
-        data.nCurves * sizeof(Correction)) {
+        data.nObstaclesInContact * sizeof(Correction)) {
         throw std::runtime_error("Invalid size of path corrections vector.");
     }
     return reinterpret_cast<const Correction*>(&data.pathCorrection[0]);
@@ -2305,119 +2329,126 @@ const Correction* getPathCorrections(MatrixWorkspace& data)
 //                      CABLE SPAN POSITION LEVEL CACHE
 //==============================================================================
 
-void CableSpan::Impl::calcDataPos(const State& s, CableSpanData::Pos& dataPos)
-    const
+const MatrixWorkspace& CableSpan::Impl::calcDataInst(
+    const State& s) const
 {
-    // Path origin and termination point.
-    const Vec3 x_O =
-        getOriginBody().getBodyTransform(s).shiftFrameStationToBase(
-            m_OriginPoint);
-    const Vec3 x_I =
-        getTerminationBody().getBodyTransform(s).shiftFrameStationToBase(
-            m_TerminationPoint);
-
-    dataPos.originPoint_G      = x_O;
-    dataPos.terminationPoint_G = x_I;
+    CableSpanData::Instance& dataInst = updDataInst(s);
 
     // Axes considered when computing the path error.
     const std::array<CoordinateAxis, 2> axes{NormalAxis, BinormalAxis};
 
-    dataPos.loopIter = 0;
-    while (true) {
-        // Make sure all curve segments are realized to position stage.
-        // This will transform all last computed geodesics to Ground frame, and
-        // will update each curve's WrappingStatus.
-        for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
-            getObstacleCurveSegment(ix).calcDataPos(s);
-        }
+    // Make sure all curve segments are realized to position stage.
+    // This will transform all last computed geodesics to Ground frame, and
+    // will update each curve's WrappingStatus.
+    for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
+        getObstacleCurveSegment(ix).calcDataPos(s);
+    }
 
-        // Now that the WrappingStatus of all curve segments is known: Count
-        // the number of obstacles in contact with the path.
-        const int nActive = countActive(s);
+    // Now that the WrappingStatus of all curve segments is known: Count
+    // the number of obstacles in contact with the path.
+    const int nActive = countActive(s);
 
-        // If the path contains no curved segments it is a straight line.
-        if (nActive == 0) {
-            // Update cache entry and stop solver.
-            dataPos.cableLength          = (x_I - x_O).norm();
-            dataPos.terminationTangent_G = dataPos.originTangent_G =
-                UnitVec3(x_I - x_O);
-            break;
-        }
+    // If some obstacles are in contact with the cable the path error needs
+    // to be checked. If the path error is small, i.e. there are no "kinks"
+    // anywhere, the current path is OK. If the path error is too large,
+    // corrections need to be computed for each curve segment in order to
+    // drive the path error to zero.
 
-        // If some obstacles are in contact with the cable the path error needs
-        // to be checked. If the path error is small, i.e. there are no "kinks"
-        // anywhere, the current path is OK. If the path error is too large,
-        // corrections need to be computed for each curve segment in order to
-        // drive the path error to zero.
+    // Grab the shared data cache for helping with computing the path
+    // corrections. This data is only used as an intermediate variable, and
+    // will be discarded after each iteration. Note that the number active
+    // segments determines the sizes of the matrices involved.
+    MatrixWorkspace& data = updDataInst(s).updOrInsert(nActive);
 
-        // Grab the shared data cache for helping with computing the path
-        // corrections. This data is only used as an intermediate variable, and
-        // will be discarded after each iteration. Note that the number active
-        // segments determines the sizes of the matrices involved.
-        MatrixWorkspace& data = updDataInst(s).updOrInsert(nActive);
+    // Reset before computing new values.
+    data.maxPathError = 0.;
 
-        // Compute the straight-line segments of this cable span.
-        calcLineSegments(*this, s, x_O, x_I, data.lineSegments);
+    // Compute the straight-line segments of this cable span.
+    calcLineSegments(*this, s, calcOriginPointInGround(s), calcTerminationPointInGround(s), data.lineSegments);
 
-        // Evaluate the current path error as the misalignment of the straight
-        // line segments with the curve segment's tangent vectors at the
-        // contact points.
-        calcPathErrorVector<2>(
+    // If the path contains no curved segments it is a straight line.
+    if (nActive == 0) {
+        return data;
+    }
+
+    // Evaluate the current path error as the misalignment of the straight
+    // line segments with the curve segment's tangent vectors at the
+    // contact points.
+    calcPathErrorVector<2>(
             *this,
             s,
             data.lineSegments,
             axes,
             data.pathError);
-        dataPos.pathError = data.pathError.normInf();
+    data.maxPathError = data.pathError.normInf();
 
-        // Stop iterating if max path error is small, or max iterations has been
-        // reached.
-        if (dataPos.pathError < getParameters().m_PathAccuracy ||
-            dataPos.loopIter >= getParameters().m_SolverMaxIterations) {
-            // Update cache entry and stop solver.
-            dataPos.cableLength =
-                calcTotalCableLength(*this, s, data.lineSegments);
-            dataPos.originTangent_G      = data.lineSegments.front().direction;
-            dataPos.terminationTangent_G = data.lineSegments.back().direction;
-            break;
-        }
+    // Only proceed with computing the jacobian and geodesic corrections if the path error is large.
+    if (data.maxPathError < getParameters().m_PathAccuracy) {
+        data.pathCorrection *= 0.;
+        return data;
+    }
 
-        // If the path error is too large corrections need to be applied to
-        // each curve segment. Using the jacobian of the path error the
-        // corrections can be computed that should drive the path error to
-        // zero.
-
-        // Evaluate the path error jacobian to the natural geodesic corrections
-        // of each curve segment.
-        calcPathErrorJacobian<2>(
+    // Evaluate the path error jacobian to the natural geodesic corrections
+    // of each curve segment.
+    calcPathErrorJacobian<2>(
             *this,
             s,
             data.lineSegments,
             axes,
             data.pathErrorJacobian);
 
-        // Compute the geodesic corrections for each curve segment: This gives
-        // us a correction vector in a direction that lowers the path error.
-        calcPathCorrections(data, dataPos.pathError);
+    // Compute the geodesic corrections for each curve segment: This gives
+    // us a correction vector in a direction that reduces the path error.
+    calcPathCorrections(data);
 
-        // Compute the maximum allowed step size that we take along the
-        // correction vector.
-        Real stepSize            = 1.;
-        const Correction* corrIt = getPathCorrections(data);
-        forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
+    // Compute the maximum allowed step size that we take along the
+    // correction vector.
+    Real stepSize            = 1.;
+    const Correction* corrIt = getPathCorrections(data);
+    forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
+            // Each curve segment will evaluate if the stepsize is not too large given the local curvature.
             calcMaxAllowedCorrectionStepSize(
-                curve,
-                s,
-                *corrIt,
-                getParameters().m_MaxCorrectionStepDeg,
-                stepSize);
+                    curve,
+                    s,
+                    *corrIt,
+                    getParameters().m_MaxCorrectionStepDeg,
+                    stepSize);
             ++corrIt;
-        });
-        data.pathCorrection *= stepSize;
+            });
+    // Apply the maximum stepsize to the corrections.
+    data.pathCorrection *= stepSize;
 
-        // Apply corrections to the curve segments. This will trigger shooting
-        // new geodesics over the obstacles.
-        corrIt = getPathCorrections(data);
+    return data;
+}
+
+const CableSpanData::Pos& CableSpan::Impl::calcDataPos(const State& s)
+    const
+{
+    CableSpanData::Pos& dataPos = updDataPos(s);
+
+    dataPos.originPoint_G      = calcOriginPointInGround(s);
+    dataPos.terminationPoint_G = calcTerminationPointInGround(s);
+
+    dataPos.loopIter = 0;
+    while (true) {
+        const MatrixWorkspace& data = calcDataInst(s);
+
+        // Stop iterating if:
+        // - No obstacles in contact with path: Path is straight line.
+        // - Converged: No significant correction.
+        // - Not converged: Max iterations has been reached.
+        if (data.nObstaclesInContact == 0
+            || data.pathCorrection.normInf() < 1e-16
+            || dataPos.loopIter >= getParameters().m_SolverMaxIterations) {
+            // Update cache entry and stop solver.
+            dataPos.pathError = data.maxPathError;
+            dataPos.cableLength = calcTotalCableLength(*this, s, data.lineSegments);
+            dataPos.originTangent_G      = data.lineSegments.front().direction;
+            dataPos.terminationTangent_G = data.lineSegments.back().direction;
+            break;
+        }
+
+        const Correction* corrIt = getPathCorrections(data);
         forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
             curve.applyGeodesicCorrection(s, *corrIt);
             ++corrIt;
@@ -2433,6 +2464,8 @@ void CableSpan::Impl::calcDataPos(const State& s, CableSpanData::Pos& dataPos)
 
         ++dataPos.loopIter;
     }
+
+    return dataPos;
 }
 
 //==============================================================================
