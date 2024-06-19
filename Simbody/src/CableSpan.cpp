@@ -34,7 +34,7 @@ namespace
 using ObstacleIndex = CableSpanObstacleIndex;
 
 // Number of degrees of freedom of a general geodesic.
-constexpr int c_GeodesicDOF          = 4;
+constexpr int c_GeodesicDOF = 4;
 
 //------------------------------------------------------------------------------
 //  Natural Geodesic Corrections
@@ -1148,7 +1148,6 @@ public:
     }
 
 private:
-
     //------------------------------------------------------------------------------
     // Private Cache Access.
     //------------------------------------------------------------------------------
@@ -2168,10 +2167,9 @@ void calcPathErrorJacobian(
 
     auto linesIt = lines.begin();
     cable.forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
-
         const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
         for (CoordinateAxis axis : axes) {
-            const UnitVec3 a_P = dataPos.X_GP.R().getAxisUnitVec(axis);
+            const UnitVec3 a_P     = dataPos.X_GP.R().getAxisUnitVec(axis);
             const LineSegment& l_P = *linesIt;
 
             AddBlock(calcJacobianOfPathErrorAtP(curve, s, l_P, a_P));
@@ -2193,7 +2191,7 @@ void calcPathErrorJacobian(
         ++linesIt;
 
         for (CoordinateAxis axis : axes) {
-            const UnitVec3 a_Q = dataPos.X_GQ.R().getAxisUnitVec(axis);
+            const UnitVec3 a_Q     = dataPos.X_GQ.R().getAxisUnitVec(axis);
             const LineSegment& l_Q = *linesIt;
 
             AddBlock(calcJacobianOfPathErrorAtQ(curve, s, l_Q, a_Q));
@@ -2234,7 +2232,9 @@ void calcPathCorrections(MatrixWorkspace& data)
     // TODO add explanation...
     // Add a cost to changing the length.
     for (int i = 0; i < data.nObstaclesInContact; ++i) {
-        int r = data.nObstaclesInContact * MatrixWorkspace::c_NumberOfConstraints + i;
+        int r =
+            data.nObstaclesInContact * MatrixWorkspace::c_NumberOfConstraints +
+            i;
         int c = c_GeodesicDOF * (i + 1) - 1;
         data.pathErrorJacobian.set(r, c, data.maxPathError);
     }
@@ -2250,11 +2250,12 @@ const NaturalGeodesicCorrection* getPathCorrections(const MatrixWorkspace& data)
     static_assert(
         sizeof(NaturalGeodesicCorrection) == sizeof(Real) * c_GeodesicDOF,
         "Invalid size of geodesic correction.");
-    if (data.pathCorrection.size() * sizeof(Real) !=
-        data.nObstaclesInContact * sizeof(NaturalGeodesicCorrection)) {
-        throw std::runtime_error("Invalid size of path corrections vector.");
-    }
-    return reinterpret_cast<const NaturalGeodesicCorrection*>(&data.pathCorrection[0]);
+    SimTK_ASSERT(
+        data.pathCorrection.size() * sizeof(Real) ==
+            data.nObstaclesInContact * sizeof(NaturalGeodesicCorrection),
+        "Invalid size of path corrections vector");
+    return reinterpret_cast<const NaturalGeodesicCorrection*>(
+        &data.pathCorrection[0]);
 }
 
 } // namespace
@@ -2337,7 +2338,7 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 
     // Compute the maximum allowed step size that we take along the
     // correction vector.
-    Real stepSize            = 1.;
+    Real stepSize                           = 1.;
     const NaturalGeodesicCorrection* corrIt = getPathCorrections(data);
     forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
         // Each curve segment will evaluate if the stepsize is not too large
@@ -2441,8 +2442,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
         // of a geodesic correction. There are 4 DOF for each geodesic, and
         // just to be sure we apply a negative and positive perturbation along
         // each DOF of each geodesic.
-        for (int i = 0; i < (c_GeodesicDOF * 2 * nActive);
-             ++i) {
+        for (int i = 0; i < (c_GeodesicDOF * 2 * nActive); ++i) {
             // We do not want to mess with the actual state, so we make a copy.
             const State sCopy = s;
             system.realize(sCopy, Stage::Position);
