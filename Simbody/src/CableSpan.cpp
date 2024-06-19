@@ -27,15 +27,28 @@ using namespace SimTK;
 //==============================================================================
 //                            Data Structures
 //==============================================================================
-// The following section contains data structures that are cached during a
-// simulation.
+// The following section contains the data structures used in the algorithm.
 namespace
 {
 
 using ObstacleIndex = CableSpanObstacleIndex;
 
+// Number of degrees of freedom of a general geodesic.
+constexpr int c_GeodesicDOF          = 4;
+
 //------------------------------------------------------------------------------
-//                          Struct Line Segment
+//  Natural Geodesic Corrections
+//------------------------------------------------------------------------------
+// Natural geodesic corrections represent the coordinates along which we can
+// change a geodesic. The elements, in order, are (see Scholz2015):
+// - Tangential correction of initial contact point,
+// - Binormal correction of initial contact point,
+// - Directional correction of initial contact tangent,
+// - Lengthening correction of geodesic
+using NaturalGeodesicCorrection = Vec<c_GeodesicDOF>;
+
+//------------------------------------------------------------------------------
+//  Struct Line Segment
 //------------------------------------------------------------------------------
 /* Representation of a cable segment that does not lie on a surface: A straight
 line. */
@@ -53,7 +66,7 @@ struct LineSegment final
 };
 
 //------------------------------------------------------------------------------
-//                          Wrapping Status
+//  Wrapping Status
 //------------------------------------------------------------------------------
 /** This enum gives the wrapping status for the CurveSegment of a cable path
 that lies on an obstacle. */
@@ -73,7 +86,7 @@ enum class ObstacleWrappingStatus
 };
 
 //------------------------------------------------------------------------------
-//                            Frenet Frame
+//  Frenet Frame
 //------------------------------------------------------------------------------
 /* The frenet frame plays an important role in defining the state of a geodesic.
 In the end it is simply a Transform, which is why we define it as an alias.
@@ -90,7 +103,7 @@ static const CoordinateAxis NormalAxis   = CoordinateAxis::YCoordinateAxis();
 static const CoordinateAxis BinormalAxis = CoordinateAxis::ZCoordinateAxis();
 
 //------------------------------------------------------------------------------
-//                         Struct MatrixWorkspace
+//  Struct MatrixWorkspace
 //------------------------------------------------------------------------------
 /* This is a helper struct that is used by a CableSpan to compute the
 Stage::Position level data, i.e. the spanned path.
@@ -99,20 +112,17 @@ matrices need to be computed. This struct provides the required matrices.
 After computing the path this data is no longer needed by the CableSpan. */
 struct MatrixWorkspace
 {
-    // Number of degrees of freedom of a geodesic.
-    static constexpr int GEODESIC_DOF = 4;
-
     // Number of path error constraints per curve segment.
-    static constexpr int NUMBER_OF_CONSTRAINTS = 4;
+    static constexpr int c_NumberOfConstraints = 4;
 
     // Given the number of CurveSegments that are in contact with their
     // respective obstacle's surface, contruct a MatrixWorkspace of correct
     // dimensions.
     explicit MatrixWorkspace(int problemSize) : nObstaclesInContact(problemSize)
     {
-        static constexpr int Q = GEODESIC_DOF;
+        static constexpr int Q = c_GeodesicDOF;
         // 4 for the path error, and 1 for the weighting of the length.
-        static constexpr int C = NUMBER_OF_CONSTRAINTS + 1;
+        static constexpr int C = c_NumberOfConstraints + 1;
         const int n            = problemSize;
 
         lineSegments.resize(n + 1);
@@ -128,24 +138,12 @@ struct MatrixWorkspace
     Vector pathError;
     FactorQTZ inverse;
 
-    Real maxPathError = NaN;
+    Real maxPathError       = NaN;
     int nObstaclesInContact = -1;
 };
 
 //------------------------------------------------------------------------------
-//                    Natural geodesic correction vector
-//------------------------------------------------------------------------------
-/*
-
-The elements are (in order):
-- Tangential correction of initial contact point,
-- Binormal correction of initial contact point,
-- Directional correction of initial contact tangent,
-- Lengthening correction of geodesic */
-using NaturalGeodesicCorrection = Vec<MatrixWorkspace::GEODESIC_DOF>;
-
-//------------------------------------------------------------------------------
-//                          CableSpanData
+//  CableSpanData
 //------------------------------------------------------------------------------
 /* CableSpanData is a data structure used by class CableSpan::Impl to store
 relevant quantities in the State's cache.
@@ -223,7 +221,7 @@ struct CableSpanData
 };
 
 //------------------------------------------------------------------------------
-//                          CurveSegmentData
+//  CurveSegmentData
 //------------------------------------------------------------------------------
 /** CurveSegmentData is a data structure used by class CurveSegment to store
 relevent quantities in the State's cache.
@@ -415,6 +413,9 @@ bool isPointAboveSurface(const ContactGeometry& geometry, const Vec3& point_S)
 class CableSubsystem::Impl : public Subsystem::Guts
 {
 public:
+    //--------------------------------------------------------------------------
+    //  Interface Translation Functions
+    //--------------------------------------------------------------------------
     CableSpanIndex adoptCable(CableSpan& cable)
     {
         invalidateSubsystemTopologyCache();
@@ -435,7 +436,6 @@ public:
 
     const CableSpan::Impl& getCableImpl(CableSpanIndex index) const;
 
-    // Return the MultibodySystem which owns this WrappingPathSubsystem.
     const MultibodySystem& getMultibodySystem() const
     {
         return MultibodySystem::downcast(getSystem());
@@ -444,6 +444,9 @@ public:
     SimTK_DOWNCAST(Impl, Subsystem::Guts);
 
 private:
+    //--------------------------------------------------------------------------
+    //  Subsystem::Guts Virtual Interface
+    //--------------------------------------------------------------------------
     Impl* cloneImpl() const override
     {
         return new Impl(*this);
@@ -456,9 +459,14 @@ private:
         Stage stage,
         Array_<DecorativeGeometry>& decorations) const override;
 
-    // TOPOLOGY STATE
+    //--------------------------------------------------------------------------
+    //  Data
+    //--------------------------------------------------------------------------
+
+    // All cables in this subsystem.
     Array_<CableSpan, CableSpanIndex> cables;
 
+    //--------------------------------------------------------------------------
     friend CableSubsystemTestHelper;
 };
 
@@ -509,6 +517,23 @@ public:
     void invalidatePosEntry(const State& state) const
     {
         getSubsystem().markCacheValueNotRealized(state, indexDataPos);
+    }
+
+    const CurveSegmentData::Instance& getDataInst(const State& state) const
+    {
+        const CableSubsystem& subsystem = getSubsystem();
+        if (!subsystem.isDiscreteVarUpdateValueRealized(state, indexDataInst)) {
+            updDataInst(state) = getPrevDataInst(state);
+            subsystem.markDiscreteVarUpdateValueRealized(state, indexDataInst);
+        }
+        return Value<CurveSegmentData::Instance>::downcast(
+            subsystem.getDiscreteVarUpdateValue(state, indexDataInst));
+    }
+
+    const CurveSegmentData::Pos& getDataPos(const State& state) const
+    {
+        return Value<CurveSegmentData::Pos>::downcast(
+            getSubsystem().getCacheEntry(state, indexDataPos));
     }
 
     //------------------------------------------------------------------------------
@@ -597,25 +622,6 @@ public:
     }
 
     //------------------------------------------------------------------------------
-
-    const CurveSegmentData::Instance& getDataInst(const State& state) const
-    {
-        const CableSubsystem& subsystem = getSubsystem();
-        if (!subsystem.isDiscreteVarUpdateValueRealized(state, indexDataInst)) {
-            updDataInst(state) = getPrevDataInst(state);
-            subsystem.markDiscreteVarUpdateValueRealized(state, indexDataInst);
-        }
-        return Value<CurveSegmentData::Instance>::downcast(
-            subsystem.getDiscreteVarUpdateValue(state, indexDataInst));
-    }
-
-    const CurveSegmentData::Pos& getDataPos(const State& state) const
-    {
-        return Value<CurveSegmentData::Pos>::downcast(
-            getSubsystem().getCacheEntry(state, indexDataPos));
-    }
-
-    //------------------------------------------------------------------------------
     //                           Utility functions.
     //------------------------------------------------------------------------------
 
@@ -645,9 +651,8 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    //                          Accessing CableSpan::Impl
+    //  Helper Functions Using Back-Reference CableSpan::Impl
     //------------------------------------------------------------------------------
-    // These are defined after declaring CableSpan::Impl.
 
     const IntegratorTolerances& getIntegratorTolerances() const;
 
@@ -685,7 +690,7 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    //                  Updating CurveSegmentData::Instance Helpers
+    //  Updating CurveSegmentData::Instance Helpers
     //------------------------------------------------------------------------------
 
     // Compute a new geodesic from provided initial conditions.
@@ -863,7 +868,7 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    //                 Computing CurveSegmentData Cache
+    //  Computing CurveSegmentData Cache
     //------------------------------------------------------------------------------
 
     void setContactWithSurfaceToDisabled(const State& state) const
@@ -886,9 +891,51 @@ public:
         updPrevDataInst(state) = getDataInst(state);
     }
 
+    // Apply the correction to the initial condition of the geodesic, and
+    // shoot a new geodesic, updating the cache variable.
+    void applyGeodesicCorrection(
+        const State& state,
+        const NaturalGeodesicCorrection& c) const
+    {
+        // Get the previous geodesic.
+        const CurveSegmentData::Instance& dataInst = getDataInst(state);
+
+        // Frenet frame at initial contact point.
+        const FrenetFrame& X_SP = dataInst.X_SP;
+        const UnitVec3& t       = getTangent(X_SP);
+        const UnitVec3& n       = getNormal(X_SP);
+        const UnitVec3& b       = getBinormal(X_SP);
+
+        const Real tau   = dataInst.torsion_P;
+        const Real kappa = dataInst.curvatures_P[0];
+
+        // Get corrected initial conditions.
+        const Vec3 dx               = t * c[0] + b * c[1];
+        const Vec3 correctedPoint_S = X_SP.p() + dx;
+
+        const Vec3 w = (kappa * c[0] - tau * c[1]) * b - c[2] * n;
+        const Vec3 correctedTangent_S = t + cross(w, t);
+
+        // Take the length correction, and add to the current length.
+        const Real dl = c[3]; // Length increment is the last element.
+        const Real correctedLength = std::max(
+            dataInst.length + dl,
+            0.); // Clamp length to be nonnegative.
+
+        // Shoot the new geodesic.
+        shootNewGeodesic(
+            correctedPoint_S,
+            correctedTangent_S,
+            correctedLength,
+            dataInst.integratorInitialStepSize,
+            updDataInst(state));
+
+        getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
+        invalidatePosEntry(state);
+    }
+
     // Helper function for computing the initial wrapping path as a zero length
     // geodesic.
-    // TODO use the first four stages?
     void calcInitCurve(const State& state) const
     {
         // The first integrator stepsize to attempt is a bit arbitrary: Taking
@@ -987,49 +1034,6 @@ public:
         liftCurveFromSurface(dataInst.X_SP.p(), updDataInst(state));
     }
 
-    // Apply the correction to the initial condition of the geodesic, and
-    // shoot a new geodesic, updating the cache variable.
-    void applyGeodesicCorrection(
-        const State& state,
-        const NaturalGeodesicCorrection& c) const
-    {
-        // Get the previous geodesic.
-        const CurveSegmentData::Instance& dataInst = getDataInst(state);
-
-        // Frenet frame at initial contact point.
-        const FrenetFrame& X_SP = dataInst.X_SP;
-        const UnitVec3& t       = getTangent(X_SP);
-        const UnitVec3& n       = getNormal(X_SP);
-        const UnitVec3& b       = getBinormal(X_SP);
-
-        const Real tau   = dataInst.torsion_P;
-        const Real kappa = dataInst.curvatures_P[0];
-
-        // Get corrected initial conditions.
-        const Vec3 dx               = t * c[0] + b * c[1];
-        const Vec3 correctedPoint_S = X_SP.p() + dx;
-
-        const Vec3 w = (kappa * c[0] - tau * c[1]) * b - c[2] * n;
-        const Vec3 correctedTangent_S = t + cross(w, t);
-
-        // Take the length correction, and add to the current length.
-        const Real dl = c[3]; // Length increment is the last element.
-        const Real correctedLength = std::max(
-            dataInst.length + dl,
-            0.); // Clamp length to be nonnegative.
-
-        // Shoot the new geodesic.
-        shootNewGeodesic(
-            correctedPoint_S,
-            correctedTangent_S,
-            correctedLength,
-            dataInst.integratorInitialStepSize,
-            updDataInst(state));
-
-        getSubsystem().markDiscreteVarUpdateValueRealized(state, indexDataInst);
-        invalidatePosEntry(state);
-    }
-
     const CurveSegmentData::Instance& calcDataInst(const State& state) const
     {
         // Update the CurveSegmentData::Instance cache depending on the current
@@ -1078,8 +1082,9 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    //                 Generating Geodesic Points For Visualization
+    //  Generating Geodesic Points For Visualization
     //------------------------------------------------------------------------------
+
     void calcGeodesicKnots(
         const State& state,
         const std::function<void(
@@ -1143,6 +1148,11 @@ public:
     }
 
 private:
+
+    //------------------------------------------------------------------------------
+    // Private Cache Access.
+    //------------------------------------------------------------------------------
+
     CurveSegmentData::Instance& updDataInst(const State& state) const
     {
         return Value<CurveSegmentData::Instance>::updDowncast(
@@ -1168,13 +1178,15 @@ private:
     }
 
     //------------------------------------------------------------------------------
+    // Data
+    //------------------------------------------------------------------------------
 
     // Subsystem info.
-    CableSubsystem* m_Subsystem;
+    CableSubsystem* m_Subsystem = nullptr;
     // The index of this CurveSegment's cable in the CableSubsystem.
-    CableSpanIndex m_CableIndex;
+    CableSpanIndex m_CableIndex = CableSpanIndex::Invalid();
     // The index of this CurveSegment's obstacle in the cable.
-    ObstacleIndex m_obstacleIndex;
+    ObstacleIndex m_obstacleIndex = ObstacleIndex::Invalid();
 
     // MobilizedBody that surface is attached to.
     MobilizedBodyIndex m_Body;
@@ -1191,12 +1203,13 @@ private:
     // Initial contact point hint used to setup the initial path.
     Vec3 m_ContactPointHint_S{NaN, NaN, NaN};
 
+    //------------------------------------------------------------------------------
     // Helper class for unit tests.
     friend CableSubsystemTestHelper;
 };
 
 //==============================================================================
-//                      APPLYING GEODESIC CORRECTIONS
+//                      TODO
 //==============================================================================
 
 namespace
@@ -1599,15 +1612,15 @@ private:
     //------------------------------------------------------------------------------
     Vec3 calcOriginPointInGround(const State& state) const
     {
-        return
-        getOriginBody().getBodyTransform(state).shiftFrameStationToBase(
-                m_OriginPoint);
+        return getOriginBody().getBodyTransform(state).shiftFrameStationToBase(
+            m_OriginPoint);
     }
 
     Vec3 calcTerminationPointInGround(const State& state) const
     {
-        return getTerminationBody().getBodyTransform(state).shiftFrameStationToBase(
-                m_TerminationPoint);
+        return getTerminationBody()
+            .getBodyTransform(state)
+            .shiftFrameStationToBase(m_TerminationPoint);
     }
 
     //------------------------------------------------------------------------------
@@ -2128,7 +2141,7 @@ void calcPathErrorJacobian(
     Matrix& J)
 {
     // Number of free coordinates for a generic geodesic.
-    constexpr int NQ = MatrixWorkspace::GEODESIC_DOF;
+    constexpr int NQ = c_GeodesicDOF;
 
     const int numberOfCurvesInContact = lines.size() - 1;
 
@@ -2139,7 +2152,7 @@ void calcPathErrorJacobian(
         "Invalid number of columns in jacobian matrix");
     SimTK_ASSERT(
         J.rows() ==
-            numberOfCurvesInContact * MatrixWorkspace::NUMBER_OF_CONSTRAINTS,
+            numberOfCurvesInContact * MatrixWorkspace::c_NumberOfConstraints,
         "Invalid number of columns in jacobian matrix");
 
     // Current indexes to write the elements of the jacobian to,
@@ -2212,18 +2225,6 @@ void calcPathErrorJacobian(
 namespace
 {
 
-constexpr int GEODESIC_DOF          = MatrixWorkspace::GEODESIC_DOF;
-constexpr int NUMBER_OF_CONSTRAINTS = MatrixWorkspace::NUMBER_OF_CONSTRAINTS;
-
-// Natural geodesic correction vector.
-//
-// The elements are (in order):
-// - Tangential correction of initial contact point,
-// - Binormal correction of initial contact point,
-// - Directional correction of initial contact tangent,
-// - Lengthening correction of geodesic
-using Correction = Vec<GEODESIC_DOF>;
-
 // Solve for the geodesic corrections by attempting to set the path error to
 // zero. We call this after having filled in the pathError vector and pathError
 // jacobian in the MatrixWorkspace. The result is a vector of Corrections for
@@ -2233,8 +2234,8 @@ void calcPathCorrections(MatrixWorkspace& data)
     // TODO add explanation...
     // Add a cost to changing the length.
     for (int i = 0; i < data.nObstaclesInContact; ++i) {
-        int r = data.nObstaclesInContact * NUMBER_OF_CONSTRAINTS + i;
-        int c = GEODESIC_DOF * (i + 1) - 1;
+        int r = data.nObstaclesInContact * MatrixWorkspace::c_NumberOfConstraints + i;
+        int c = c_GeodesicDOF * (i + 1) - 1;
         data.pathErrorJacobian.set(r, c, data.maxPathError);
     }
 
@@ -2244,16 +2245,16 @@ void calcPathCorrections(MatrixWorkspace& data)
 }
 
 // Obtain iterator over the Correction per curve segment.
-const Correction* getPathCorrections(const MatrixWorkspace& data)
+const NaturalGeodesicCorrection* getPathCorrections(const MatrixWorkspace& data)
 {
     static_assert(
-        sizeof(Correction) == sizeof(Real) * GEODESIC_DOF,
+        sizeof(NaturalGeodesicCorrection) == sizeof(Real) * c_GeodesicDOF,
         "Invalid size of geodesic correction.");
     if (data.pathCorrection.size() * sizeof(Real) !=
-        data.nObstaclesInContact * sizeof(Correction)) {
+        data.nObstaclesInContact * sizeof(NaturalGeodesicCorrection)) {
         throw std::runtime_error("Invalid size of path corrections vector.");
     }
-    return reinterpret_cast<const Correction*>(&data.pathCorrection[0]);
+    return reinterpret_cast<const NaturalGeodesicCorrection*>(&data.pathCorrection[0]);
 }
 
 } // namespace
@@ -2262,8 +2263,7 @@ const Correction* getPathCorrections(const MatrixWorkspace& data)
 //                      CABLE SPAN POSITION LEVEL CACHE
 //==============================================================================
 
-const MatrixWorkspace& CableSpan::Impl::calcDataInst(
-    const State& s) const
+const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 {
     CableSpanData::Instance& dataInst = updDataInst(s);
 
@@ -2297,7 +2297,12 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(
     data.maxPathError = 0.;
 
     // Compute the straight-line segments of this cable span.
-    calcLineSegments(*this, s, calcOriginPointInGround(s), calcTerminationPointInGround(s), data.lineSegments);
+    calcLineSegments(
+        *this,
+        s,
+        calcOriginPointInGround(s),
+        calcTerminationPointInGround(s),
+        data.lineSegments);
 
     // If the path contains no curved segments it is a straight line.
     if (nActive == 0) {
@@ -2307,15 +2312,11 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(
     // Evaluate the current path error as the misalignment of the straight
     // line segments with the curve segment's tangent vectors at the
     // contact points.
-    calcPathErrorVector<2>(
-            *this,
-            s,
-            data.lineSegments,
-            axes,
-            data.pathError);
+    calcPathErrorVector<2>(*this, s, data.lineSegments, axes, data.pathError);
     data.maxPathError = data.pathError.normInf();
 
-    // Only proceed with computing the jacobian and geodesic corrections if the path error is large.
+    // Only proceed with computing the jacobian and geodesic corrections if the
+    // path error is large.
     if (data.maxPathError < getParameters().m_PathAccuracy) {
         data.pathCorrection *= 0.;
         return data;
@@ -2324,11 +2325,11 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(
     // Evaluate the path error jacobian to the natural geodesic corrections
     // of each curve segment.
     calcPathErrorJacobian<2>(
-            *this,
-            s,
-            data.lineSegments,
-            axes,
-            data.pathErrorJacobian);
+        *this,
+        s,
+        data.lineSegments,
+        axes,
+        data.pathErrorJacobian);
 
     // Compute the geodesic corrections for each curve segment: This gives
     // us a correction vector in a direction that reduces the path error.
@@ -2337,25 +2338,25 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(
     // Compute the maximum allowed step size that we take along the
     // correction vector.
     Real stepSize            = 1.;
-    const Correction* corrIt = getPathCorrections(data);
+    const NaturalGeodesicCorrection* corrIt = getPathCorrections(data);
     forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
-            // Each curve segment will evaluate if the stepsize is not too large given the local curvature.
-            calcMaxAllowedCorrectionStepSize(
-                    curve,
-                    s,
-                    *corrIt,
-                    getParameters().m_MaxCorrectionStepDeg,
-                    stepSize);
-            ++corrIt;
-            });
+        // Each curve segment will evaluate if the stepsize is not too large
+        // given the local curvature.
+        calcMaxAllowedCorrectionStepSize(
+            curve,
+            s,
+            *corrIt,
+            getParameters().m_MaxCorrectionStepDeg,
+            stepSize);
+        ++corrIt;
+    });
     // Apply the maximum stepsize to the corrections.
     data.pathCorrection *= stepSize;
 
     return data;
 }
 
-const CableSpanData::Pos& CableSpan::Impl::calcDataPos(const State& s)
-    const
+const CableSpanData::Pos& CableSpan::Impl::calcDataPos(const State& s) const
 {
     CableSpanData::Pos& dataPos = updDataPos(s);
 
@@ -2370,18 +2371,19 @@ const CableSpanData::Pos& CableSpan::Impl::calcDataPos(const State& s)
         // - No obstacles in contact with path: Path is straight line.
         // - Converged: No significant correction.
         // - Not converged: Max iterations has been reached.
-        if (data.nObstaclesInContact == 0
-            || data.pathCorrection.normInf() < 1e-16
-            || dataPos.loopIter >= getParameters().m_SolverMaxIterations) {
+        if (data.nObstaclesInContact == 0 ||
+            data.pathCorrection.normInf() < 1e-16 ||
+            dataPos.loopIter >= getParameters().m_SolverMaxIterations) {
             // Update cache entry and stop solver.
             dataPos.pathError = data.maxPathError;
-            dataPos.cableLength = calcTotalCableLength(*this, s, data.lineSegments);
+            dataPos.cableLength =
+                calcTotalCableLength(*this, s, data.lineSegments);
             dataPos.originTangent_G      = data.lineSegments.front().direction;
             dataPos.terminationTangent_G = data.lineSegments.back().direction;
             break;
         }
 
-        const Correction* corrIt = getPathCorrections(data);
+        const NaturalGeodesicCorrection* corrIt = getPathCorrections(data);
         forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
             curve.applyGeodesicCorrection(s, *corrIt);
             ++corrIt;
@@ -2439,7 +2441,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
         // of a geodesic correction. There are 4 DOF for each geodesic, and
         // just to be sure we apply a negative and positive perturbation along
         // each DOF of each geodesic.
-        for (int i = 0; i < (MatrixWorkspace::GEODESIC_DOF * 2 * nActive);
+        for (int i = 0; i < (c_GeodesicDOF * 2 * nActive);
              ++i) {
             // We do not want to mess with the actual state, so we make a copy.
             const State sCopy = s;
@@ -2497,13 +2499,11 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                     curve.getDataInst(sCopy).wrappingStatus);
             }
 
-            const Correction* corrIt = getPathCorrections(data);
+            const NaturalGeodesicCorrection* corrIt = getPathCorrections(data);
             cable.forEachActiveCurveSegment(
                 sCopy,
                 [&](const CurveSegment& curve) {
-                    curve.applyGeodesicCorrection(
-                        sCopy,
-                        *corrIt);
+                    curve.applyGeodesicCorrection(sCopy, *corrIt);
                     ++corrIt;
                 });
 
@@ -2581,7 +2581,8 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
 //                          CableSubsystem::Impl
 //==============================================================================
 
-const CableSpan::Impl& CableSubsystem::Impl::getCableImpl(CableSpanIndex index) const
+const CableSpan::Impl& CableSubsystem::Impl::getCableImpl(
+    CableSpanIndex index) const
 {
     return getCable(index).getImpl();
 }
