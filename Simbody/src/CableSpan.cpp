@@ -2550,7 +2550,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             const Real predictionError =
                 (predictedPathError - data.pathError).norm();
 
-            bool passedTest = predictionError / perturbation <= bound;
+            bool passedTest = std::abs(predictionError / perturbation) <= bound;
             if (!passedTest) {
                 os << "FAILED perturbation test for correction = "
                    << data.pathCorrection << "\n";
