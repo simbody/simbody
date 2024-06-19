@@ -1665,83 +1665,6 @@ private:
         lengthDot += dot(e_G, v_GP - v_GQ);
     }
 
-public:
-    //------------------------------------------------------------------------------
-    //                      HELPER FUNCTIONS
-    //------------------------------------------------------------------------------
-
-    // Find the last contact point before the given curve segment, skipping
-    // over any that are not in contact with their respective obstacle's
-    // surface.
-    Vec3 findPrevPoint(const State& state, ObstacleIndex ix) const
-    {
-        // Check if there is a curve segment preceding given obstacle.
-        const CurveSegment* prevCurve = findPrevActiveCurveSegment(state, ix);
-        if (prevCurve) {
-            // If so, the previous point is the final contact point of the
-            // previous curve.
-            const Vec3& finalContactPoint_S =
-                prevCurve->getDataInst(state).X_SQ.p();
-            // Transform the contact point to ground.
-            const Transform& X_GS = prevCurve->calcSurfaceFrameInGround(state);
-            return X_GS.shiftFrameStationToBase(finalContactPoint_S);
-        }
-        // There are no curve segments before given obstacle: the previous point
-        // is the path's origin point.
-        return getOriginBody().getBodyTransform(state).shiftFrameStationToBase(
-            m_OriginPoint);
-    }
-
-    // TODO DESCRIPTION
-    Vec3 findNextPoint(const State& state, ObstacleIndex ix) const
-    {
-        // Check if there is a curve segment after given obstacle.
-        const CurveSegment* nextCurve = findNextActiveCurveSegment(state, ix);
-        if (nextCurve) {
-            // If so, the next point is the initial contact point of the next
-            // curve.
-            const Vec3& initialContactPoint_S =
-                nextCurve->getDataInst(state).X_SP.p();
-            // Transform the contact point to ground.
-            const Transform& X_GS = nextCurve->calcSurfaceFrameInGround(state);
-            return X_GS.shiftFrameStationToBase(initialContactPoint_S);
-        };
-        // There are no curve segments following given obstacle: the next point
-        // is the path's termination point.
-        return getTerminationBody()
-            .getBodyTransform(state)
-            .shiftFrameStationToBase(m_TerminationPoint);
-    }
-    // Similarly find the first curve segment before the given curve segment.
-    const CurveSegment* findPrevActiveCurveSegment(
-        const State& state,
-        ObstacleIndex ix) const
-    {
-        for (int i = ix - 1; i >= 0; --i) {
-            // Find the active segment before the current.
-            if (m_CurveSegments.at(ObstacleIndex(i))
-                    .isInContactWithSurface(state)) {
-                return &m_CurveSegments.at(ObstacleIndex(i));
-            }
-        }
-        return nullptr;
-    }
-
-    // Similarly find the first curve segment after the given curve segment.
-    const CurveSegment* findNextActiveCurveSegment(
-        const State& state,
-        ObstacleIndex ix) const
-    {
-        // Find the active segment after the current.
-        for (int i = ix + 1; i < m_CurveSegments.size(); ++i) {
-            if (m_CurveSegments.at(ObstacleIndex(i))
-                    .isInContactWithSurface(state)) {
-                return &m_CurveSegments.at(ObstacleIndex(i));
-            }
-        }
-        return nullptr;
-    }
-
 private:
     //------------------------------------------------------------------------------
 
@@ -2231,43 +2154,53 @@ void calcPathErrorJacobian(
     };
 
     auto linesIt = lines.begin();
-    for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
-        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
-        if (!curve.isInContactWithSurface(s)) {
-            continue;
-        }
-
-        const LineSegment& l_P = *linesIt;
-        const LineSegment& l_Q = *++linesIt;
-
-        const CurveSegment* prev = cable.findPrevActiveCurveSegment(s, ix);
-        const CurveSegment* next = cable.findNextActiveCurveSegment(s, ix);
+    cable.forEachActiveCurveSegment(s, [&](const CurveSegment& curve) {
 
         const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
         for (CoordinateAxis axis : axes) {
             const UnitVec3 a_P = dataPos.X_GP.R().getAxisUnitVec(axis);
+            const LineSegment& l_P = *linesIt;
 
             AddBlock(calcJacobianOfPathErrorAtP(curve, s, l_P, a_P));
 
-            if (prev) {
-                AddBlock(calcJacobianOfNextPathError(*prev, s, l_P, a_P), -NQ);
+            const ObstacleIndex prevObsIx =
+                curve.findPrevObstacleInContactWithCable(s);
+            if (prevObsIx.isValid()) {
+                AddBlock(
+                    calcJacobianOfNextPathError(
+                        cable.getObstacleCurveSegment(prevObsIx),
+                        s,
+                        l_P,
+                        a_P),
+                    -NQ);
             }
             ++row;
         }
 
+        ++linesIt;
+
         for (CoordinateAxis axis : axes) {
             const UnitVec3 a_Q = dataPos.X_GQ.R().getAxisUnitVec(axis);
+            const LineSegment& l_Q = *linesIt;
 
             AddBlock(calcJacobianOfPathErrorAtQ(curve, s, l_Q, a_Q));
 
-            if (next) {
-                AddBlock(calcJacobianOfPrevPathError(*next, s, l_Q, a_Q), NQ);
+            const ObstacleIndex nextObsIx =
+                curve.findNextObstacleInContactWithCable(s);
+            if (nextObsIx.isValid()) {
+                AddBlock(
+                    calcJacobianOfPrevPathError(
+                        cable.getObstacleCurveSegment(nextObsIx),
+                        s,
+                        l_Q,
+                        a_Q),
+                    NQ);
             }
             ++row;
         }
 
         col += NQ;
-    };
+    });
 }
 
 } // namespace
