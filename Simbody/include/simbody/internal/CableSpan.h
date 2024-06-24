@@ -47,7 +47,10 @@ that must be wrapped over.
 
 TODO add description (similar to CablePath, depending on how things develop).
 
-NOTE: The interaction with the obstacles is **ordered**. The cable can wrap over the obstacles in the order that they are added. This means that the cable can not wrap over the first obstacle twice, even though it might spatially intersect it twice.
+NOTE: The interaction with the obstacles is **ordered**. The cable can wrap over
+the obstacles in the order that they are added. This means that the cable can
+not wrap over the first obstacle twice, even though it might spatially intersect
+it twice.
 
 Algorithm details can be found in the following publication:
 
@@ -56,15 +59,14 @@ Algorithm details can be found in the following publication:
     Dynamics 36, 195–219.
 
 **/
-class SimTK_SIMBODY_EXPORT CableSpan final
-{
+class SimTK_SIMBODY_EXPORT CableSpan final {
 public:
     /** Construct a new cable that can be configured later. **/
     CableSpan();
     /** Delete the cable if this handle was the last reference to it. **/
-    ~CableSpan() noexcept                         = default;
+    ~CableSpan() noexcept = default;
     /** Copy constructor is shallow and reference counted. **/
-    CableSpan(const CableSpan& source)            = default;
+    CableSpan(const CableSpan& source) = default;
     /** Copy assignment is shallow and reference counted. **/
     CableSpan& operator=(const CableSpan& source) = default;
     CableSpan(CableSpan&&) noexcept               = default;
@@ -90,7 +92,8 @@ public:
         const Vec3& terminationPoint_B);
 
     /** Add an obstacle to the cable's path that must be wrapped over.
-    @param obstacleBody The body that the contact geometry is rigidly attached to.
+    @param obstacleBody The body that the contact geometry is rigidly attached
+    to.
     @param X_BS Transform specifying the location and orientation of the
     contact geometry's origin frame with respect to the mobilized body.
     @param obstacleGeometry The geometry of the obstacle's surface.
@@ -129,19 +132,23 @@ public:
     @param ix The index of the obstacle in this CableSpan.
     @return The orientation and position of the obstacle's surface with respect
     to it's mobilized body. **/
-    const Transform& getObstacleXformSurfaceToBody(CableSpanObstacleIndex ix) const;
+    const Transform& getObstacleXformSurfaceToBody(
+        CableSpanObstacleIndex ix) const;
 
     /** Set the orientation and position of the obstacle's surface with respect
     to its mobilized body.
     @param ix The index of the obstacle in this CableSpan.
     @param X_BS The orientation and position of the obstacle's surface with
     respect to it's mobilized body. **/
-    void setObstacleXformSurfaceToBody(CableSpanObstacleIndex ix, const Transform& X_BS);
+    void setObstacleXformSurfaceToBody(
+        CableSpanObstacleIndex ix,
+        const Transform& X_BS);
 
     /** Get the obstacle's ContactGeometry.
     @param ix The index of the obstacle in this CableSpan.
     @return The obstacle's surface geometry. **/
-    const ContactGeometry& getObstacleContactGeometry(CableSpanObstacleIndex ix) const;
+    const ContactGeometry& getObstacleContactGeometry(
+        CableSpanObstacleIndex ix) const;
 
     /** Set the obstacle's ContactGeometry.
     @param ix The index of the obstacle in this CableSpan.
@@ -170,7 +177,8 @@ public:
     State must be realized to Stage::Position.
     @param state State of the system.
     @param ix The index of the obstacle in this CableSpan. **/
-    bool isInContactWithObstacle(const State& state, CableSpanObstacleIndex ix) const;
+    bool isInContactWithObstacle(const State& state, CableSpanObstacleIndex ix)
+        const;
 
     /** Compute knot points of the curve segment (i.e. the geodesic) on the
     obstacle in local coordinates, together with the transform for conversion to
@@ -194,7 +202,9 @@ public:
     will invalidate Stage::Position and later stages.
     @param state State of the system.
     @param ix The index of the obstacle in this CableSpan. **/
-    void setObstacleContactDisabled(const State& state, CableSpanObstacleIndex ix) const;
+    void setObstacleContactDisabled(
+        const State& state,
+        CableSpanObstacleIndex ix) const;
 
     /** Enable contact between the obstacle and this CableSpan.
     State must be realized to Stage::Instance.
@@ -202,7 +212,9 @@ public:
     will invalidate Stage::Position and later stages.
     @param state State of the system.
     @param ix The index of the obstacle in this CableSpan. **/
-    void setObstacleContactEnabled(const State& state, CableSpanObstacleIndex ix) const;
+    void setObstacleContactEnabled(
+        const State& state,
+        CableSpanObstacleIndex ix) const;
 
     /** Get the tolerance used to enfore the surface constraints of all
     obstacles. **/
@@ -293,7 +305,7 @@ public:
      * normally auto-updated after completing an integrator step. **/
     void storeCurrentPath(State& state) const;
 
-/** @cond **/ // Hide from Doxygen.
+    /** @cond **/ // Hide from Doxygen.
     class Impl;
 
 private:
@@ -313,7 +325,7 @@ private:
 
     // Befriend the helper class for testing the implementation.
     friend CableSubsystemTestHelper;
-/** @endcond **/
+    /** @endcond **/
 };
 
 //==============================================================================
@@ -321,8 +333,7 @@ private:
 //==============================================================================
 /** TODO add description (similar to CableTrackerSubsystem, depending on how
 things develop). **/
-class SimTK_SIMBODY_EXPORT CableSubsystem : public Subsystem
-{
+class SimTK_SIMBODY_EXPORT CableSubsystem : public Subsystem {
 public:
     CableSubsystem();
     explicit CableSubsystem(MultibodySystem&);
@@ -358,8 +369,7 @@ public:
 //==============================================================================
 // TODO move this elsewhere?
 // Helper class for testing the internally computed path error jacboian.
-class SimTK_SIMBODY_EXPORT CableSubsystemTestHelper
-{
+class SimTK_SIMBODY_EXPORT CableSubsystemTestHelper {
 public:
     CableSubsystemTestHelper() = default;
 

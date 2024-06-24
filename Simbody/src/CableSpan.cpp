@@ -58,8 +58,7 @@ using NaturalGeodesicCorrection = Vec<c_GeodesicDOF>;
 //------------------------------------------------------------------------------
 /* Representation of a cable segment that does not lie on a surface: A straight
 line. */
-struct LineSegment final
-{
+struct LineSegment final {
     LineSegment() = default;
 
     // Construct a new LineSegment connecting pointA and pointB.
@@ -117,8 +116,7 @@ Computing the path involves a Newton type iteration, for which several
 matrices need to be computed. This struct provides the required matrices with
 appropriate dimensions. After computing the path this data is no longer needed
 by the CableSpan. */
-struct MatrixWorkspace
-{
+struct MatrixWorkspace {
     // Number of path error constraints per curve segment.
     static constexpr int c_NumberOfConstraints = 4;
 
@@ -176,8 +174,7 @@ stages (Stage::Instance, Stage::Position and Stage::Velocity) at which they can
 be computed.
 
 Member variables with a "_G" suffix are expressed in the Ground frame. */
-struct CableSpanData
-{
+struct CableSpanData {
     /* Cache entry for holding MatrixWorkspaces of different dimensions.
     This acts as a scratchpad when computing Stage::Position level data, during
     which the path is essentially computed. During that computation the
@@ -186,8 +183,7 @@ struct CableSpanData
     dimensions are used when compting the optimal path. After having completed
     the Stage::Position level data, the data in the MatrixWorkspaces is no
     longer used. */
-    class Instance
-    {
+    class Instance {
     public:
         Instance() = default;
 
@@ -197,8 +193,8 @@ struct CableSpanData
         {
             SimTK_ASSERT1(
                 nActive >= 0,
-                "PathSolverScratchData::updOrInsert()"
-                "Number of obstacles in contact must be larger than zero (got %d)",
+                "CableSpanData::updOrInsert()"
+                "Number of obstacles in contact must be nonnegative (got %d)",
                 nActive);
 
             // Construct all MatrixWorkspaces for up to and including the
@@ -218,8 +214,7 @@ struct CableSpanData
         // obstacles.
         std::vector<MatrixWorkspace> matrixWorkspaces;
     };
-    struct Pos final
-    {
+    struct Pos final {
         // Position of the cable origin point in the ground frame.
         Vec3 originPoint_G{NaN, NaN, NaN};
         // Position of the cable termination point in the ground frame.
@@ -236,8 +231,7 @@ struct CableSpanData
         // Number of iterations the solver used to compute the cable's path.
         int loopIter = -1;
     };
-    struct Vel final
-    {
+    struct Vel final {
         // Time derivative of the total cable length.
         Real lengthDot = NaN;
     };
@@ -261,10 +255,8 @@ Member variables with a "_G" suffix are expressed in the Ground frame.
 
 For example: point_SP would indicate the initial contact point represented and
 measured from the surface's origin frame. */
-struct CurveSegmentData
-{
-    struct Instance final
-    {
+struct CurveSegmentData {
+    struct Instance final {
         // Frenet frame at the initial contact point w.r.t. the surface frame.
         FrenetFrame X_SP{};
         // Frenet frame at the final contact point w.r.t. the surface frame.
@@ -306,8 +298,7 @@ struct CurveSegmentData
         ObstacleWrappingStatus wrappingStatus =
             ObstacleWrappingStatus::InitialGuess;
     };
-    struct Pos final
-    {
+    struct Pos final {
         // Position and orientation of contact geometry w.r.t. ground.
         Transform X_GS{};
         // Frenet frame at the initial contact point w.r.t. ground.
@@ -334,8 +325,7 @@ namespace
 when computing a new geodesic over the obstacle's surface.
 
 TODO These need reasonable default values. */
-struct IntegratorTolerances
-{
+struct IntegratorTolerances {
     Real intergatorAccuracy            = 1e-6;
     Real constraintProjectionTolerance = 1e-6;
     // TODO should be used during numerical integration as well, but not
@@ -350,8 +340,7 @@ struct IntegratorTolerances
 CableSpan.
 
 TODO These need reasonable default values. */
-struct CableSpanParameters final : IntegratorTolerances
-{
+struct CableSpanParameters final : IntegratorTolerances {
     // TODO convert to angle in degrees.
     Real m_PathAccuracy       = 1e-4;
     int m_SolverMaxIterations = 50;
@@ -436,8 +425,7 @@ bool isPointAboveSurface(const ContactGeometry& geometry, const Vec3& point_S)
 //                      Class CableSubsystem::Impl
 //==============================================================================
 // TODO DESCRIPTION
-class CableSubsystem::Impl : public Subsystem::Guts
-{
+class CableSubsystem::Impl : public Subsystem::Guts {
 public:
     //--------------------------------------------------------------------------
     //  Interface Translation Functions
@@ -505,8 +493,7 @@ curve segment related to an obstacle in the path. It manages the cached data
 related to that obstacle such as the WrappingStatus, the geodesic and the
 obstacle coordinates.
 TODO describe */
-class CurveSegment final
-{
+class CurveSegment final {
 public:
     //--------------------------------------------------------------------------
     // Constructors.
@@ -1167,8 +1154,9 @@ public:
                 getTangent(dataInst.X_SP),
                 dataInst.length,
                 std::max(numberOfKnotPoints, 2),
-                [&](const ContactGeometry::GeodesicKnotPoint&
-                        geodesicKnot_S) { sink(geodesicKnot_S, X_GS); });
+                [&](const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S) {
+                    sink(geodesicKnot_S, X_GS);
+                });
             return;
         }
 
@@ -1306,8 +1294,7 @@ void calcMaxAllowedCorrectionStepSize(
 //                         Class Cablespan::Impl
 //==============================================================================
 // TODO describe (the impl side of CableSpan)
-class CableSpan::Impl
-{
+class CableSpan::Impl {
 public:
     //--------------------------------------------------------------------------
     // Constructors.
