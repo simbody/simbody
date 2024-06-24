@@ -287,7 +287,7 @@ struct CurveSegmentData
         // For an analytic contact geometry this container will be empty.
         // Otherwise, the first and last sample will contain X_SP and X_SQ
         // defined above.
-        std::vector<ContactGeometry::ImplicitGeodesicState>
+        std::vector<ContactGeometry::GeodesicKnotPoint>
             geodesicIntegratorStates;
         // The initial integrator stepsize to try next time when shooting a
         // geodesic. This step size estimate will improve each time after
@@ -392,7 +392,7 @@ const UnitVec3& getBinormal(const FrenetFrame& X)
 // Compute the frenet frame at a knot point of a geodesic.
 FrenetFrame calcFrenetFrameFromGeodesicState(
     const ContactGeometry& geometry,
-    const ContactGeometry::ImplicitGeodesicState& q)
+    const ContactGeometry::GeodesicKnotPoint& q)
 {
     FrenetFrame X;
     X.updP() = q.point;
@@ -741,7 +741,7 @@ public:
     {
         // Shoot a new geodesic over the surface, and compute the geodesic state
         // at the first and last contact point of the surface.
-        std::array<ContactGeometry::ImplicitGeodesicState, 2>
+        std::array<ContactGeometry::GeodesicKnotPoint, 2>
             geodesicBoundaryStates;
 
         // First determine if this geometry has an analytic form.
@@ -759,7 +759,7 @@ public:
                 length,
                 numberOfKnotPoints,
                 // Copy the state at the boundary frames.
-                [&](const ContactGeometry::ImplicitGeodesicState& q) {
+                [&](const ContactGeometry::GeodesicKnotPoint& q) {
                     geodesicBoundaryStates.at(knotIx) = q;
                     ++knotIx;
                 });
@@ -777,7 +777,7 @@ public:
                 tols.intergatorAccuracy,
                 tols.constraintProjectionTolerance,
                 tols.constraintProjectionMaxIterations,
-                [&](const ContactGeometry::ImplicitGeodesicState& q) {
+                [&](const ContactGeometry::GeodesicKnotPoint& q) {
                     // Store the knot points in the cache.
                     dataInst.geodesicIntegratorStates.push_back(q);
                 });
@@ -1121,7 +1121,7 @@ public:
     void calcGeodesicKnots(
         const State& state,
         const std::function<void(
-            const ContactGeometry::ImplicitGeodesicState& geodesicKnot_S,
+            const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S,
             const Transform& X_GS)>& sink) const
     {
         if (!isInContactWithSurface(state)) {
@@ -1167,14 +1167,14 @@ public:
                 getTangent(dataInst.X_SP),
                 dataInst.length,
                 std::max(numberOfKnotPoints, 2),
-                [&](const ContactGeometry::ImplicitGeodesicState&
+                [&](const ContactGeometry::GeodesicKnotPoint&
                         geodesicKnot_S) { sink(geodesicKnot_S, X_GS); });
             return;
         }
 
         // If the surface did not have an analytic form, we simply forward the
         // knots from the GeodesicIntegrator.
-        for (const ContactGeometry::ImplicitGeodesicState& q :
+        for (const ContactGeometry::GeodesicKnotPoint& q :
              dataInst.geodesicIntegratorStates) {
             sink(q, X_GS);
         }
@@ -1541,7 +1541,7 @@ public:
         // Lambda for converting the CurveSegment's geodesic points to path
         // points in ground frame, and writing them to the provided sink.
         auto calcPathPointFromGeodesicKnotAndPushToSink =
-            [&](const ContactGeometry::ImplicitGeodesicState& geodesicKnot_S,
+            [&](const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S,
                 const Transform& X_GS) {
                 // Transform to ground frame and write to output.
                 sink(X_GS.shiftFrameStationToBase(geodesicKnot_S.point));
@@ -2840,7 +2840,7 @@ void CableSpan::calcCurveSegmentKnots(
     const State& state,
     ObstacleIndex ix,
     const std::function<void(
-        const ContactGeometry::ImplicitGeodesicState& geodesicKnot_S,
+        const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S,
         const Transform& X_GS)>& sink) const
 {
     getImpl().realizePosition(state);

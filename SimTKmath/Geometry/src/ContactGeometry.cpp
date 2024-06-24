@@ -864,7 +864,7 @@ void ContactGeometry::shootGeodesicInDirectionAnalytically(
     const Vec3& initialTangentApprox,
     Real finalArcLength,
     int numberOfKnotPoints,
-    const std::function<void(const ImplicitGeodesicState&)>&
+    const std::function<void(const GeodesicKnotPoint&)>&
         geodesicKnotPointsSink) const
 {
     return getImpl().shootGeodesicInDirectionAnalytically(
@@ -883,7 +883,7 @@ void ContactGeometry::shootGeodesicInDirectionImplicitly(
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
-    const std::function<void(const ImplicitGeodesicState&)>&
+    const std::function<void(const GeodesicKnotPoint&)>&
         geodesicKnotPointsSink) const
 {
     getImpl().shootGeodesicInDirectionImplicitly(
@@ -905,7 +905,7 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations, // TODO not connected (needs to be exposed?)
-    const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>&
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
         geodesicKnotPointsSink) const
 {
     // integrator settings
@@ -935,7 +935,7 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     int stepcnt = 0;
 
     while (true) {
-        ContactGeometry::ImplicitGeodesicState q;
+        ContactGeometry::GeodesicKnotPoint q;
         q.arcLength      = s;
         q.point          = Eqns::getP(y);
         q.tangent        = UnitVec3(Eqns::getV(y));

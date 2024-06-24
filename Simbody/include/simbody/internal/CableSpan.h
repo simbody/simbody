@@ -185,7 +185,7 @@ public:
         const State& state,
         CableSpanObstacleIndex ix,
         const std::function<void(
-            const ContactGeometry::ImplicitGeodesicState& geodesicKnot_S,
+            const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S,
             const Transform& X_GS)>& sink) const;
 
     /** Disable contact between the obstacle and this CableSpan.

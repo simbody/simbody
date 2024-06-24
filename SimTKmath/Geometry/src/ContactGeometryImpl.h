@@ -162,7 +162,7 @@ public:
         Real finalArcLength,
         int numberOfKnotPoints,
         const std::function<
-            void(const ContactGeometry::ImplicitGeodesicState&)>&
+            void(const ContactGeometry::GeodesicKnotPoint&)>&
             geodesicKnotPointsSink) const
     {
         SimTK_THROW2(Exception::UnimplementedVirtualMethod,
@@ -179,7 +179,7 @@ public:
         Real constraintTolerance,
         int maxIterations,
         const std::function<
-            void(const ContactGeometry::ImplicitGeodesicState&)>& log) const;
+            void(const ContactGeometry::GeodesicKnotPoint&)>& log) const;
 
     // Given two points and previous geodesic curve close to the points, find
     // a geodesic curve connecting the points that is close to the previous geodesic.
@@ -701,7 +701,7 @@ public:
         Real finalArcLength,
         int numberOfKnotPoints,
         const std::function<
-            void(const ContactGeometry::ImplicitGeodesicState&)>&
+            void(const ContactGeometry::GeodesicKnotPoint&)>&
             geodesicKnotPointsSink) const override;
 
     void shootGeodesicInDirectionUntilLengthReachedAnalytical

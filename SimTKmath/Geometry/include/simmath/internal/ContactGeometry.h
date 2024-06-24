@@ -122,9 +122,8 @@ class TriangleMesh;
 // TODO
 class Cone;
 
-/** The state of an implicitly defined geodesic at some point on the curve. */
-struct ImplicitGeodesicState
-{
+/** The state of a geodesic at a (knot) point along the geodesic. */
+struct GeodesicKnotPoint {
     // The length of the geodesic at this state.
     Real arcLength = NaN;
 
@@ -605,7 +604,7 @@ void shootGeodesicInDirectionAnalytically(
     const Vec3& initialTangentApprox,
     Real finalArcLength,
     int numberOfKnotPoints,
-    const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>&
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
         geodesicKnotPointsSink) const;
 
 // TODO describe
@@ -617,7 +616,7 @@ void shootGeodesicInDirectionImplicitly(
     Real integratorAccuracy,
     Real constraintTolerance,
     int maxIterations,
-    const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>&
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
         log) const;
 
 /** Given the current positions of two points P and Q moving on this surface, 

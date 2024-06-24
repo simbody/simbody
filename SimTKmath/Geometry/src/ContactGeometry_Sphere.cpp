@@ -284,7 +284,7 @@ void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically(
     const Vec3& initialTangentApprox,
     Real finalArcLength,
     int numberOfKnotPoints,
-    const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>&
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
         geodesicKnotPointsSink) const
 {
     SimTK_ERRCHK1_ALWAYS(
@@ -342,7 +342,7 @@ void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically(
     int knotIx = 0;
     while (true) {
         // Write the geodesic knot point to the sink.
-        ContactGeometry::ImplicitGeodesicState y;
+        ContactGeometry::GeodesicKnotPoint y;
         y.arcLength =
             finalArcLength * (static_cast<Real>(knotIx) /
                               static_cast<Real>(numberOfKnotPoints - 1));
