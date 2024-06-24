@@ -778,11 +778,11 @@ bool ContactGeometry::calcNearestPointOnLineImplicitly(
     Vec3& nearestPointOnLine) const
 {
     return getImpl().calcNearestPointOnLineImplicitly(
-            pointA,
-            pointB,
-            maxIterations,
-            tolerance,
-            nearestPointOnLine);
+        pointA,
+        pointB,
+        maxIterations,
+        tolerance,
+        nearestPointOnLine);
 }
 
 bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
