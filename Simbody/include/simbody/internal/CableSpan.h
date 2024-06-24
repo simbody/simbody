@@ -371,8 +371,6 @@ public:
 // Helper class for testing the internally computed path error jacboian.
 class SimTK_SIMBODY_EXPORT CableSubsystemTestHelper {
 public:
-    CableSubsystemTestHelper() = default;
-
     // Verify the computed path error jacobian by applying a small correction
     // to each CurveSegment's geodesic (i.e. a perturbation), and computing the
     // resulting change in the path error vector.
