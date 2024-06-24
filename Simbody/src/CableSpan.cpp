@@ -1318,7 +1318,7 @@ void calcMaxAllowedCorrectionStepSize(
 {
     auto UpdateMaxStepSize = [&](Real maxDisplacementEstimate, Real curvature)
     {
-        const Real maxAngle = maxAngularDisplacementInDegrees / 180. * M_PI;
+        const Real maxAngle = maxAngularDisplacementInDegrees / 180. * Pi;
         const Real maxAllowedDisplacement = maxAngle / curvature;
         const Real allowedStepSize =
             std::abs(maxAllowedDisplacement / maxDisplacementEstimate);
