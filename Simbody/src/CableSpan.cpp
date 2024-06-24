@@ -505,14 +505,15 @@ public:
         CableSubsystem* subsystem,
         CableSpanIndex cableIndex,
         ObstacleIndex obstacleIndex,
-        MobilizedBodyIndex body,
+        MobilizedBodyIndex obstacleBody,
         Transform X_BS,
-        std::shared_ptr<const ContactGeometry> geometry,
-        const Vec3& initPointGuess) :
+        std::shared_ptr<const ContactGeometry> obstacleGeometry,
+        const Vec3& contactPointHint_S) :
         m_Subsystem(subsystem),
-        m_CableIndex(cableIndex), m_obstacleIndex(obstacleIndex), m_Body(body),
-        m_X_BS(std::move(X_BS)), m_Geometry(std::move(geometry)),
-        m_ContactPointHint_S(initPointGuess)
+        m_CableIndex(cableIndex), m_obstacleIndex(obstacleIndex),
+        m_Body(obstacleBody), m_X_BS(std::move(X_BS)),
+        m_Geometry(std::move(obstacleGeometry)),
+        m_ContactPointHint_S(contactPointHint_S)
     {}
 
     //--------------------------------------------------------------------------
@@ -1484,10 +1485,10 @@ public:
     //--------------------------------------------------------------------------
 
     ObstacleIndex addSurfaceObstacle(
-        MobilizedBodyIndex mobod,
+        MobilizedBodyIndex obstacleBody,
         const Transform& X_BS,
-        std::shared_ptr<const ContactGeometry> geometry,
-        Vec3 contactPointHint)
+        std::shared_ptr<const ContactGeometry> obstacleGeometry,
+        const Vec3& contactPointHint_S)
     {
         invalidateTopology();
 
@@ -1497,10 +1498,10 @@ public:
             m_Subsystem,
             getIndex(),
             obstacleIx,
-            mobod,
+            obstacleBody,
             X_BS,
-            geometry,
-            contactPointHint));
+            std::move(obstacleGeometry),
+            contactPointHint_S));
 
         return obstacleIx;
     }
@@ -2742,23 +2743,27 @@ CableSpan::CableSpan(
     const Vec3& originPoint_B,
     MobilizedBodyIndex terminationBody,
     const Vec3& terminationPoint_B) :
-    m_Impl(std::shared_ptr<Impl>(new Impl(
+    m_Impl(new Impl(
         originBody,
         originPoint_B,
         terminationBody,
-        terminationPoint_B)))
+        terminationPoint_B))
 {
     CableSpanIndex ix = subsystem.updImpl().adoptCable(*this);
     updImpl().setSubsystem(subsystem, ix);
 }
 
 ObstacleIndex CableSpan::addSurfaceObstacle(
-    MobilizedBodyIndex body,
+    MobilizedBodyIndex obstacleBody,
     const Transform& X_BS,
-    std::shared_ptr<const ContactGeometry> geometry,
-    Vec3 contactPointHint)
+    std::shared_ptr<const ContactGeometry> obstacleGeometry,
+    const Vec3& contactPointHint_S)
 {
-    return updImpl().addSurfaceObstacle(body, X_BS, geometry, contactPointHint);
+    return updImpl().addSurfaceObstacle(
+        obstacleBody,
+        X_BS,
+        obstacleGeometry,
+        contactPointHint_S);
 }
 
 int CableSpan::getNumSurfaceObstacles() const

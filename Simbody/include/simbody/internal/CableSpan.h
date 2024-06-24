@@ -107,7 +107,7 @@ public:
         MobilizedBodyIndex obstacleBody,
         const Transform& X_BS,
         std::shared_ptr<const ContactGeometry> obstacleGeometry,
-        Vec3 contactPointHint_S);
+        const Vec3& contactPointHint_S);
 
     /** Get the number of obstacles added to the path. **/
     int getNumSurfaceObstacles() const;
