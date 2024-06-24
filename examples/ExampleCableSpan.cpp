@@ -91,7 +91,8 @@ public:
                 m_cable.getObstacleContactGeometry(ix);
             const bool isInContactWithSurface =
                 m_cable.isInContactWithObstacle(state, ix);
-            const Vec3 color = isInContactWithSurface ? Green : Gray;
+            const Vec3 color = isInContactWithSurface ? Yellow : Gray;
+            const Real opacity = isInContactWithSurface ? 1. : 0.25;
             Transform X_GB =
                 m_mbs->getMatterSubsystem()
                     .getMobilizedBody(m_cable.getObstacleMobilizedBodyIndex(ix))
@@ -101,15 +102,18 @@ public:
             decorations.push_back(m_obstacleDecorations.at(ix)
                                       .setTransform(X_GS)
                                       .setColor(color)
-                                      .setOpacity(0.25));
+                                      .setOpacity(opacity));
 
             // Draw the initial contact point hints (these are user-defined) as
-            // yellow line.
+            // an orange line with a point.
             const Vec3 x_PS = m_cable.getObstacleInitialContactPointHint(ix);
             decorations.push_back(
                 DecorativeLine(X_GS.p(), X_GS.shiftFrameStationToBase(x_PS))
-                    .setColor(Yellow)
+                    .setColor(Orange)
                     .setLineThickness(3));
+            decorations.push_back(
+                DecorativePoint(X_GS.shiftFrameStationToBase(x_PS))
+                    .setColor(Orange));
 
             if (!isInContactWithSurface) {
                 continue;
@@ -204,7 +208,7 @@ int main()
                 Vec3{-4., 0., 0.}), // Surface to body transform.
             std::shared_ptr<ContactGeometry>(
                 new ContactGeometry::Torus(1., 0.2)), // Obstacle geometry.
-            {0.1, -0.1, 0.} // Initial contact point hint.
+            {0.1, 0.2, 0.} // Initial contact point hint.
         );
 
         // Add ellipsoid obstacle.
@@ -213,14 +217,14 @@ int main()
             Transform(Vec3{-2., 0., 0.}),
             std::shared_ptr<ContactGeometry>(
                 new ContactGeometry::Ellipsoid({1.5, 2.6, 1.})),
-            {0.0, 0., 1.0});
+            {0.0, 0., 1.1});
 
         // Add sphere obstacle.
         cable.addSurfaceObstacle(
             matter.Ground(),
             Transform(Vec3{2., 0., 0.}),
             std::shared_ptr<ContactGeometry>(new ContactGeometry::Sphere(1.)),
-            {0.1, 1., 0.}
+            {0.1, 1.1, 0.}
         );
 
         // Visaulize the system.
