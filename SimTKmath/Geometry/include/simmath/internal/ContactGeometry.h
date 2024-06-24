@@ -257,6 +257,14 @@ bool trackSeparationFromLine(const Vec3& pointOnLine,
                              Vec3& closestPointOnLine,
                              Real& height) const;
 
+// Compute nearest point on the line spanned by points A-B to the surface.
+// Exits early if the point lies below the surface.
+// @param pointA Line origin point.
+// @param pointB Line termination point.
+// @param maxIterations Maximum number of solver iterations.
+// @param tolerance TODO
+// @param nearestPointOnLine The computed nearest point on the line.
+// @return Returns true if the point lies below the surface.
 bool calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,
@@ -591,6 +599,7 @@ void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
 
 bool isAnalyticFormAvailable() const;
 
+// TODO describe
 void shootGeodesicInDirectionAnalytically(
     const Vec3& initialPointApprox,
     const Vec3& initialTangentApprox,
@@ -599,6 +608,7 @@ void shootGeodesicInDirectionAnalytically(
     const std::function<void(const ContactGeometry::ImplicitGeodesicState&)>&
         geodesicKnotPointsSink) const;
 
+// TODO describe
 void shootGeodesicInDirectionImplicitly(
     const Vec3& initialPointApprox,
     const Vec3& initialTangentApprox,
