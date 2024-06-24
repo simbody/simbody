@@ -180,14 +180,10 @@ public:
     bool isInContactWithObstacle(const State& state, CableSpanObstacleIndex ix)
         const;
 
-    /** Compute knot points of the curve segment (i.e. the geodesic) on the
-    obstacle in local coordinates, together with the transform for conversion to
-    ground frame. If the cable is not in contact with the given obstacle,
-    nothing will be written.
-
-    TODO I'm unsure what kind of info we would like from the geodesics.
-    TODO it feels like access to some info on the geodesic would be nice.
-    TODO Feedback is welcome!
+    /** Compute the knot points of the curve segment (i.e. the geodesic) on the
+    obstacle in local obstacle coordinates, together with the transform for
+    conversion to ground frame. If the cable is not in contact with the given
+    obstacle, nothing will be written.
     **/
     void calcCurveSegmentKnots(
         const State& state,

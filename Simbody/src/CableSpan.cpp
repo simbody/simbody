@@ -1120,11 +1120,9 @@ public:
     //  Generating Geodesic Points For Visualization
     //------------------------------------------------------------------------------
 
-    void calcGeodesicKnots(
+    void calcDecorativePathPoints(
         const State& state,
-        const std::function<void(
-            const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S,
-            const Transform& X_GS)>& sink) const
+        const std::function<void(Vec3 point_G)>& sink) const
     {
         if (!isInContactWithSurface(state)) {
             return;
@@ -1132,6 +1130,15 @@ public:
 
         const CurveSegmentData::Instance& dataInst = getDataInst(state);
         const Transform& X_GS                      = getDataPos(state).X_GS;
+
+        // Lambda for computing the point in ground from a GeodesicKnotPoint,
+        // and writing it to the sink.
+        auto calcPathPointAndWriteToSink =
+            [&](const ContactGeometry::GeodesicKnotPoint& q)
+        {
+            const Vec3 point_G = X_GS.shiftFrameStationToBase(q.point);
+            sink(point_G);
+        };
 
         if (getContactGeometry().isAnalyticFormAvailable()) {
             // TODO Depending on what is actually desired by the end-user, this
@@ -1169,8 +1176,56 @@ public:
                 getTangent(dataInst.X_SP),
                 dataInst.length,
                 std::max(numberOfKnotPoints, 2),
-                [&](const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S)
-                { sink(geodesicKnot_S, X_GS); });
+                calcPathPointAndWriteToSink);
+            return;
+        }
+
+        // If the surface did not have an analytic form, we simply forward the
+        // knots from the GeodesicIntegrator.
+        for (const ContactGeometry::GeodesicKnotPoint& q :
+             dataInst.geodesicIntegratorStates) {
+            calcPathPointAndWriteToSink(q);
+        }
+    }
+
+    void calcGeodesicKnots(
+        const State& state,
+        const std::function<void(
+            const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S,
+            const Transform& X_GS)>& sink) const
+    {
+        if (!isInContactWithSurface(state)) {
+            return;
+        }
+
+        const CurveSegmentData::Instance& dataInst = getDataInst(state);
+        const Transform& X_GS                      = getDataPos(state).X_GS;
+
+        // An analytic geodesic has only two knots.
+        if (getContactGeometry().isAnalyticFormAvailable()) {
+            // Construct the knot at the initial contact point.
+            ContactGeometry::GeodesicKnotPoint q;
+            q.arcLength      = 0.;
+            q.point          = dataInst.X_SP.p();
+            q.tangent        = getTangent(dataInst.X_SP);
+            q.jacobiTrans    = 1.;
+            q.jacobiTransDot = 0.;
+            q.jacobiRot      = 0.;
+            q.jacobiRotDot   = 1.;
+            sink(q, X_GS);
+            // Stop if there is only one knot.
+            if (dataInst.length == 0.) {
+                return;
+            }
+            // Construct the knot at the final contact point.
+            q.arcLength      = dataInst.length;
+            q.point          = dataInst.X_SQ.p();
+            q.tangent        = getTangent(dataInst.X_SQ);
+            q.jacobiTrans    = dataInst.jacobi_Q[0];
+            q.jacobiTransDot = dataInst.jacobiDot_Q[0];
+            q.jacobiRot      = dataInst.jacobi_Q[1];
+            q.jacobiRotDot   = dataInst.jacobiDot_Q[1];
+            sink(q, X_GS);
             return;
         }
 
@@ -1540,21 +1595,9 @@ public:
         const CableSpanData::Pos& dataPos = getDataPos(state);
         sink(dataPos.originPoint_G);
 
-        // Lambda for converting the CurveSegment's geodesic points to path
-        // points in ground frame, and writing them to the provided sink.
-        auto calcPathPointFromGeodesicKnotAndPushToSink =
-            [&](const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S,
-                const Transform& X_GS)
-        {
-            // Transform to ground frame and write to output.
-            sink(X_GS.shiftFrameStationToBase(geodesicKnot_S.point));
-        };
-
         // Write path points along each of the curves.
         for (const CurveSegment& curve : m_curveSegments) {
-            curve.calcGeodesicKnots(
-                state,
-                calcPathPointFromGeodesicKnotAndPushToSink);
+            curve.calcDecorativePathPoints(state, sink);
         }
 
         // Write the path's termination point.
