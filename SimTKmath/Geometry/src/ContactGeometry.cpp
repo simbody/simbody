@@ -815,15 +815,19 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
             break;
         }
 
-        // Gradient at point on line.
+        // Gradient and Hessian of surface at point on line.
         const Vec3 g  = -calcSurfaceGradient(pointOnLine);
         const Mat33 H = -calcSurfaceHessian(pointOnLine);
+
+        // Hessian of cost function.
+        const Real hessian = dot(d, H * d);
 
         // Add a weight to the newton step to avoid large steps.
         constexpr Real w = 0.5;
 
-        // Update alpha.
-        const Real step = dot(g, d) / (dot(d, H * d) + w);
+        // Update alpha. (Take the obsolute value of the hessian, on the off
+        // chance that the surface Hessian is not positive definite).
+        const Real step = dot(g, d) / (std::abs(hessian) + w);
 
         // Stop when converged.
         if (std::abs(step) < tolerance) {
@@ -831,7 +835,7 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
         }
 
         // Clamp the stepsize.
-        constexpr Real maxStep = 0.25;
+        constexpr Real maxStep = 0.2;
         alpha -= std::min(std::max(-maxStep, step), maxStep);
 
         // Stop when leaving bounds.

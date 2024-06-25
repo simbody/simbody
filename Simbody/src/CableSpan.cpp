@@ -935,13 +935,20 @@ public:
 
         // Compute the point on the line nearest the surface.
         const IntegratorTolerances& tols = getIntegratorTolerances();
-        const bool touchdownDetected =
-            getContactGeometry().calcNearestPointOnLineImplicitly(
-                prevPoint_S,
-                nextPoint_S,
-                tols.constraintProjectionMaxIterations,
-                tols.constraintProjectionTolerance,
-                pointOnLineNearSurface_S);
+        bool touchdownDetected           = false;
+        try {
+            // This routine might fail to converge if the line is too far from
+            // the surface. This should not be a problem, because in that case
+            // we definitely have not touched down.
+            touchdownDetected =
+                getContactGeometry().calcNearestPointOnLineImplicitly(
+                    prevPoint_S,
+                    nextPoint_S,
+                    tols.constraintProjectionMaxIterations,
+                    tols.constraintProjectionTolerance,
+                    pointOnLineNearSurface_S);
+        } catch (...) {
+        }
 
         // In case of touchdown, shoot a zero-length geodesic at the touchdown
         // point.
@@ -1609,27 +1616,59 @@ public:
         const State& state,
         Array_<DecorativeGeometry>& decorations) const
     {
-        const Vec3 c_Color            = Purple;
-        constexpr int c_LineThickness = 3;
-
-        // The decorations to compute are DecorativeLines between the path
-        // points.
-        bool isFirstPoint = true;
-        Vec3 prevPoint_G{NaN};
-        // Lambda that draws a line between two path points prevPoint_G &
-        // nextPoint_G and pushes it to the decorations buffer.
-        auto pushDecorativeLineBetweenPathPoints = [&](Vec3 nextPoint_G)
+        // Draw lines between all path points.
         {
-            if (!isFirstPoint) {
-                decorations.push_back(DecorativeLine(prevPoint_G, nextPoint_G)
+            const Vec3 c_Color            = Purple;
+            constexpr int c_LineThickness = 3;
+
+            bool isFirstPoint = true;
+            Vec3 prevPoint_G{NaN};
+            // Lambda that draws a line between two path points prevPoint_G &
+            // nextPoint_G and pushes it to the decorations buffer.
+            auto pushDecorativeLineBetweenPathPoints = [&](Vec3 nextPoint_G)
+            {
+                if (!isFirstPoint) {
+                    decorations.push_back(
+                        DecorativeLine(prevPoint_G, nextPoint_G)
+                            .setColor(c_Color)
+                            .setLineThickness(c_LineThickness));
+                }
+                prevPoint_G  = nextPoint_G;
+                isFirstPoint = false;
+            };
+            // Call the lambda for all path points.
+            calcDecorativePathPoints(
+                state,
+                pushDecorativeLineBetweenPathPoints);
+        }
+
+        // For any obstacle that is not in contact with the cable, draw the
+        // tracking point used for touchdown.
+        {
+            const Vec3 c_Color            = Red;
+            constexpr int c_LineThickness = 3;
+
+            // Find those obstacles that are not in contact.
+            for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
+                const CurveSegment& curve = getObstacleCurveSegment(ix);
+                if (curve.isInContactWithSurface(state)) {
+                    continue;
+                }
+
+                // Draw the tracking point (in ground frame).
+                const Transform X_GS       = curve.getDataPos(state).X_GS;
+                const Vec3 trackingPoint_G = X_GS.shiftFrameStationToBase(
+                    curve.getDataInst(state).trackingPointOnLine_S);
+                decorations.push_back(
+                    DecorativePoint(trackingPoint_G).setColor(c_Color));
+                // TODO just to make it very clear draw a red line to the
+                // tracking point. This should be removed in final version
+                // probably.
+                decorations.push_back(DecorativeLine(X_GS.p(), trackingPoint_G)
                                           .setColor(c_Color)
                                           .setLineThickness(c_LineThickness));
             }
-            prevPoint_G  = nextPoint_G;
-            isFirstPoint = false;
-        };
-        // Call the lambda for all path points.
-        calcDecorativePathPoints(state, pushDecorativeLineBetweenPathPoints);
+        }
     }
 
     void setObstacleContactDisabled(const State& state, ObstacleIndex ix) const
