@@ -116,6 +116,11 @@ public:
                                 const Mat33& Hessian) const;
     Real  calcSurfaceCurvatureInDirection(const Vec3& point, 
                                           const UnitVec3& direction) const;
+
+    Real calcSurfaceTorsionInDirection(
+            const Vec3& point,
+            const UnitVec3& direction) const;
+
     // Generic method for calculating principal curvatures kmax,kmin and
     // corresponding unit tangent vector directions R_SP.x() and R_SP.y().
     // R_SP.z() is the surface unit normal at P, with z=x X y.
@@ -132,6 +137,13 @@ public:
                         Vec3& closestPointOnLine,
                         Real& height) const;
 
+    bool calcNearestPointOnLineImplicitly(
+            const Vec3& pointA,
+            const Vec3& pointB,
+            int maxIterations,
+            Real tolerance,
+            Vec3& nearestPointOnLine) const;
+
     // Geodesic evaluators
 
 
@@ -139,6 +151,35 @@ public:
     void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
             const GeodesicOptions& options, Geodesic& geod) const;
 
+    virtual bool isAnalyticFormAvailable() const
+    {
+        return false;
+    }
+
+    virtual void shootGeodesicInDirectionAnalytically(
+        const Vec3& initialPointApprox,
+        const Vec3& initialTangentApprox,
+        Real finalArcLength,
+        int numberOfKnotPoints,
+        const std::function<
+            void(const ContactGeometry::GeodesicKnotPoint&)>&
+            geodesicKnotPointsSink) const
+    {
+        SimTK_THROW2(Exception::UnimplementedVirtualMethod,
+            "ContactGeometryImpl",
+            "shootGeodesicInDirectionAnalytically");
+    }
+
+    void shootGeodesicInDirectionImplicitly(
+        const Vec3& initialPointApprox,
+        const Vec3& initialTangentApprox,
+        Real finalArcLength,
+        Real initialIntegratorStepSize,
+        Real integratorAccuracy,
+        Real constraintTolerance,
+        int maxIterations,
+        const std::function<
+            void(const ContactGeometry::GeodesicKnotPoint&)>& log) const;
 
     // Given two points and previous geodesic curve close to the points, find
     // a geodesic curve connecting the points that is close to the previous geodesic.
@@ -649,6 +690,19 @@ public:
     }
     void calcCurvature(const Vec3& point, Vec2& curvature, 
                        Rotation& orientation) const override;
+
+    bool isAnalyticFormAvailable() const override {
+        return true;
+    }
+
+    void shootGeodesicInDirectionAnalytically(
+        const Vec3& initialPointApprox,
+        const Vec3& initialTangentApprox,
+        Real finalArcLength,
+        int numberOfKnotPoints,
+        const std::function<
+            void(const ContactGeometry::GeodesicKnotPoint&)>&
+            geodesicKnotPointsSink) const override;
 
     void shootGeodesicInDirectionUntilLengthReachedAnalytical
        (const Vec3& xP, const UnitVec3& tP, const Real& terminatingLength, 

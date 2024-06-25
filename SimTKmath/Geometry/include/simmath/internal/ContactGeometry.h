@@ -35,6 +35,7 @@ individual contact shapes. **/
 #include "simmath/internal/BicubicSurface.h"
 
 #include <cassert>
+#include <functional>
 
 namespace SimTK {
 
@@ -120,6 +121,27 @@ class TriangleMesh;
 
 // TODO
 class Cone;
+
+/** The state of a geodesic at a (knot) point along the geodesic. */
+struct GeodesicKnotPoint {
+    // The length of the geodesic at this state.
+    Real arcLength = NaN;
+
+    // The location of the point on the curve.
+    Vec3 point {NaN};
+    // The tangent is the derivative of the point to arc length.
+    UnitVec3 tangent {NaN, NaN, NaN};
+
+    // The scalar related to the rotational jacobi field.
+    Real jacobiRot = NaN;
+    // The scalar related to the binormal translational jacobi field.
+    Real jacobiTrans = NaN;
+
+    // The derivative of jacobiRot to arc length.
+    Real jacobiRotDot = NaN;
+    // The derivative of jacobiTrans to arc length.
+    Real jacobiTransDot = NaN;
+};
 
 /** Base class default constructor creates an empty handle. **/
 ContactGeometry() : impl(0) {}
@@ -234,7 +256,20 @@ bool trackSeparationFromLine(const Vec3& pointOnLine,
                              Vec3& closestPointOnLine,
                              Real& height) const;
 
-
+// Compute nearest point on the line spanned by points A-B to the surface.
+// Exits early if the point lies below the surface.
+// @param pointA Line origin point.
+// @param pointB Line termination point.
+// @param maxIterations Maximum number of solver iterations.
+// @param tolerance TODO
+// @param nearestPointOnLine The computed nearest point on the line.
+// @return Returns true if the point lies below the surface.
+bool calcNearestPointOnLineImplicitly(
+    const Vec3& pointA,
+    const Vec3& pointB,
+    int maxIterations,
+    Real tolerance,
+    Vec3& nearestPointOnLine) const;
 
 /** Determine whether this object intersects a ray, and if so, find the 
 intersection point.
@@ -374,6 +409,16 @@ k = ~tp * H * tp / |g|,
 where H is the Hessian matrix evaluated at p. 
 **/
 Real calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
+
+/** For an implicit surface, return the geodesic torsion tau of the surface at
+a given point p in a given direction tp. Make sure the point is on the surface
+and the direction vector lies in the tangent plane. Then
+<pre>
+tau = - ( H * tp ) . ( g % tp ) / |g|^2
+</pre>
+where H is the Hessian matrix, and g is the gradient vector, evaluated at p.
+**/
+Real calcSurfaceTorsionInDirection(const Vec3& point, const UnitVec3& direction) const;
 
 /** For an implicit surface at a given point p, return the principal 
 curvatures and principal curvature directions, using only the implicit
@@ -559,6 +604,28 @@ is closest to that point. Otherwise, find the shortest length geodesic.
 void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
         const GeodesicOptions& options, Geodesic& geod) const;
 
+bool isAnalyticFormAvailable() const;
+
+// TODO describe
+void shootGeodesicInDirectionAnalytically(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    int numberOfKnotPoints,
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
+        geodesicKnotPointsSink) const;
+
+// TODO describe
+void shootGeodesicInDirectionImplicitly(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    Real initialIntegratorStepSize,
+    Real integratorAccuracy,
+    Real constraintTolerance,
+    int maxIterations,
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
+        log) const;
 
 /** Given the current positions of two points P and Q moving on this surface, 
 and the previous geodesic curve G' connecting prior locations P' and Q' of

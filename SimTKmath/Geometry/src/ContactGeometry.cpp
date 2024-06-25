@@ -118,6 +118,23 @@ Vec3 ContactGeometry::projectDownhillToNearestPoint(const Vec3& Q) const {
     return getImpl().projectDownhillToNearestPoint(Q);
 }
 
+Real ContactGeometry::calcSurfaceTorsionInDirection(const Vec3& point, const UnitVec3& direction) const
+{
+    return getImpl().calcSurfaceTorsionInDirection(point, direction);
+}
+
+Real ContactGeometryImpl::calcSurfaceTorsionInDirection(const Vec3& point, const UnitVec3& direction) const
+{
+    const Vec3 g   = calcSurfaceGradient(point);
+    const Vec3 h_d = calcSurfaceHessian(point) * direction;
+    const Vec3 gXd = cross(g, direction);
+
+    // We do not prevent 0/0 because it should not happen for correct input
+    // arguments, and correct surface parameters. Should it result in NaN, it
+    // is probably best not to catch it here.
+    return -dot(h_d, gXd) / dot(g, g);
+}
+
 bool ContactGeometry::
 trackSeparationFromLine(const Vec3& pointOnLine,
                         const UnitVec3& directionOfLine,
@@ -755,10 +772,193 @@ trackSeparationFromLine(const Vec3& pointOnLine,
     return succeeded;
 }
 
+bool ContactGeometry::calcNearestPointOnLineImplicitly(
+    const Vec3& pointA,
+    const Vec3& pointB,
+    int maxIterations,
+    Real tolerance,
+    Vec3& nearestPointOnLine) const
+{
+    return getImpl().calcNearestPointOnLineImplicitly(
+        pointA,
+        pointB,
+        maxIterations,
+        tolerance,
+        nearestPointOnLine);
+}
+
+bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
+    const Vec3& pointA,
+    const Vec3& pointB,
+    int maxIterations,
+    Real tolerance,
+    Vec3& nearestPointOnLine) const
+{
+    // TODO the sign of the constraint is such that positive is inside the surface.
+
+    // Initial guess.
+    const Vec3 d = pointB - pointA;
+    Real alpha   = -dot(d, pointA - nearestPointOnLine) / dot(d, d);
+    alpha        = std::max(0., std::min(alpha, 1.));
+
+    int iter = 0;
+
+    for (; iter < maxIterations; ++iter) {
+        // Touchdown point on line.
+        const Vec3 pointOnLine = pointA + d * alpha;
+
+        // Constraint evaluation at touchdown point.
+        const Real c = -calcSurfaceValue(pointOnLine);
+
+        // Break on touchdown.
+        if (std::abs(c) < tolerance) {
+            break;
+        }
+
+        // Gradient and Hessian of surface at point on line.
+        const Vec3 g  = -calcSurfaceGradient(pointOnLine);
+        const Mat33 H = -calcSurfaceHessian(pointOnLine);
+
+        // Hessian of cost function.
+        const Real hessian = dot(d, H * d);
+
+        // Add a weight to the newton step to avoid large steps.
+        constexpr Real w = 0.5;
+
+        // Update alpha. (Take the obsolute value of the hessian, on the off
+        // chance that the surface Hessian is not positive definite).
+        const Real step = dot(g, d) / (std::abs(hessian) + w);
+
+        // Stop when converged.
+        if (std::abs(step) < tolerance) {
+            break;
+        }
+
+        // Clamp the stepsize.
+        constexpr Real maxStep = 0.2;
+        alpha -= std::min(std::max(-maxStep, step), maxStep);
+
+        // Stop when leaving bounds.
+        if (alpha < 0. || alpha > 1.) {
+            break;
+        }
+    }
+
+    // Write the point on line nearest the surface.
+    alpha = std::max(0., std::min(alpha, 1.));
+    nearestPointOnLine = pointA + d * alpha;
+
+    const bool touchdown = -calcSurfaceValue(nearestPointOnLine) < tolerance;
+
+    SimTK_ASSERT_ALWAYS(iter < maxIterations,
+        "Failed to compute point on line near surface: Reached max iterations");
+
+    return touchdown;
+}
+
 //==============================================================================
 //                  GEODESIC EVALUATORS in CONTACT GEOMETRY
 //==============================================================================
 
+bool ContactGeometry::isAnalyticFormAvailable() const
+{
+    return getImpl().isAnalyticFormAvailable();
+}
+
+void ContactGeometry::shootGeodesicInDirectionAnalytically(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    int numberOfKnotPoints,
+    const std::function<void(const GeodesicKnotPoint&)>&
+        geodesicKnotPointsSink) const
+{
+    return getImpl().shootGeodesicInDirectionAnalytically(
+        initialPointApprox,
+        initialTangentApprox,
+        finalArcLength,
+        numberOfKnotPoints,
+        geodesicKnotPointsSink);
+}
+
+void ContactGeometry::shootGeodesicInDirectionImplicitly(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    Real initialIntegratorStepSize,
+    Real integratorAccuracy,
+    Real constraintTolerance,
+    int maxIterations,
+    const std::function<void(const GeodesicKnotPoint&)>&
+        geodesicKnotPointsSink) const
+{
+    getImpl().shootGeodesicInDirectionImplicitly(
+        initialPointApprox,
+        initialTangentApprox,
+        finalArcLength,
+        initialIntegratorStepSize,
+        integratorAccuracy,
+        constraintTolerance,
+        maxIterations,
+        geodesicKnotPointsSink);
+}
+
+void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    Real initialIntegratorStepSize,
+    Real integratorAccuracy,
+    Real constraintTolerance,
+    int maxIterations, // TODO not connected (needs to be exposed?)
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
+        geodesicKnotPointsSink) const
+{
+    // integrator settings
+    constexpr Real startArcLength = 0;
+
+    using Eqns = GeodesicOnImplicitSurface;
+
+    Eqns eqns(*this);
+    GeodesicIntegrator<GeodesicOnImplicitSurface> integ(
+        eqns,
+        integratorAccuracy,
+        constraintTolerance);
+    constexpr int N = GeodesicOnImplicitSurface::N;
+
+    integ.initialize(
+        startArcLength,
+        Eqns::getInitialState(
+            initialPointApprox,
+            UnitVec3(initialTangentApprox)));
+    integ.setNextStepSizeToTry(initialIntegratorStepSize);
+
+    // Aliases for the integrators internal time and state variables.
+    const Vec<N>& y = integ.getY();
+    const Real& s   = integ.getTime(); // arc length
+
+    // Simulate it, and record geodesic knot points after each step
+    int stepcnt = 0;
+
+    while (true) {
+        ContactGeometry::GeodesicKnotPoint q;
+        q.arcLength      = s;
+        q.point          = Eqns::getP(y);
+        q.tangent        = UnitVec3(Eqns::getV(y));
+        q.jacobiRot      = Eqns::getJRot(y);
+        q.jacobiTrans    = Eqns::getJTrans(y);
+        q.jacobiRotDot   = Eqns::getJRotDot(y);
+        q.jacobiTransDot = Eqns::getJTransDot(y);
+        geodesicKnotPointsSink(q);
+
+        if (s == finalArcLength) {
+            break;
+        }
+
+        integ.takeOneStep(finalArcLength);
+        ++stepcnt;
+    }
+}
 
 void ContactGeometry::initGeodesic(const Vec3& xP, const Vec3& xQ,
         const Vec3& xSP, const GeodesicOptions& options, Geodesic& geod) const
