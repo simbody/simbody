@@ -129,7 +129,9 @@ Real ContactGeometryImpl::calcSurfaceTorsionInDirection(const Vec3& point, const
     const Vec3 h_d = calcSurfaceHessian(point) * direction;
     const Vec3 gXd = cross(g, direction);
 
-    // TODO Prevent 0/0?
+    // We do not prevent 0/0 because it should not happen for correct input
+    // arguments, and correct surface parameters. Should it result in NaN, it
+    // is probably best not to catch it here.
     return -dot(h_d, gXd) / dot(g, g);
 }
 

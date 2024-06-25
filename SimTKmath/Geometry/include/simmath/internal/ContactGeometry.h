@@ -410,6 +410,14 @@ where H is the Hessian matrix evaluated at p.
 **/
 Real calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
 
+/** For an implicit surface, return the geodesic torsion tau of the surface at
+a given point p in a given direction tp. Make sure the point is on the surface
+and the direction vector lies in the tangent plane. Then
+<pre>
+tau = - ( H * tp ) . ( g % tp ) / |g|^2
+</pre>
+where H is the Hessian matrix, and g is the gradient vector, evaluated at p.
+**/
 Real calcSurfaceTorsionInDirection(const Vec3& point, const UnitVec3& direction) const;
 
 /** For an implicit surface at a given point p, return the principal 
