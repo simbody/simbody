@@ -118,7 +118,9 @@ appropriate dimensions. After computing the path this data is no longer needed
 by the CableSpan. */
 struct MatrixWorkspace {
     // Number of path error constraints per curve segment.
-    static constexpr int c_NumberOfConstraints = 4;
+    static constexpr int c_NumPathErrorConstraints = 4;
+    // Total number of constraints per curve segment.
+    static constexpr int c_NumConstraints = c_NumPathErrorConstraints + 1;
 
     // Given the number of CurveSegments that are in contact with their
     // respective obstacle's surface, contruct a MatrixWorkspace of correct
@@ -126,8 +128,7 @@ struct MatrixWorkspace {
     explicit MatrixWorkspace(int problemSize) : nObstaclesInContact(problemSize)
     {
         static constexpr int Q = c_GeodesicDOF;
-        // 4 for the path error, and 1 for the weighting of the length.
-        static constexpr int C = c_NumberOfConstraints + 1;
+        static constexpr int C = c_NumConstraints;
         const int n            = problemSize;
 
         lineSegments.resize(n + 1);
@@ -143,8 +144,8 @@ struct MatrixWorkspace {
             sizeof(NaturalGeodesicCorrection) == sizeof(Real) * c_GeodesicDOF,
             "Invalid size of geodesic correction.");
         SimTK_ASSERT(
-            data.pathCorrection.size() * sizeof(Real) ==
-                data.nObstaclesInContact * sizeof(NaturalGeodesicCorrection),
+            pathCorrection.size() * sizeof(Real) ==
+                nObstaclesInContact * sizeof(NaturalGeodesicCorrection),
             "Invalid size of path corrections vector");
         return reinterpret_cast<const NaturalGeodesicCorrection*>(
             &pathCorrection[0]);
@@ -1898,7 +1899,8 @@ ObstacleIndex CurveSegment::findPrevObstacleInContactWithCable(
 {
     const CableSpan::Impl& cable = getCable();
     // Find the first obstacle that makes contact before this CurveSegment.
-    for (ObstacleIndex ix(m_obstacleIndex - 1); ix >= 0; --ix) {
+    for (ObstacleIndex ix(m_obstacleIndex); ix > 0;) {
+        --ix;
         if (cable.getObstacleCurveSegment(ix).isInContactWithSurface(state)) {
             return ix;
         }
@@ -2302,13 +2304,14 @@ void calcPathErrorJacobian(
 
     // Reset the values in the jacobian.
     J *= 0.;
-    SimTK_ASSERT(
-        J.cols() == numberOfCurvesInContact * NQ,
-        "Invalid number of columns in jacobian matrix");
-    SimTK_ASSERT(
-        J.rows() ==
-            numberOfCurvesInContact * MatrixWorkspace::c_NumberOfConstraints,
-        "Invalid number of columns in jacobian matrix");
+    SimTK_ASSERT3(
+        J.ncol() == numberOfCurvesInContact * NQ &&
+            J.nrow() ==
+                numberOfCurvesInContact * MatrixWorkspace::c_NumConstraints,
+        "Jacobian matrix size (%d x %d) does not match number of curves (%d)",
+        J.nrow(),
+        J.ncol(),
+        numberOfCurvesInContact);
 
     // Current indexes to write the elements of the jacobian to,
     int row = 0;
@@ -2392,9 +2395,8 @@ void calcPathCorrections(MatrixWorkspace& data)
     // TODO add explanation...
     // Add a cost to changing the length.
     for (int i = 0; i < data.nObstaclesInContact; ++i) {
-        int r =
-            data.nObstaclesInContact * MatrixWorkspace::c_NumberOfConstraints +
-            i;
+        int r = data.nObstaclesInContact *
+                    MatrixWorkspace::c_NumPathErrorConstraints + i;
         int c = c_GeodesicDOF * (i + 1) - 1;
         data.pathErrorJacobian.set(r, c, data.maxPathError);
     }
