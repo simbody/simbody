@@ -263,7 +263,7 @@ struct CurveSegmentData {
         // Frenet frame at the final contact point w.r.t. the surface frame.
         FrenetFrame X_SQ{};
         // Length of this curve segment.
-        Real length = NaN;
+        Real arcLength = NaN;
         // Curvatures at the contact points, with the tangential and binormal
         // direction as the first and last element respectively.
         Vec2 curvatures_P{NaN}; // initial contact point.
@@ -824,7 +824,7 @@ public:
             getTangent(dataInst.X_SQ));
 
         // Store the arc length.
-        dataInst.length = length;
+        dataInst.arcLength = length;
 
         // Update the initial integrator step size:
         if (!useAnalyticGeodesic) { // does not apply to analytic surfaces.
@@ -977,7 +977,7 @@ public:
         }
 
         // The curve length must have shrunk completely before lifting off.
-        if (dataInst.length > 0.) {
+        if (dataInst.arcLength > 0.) {
             return;
         }
 
@@ -1058,7 +1058,7 @@ public:
         // Take the length correction, and add to the current length.
         const Real dl = c[3]; // Length increment is the last element.
         const Real correctedLength = std::max(
-            dataInst.length + dl,
+            dataInst.arcLength + dl,
             0.); // Clamp length to be nonnegative.
 
         // Shoot the new geodesic.
@@ -1178,11 +1178,11 @@ public:
 
             // Now shoot the geodesic analytically with the desired granularity.
             const int numberOfKnotPoints =
-                static_cast<int>(dataInst.length / lengthInterspacing);
+                static_cast<int>(dataInst.arcLength / lengthInterspacing);
             getContactGeometry().shootGeodesicInDirectionAnalytically(
                 dataInst.X_SP.p(),
                 getTangent(dataInst.X_SP),
-                dataInst.length,
+                dataInst.arcLength,
                 std::max(numberOfKnotPoints, 2),
                 calcPathPointAndWriteToSink);
             return;
@@ -1222,11 +1222,11 @@ public:
             q.jacobiRotDot   = 1.;
             sink(q, X_GS);
             // Stop if there is only one knot.
-            if (dataInst.length == 0.) {
+            if (dataInst.arcLength == 0.) {
                 return;
             }
             // Construct the knot at the final contact point.
-            q.arcLength      = dataInst.length;
+            q.arcLength      = dataInst.arcLength;
             q.point          = dataInst.X_SQ.p();
             q.tangent        = getTangent(dataInst.X_SQ);
             q.jacobiTrans    = dataInst.jacobi_Q[0];
@@ -1782,7 +1782,7 @@ private:
                 [&](const CurveSegment& curve)
                 {
                     // Update the total cable length.
-                    totalCableLength += curve.getDataInst(s).length;
+                    totalCableLength += curve.getDataInst(s).arcLength;
                 });
             return totalCableLength;
         };
