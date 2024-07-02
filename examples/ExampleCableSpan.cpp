@@ -52,9 +52,9 @@ public:
             printf(
                 "%d %d %g %g",
                 static_cast<int>(cableIx),
-                cable.getNumSolverIter(s),
-                cable.getMaxPathError(s),
-                cable.getLength(s));
+                cable.getNumSolverIterations(s),
+                cable.getSmoothness(s),
+                cable.calcLength(s));
         }
     }
 
@@ -120,40 +120,8 @@ public:
             }
 
             // Draw the frenet frames at the geodesic boundary points.
-
-            // Get the geodesic knots at the boundary points.
-            bool isInitialKnot = true;
-            std::array<ContactGeometry::GeodesicKnotPoint, 2>
-                geodesicBoundaryKnots;
-            m_cable.calcCurveSegmentKnots(
-                state,
-                ix,
-                [&](const ContactGeometry::GeodesicKnotPoint& q,
-                    const Transform&)
-                {
-                    geodesicBoundaryKnots.at(isInitialKnot ? 0 : 1) = q;
-                    isInitialKnot                                   = false;
-                });
-            // Draw the frenet frames at the boundary points.
-            for (const ContactGeometry::GeodesicKnotPoint& q :
-                 geodesicBoundaryKnots) {
-                // Calculate the frenet frame with tangent along x-axis and
-                // normal along y-axis:
-                const Vec3 point_G = X_GS.shiftFrameStationToBase(q.point);
-                const UnitVec3 normal_G(X_GS.xformBaseVecToFrame(
-                    geometry.calcSurfaceUnitNormal(q.point)));
-                const UnitVec3 tangent_G(X_GS.xformBaseVecToFrame(q.tangent));
-                Transform frenetFrame;
-                frenetFrame.updP() = point_G;
-                frenetFrame.updR().setRotationFromTwoAxes(
-                    normal_G,
-                    CoordinateAxis::YCoordinateAxis(),
-                    tangent_G,
-                    CoordinateAxis::YCoordinateAxis());
-                // Add to list of decorations.
-                decorations.push_back(
-                    DecorativeFrame(0.2).setTransform(frenetFrame));
-            };
+            decorations.push_back(DecorativeFrame(0.2).setTransform(m_cable.calcCurveSegmentInitialFrenetFrame(state, ix)));
+            decorations.push_back(DecorativeFrame(0.2).setTransform(m_cable.calcCurveSegmentFinalFrenetFrame(state, ix)));
         }
     }
 
@@ -251,6 +219,7 @@ int main()
         Real angle = 0.;
         while (true) {
             system.realize(s, Stage::Position);
+            cable.calcLength(s);
             viz.report(s);
             cable.storeCurrentPath(s);
 

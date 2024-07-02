@@ -227,8 +227,10 @@ struct CableSpanData {
         UnitVec3 terminationTangent_G{NaN, NaN, NaN};
         // The total cable length.
         Real cableLength = NaN;
-        // The maximum path error.
-        Real pathError = NaN;
+        // The path smoothness, computed as the maximum angular misalignment at
+        // the points where the straight- and curved-line segments meet,
+        // measured in radians.
+        Real smoothness = NaN;
         // Number of iterations the solver used to compute the cable's path.
         int loopIter = -1;
     };
@@ -311,6 +313,7 @@ struct CurveSegmentData {
 
 } // namespace
 
+
 //==============================================================================
 //                          Configuration Parameters
 //==============================================================================
@@ -327,7 +330,11 @@ when computing a new geodesic over the obstacle's surface.
 
 TODO These need reasonable default values. */
 struct IntegratorTolerances {
-    Real intergatorAccuracy            = 1e-6;
+    // The accuracy used to control the stepsize of the variable step geodesic
+    // integrator.
+    Real geodesicIntegratorAccuracy    = 1e-6;
+    // TODO the surface projection tolerance should be linked to the geodesic
+    // integrator accuracy.
     Real constraintProjectionTolerance = 1e-6;
     // TODO should be used during numerical integration as well, but not
     // connected yet.
@@ -338,17 +345,20 @@ struct IntegratorTolerances {
 //  Cable Span Parameters
 //------------------------------------------------------------------------------
 /* These are all the parameters for configuring the solver steps in the
-CableSpan.
-
-TODO These need reasonable default values. */
+CableSpan. */
 struct CableSpanParameters final : IntegratorTolerances {
-    // TODO convert to angle in degrees.
-    Real m_pathAccuracy       = 1e-4;
-    int m_solverMaxIterations = 50;
-    // For each curve segment the max allowed stepsize in degrees. This is
-    // converted to a max allowed linear stepsize using the local radius of
-    // curvature.
-    Real m_maxCorrectionStepDeg = 10.; // TODO describe
+    // The path's smoothness tolerance is defined as the angular misalignment
+    // at the points where the straight- and curved-line segments meet,
+    // measured in radians. When computing the optimal path this quantity is
+    // minimized, and the solver stops when reaching this tolerance.
+    Real smoothnessTolerance = 0.1 / 180. * Pi; // Default = 0.1 degrees.
+    // The solver's max allowed number of iterations used to compute the
+    // optimal path.
+    int solverMaxIterations = 50; // TODO a bit high?
+    // The solver's max allowed stepsize measured in radians. This is converted
+    // to a max allowed linear stepsize using the local radius of curvature
+    // evaluated at each obstacle.
+    Real solverMaxStepSize = 10. / 180. * Pi;
 };
 
 } // namespace
@@ -425,7 +435,7 @@ bool isPointAboveSurface(const ContactGeometry& geometry, const Vec3& point_S)
 //==============================================================================
 //                      Class CableSubsystem::Impl
 //==============================================================================
-// TODO DESCRIPTION
+// Implementation class of the CableSubsystem.
 class CableSubsystem::Impl : public Subsystem::Guts {
 public:
     //--------------------------------------------------------------------------
@@ -491,9 +501,8 @@ private:
 /* The CableSpan's path consists of straight line segments between the
 obstacles, and curved segments over the obstacles. This struct represents the
 curve segment related to an obstacle in the path. It manages the cached data
-related to that obstacle such as the WrappingStatus, the geodesic and the
-obstacle coordinates.
-TODO describe */
+related to that obstacle such as the WrappingStatus, the geodesic in local
+coordinates, and the contact points in Ground frame coordinates. */
 class CurveSegment final {
 public:
     //--------------------------------------------------------------------------
@@ -566,7 +575,7 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    // Accessors
+    // Model configuration accessors.
     //------------------------------------------------------------------------------
 
     // Set the user defined point that controls the initial wrapping path.
@@ -587,6 +596,7 @@ public:
     {
         return *m_geometry;
     }
+
     void setContactGeometry(std::shared_ptr<const ContactGeometry> geometry)
     {
         m_geometry = std::move(geometry);
@@ -651,7 +661,6 @@ public:
     {
         return getSubsystem().getImpl().getCableImpl(m_cableIndex);
     }
-
     const IntegratorTolerances& getIntegratorTolerances() const;
 
     //------------------------------------------------------------------------------
@@ -686,16 +695,21 @@ public:
     //------------------------------------------------------------------------------
     //  Helper Functions: Finding next and previous CurveSegments
     //------------------------------------------------------------------------------
+    // The functions below essentially filter any obstacles that are not in
+    // contact with the cable.
 
+    // Find the first obstacle before this segment that is in contact with the
+    // cable. Returns an invalid index if there is none.
     ObstacleIndex findPrevObstacleInContactWithCable(const State& state) const;
+    // Similarly find the first obstacle after this segment that is in contact.
     ObstacleIndex findNextObstacleInContactWithCable(const State& state) const;
 
-    // Find the last contact point before the given curve segment, skipping
-    // over any that are not in contact with their respective obstacle's
-    // surface.
+    // Find the last path point before this segment, in ground frame coordinates.
     Vec3 findPrevPathPoint_G(const State& state) const;
+    // Find the first path point after this segment, in ground frame coordinates.
     Vec3 findNextPathPoint_G(const State& state) const;
 
+    // Find the path point before this segment, in surface frame coordinates.
     Vec3 findPrevPathPoint_S(const State& state) const
     {
         const Vec3 prevPoint_S =
@@ -707,7 +721,7 @@ public:
             "Preceding point lies inside the surface");
         return prevPoint_S;
     }
-
+    // Find the path point after this segment, in surface frame coordinates.
     Vec3 findNextPathPoint_S(const State& state) const
     {
         const Vec3 nextPoint_S =
@@ -768,7 +782,7 @@ public:
                 tangent_S,
                 length,
                 initIntegratorStepSize,
-                tols.intergatorAccuracy,
+                tols.geodesicIntegratorAccuracy,
                 tols.constraintProjectionTolerance,
                 tols.constraintProjectionMaxIterations,
                 [&](const ContactGeometry::GeodesicKnotPoint& q)
@@ -888,10 +902,11 @@ public:
         CurveSegmentData::Instance& dataInst) const
     {
         dataInst.wrappingStatus = ObstacleWrappingStatus::LiftedFromSurface;
+        dataInst.arcLength = NaN;
         dataInst.trackingPointOnLine_S = trackingPoint_S;
     }
 
-    // Helper function for computing the initial wrapping path as a zero length
+    // Helper function for initializing the path by computing a zero length
     // geodesic.
     void calcInitCurve(const State& state) const
     {
@@ -1023,8 +1038,7 @@ public:
         state.invalidateAllCacheAtOrAbove(Stage::Position);
     }
 
-    // TODO remove? This is useful in debugging, by forcing the solver to start
-    // from the current solution during the next call.
+    // Overwrite the cached autoupdate value by the current value.
     void storeCurrentPath(State& state) const
     {
         updPrevDataInst(state) = getDataInst(state);
@@ -1196,55 +1210,6 @@ public:
         }
     }
 
-    void calcGeodesicKnots(
-        const State& state,
-        const std::function<void(
-            const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S,
-            const Transform& X_GS)>& sink) const
-    {
-        if (!isInContactWithSurface(state)) {
-            return;
-        }
-
-        const CurveSegmentData::Instance& dataInst = getDataInst(state);
-        const Transform& X_GS                      = getDataPos(state).X_GS;
-
-        // An analytic geodesic has only two knots.
-        if (getContactGeometry().isAnalyticFormAvailable()) {
-            // Construct the knot at the initial contact point.
-            ContactGeometry::GeodesicKnotPoint q;
-            q.arcLength      = 0.;
-            q.point          = dataInst.X_SP.p();
-            q.tangent        = getTangent(dataInst.X_SP);
-            q.jacobiTrans    = 1.;
-            q.jacobiTransDot = 0.;
-            q.jacobiRot      = 0.;
-            q.jacobiRotDot   = 1.;
-            sink(q, X_GS);
-            // Stop if there is only one knot.
-            if (dataInst.arcLength == 0.) {
-                return;
-            }
-            // Construct the knot at the final contact point.
-            q.arcLength      = dataInst.arcLength;
-            q.point          = dataInst.X_SQ.p();
-            q.tangent        = getTangent(dataInst.X_SQ);
-            q.jacobiTrans    = dataInst.jacobi_Q[0];
-            q.jacobiTransDot = dataInst.jacobiDot_Q[0];
-            q.jacobiRot      = dataInst.jacobi_Q[1];
-            q.jacobiRotDot   = dataInst.jacobiDot_Q[1];
-            sink(q, X_GS);
-            return;
-        }
-
-        // If the surface did not have an analytic form, we simply forward the
-        // knots from the GeodesicIntegrator.
-        for (const ContactGeometry::GeodesicKnotPoint& q :
-             dataInst.geodesicIntegratorStates) {
-            sink(q, X_GS);
-        }
-    }
-
 private:
     //------------------------------------------------------------------------------
     // Private Cache Access.
@@ -1304,69 +1269,6 @@ private:
     // Helper class for unit tests.
     friend CableSubsystemTestHelper;
 };
-
-//==============================================================================
-//                      TODO
-//==============================================================================
-
-namespace
-{
-
-// Given a correction vector computed from minimizing the cost function,
-// compute the maximum allowed stepsize along that correction vector.
-// The allowed step is computed by approximating the surface locally as
-// a circle in each direction, and limiting the radial displacement on that
-// circle.
-void calcMaxAllowedCorrectionStepSize(
-    const CurveSegment& curve,
-    const State& s,
-    const NaturalGeodesicCorrection& c,
-    Real maxAngularDisplacementInDegrees,
-    Real& maxAllowedStepSize)
-{
-    auto UpdateMaxStepSize = [&](Real maxDisplacementEstimate, Real curvature)
-    {
-        const Real maxAngle = maxAngularDisplacementInDegrees / 180. * Pi;
-        const Real maxAllowedDisplacement = maxAngle / curvature;
-        const Real allowedStepSize =
-            std::abs(maxAllowedDisplacement / maxDisplacementEstimate);
-        maxAllowedStepSize = std::min(maxAllowedStepSize, allowedStepSize);
-    };
-
-    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-
-    // Clamp tangential displacement at the initial contact point.
-    {
-        const Real dxEst = c[0];
-        const Real k     = dataInst.curvatures_P[0];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp binormal displacement at the initial contact point.
-    {
-        const Real dxEst = c[1];
-        const Real k     = dataInst.curvatures_P[1];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp tangential displacement at the final contact point.
-    {
-        const Real dxEst = std::abs(c[0]) + std::abs(c[3]);
-        const Real k     = dataInst.curvatures_Q[0];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp binormal displacement at the final contact point.
-    {
-        const Real a     = dataInst.jacobi_Q[0];
-        const Real r     = dataInst.jacobi_Q[1];
-        const Real dxEst = std::abs(c[1] * a) + std::abs(c[2] * r);
-        const Real k     = dataInst.curvatures_Q[1];
-        UpdateMaxStepSize(dxEst, k);
-    }
-}
-
-} // namespace
 
 //==============================================================================
 //                         Class Cablespan::Impl
@@ -1802,9 +1704,9 @@ private:
             // - Not converged: Max iterations has been reached.
             if (data.nObstaclesInContact == 0 ||
                 data.pathCorrection.normInf() < Eps ||
-                dataPos.loopIter >= getParameters().m_solverMaxIterations) {
+                dataPos.loopIter >= getParameters().solverMaxIterations) {
                 // Update cache entry and stop solver.
-                dataPos.pathError   = data.maxPathError;
+                dataPos.smoothness   = data.maxPathError;
                 dataPos.cableLength = calcTotalCableLength(data.lineSegments);
                 dataPos.originTangent_G = data.lineSegments.front().direction;
                 dataPos.terminationTangent_G =
@@ -2445,11 +2347,68 @@ void calcPathCorrections(MatrixWorkspace& data)
     data.pathCorrection *= -1.;
 }
 
+// Given a correction vector computed from minimizing the cost function,
+// compute the maximum allowed stepsize along that correction vector.
+// The allowed step is computed by approximating the surface locally as
+// a circle in each direction, and limiting the radial displacement on that
+// circle.
+void calcMaxAllowedCorrectionStepSize(
+    const CurveSegment& curve,
+    const State& s,
+    const NaturalGeodesicCorrection& c,
+    Real maxAngularStepsize,
+    Real& maxAllowedStepSize)
+{
+    // Helper to update the maximum allowed stepsize such that the linear
+    // displacement does not violate the max allowed step size.
+    auto UpdateMaxStepSize = [&](Real maxDisplacementEstimate, Real curvature)
+    {
+        // Use the local curvature to convert the allowed angular step size to
+        // a linear step size.
+        const Real maxAllowedDisplacement = maxAngularStepsize / curvature;
+        const Real allowedStepSize =
+            std::abs(maxAllowedDisplacement / maxDisplacementEstimate);
+        maxAllowedStepSize = std::min(maxAllowedStepSize, allowedStepSize);
+    };
+
+    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
+
+    // Clamp tangential displacement at the initial contact point.
+    {
+        const Real dxEst = c[0];
+        const Real k     = dataInst.curvatures_P[0];
+        UpdateMaxStepSize(dxEst, k);
+    }
+
+    // Clamp binormal displacement at the initial contact point.
+    {
+        const Real dxEst = c[1];
+        const Real k     = dataInst.curvatures_P[1];
+        UpdateMaxStepSize(dxEst, k);
+    }
+
+    // Clamp tangential displacement at the final contact point.
+    {
+        const Real dxEst = std::abs(c[0]) + std::abs(c[3]);
+        const Real k     = dataInst.curvatures_Q[0];
+        UpdateMaxStepSize(dxEst, k);
+    }
+
+    // Clamp binormal displacement at the final contact point.
+    {
+        const Real a     = dataInst.jacobi_Q[0];
+        const Real r     = dataInst.jacobi_Q[1];
+        const Real dxEst = std::abs(c[1] * a) + std::abs(c[2] * r);
+        const Real k     = dataInst.curvatures_Q[1];
+        UpdateMaxStepSize(dxEst, k);
+    }
+}
+
 } // namespace
 
-//==============================================================================
+//------------------------------------------------------------------------------
 //                      CableSpan::Impl Cache Computation
-//==============================================================================
+//------------------------------------------------------------------------------
 
 const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 {
@@ -2505,7 +2464,7 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 
     // Only proceed with computing the jacobian and geodesic corrections if the
     // path error is large.
-    if (data.maxPathError < getParameters().m_pathAccuracy) {
+    if (data.maxPathError < getParameters().smoothnessTolerance) {
         data.pathCorrection *= 0.;
         return data;
     }
@@ -2537,7 +2496,7 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
                 curve,
                 s,
                 *corrIt,
-                getParameters().m_maxCorrectionStepDeg,
+                getParameters().solverMaxStepSize,
                 stepSize);
             ++corrIt;
         });
@@ -2739,7 +2698,7 @@ int CableSubsystem::Impl::realizeSubsystemTopologyImpl(State& state) const
     Impl* mutableThis = const_cast<Impl*>(this);
 
     CableSpanData::Instance dataInst{};
-    CacheEntryIndex indexDataInst = mutableThis->allocateCacheEntry(
+    CacheEntryIndex indexDataInst = allocateCacheEntry(
         state,
         Stage::Instance,
         Stage::Infinity,
@@ -2957,73 +2916,66 @@ bool CableSpan::isInContactWithObstacle(const State& state, ObstacleIndex ix)
     return getImpl().getObstacleCurveSegment(ix).isInContactWithSurface(state);
 }
 
-void CableSpan::calcCurveSegmentKnots(
-    const State& state,
-    ObstacleIndex ix,
-    const std::function<void(
-        const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S,
-        const Transform& X_GS)>& sink) const
+Transform CableSpan::calcCurveSegmentInitialFrenetFrame(
+        const State& state,
+        CableSpanObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
-    getImpl().getObstacleCurveSegment(ix).calcGeodesicKnots(state, sink);
+    return getImpl().getObstacleCurveSegment(ix).getDataPos(state).X_GP;
 }
 
-Real CableSpan::getSurfaceConstraintTolerance() const
+Transform CableSpan::calcCurveSegmentFinalFrenetFrame(
+        const State& state,
+        CableSpanObstacleIndex ix) const
 {
-    return getImpl().getParameters().constraintProjectionTolerance;
+    getImpl().realizePosition(state);
+    return getImpl().getObstacleCurveSegment(ix).getDataPos(state).X_GQ;
 }
 
-void CableSpan::setSurfaceConstraintTolerance(Real tolerance)
+Real CableSpan::calcCurveSegmentArcLength(
+        const State& state,
+        CableSpanObstacleIndex ix) const
 {
-    updImpl().updParameters().constraintProjectionTolerance = tolerance;
+    getImpl().realizePosition(state);
+    return getImpl().getObstacleCurveSegment(ix).getDataInst(state).arcLength;
 }
 
-Real CableSpan::getIntegratorAccuracy() const
+Real CableSpan::getCurveSegmentAccuracy() const
 {
-    return getImpl().getParameters().intergatorAccuracy;
+    return getImpl().getParameters().geodesicIntegratorAccuracy;
 }
 
-void CableSpan::setIntegratorAccuracy(Real accuracy)
+void CableSpan::setCurveSegmentAccuracy(Real accuracy)
 {
-    updImpl().updParameters().intergatorAccuracy = accuracy;
+    updImpl().updParameters().geodesicIntegratorAccuracy = accuracy;
 }
 
 int CableSpan::getSolverMaxIterations() const
 {
-    return getImpl().getParameters().m_solverMaxIterations;
+    return getImpl().getParameters().solverMaxIterations;
 }
 
 void CableSpan::setSolverMaxIterations(int maxIterations)
 {
-    updImpl().updParameters().m_solverMaxIterations = maxIterations;
+    updImpl().updParameters().solverMaxIterations = maxIterations;
 }
 
-Real CableSpan::getPathErrorAccuracy() const
+Real CableSpan::getSmoothnessTolerance() const
 {
-    return getImpl().getParameters().m_pathAccuracy;
+    return getImpl().getParameters().smoothnessTolerance;
 }
 
-void CableSpan::setPathErrorAccuracy(Real accuracy)
+void CableSpan::setSmoothnessTolerance(Real tolerance)
 {
-    updImpl().updParameters().m_pathAccuracy = accuracy;
+    updImpl().updParameters().smoothnessTolerance = tolerance;
 }
 
-Real CableSpan::getMaxGeodesicCorrectionInDegrees() const
-{
-    return getImpl().getParameters().m_maxCorrectionStepDeg;
-}
-
-void CableSpan::setMaxGeodesicCorrectionInDegrees(Real maxCorrectionInDegrees)
-{
-    updImpl().updParameters().m_maxCorrectionStepDeg = maxCorrectionInDegrees;
-}
-
-Real CableSpan::getLength(const State& s) const
+Real CableSpan::calcLength(const State& s) const
 {
     return getImpl().getDataPos(s).cableLength;
 }
 
-Real CableSpan::getLengthDot(const State& s) const
+Real CableSpan::calcLengthDot(const State& s) const
 {
     return getImpl().getDataVel(s).lengthDot;
 }
@@ -3048,18 +3000,19 @@ Real CableSpan::calcCablePower(const State& state, Real tension) const
     return getImpl().calcCablePower(state, tension);
 }
 
-int CableSpan::getNumSolverIter(const State& state) const
+int CableSpan::getNumSolverIterations(const State& state) const
 {
     return getImpl().getDataPos(state).loopIter;
 }
 
-Real CableSpan::getMaxPathError(const State& state) const
+Real CableSpan::getSmoothness(const State& state) const
 {
-    return getImpl().getDataPos(state).pathError;
+    return getImpl().getDataPos(state).smoothness;
 }
 
 void CableSpan::storeCurrentPath(State& state) const
 {
+    getImpl().realizePosition(state);
     for (ObstacleIndex ix(0); ix < getImpl().getNumObstacles(); ++ix) {
         getImpl().getObstacleCurveSegment(ix).storeCurrentPath(state);
     }

@@ -27,12 +27,12 @@ namespace SimTK
 
 /** @class SimTK::CableSpanObstacleIndex
 This is a unique integer type for identifying obstacles comprising a particular
-CableSpan. These begin at zero for each cable. **/
+CableSpan. These begin at zero for each CableSpan. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanObstacleIndex);
 
 /** @class SimTK::CableSpanIndex
 This is a unique integer type for quickly identifying specific cables for fast
-lookup purposes. **/
+lookup purposes. These begin at zero for each CableSubsystem. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanIndex);
 
 class MultibodySystem;
@@ -42,23 +42,51 @@ class CableSubsystemTestHelper;
 //==============================================================================
 //                                CABLESPAN
 //==============================================================================
-/** Class CableSpan models a cable spanning between two points with obstacles
-that must be wrapped over.
+/** This class represents the path of a frictionless cable from an origin point
+fixed to a body, over geometric obstacles fixed to other bodies, to a final
+termination point.
 
-TODO add description (similar to CablePath, depending on how things develop).
+The CableSpan's path can be seen as consisting of straight line segments and
+curved line segments: A curved segment over each obstacle, and straight segments
+connecting them to each other and to the end points. Each curved segment is
+computed as a geodesic to give (in some sense) a shortest path over the surface.
+During a simulation the cable can slide freely over the obstacle surfaces. It
+can lose contact with a surface and miss that obstacle in a straight line.
+Similarly the cable can touchdown on the obstacle if the surface obstructs the
+straight line segment again.
 
-NOTE: The interaction with the obstacles is **ordered**. The cable can wrap over
-the obstacles in the order that they are added. This means that the cable can
-not wrap over the first obstacle twice, even though it might spatially intersect
-it twice.
-
-Algorithm details can be found in the following publication:
+The path is computed as an optimization problem using the previous optimal path
+as the warm start. This is done by computing natural geodesic corrections for
+each curve segment to compute the locally shortest path, as described in the
+following publication:
 
     Scholz, A., Sherman, M., Stavness, I. et al (2016). A fast multi-obstacle
     muscle wrapping method using natural geodesic variations. Multibody System
     Dynamics 36, 195–219.
 
-**/
+The overall path is locally the shortest, allowing winding over an obstacle
+multiple times, without flipping to the other side.
+
+During initialization the path is assumed to be in contact with each obstacle at
+the user defined contact-point-hint. At each contact point a
+zero-length-geodesic is computed with the tangent estimated as pointing from the
+previous path point to the next path point. From this configuration, the solver
+is started, and the geodesics will be corrected until the entire path is smooth.
+
+Important to note is that the cable's interaction with the obstacles is ordered
+based on the order in which they were added. That is, if three obstacles are
+added to a cable, then, the cable can wrap over the first, then the second, and
+then the third. If the first obstacle spatially collides with the path twice it
+will not actually wrap over it twice. Use CablePath if this is not the desired
+behavior.
+
+Note that a CableSpan is a geometric object, not a force or constraint element.
+That is, a CableSpan alone will not influence the behavior of a simulation.
+However, forces and constraint elements can be constructed that make use of a
+CableSpan to generate forces.
+
+A CableSpan must be registered with a CableSubsystem which manages their
+runtime evaluation. **/
 class SimTK_SIMBODY_EXPORT CableSpan final {
 public:
     /** Construct a new cable that can be configured later. **/
@@ -70,11 +98,14 @@ public:
     /** Copy assignment is shallow and reference counted. **/
     CableSpan& operator=(const CableSpan& source) = default;
     CableSpan(CableSpan&&) noexcept               = default;
-    CableSpan& operator=(CableSpan&&) noexcept    = default;
+    CableSpan& operator=(CableSpan&&) noexcept = default;
+
+    /** @name Cable construction */
+    ///@{
 
     /** Create a straight-line cable spanning between a point fixed on one body
-    to one fixed on another body. You can add additional obstacles and move the
-    end points later.
+    to one fixed on another body. You can add obstacles and move the end points
+    later.
     @param subsystem The subsystem that this cable is adopted by.
     @param originBody The mobilized body that the origin point is rigidly
     attached to.
@@ -111,6 +142,11 @@ public:
 
     /** Get the number of obstacles added to the path. **/
     int getNumSurfaceObstacles() const;
+
+    ///@}
+
+    /** @name Obstacle configuration */
+    ///@{
 
     /** Get the index of the mobilized body that the obstacle is attached to.
     @param ix The index of the obstacle in this CableSpan.
@@ -168,71 +204,23 @@ public:
     the obstacle, in local surface frame coordinates. The point will be used as
     a starting point when computing the initial cable path. As such, it does
     not have to lie on the contact geometry's surface, nor does it have to
-    belong to a valid cable path. **/
+    belong to the optimal cable path. **/
     void setObstacleInitialContactPointHint(
         CableSpanObstacleIndex ix,
         Vec3 contactPointHint_S);
 
-    /** Returns true when the cable is in contact with the obstacle.
-    State must be realized to Stage::Position.
-    @param state State of the system.
-    @param ix The index of the obstacle in this CableSpan. **/
-    bool isInContactWithObstacle(const State& state, CableSpanObstacleIndex ix)
-        const;
+    ///@}
 
-    /** Compute the knot points of the curve segment (i.e. the geodesic) on the
-    obstacle in local obstacle coordinates, together with the transform for
-    conversion to ground frame. If the cable is not in contact with the given
-    obstacle, nothing will be written.
-    **/
-    void calcCurveSegmentKnots(
-        const State& state,
-        CableSpanObstacleIndex ix,
-        const std::function<void(
-            const ContactGeometry::GeodesicKnotPoint& geodesicKnot_S,
-            const Transform& X_GS)>& sink) const;
-
-    /** Disable contact between the obstacle and this CableSpan.
-    State must be realized to Stage::Instance.
-    Does nothing if the obstacle was already disabled. Otherwise this method
-    will invalidate Stage::Position and later stages.
-    @param state State of the system.
-    @param ix The index of the obstacle in this CableSpan. **/
-    void setObstacleContactDisabled(
-        const State& state,
-        CableSpanObstacleIndex ix) const;
-
-    /** Enable contact between the obstacle and this CableSpan.
-    State must be realized to Stage::Instance.
-    Does nothing if the obstacle was already enabled. Otherwise this method
-    will invalidate Stage::Position and later stages.
-    @param state State of the system.
-    @param ix The index of the obstacle in this CableSpan. **/
-    void setObstacleContactEnabled(
-        const State& state,
-        CableSpanObstacleIndex ix) const;
-
-    /** Get the tolerance used to enfore the surface constraints of all
-    obstacles. **/
-    Real getSurfaceConstraintTolerance() const;
-
-    /** Set the tolerance used to enfore the surface constraints of all
-    obstacles.
-
-    TODO Currently the constraint projection tolerance is set for the entire
-    path. Which seems very convenient. However, this assumes that the surface
-    constraints of all obstacles are defined on the same scale. Which is
-    generally not true. Perhaps it is worth defining the surface constraints on
-    a similar scale. **/
-    void setSurfaceConstraintTolerance(Real tolerance);
+    /** @name Solver configuration */
+    ///@{
 
     /** Get the accuracy used by the numerical integrator when computing a
     geodesic over an obstacle. **/
-    Real getIntegratorAccuracy() const;
+    Real getCurveSegmentAccuracy() const;
 
     /** Set the accuracy used by the numerical integrator when computing a
     geodesic over an obstacle. **/
-    void setIntegratorAccuracy(Real accuracy);
+    void setCurveSegmentAccuracy(Real accuracy);
 
     /** Get the maximum number of solver iterations for finding the optimal
     path. **/
@@ -242,28 +230,53 @@ public:
     path. **/
     void setSolverMaxIterations(int maxIterations);
 
-    // TODO merge with surface constraint tolerance above?
-    Real getPathErrorAccuracy() const;
-    void setPathErrorAccuracy(Real accuracy);
+    /** Number of solver iterations used to compute the current cable's path.
+    State must be realized to Stage::Position.
+    @param state System State.
+    @return Number of solver iterations used. **/
+    int getNumSolverIterations(const State& state) const;
 
-    // TODO advanced parameter: Max allowed step during Newton iteration in
-    // angles. Using the local curvatures the max angular step is converted to a
-    // max allowed translation.
-    Real getMaxGeodesicCorrectionInDegrees() const;
-    void setMaxGeodesicCorrectionInDegrees(Real maxCorrectionInDegrees);
+    /** Get the smoothness tolerance used to compute the optimal path.
+    The (non) smoothness is defined as the angular discontinuity at the points
+    where straight- and curved-line segments meet, measured in radians. When
+    computing the optimal path this smoothness is optimized, and the solver
+    stops when reaching given tolerance.
+    **/
+    Real getSmoothnessTolerance() const;
+
+    /** Set the smoothness tolerance used to compute the optimal path.
+    See CableSpan::getSmoothnessTolerance.
+    **/
+    void setSmoothnessTolerance(Real tolerance);
+
+    /** The smoothness of the current cable's path.
+    See CableSpan::getSmoothnessTolerance.
+    State must be realized to Stage::Position. **/
+    Real getSmoothness(const State& state) const;
+
+    ///@}
+
+    /** @name Path computations */
+    ///@{
 
     /** Get the total cable length.
     State must be realized to Stage::Position.
     @param state State of the system.
     @return The total cable length. **/
-    Real getLength(const State& state) const;
+    Real calcLength(const State& state) const;
 
     /** Get the derivative of the total cable length.
     State must be realized to Stage::Velocity.
     @param state State of the system.
     @return The time derivative of the total cable length. **/
-    Real getLengthDot(const State& state) const;
+    Real calcLengthDot(const State& state) const;
 
+    /** Given a tension > 0 acting uniformly along this cable, compute the
+    resulting forces applied to the bodies it touches.
+    The body forces are added into the appropriate slots in the supplied Array
+    which has one entry per body in the same format as is supplied to the
+    calcForce() method of force elements. If the supplied tension is <= 0,
+    signifying a slack cable, this method does nothing. **/
     void applyBodyForces(
         const State& state,
         Real tension,
@@ -285,21 +298,89 @@ public:
         const State& state,
         const std::function<void(Vec3 point_G)>& sink) const;
 
-    /** Number of solver iterations used to compute the current cable's path.
+    ///@}
+
+    /** @name Curve segment computations */
+    ///@{
+
+    /** Returns true when the cable is in contact with the obstacle.
     State must be realized to Stage::Position.
-    @param state System State.
-    @return Number of solver iterations used. **/
-    int getNumSolverIter(const State& state) const;
+    @param state State of the system.
+    @param ix The index of the obstacle in this CableSpan. **/
+    bool isInContactWithObstacle(const State& state, CableSpanObstacleIndex ix)
+        const;
 
-    /** Maximum path error of the current cable's path.
-     * TODO explain path error.
-     * State must be realized to Stage::Position. **/
-    Real getMaxPathError(const State& state) const;
+    /** Compute the frenet frame associated with the obstacle's curve segment at
+    the initial contact point on that obstacle.
+    If the path is not in contact with the obstacle's surface the frame will
+    contain invalid data. The frenet frame is measured relative to ground, with
+    the tangent along the X axis, the surface normal along the Y axis and the
+    binormal along the Z axis.
+    State must be realized to Stage::Position.
+    @param state State of the system.
+    @param ix The index of the obstacle in this CableSpan.
+    @return The frenet frame at the obstacle's initial contact point. **/
+    Transform calcCurveSegmentInitialFrenetFrame(
+        const State& state,
+        CableSpanObstacleIndex ix) const;
 
-    /** TODO Remove this?
-     * Overwrite the path used as a warmstart for the solver. This path is
-     * normally auto-updated after completing an integrator step. **/
+    /** Compute the frenet frame associated with the obstacle's curve segment at
+    the final contact point on that obstacle.
+    If the path is not in contact with the obstacle's surface the frame will
+    contain invalid data. The frenet frame is measured relative to ground, with
+    the tangent along the X axis, the surface normal along the Y axis and the
+    binormal along the Z axis.
+    State must be realized to Stage::Position.
+    @param state State of the system.
+    @param ix The index of the obstacle in this CableSpan.
+    @return The frenet frame at the obstacle's final contact point. **/
+    Transform calcCurveSegmentFinalFrenetFrame(
+        const State& state,
+        CableSpanObstacleIndex ix) const;
+
+    /** Get the arc length of the obstacle's curve segment.
+    Returns NaN if the obstacle is not in contact with the path.
+    State must be realized to Stage::Position.
+    @param state State of the system.
+    @param ix The index of the obstacle in this CableSpan.
+    @return The arc length. **/
+    Real calcCurveSegmentArcLength(
+        const State& state,
+        CableSpanObstacleIndex ix) const;
+
+    ///@}
+
+    /** @name Advanced */
+    ///@{
+
+    /** Set the current path as the warmstart for solving the next path.
+    This is normally auto-updated after completing an integrator step. This
+    method is useful when controlling a system without an integrator involved.
+    State must be realized to Stage::Position.
+    **/
     void storeCurrentPath(State& state) const;
+
+    /** Disable contact between the obstacle and this CableSpan.
+    State must be realized to Stage::Instance.
+    Does nothing if the obstacle was already disabled. Otherwise this method
+    will invalidate Stage::Position and later stages.
+    @param state State of the system.
+    @param ix The index of the obstacle in this CableSpan. **/
+    void setObstacleContactDisabled(
+        const State& state,
+        CableSpanObstacleIndex ix) const;
+
+    /** Enable contact between the obstacle and this CableSpan.
+    State must be realized to Stage::Instance.
+    Does nothing if the obstacle was already enabled. Otherwise this method
+    will invalidate Stage::Position and later stages.
+    @param state State of the system.
+    @param ix The index of the obstacle in this CableSpan. **/
+    void setObstacleContactEnabled(
+        const State& state,
+        CableSpanObstacleIndex ix) const;
+
+    ///@}
 
     /** @cond **/ // Hide from Doxygen.
     class Impl;
@@ -327,8 +408,14 @@ private:
 //==============================================================================
 //                                CABLE SUBSYSTEM
 //==============================================================================
-/** TODO add description (similar to CableTrackerSubsystem, depending on how
-things develop). **/
+/** This subsystem manages cables spanning between two points in a system.
+Each cable is represented by a CableSpan. Obstacles can be added to the cable,
+and must be wrapped over. The calculated path will consist of a series of
+straight line segments between obstacles, and curved segments (geodesics) over
+the obstacles. Force elements defined elsewhere may make use of the cables to
+apply forces to the system.
+
+See CableSpan. **/
 class SimTK_SIMBODY_EXPORT CableSubsystem : public Subsystem {
 public:
     CableSubsystem();
@@ -363,7 +450,6 @@ public:
 //==============================================================================
 //                      SUBSYSTEM TESTING HELPER
 //==============================================================================
-// TODO move this elsewhere?
 // Helper class for testing the internally computed path error jacboian.
 class SimTK_SIMBODY_EXPORT CableSubsystemTestHelper {
 public:

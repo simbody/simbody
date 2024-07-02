@@ -72,7 +72,7 @@ public:
         const Real stretch = calcStretch(s);
         if (stretch == 0)
             return 0;
-        const Real rate = m_Cable.getLengthDot(s);
+        const Real rate = m_Cable.calcLengthDot(s);
         return k * stretch * std::max(c * rate, -1.) * rate;
     }
 
@@ -129,7 +129,7 @@ private:
     // length or zero if the cable is slack. Must be at stage Position.
     Real calcStretch(const State& s) const
     {
-        const Real stretch = m_Cable.getLength(s) - x0;
+        const Real stretch = m_Cable.calcLength(s) - x0;
         return std::max(stretch, 0.);
     }
 
@@ -139,7 +139,7 @@ private:
         const Real stretch = calcStretch(s);
         if (stretch == 0)
             return 0;
-        const Real rate = m_Cable.getLengthDot(s);
+        const Real rate = m_Cable.calcLengthDot(s);
         if (c * rate < -1)
             cout << "c*rate=" << c * rate << "; limited to -1\n";
         const Real tension = k * stretch * (1 + std::max(c * rate, -1.));
@@ -245,8 +245,8 @@ public:
         printf(
             "%8g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g CPU=%g\n",
             s.getTime(),
-            path1.getLength(s),
-            path1.getLengthDot(s),
+            path1.calcLength(s),
+            path1.calcLengthDot(s),
             path1.calcCablePower(s, 1), // unit power
             cable1.getTension(s),
             cable1.getDissipatedEnergy(s),
@@ -398,7 +398,7 @@ int main() {
 
     system.realize(state, Stage::Position);
     viz.report(state);
-    cout << "path2 init length=" << path2.getLength(state) << endl;
+    cout << "path2 init length=" << path2.calcLength(state) << endl;
     cout << "Hit ENTER ...";
     getchar();
 
