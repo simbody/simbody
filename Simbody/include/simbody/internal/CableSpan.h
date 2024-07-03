@@ -40,8 +40,6 @@ class CableSubsystem;
 class CableSubsystemTestHelper;
 
 //==============================================================================
-//                                CABLESPAN
-//==============================================================================
 /** This class represents the path of a frictionless cable from an origin point
 fixed to a body, over geometric obstacles fixed to other bodies, to a final
 termination point.
@@ -405,8 +403,6 @@ private:
     /** @endcond **/
 };
 
-//==============================================================================
-//                                CABLE SUBSYSTEM
 //==============================================================================
 /** This subsystem manages cables spanning between two points in a system.
 Each cable is represented by a CableSpan. Obstacles can be added to the cable,
