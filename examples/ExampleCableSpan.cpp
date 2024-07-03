@@ -69,7 +69,7 @@ public:
         m_mbs(&mbs), m_cable(cable)
     {
         for (CableSpanObstacleIndex ix(0);
-             ix < m_cable.getNumSurfaceObstacles();
+             ix < m_cable.getNumObstacles();
              ++ix) {
             m_obstacleDecorations.push_back(
                 m_cable.getObstacleContactGeometry(ix)
@@ -83,7 +83,7 @@ public:
         Array_<DecorativeGeometry>& decorations) override
     {
         for (CableSpanObstacleIndex ix(0);
-             ix < m_cable.getNumSurfaceObstacles();
+             ix < m_cable.getNumObstacles();
              ++ix) {
             // Draw the obstacle surface.
             // Green if cable is in contact with surface, grey otheriwse.
@@ -106,7 +106,7 @@ public:
 
             // Draw the initial contact point hints (these are user-defined) as
             // an orange line with a point.
-            const Vec3 x_PS = m_cable.getObstacleInitialContactPointHint(ix);
+            const Vec3 x_PS = m_cable.getObstacleContactPointHint(ix);
             decorations.push_back(
                 DecorativeLine(X_GS.p(), X_GS.shiftFrameStationToBase(x_PS))
                     .setColor(Orange)
@@ -169,7 +169,7 @@ int main()
         // Add some obstacles to the cable.
 
         // Add torus obstacle.
-        cable.addSurfaceObstacle(
+        cable.addObstacle(
             matter.Ground(), // Obstacle mobilizer body.
             Transform(
                 Rotation(0.5 * Pi, YAxis),
@@ -180,7 +180,7 @@ int main()
         );
 
         // Add ellipsoid obstacle.
-        cable.addSurfaceObstacle(
+        cable.addObstacle(
             matter.Ground(),
             Transform(Vec3{-2., 0., 0.}),
             std::shared_ptr<ContactGeometry>(
@@ -188,7 +188,7 @@ int main()
             {0.0, 0., 1.1});
 
         // Add sphere obstacle.
-        cable.addSurfaceObstacle(
+        cable.addObstacle(
             matter.Ground(),
             Transform(Vec3{2., 0., 0.}),
             std::shared_ptr<ContactGeometry>(new ContactGeometry::Sphere(1.)),

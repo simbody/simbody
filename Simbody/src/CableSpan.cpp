@@ -313,7 +313,6 @@ struct CurveSegmentData {
 
 } // namespace
 
-
 //==============================================================================
 //                          Configuration Parameters
 //==============================================================================
@@ -332,7 +331,7 @@ TODO These need reasonable default values. */
 struct IntegratorTolerances {
     // The accuracy used to control the stepsize of the variable step geodesic
     // integrator.
-    Real geodesicIntegratorAccuracy    = 1e-6;
+    Real geodesicIntegratorAccuracy = 1e-6;
     // TODO the surface projection tolerance should be linked to the geodesic
     // integrator accuracy.
     Real constraintProjectionTolerance = 1e-6;
@@ -704,9 +703,11 @@ public:
     // Similarly find the first obstacle after this segment that is in contact.
     ObstacleIndex findNextObstacleInContactWithCable(const State& state) const;
 
-    // Find the last path point before this segment, in ground frame coordinates.
+    // Find the last path point before this segment, in ground frame
+    // coordinates.
     Vec3 findPrevPathPoint_G(const State& state) const;
-    // Find the first path point after this segment, in ground frame coordinates.
+    // Find the first path point after this segment, in ground frame
+    // coordinates.
     Vec3 findNextPathPoint_G(const State& state) const;
 
     // Find the path point before this segment, in surface frame coordinates.
@@ -902,7 +903,7 @@ public:
         CurveSegmentData::Instance& dataInst) const
     {
         dataInst.wrappingStatus = ObstacleWrappingStatus::LiftedFromSurface;
-        dataInst.arcLength = NaN;
+        dataInst.arcLength      = NaN;
         dataInst.trackingPointOnLine_S = trackingPoint_S;
     }
 
@@ -1016,27 +1017,6 @@ public:
     //------------------------------------------------------------------------------
     //  Computing cached data
     //------------------------------------------------------------------------------
-
-    // Disabling the obstacle prevents any interaction between the obstacle and
-    // the cable.
-    void setContactWithSurfaceToDisabled(const State& state) const
-    {
-        updDataInst(state).wrappingStatus = ObstacleWrappingStatus::Disabled;
-        getSubsystem().markDiscreteVarUpdateValueRealized(
-            state,
-            m_indexDataInst);
-        state.invalidateAllCacheAtOrAbove(Stage::Position);
-    }
-
-    void setContactWithSurfaceToEnabled(const State& state) const
-    {
-        updDataInst(state).wrappingStatus =
-            ObstacleWrappingStatus::InitialGuess;
-        getSubsystem().markDiscreteVarUpdateValueRealized(
-            state,
-            m_indexDataInst);
-        state.invalidateAllCacheAtOrAbove(Stage::Position);
-    }
 
     // Overwrite the cached autoupdate value by the current value.
     void storeCurrentPath(State& state) const
@@ -1463,7 +1443,7 @@ public:
     // CableSpan interface translation.
     //--------------------------------------------------------------------------
 
-    ObstacleIndex addSurfaceObstacle(
+    ObstacleIndex addObstacle(
         MobilizedBodyIndex obstacleBody,
         const Transform& X_BS,
         std::shared_ptr<const ContactGeometry> obstacleGeometry,
@@ -1570,24 +1550,6 @@ public:
                                           .setColor(c_Color)
                                           .setLineThickness(c_LineThickness));
             }
-        }
-    }
-
-    void setObstacleContactDisabled(const State& state, ObstacleIndex ix) const
-    {
-        // Only disable the obstacle, if it was not disabled already.
-        if (getObstacleCurveSegment(ix).getDataInst(state).wrappingStatus !=
-            ObstacleWrappingStatus::Disabled) {
-            getObstacleCurveSegment(ix).setContactWithSurfaceToDisabled(state);
-        }
-    }
-
-    void setObstacleContactEnabled(const State& state, ObstacleIndex ix) const
-    {
-        // Only enable the obstacle, if it was not enabled already.
-        if (getObstacleCurveSegment(ix).getDataInst(state).wrappingStatus ==
-            ObstacleWrappingStatus::Disabled) {
-            getObstacleCurveSegment(ix).setContactWithSurfaceToEnabled(state);
         }
     }
 
@@ -1706,7 +1668,7 @@ private:
                 data.pathCorrection.normInf() < Eps ||
                 dataPos.loopIter >= getParameters().solverMaxIterations) {
                 // Update cache entry and stop solver.
-                dataPos.smoothness   = data.maxPathError;
+                dataPos.smoothness  = data.maxPathError;
                 dataPos.cableLength = calcTotalCableLength(data.lineSegments);
                 dataPos.originTangent_G = data.lineSegments.front().direction;
                 dataPos.terminationTangent_G =
@@ -2841,20 +2803,32 @@ CableSpan::CableSpan(
     updImpl().setSubsystem(subsystem, ix);
 }
 
-ObstacleIndex CableSpan::addSurfaceObstacle(
+ObstacleIndex CableSpan::addObstacle(
+    MobilizedBodyIndex obstacleBody,
+    const Transform& X_BS,
+    std::shared_ptr<const ContactGeometry> obstacleGeometry)
+{
+    return updImpl().addObstacle(
+        obstacleBody,
+        X_BS,
+        std::move(obstacleGeometry),
+        Vec3{NaN}); // Invalid contactPointHint_S
+}
+
+ObstacleIndex CableSpan::addObstacle(
     MobilizedBodyIndex obstacleBody,
     const Transform& X_BS,
     std::shared_ptr<const ContactGeometry> obstacleGeometry,
     const Vec3& contactPointHint_S)
 {
-    return updImpl().addSurfaceObstacle(
+    return updImpl().addObstacle(
         obstacleBody,
         X_BS,
-        obstacleGeometry,
+        std::move(obstacleGeometry),
         contactPointHint_S);
 }
 
-int CableSpan::getNumSurfaceObstacles() const
+int CableSpan::getNumObstacles() const
 {
     return getImpl().getNumObstacles();
 }
@@ -2896,12 +2870,12 @@ void CableSpan::setObstacleContactGeometry(
     updImpl().updObstacleCurveSegment(ix).setContactGeometry(geometry);
 }
 
-Vec3 CableSpan::getObstacleInitialContactPointHint(ObstacleIndex ix) const
+Vec3 CableSpan::getObstacleContactPointHint(ObstacleIndex ix) const
 {
     return getImpl().getObstacleCurveSegment(ix).getContactPointHint();
 }
 
-void CableSpan::setObstacleInitialContactPointHint(
+void CableSpan::setObstacleContactPointHint(
     ObstacleIndex ix,
     Vec3 initialContactPointHint)
 {
@@ -2917,24 +2891,24 @@ bool CableSpan::isInContactWithObstacle(const State& state, ObstacleIndex ix)
 }
 
 Transform CableSpan::calcCurveSegmentInitialFrenetFrame(
-        const State& state,
-        CableSpanObstacleIndex ix) const
+    const State& state,
+    CableSpanObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
     return getImpl().getObstacleCurveSegment(ix).getDataPos(state).X_GP;
 }
 
 Transform CableSpan::calcCurveSegmentFinalFrenetFrame(
-        const State& state,
-        CableSpanObstacleIndex ix) const
+    const State& state,
+    CableSpanObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
     return getImpl().getObstacleCurveSegment(ix).getDataPos(state).X_GQ;
 }
 
 Real CableSpan::calcCurveSegmentArcLength(
-        const State& state,
-        CableSpanObstacleIndex ix) const
+    const State& state,
+    CableSpanObstacleIndex ix) const
 {
     getImpl().realizePosition(state);
     return getImpl().getObstacleCurveSegment(ix).getDataInst(state).arcLength;
@@ -3016,16 +2990,4 @@ void CableSpan::storeCurrentPath(State& state) const
     for (ObstacleIndex ix(0); ix < getImpl().getNumObstacles(); ++ix) {
         getImpl().getObstacleCurveSegment(ix).storeCurrentPath(state);
     }
-}
-
-void CableSpan::setObstacleContactDisabled(const State& state, ObstacleIndex ix)
-    const
-{
-    getImpl().setObstacleContactDisabled(state, ix);
-}
-
-void CableSpan::setObstacleContactEnabled(const State& state, ObstacleIndex ix)
-    const
-{
-    getImpl().setObstacleContactEnabled(state, ix);
 }

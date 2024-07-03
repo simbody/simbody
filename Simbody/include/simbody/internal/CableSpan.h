@@ -126,20 +126,32 @@ public:
     @param X_BS Transform specifying the location and orientation of the
     contact geometry's origin frame with respect to the mobilized body.
     @param obstacleGeometry The geometry of the obstacle's surface.
+    @return The index of the added obstacle in this cable. **/
+    CableSpanObstacleIndex addObstacle(
+        MobilizedBodyIndex obstacleBody,
+        const Transform& X_BS,
+        std::shared_ptr<const ContactGeometry> obstacleGeometry);
+
+    /** Add an obstacle to the cable's path that must be wrapped over.
+    @param obstacleBody The body that the contact geometry is rigidly attached
+    to.
+    @param X_BS Transform specifying the location and orientation of the
+    contact geometry's origin frame with respect to the mobilized body.
+    @param obstacleGeometry The geometry of the obstacle's surface.
     @param contactPointHint_S A guess for the cable's initial contact point on
     the obstacle, in local surface frame coordinates. The point will be used as
     a starting point when computing the initial cable path. As such, it does
     not have to lie on the contact geometry's surface, nor does it have to
     belong to a valid cable path.
     @return The index of the added obstacle in this cable. **/
-    CableSpanObstacleIndex addSurfaceObstacle(
+    CableSpanObstacleIndex addObstacle(
         MobilizedBodyIndex obstacleBody,
         const Transform& X_BS,
         std::shared_ptr<const ContactGeometry> obstacleGeometry,
         const Vec3& contactPointHint_S);
 
     /** Get the number of obstacles added to the path. **/
-    int getNumSurfaceObstacles() const;
+    int getNumObstacles() const;
 
     ///@}
 
@@ -194,7 +206,7 @@ public:
     /** Get the point on the obstacle used to compute the initial path.
     @param ix The index of the obstacle in this CableSpan.
     @return The point in the obstacle's local surface coordinates. **/
-    Vec3 getObstacleInitialContactPointHint(CableSpanObstacleIndex ix) const;
+    Vec3 getObstacleContactPointHint(CableSpanObstacleIndex ix) const;
 
     /** Set the point on the obstacle used to compute the initial path.
     @param ix The index of the obstacle in this CableSpan.
@@ -203,7 +215,7 @@ public:
     a starting point when computing the initial cable path. As such, it does
     not have to lie on the contact geometry's surface, nor does it have to
     belong to the optimal cable path. **/
-    void setObstacleInitialContactPointHint(
+    void setObstacleContactPointHint(
         CableSpanObstacleIndex ix,
         Vec3 contactPointHint_S);
 
@@ -357,26 +369,6 @@ public:
     State must be realized to Stage::Position.
     **/
     void storeCurrentPath(State& state) const;
-
-    /** Disable contact between the obstacle and this CableSpan.
-    State must be realized to Stage::Instance.
-    Does nothing if the obstacle was already disabled. Otherwise this method
-    will invalidate Stage::Position and later stages.
-    @param state State of the system.
-    @param ix The index of the obstacle in this CableSpan. **/
-    void setObstacleContactDisabled(
-        const State& state,
-        CableSpanObstacleIndex ix) const;
-
-    /** Enable contact between the obstacle and this CableSpan.
-    State must be realized to Stage::Instance.
-    Does nothing if the obstacle was already enabled. Otherwise this method
-    will invalidate Stage::Position and later stages.
-    @param state State of the system.
-    @param ix The index of the obstacle in this CableSpan. **/
-    void setObstacleContactEnabled(
-        const State& state,
-        CableSpanObstacleIndex ix) const;
 
     ///@}
 
