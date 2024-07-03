@@ -796,10 +796,16 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
 {
     // TODO the sign of the constraint is such that positive is inside the surface.
 
-    // Initial guess.
+    // If pointA == pointB then the nearest point is either pointA or pointB.
     const Vec3 d = pointB - pointA;
+    if (d.normSqr() < Eps) {
+        nearestPointOnLine = pointA;
+        return calcSurfaceValue(nearestPointOnLine) > 0;
+    }
+
+    // Initial guess.
     Real alpha   = -dot(d, pointA - nearestPointOnLine) / dot(d, d);
-    alpha        = std::max(0., std::min(alpha, 1.));
+    alpha        = clamp(0., alpha, 1.);
 
     int iter = 0;
 
@@ -836,7 +842,12 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
 
         // Clamp the stepsize.
         constexpr Real maxStep = 0.2;
-        alpha -= std::min(std::max(-maxStep, step), maxStep);
+        alpha -= clamp(-maxStep, step, maxStep);
+
+        // Intercept invalid alpha.
+        SimTK_ERRCHK_ALWAYS(!isNaN(alpha),
+            "ContactGeometry::calcNearestPointOnLineImplicitly",
+            "Failed to compute point on line near surface: NaNs detected");
 
         // Stop when leaving bounds.
         if (alpha < 0. || alpha > 1.) {
@@ -845,8 +856,7 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
     }
 
     // Write the point on line nearest the surface.
-    alpha = std::max(0., std::min(alpha, 1.));
-    nearestPointOnLine = pointA + d * alpha;
+    nearestPointOnLine = pointA + d * clamp(0., alpha, 1.);
 
     const bool touchdown = -calcSurfaceValue(nearestPointOnLine) < tolerance;
 
