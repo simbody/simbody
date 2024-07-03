@@ -74,8 +74,7 @@ struct LineSegment final {
 //  Wrapping Status
 //------------------------------------------------------------------------------
 /* This enum gives the wrapping status of an obstacle in a CableSpan's path. */
-enum class ObstacleWrappingStatus
-{
+enum class ObstacleWrappingStatus {
     // InitialGuess: The curve segment must be initialized from the initial
     // contact point parameter. This will be used as the starting point for
     // computing the optimal cable path.
@@ -86,7 +85,7 @@ enum class ObstacleWrappingStatus
     // obstacle.
     LiftedFromSurface,
     // Disabled: The obstacle was manually disabled, preventing any interaction
-    // with the cable.
+    // with the cable. TODO no longer used?
     Disabled,
 };
 
