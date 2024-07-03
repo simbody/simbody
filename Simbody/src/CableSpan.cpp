@@ -261,9 +261,9 @@ measured from the surface's origin frame. */
 struct CurveSegmentData {
     struct Instance final {
         // Frenet frame at the initial contact point w.r.t. the surface frame.
-        FrenetFrame X_SP{};
+        FrenetFrame X_SP{Rotation().setRotationToNaN(), Vec3(NaN)};
         // Frenet frame at the final contact point w.r.t. the surface frame.
-        FrenetFrame X_SQ{};
+        FrenetFrame X_SQ{Rotation().setRotationToNaN(), Vec3(NaN)};
         // Length of this curve segment.
         Real arcLength = NaN;
         // Curvatures at the contact points, with the tangential and binormal
@@ -532,12 +532,26 @@ public:
     // Allocate state variables and cache entries.
     void realizeTopology(State& state)
     {
-        // Allocate an auto-update discrete variable for the last computed
-        // geodesic.
+        CurveSegmentData::Instance dataInst;
+        // Initialize the contact point if a hint is available.
+        if (isContactPointHintAvailable()) {
+            const Vec3 initContactPoint =
+                getContactGeometry().projectDownhillToNearestPoint(
+                    getContactPointHint());
+            dataInst.X_SP.updP()    = initContactPoint;
+            dataInst.X_SQ.updP()    = initContactPoint;
+            dataInst.wrappingStatus = ObstacleWrappingStatus::InitialGuess;
+        } else {
+            // Otherwise assume no contact.
+            dataInst.trackingPointOnLine_S = Vec3{0.};
+            dataInst.wrappingStatus        = ObstacleWrappingStatus::LiftedFromSurface;
+        }
+        // Use auto-update discrete variable to retain the previous path as a
+        // warmstart.
         m_indexDataInst = updSubsystem().allocateAutoUpdateDiscreteVariable(
             state,
             Stage::Position,
-            new Value<CurveSegmentData::Instance>(),
+            new Value<CurveSegmentData::Instance>(dataInst),
             Stage::Instance);
 
         m_indexDataPos = updSubsystem().allocateCacheEntry(
@@ -589,6 +603,13 @@ public:
     Vec3 getContactPointHint() const
     {
         return m_contactPointHint_S;
+    }
+
+    bool isContactPointHintAvailable() const
+    {
+        return !(
+            isNaN(m_contactPointHint_S[0]) && isNaN(m_contactPointHint_S[1]) &&
+            isNaN(m_contactPointHint_S[2]));
     }
 
     const ContactGeometry& getContactGeometry() const
@@ -907,10 +928,20 @@ public:
         dataInst.trackingPointOnLine_S = trackingPoint_S;
     }
 
-    // Helper function for initializing the path by computing a zero length
-    // geodesic.
+    // Helper function for initializing the path.
     void calcInitCurve(const State& state) const
     {
+        // Check if a valid contact point hint was set.
+        if (!isContactPointHintAvailable()) {
+            // No initial contact point was set: Initialize as lifted from the
+            // surface, and initialize tracking point at origin (for lack of
+            // alternative).
+            liftCurveFromSurface(Vec3(0.), updDataInst(state));
+            return;
+        }
+        // If we do have a contact point hint, initialize the path by shooting a
+        // zero-length geodesic at that location.
+
         // The first integrator stepsize to attempt is a bit arbitrary: Taking
         // it too large will simply cause it to be rejected. Taking it too small
         // will cause it to rapidly increase. We take it too small, to be on the
