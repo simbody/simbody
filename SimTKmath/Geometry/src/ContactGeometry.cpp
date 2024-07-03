@@ -924,6 +924,8 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
     const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
         geodesicKnotPointsSink) const
 {
+    // TODO: this code was taken from ContactGeometryImpl::shootGeodesicInDirection2(), but an overall refactor of the GeodesicIntegrator code is needed.
+
     // integrator settings
     constexpr Real startArcLength = 0;
 
