@@ -102,9 +102,9 @@ Here we define it as (see Scholz2015):
 - Y axis: normal to surface
 - Z axis: binormal to geodesic (tangent cross normal) */
 using FrenetFrame                        = Transform;
-static const CoordinateAxis TangentAxis  = CoordinateAxis::XCoordinateAxis();
-static const CoordinateAxis NormalAxis   = CoordinateAxis::YCoordinateAxis();
-static const CoordinateAxis BinormalAxis = CoordinateAxis::ZCoordinateAxis();
+static const CoordinateAxis TangentAxis  = XAxis;
+static const CoordinateAxis NormalAxis   = YAxis;
+static const CoordinateAxis BinormalAxis = ZAxis;
 
 //------------------------------------------------------------------------------
 //  Struct MatrixWorkspace
