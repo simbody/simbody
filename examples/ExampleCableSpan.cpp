@@ -75,6 +75,8 @@ public:
                 m_cable.getObstacleContactGeometry(ix)
                     .createDecorativeGeometry()
                     .setResolution(3));
+            m_obstacleDecorationsOffsets.push_back(
+                    m_obstacleDecorations.back().getTransform());
         }
     }
 
@@ -97,10 +99,17 @@ public:
                 m_mbs->getMatterSubsystem()
                     .getMobilizedBody(m_cable.getObstacleMobilizedBodyIndex(ix))
                     .getBodyTransform(state);
-            Transform X_GS =
+            const Transform X_GS =
                 X_GB.compose(m_cable.getObstacleXformSurfaceToBody(ix));
+
+            const Transform X_SD = m_obstacleDecorationsOffsets.at(ix);
+            const Transform X_GD = X_GS.compose(X_SD);
+            // Draw the obstacle's local frame.
+            // This is the frame that you define the contact point hint in.
+            decorations.push_back(DecorativeFrame(0.5).setTransform(X_GS).setColor(Purple));
+            // Draw the obstacle contact geometry.
             decorations.push_back(m_obstacleDecorations.at(ix)
-                                      .setTransform(X_GS)
+                                      .setTransform(X_GD)
                                       .setColor(color)
                                       .setOpacity(opacity));
 
@@ -154,7 +163,7 @@ int main()
         // Mobilizer for path termination.
         MobilizedBody::Translation cableTerminationBody(
             matter.Ground(),
-            Transform(Vec3(5., 1.0, -1.)),
+            Transform(Vec3(10., 1.0, -1.)),
             aBody,
             Transform());
 
@@ -193,6 +202,14 @@ int main()
             Transform(Vec3{2., 0., 0.}),
             std::shared_ptr<ContactGeometry>(new ContactGeometry::Sphere(1.)),
             {0.1, 1.1, 0.}
+        );
+
+        // Add cylinder obstacle.
+        cable.addObstacle(
+            matter.Ground(),
+            Transform(Rotation(0.5*Pi, XAxis), Vec3{5., 0., 0.}),
+            std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
+            Vec3{0., -1., 0.}
         );
 
         // Visaulize the system.
