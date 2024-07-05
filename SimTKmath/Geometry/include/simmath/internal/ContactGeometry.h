@@ -256,14 +256,38 @@ bool trackSeparationFromLine(const Vec3& pointOnLine,
                              Vec3& closestPointOnLine,
                              Real& height) const;
 
-// Compute nearest point on the line spanned by points A-B to the surface.
-// Exits early if the point lies below the surface.
-// @param pointA Line origin point.
-// @param pointB Line termination point.
-// @param maxIterations Maximum number of solver iterations.
-// @param tolerance TODO
-// @param nearestPointOnLine The computed nearest point on the line.
-// @return Returns true if the point lies below the surface.
+/** Compute the nearest point on the line spanned by points pA-pB to the surface.
+This function exits early, returning true, if the point lies below the surface.
+
+@param pointA Line origin point.
+@param pointB Line termination point.
+@param maxIterations Maximum number of solver iterations.
+@param tolerance If the stepsize falls below this value stop iterating
+@param nearestPointOnLine The computed nearest point on the line.
+@return Returns true if the point lies below the surface.
+
+<h3>Theory</h3>
+Computing the point is done by searching for a maximum of the surface
+constraint value c=f(p), along the line. The point on the line pL can be expressed
+with one unknown scalar alpha as:
+<pre>
+pL = pA + alpha * (pB-pA)  with 0 <= alpha <= 1.
+</pre>
+This gives the optimization problem as:
+<pre>
+max f(alpha), s.t. 0 <= alpha <= 1
+</pre>
+The constraint f(alpha) can be approximated using the gradient g, and hessian H:
+<pre>
+f(alpha) = c + g * (pB - pA) * alpha + 1/2 * ~(pB - pA) * H * (pB - pA) * alpha^2 + ...
+</pre>
+Update alpha as:
+<pre>
+alpha += g * (pB-pA) / ( ~(pB-pA) * H * (pB-pA) )
+</pre>
+The search is terminated when either the step size falls below given tolerance,
+or the max number of iterations is exceeded, or if the point falls below the
+surface. **/
 bool calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,

@@ -835,22 +835,24 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
         // chance that the surface Hessian is not positive definite).
         const Real step = dot(g, d) / (std::abs(hessian) + w);
 
-        // Stop when converged.
-        if (std::abs(step) < tolerance) {
-            break;
-        }
-
         // Clamp the stepsize.
         constexpr Real maxStep = 0.2;
-        alpha -= clamp(-maxStep, step, maxStep);
+        Real nextAlpha = alpha - clamp(-maxStep, step, maxStep);
+
+        // Clamp alpha to valid range.
+        nextAlpha = clamp(0., nextAlpha, 1.);
 
         // Intercept invalid alpha.
-        SimTK_ERRCHK_ALWAYS(!isNaN(alpha),
+        SimTK_ERRCHK_ALWAYS(!isNaN(nextAlpha),
             "ContactGeometry::calcNearestPointOnLineImplicitly",
             "Failed to compute point on line near surface: NaNs detected");
 
-        // Stop when leaving bounds.
-        if (alpha < 0. || alpha > 1.) {
+        // Compute step size after all clamping.
+        const Real actualStep = nextAlpha - alpha;
+
+        // Stop when converged.
+        alpha = nextAlpha;
+        if (std::abs(actualStep) < tolerance) {
             break;
         }
     }
