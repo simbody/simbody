@@ -1048,12 +1048,6 @@ public:
     //  Computing cached data
     //------------------------------------------------------------------------------
 
-    // Overwrite the cached autoupdate value by the current value.
-    void storeCurrentPath(State& state) const
-    {
-        updPrevDataInst(state) = getDataInst(state);
-    }
-
     // Apply the correction to the initial condition of the geodesic, and
     // shoot a new geodesic, updating the cache variable.
     void applyGeodesicCorrection(
@@ -3012,12 +3006,4 @@ int CableSpan::getNumSolverIterations(const State& state) const
 Real CableSpan::getSmoothness(const State& state) const
 {
     return getImpl().getDataPos(state).smoothness;
-}
-
-void CableSpan::storeCurrentPath(State& state) const
-{
-    getImpl().realizePosition(state);
-    for (ObstacleIndex ix(0); ix < getImpl().getNumObstacles(); ++ix) {
-        getImpl().getObstacleCurveSegment(ix).storeCurrentPath(state);
-    }
 }

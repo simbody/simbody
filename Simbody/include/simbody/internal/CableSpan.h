@@ -360,18 +360,6 @@ public:
 
     ///@}
 
-    /** @name Advanced */
-    ///@{
-
-    /** Set the current path as the warmstart for solving the next path.
-    This is normally auto-updated after completing an integrator step. This
-    method is useful when controlling a system without an integrator involved.
-    State must be realized to Stage::Position.
-    **/
-    void storeCurrentPath(State& state) const;
-
-    ///@}
-
     /** @cond **/ // Hide from Doxygen.
     class Impl;
 

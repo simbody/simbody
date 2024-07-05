@@ -191,7 +191,6 @@ int main()
         if(viz) {
             viz->report(s);
         }
-        cable.storeCurrentPath(s);
 
         // Move the cable origin.
         angle += 0.01;

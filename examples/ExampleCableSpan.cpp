@@ -238,7 +238,6 @@ int main()
             system.realize(s, Stage::Position);
             cable.calcLength(s);
             viz.report(s);
-            cable.storeCurrentPath(s);
 
             // Move the cable origin.
             angle += 0.01;
