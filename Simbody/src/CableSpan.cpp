@@ -286,7 +286,10 @@ struct CurveSegmentData {
         // The initial integrator stepsize to try next time when shooting a
         // geodesic. This step size estimate will improve each time after
         // shooting a new geodesic.
-        Real integratorInitialStepSize = NaN;
+        // The default value is a bit arbitrary: Taking it too large will
+        // simply cause it to be rejected. Taking it too small will cause it to
+        // rapidly increase. We take it too small, to be on the safe side.
+        Real integratorInitialStepSize = 1e-10;
         // Given the line spanned by the point before and after this curve
         // segment, the tracking point lies on that line and is nearest to the
         // surface. This point is used to find the touchdown location when the
@@ -941,12 +944,6 @@ public:
         // If we do have a contact point hint, initialize the path by shooting a
         // zero-length geodesic at that location.
 
-        // The first integrator stepsize to attempt is a bit arbitrary: Taking
-        // it too large will simply cause it to be rejected. Taking it too small
-        // will cause it to rapidly increase. We take it too small, to be on the
-        // safe side.
-        constexpr Real c_initIntegratorStepSize = 1e-10;
-
         // Shoot a zero length geodesic at the contact point with tangent
         // directed from prevPoint to nextPoint:
         const Vec3 prevPoint_S = findPrevPathPoint_S(state);
@@ -955,7 +952,7 @@ public:
             getContactPointHint(),     // = location
             nextPoint_S - prevPoint_S, // = tangent
             0.,                        // = arc length
-            c_initIntegratorStepSize,
+            getDataInst(state).integratorInitialStepSize,
             updDataInst(state));
     }
 
