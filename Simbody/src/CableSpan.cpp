@@ -1559,17 +1559,39 @@ public:
                 }
 
                 // Draw the tracking point (in ground frame).
-                const Transform X_GS       = curve.getDataPos(state).X_GS;
-                const Vec3 trackingPoint_G = X_GS.shiftFrameStationToBase(
-                    curve.getDataInst(state).trackingPointOnLine_S);
+                const Transform X_GS = curve.getDataPos(state).X_GS;
+                const Vec3 trackingPoint_S =
+                    curve.getDataInst(state).trackingPointOnLine_S;
+                const Vec3 trackingPoint_G =
+                    X_GS.shiftFrameStationToBase(trackingPoint_S);
                 decorations.push_back(
                     DecorativePoint(trackingPoint_G).setColor(c_Color));
-                // TODO just to make it very clear draw a red line to the
-                // tracking point. This should be removed in final version
-                // probably.
-                decorations.push_back(DecorativeLine(X_GS.p(), trackingPoint_G)
-                                          .setColor(c_Color)
-                                          .setLineThickness(c_LineThickness));
+                // Draw line to tracking point from either the surface, or the
+                // obstacle origin. We default to drawing from the origin
+                // because surface projection becomes unstable at larger
+                // distances, which causes the projection to take too much
+                // time. Which was the reason to not use it in the first place.
+                // But it is more illustrative.
+                constexpr bool c_DrawLineFromObstacleOrigin = true;
+                if (c_DrawLineFromObstacleOrigin) {
+                    decorations.push_back(
+                        DecorativeLine(X_GS.p(), trackingPoint_G)
+                            .setColor(c_Color)
+                            .setLineThickness(c_LineThickness));
+                } else {
+                    try {
+                        const Vec3 surfacePoint_S =
+                            curve.getContactGeometry()
+                                .projectDownhillToNearestPoint(trackingPoint_S);
+                        const Vec3 surfacePoint_G =
+                            X_GS.shiftFrameStationToBase(surfacePoint_S);
+                        decorations.push_back(
+                            DecorativeLine(trackingPoint_G, surfacePoint_G)
+                                .setColor(Orange)
+                                .setLineThickness(c_LineThickness));
+                    } catch (...) {
+                    }
+                }
             }
         }
     }
