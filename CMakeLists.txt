@@ -479,8 +479,8 @@ endif()
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
 add_compile_definitions(
-   -DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
-   -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}"
+   SimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
+   SimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}"
 )
 
 if(BUILD_USING_OTHER_LAPACK)
