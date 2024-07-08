@@ -56,8 +56,10 @@
             },
             "cacheVariables": {
                 "BUILD_TESTING": false,
-                "CMAKE_CXX_FLAGS": "/w",
                 "CMAKE_COMPILE_WARNING_AS_ERROR": false
+            },
+            "environment": {
+                "CXXFLAGS": "/w"
             },
             "warnings": {
                 "dev": false,
@@ -70,8 +72,10 @@
             "description": "The right build configuration for most developers",
             "inherits": "ci-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "CMAKE_CXX_FLAGS": "-Wall"
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            },
+            "environment": {
+                "CXXFLAGS": "-Wall"
             }
         },
         {
@@ -89,8 +93,10 @@
                 "value": "x64"
             },
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "CMAKE_CXX_FLAGS": "/WX"
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            },
+            "environment": {
+                "CXXFLAGS": "/WX"
             }
         },
         {
@@ -118,8 +124,10 @@
                 "rhs": "Darwin"
             },
             "cacheVariables": {
-                "CMAKE_OSX_DEPLOYMENT_TARGET": "10.10",
-                "CMAKE_CXX_FLAGS": "-Werror"
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "10.10"
+            },
+            "environment": {
+                "CXXFLAGS": "-Werror"
             }
         },
         {
@@ -129,8 +137,8 @@
                 "ci-base",
                 "linux"
             ],
-            "cacheVariables": {
-                "CMAKE_CXX_FLAGS": "-Werror"
+            "environment": {
+                "CXXFLAGS": "-Werror"
             }
         },
         {
@@ -203,7 +211,7 @@
         },
         {
             "name": "msvc-default",
-            "configurePreset": "msvc-dev-default",
+            "configurePreset": "msvc-default",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
