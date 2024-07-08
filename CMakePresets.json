@@ -14,8 +14,7 @@
             "hidden": true,
             "name": "ci-base",
             "displayName": "CI configuration",
-            "description": "Sets Ninja generator, build and install directory",
-            "generator": "Ninja",
+            "description": "Sets build configuration for CI",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "installDir": "${sourceDir}/out/install/${presetName}",
             "cacheVariables": {
@@ -98,24 +97,20 @@
             "name": "ci-msvc-windows-release",
             "displayName": "Windows CI default",
             "description": "Default CI configuration for Windows (MSVC, Release)",
-            "inherits": "ci-base",
+            "inherits": "msvc-dev-default",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
             },
-            "generator": "Visual Studio 17 2022",
-            "architecture": {
-                "value": "x64"
-            },
-            "environment": {
-                "CXXFLAGS": "/WX"
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
-            "name": "ci-ninja-macos-release",
+            "name": "ci-make-macos-release",
             "displayName": "MacOS CI default",
-            "description": "Default CI configuration for MacOS (Clang, Release)",
+            "description": "Default CI configuration for MacOS (Make, Clang, Release)",
             "inherits": "ci-base",
             "condition": {
                 "type": "equals",
@@ -129,7 +124,7 @@
         },
         {
             "hidden": true,
-            "name": "ci-ninja-linux",
+            "name": "ci-make-linux",
             "inherits": [
                 "ci-base",
                 "linux"
@@ -140,48 +135,48 @@
         },
         {
             "hidden": true,
-            "name": "ci-ninja-linux-debug",
-            "inherits": "ci-ninja-linux",
+            "name": "ci-make-linux-debug",
+            "inherits": "ci-make-linux",
             "cacheVariables": {
                 "SIMBODY_COVERAGE": true,
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "ci-ninja-clang-linux-release",
-            "displayName": "Configure Linux CI (Clang, Release)",
-            "description": "CI configuration for Linux (Clang, Release)",
-            "inherits": "ci-ninja-linux",
+            "name": "ci-make-clang-linux-release",
+            "displayName": "Configure Linux CI (Make, Clang, Release)",
+            "description": "CI configuration for Linux (Make, Clang, Release)",
+            "inherits": "ci-make-linux",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++"
             }
         },
         {
-            "name": "ci-ninja-clang-linux-debug",
-            "displayName": "Configure Linux CI (Clang, Debug)",
-            "description": "CI configuration for Linux (Clang, Debug)",
-            "inherits": "ci-ninja-linux",
+            "name": "ci-make-clang-linux-debug",
+            "displayName": "Configure Linux CI (Make, Clang, Debug)",
+            "description": "CI configuration for Linux (Make, Clang, Debug)",
+            "inherits": "ci-make-linux-debug",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++"
             }
         },
         {
-            "name": "ci-ninja-gcc-linux-release",
-            "displayName": "Configure Linux CI (GCC, Release)",
-            "description": "CI configuration for Linux (GCC, Release)",
-            "inherits": "ci-ninja-linux",
+            "name": "ci-make-gcc-linux-release",
+            "displayName": "Configure Linux CI (Make, GCC, Release)",
+            "description": "CI configuration for Linux (Make, GCC, Release)",
+            "inherits": "ci-make-linux",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "gcc",
                 "CMAKE_CXX_COMPILER": "g++"
             }
         },
         {
-            "name": "ci-ninja-gcc-linux-debug",
-            "displayName": "Configure Linux CI (GCC, Debug)",
-            "description": "CI configuration for Linux (GCC, Debug)",
-            "inherits": "ci-ninja-linux",
+            "name": "ci-make-gcc-linux-debug",
+            "displayName": "Configure Linux CI (Make, GCC, Debug)",
+            "description": "CI configuration for Linux (Make, GCC, Debug)",
+            "inherits": "ci-make-linux-debug",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "gcc",
                 "CMAKE_CXX_COMPILER": "g++"
