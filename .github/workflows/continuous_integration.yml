@@ -77,21 +77,21 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S $GITHUB_WORKSPACE --preset ci-ninja-macos-release -LAH
+          cmake -S $GITHUB_WORKSPACE --preset ci-make-macos-release -LAH
 
       - name: Build
         run: |
-          cmake --build --preset ci-ninja-macos-release --parallel 4
+          cmake --build --preset ci-make-macos-release --parallel 4
 
       - name: Test
         run: |
-          ctest --preset ci-ninja-macos-release --parallel 4
+          ctest --preset ci-make-macos-release --parallel 4
 
       - name: Install
         run: |
-          cmake --build --preset ci-ninja-macos-release --target doxygen
-          cmake --install $GITHUB_WORKSPACE/out/build/ci-ninja-macos-release
-          mv $GITHUB_WORKSPACE/out/install/ci-ninja-macos-release simbody-${{ steps.commithash.outputs.hash }}
+          cmake --build --preset ci-make-macos-release --target doxygen
+          cmake --install $GITHUB_WORKSPACE/out/build/ci-make-macos-release
+          mv $GITHUB_WORKSPACE/out/install/ci-make-macos-release simbody-${{ steps.commithash.outputs.hash }}
           zip --symlinks --recurse-paths --quiet simbody-${{ steps.commithash.outputs.hash }}.zip simbody-${{ steps.commithash.outputs.hash }}
 
       - name: Upload
@@ -126,20 +126,20 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S $GITHUB_WORKSPACE --preset ci-ninja-${{ matrix.compiler }}-linux-${{ matrix.build_type }} -LAH
+          cmake -S $GITHUB_WORKSPACE --preset ci-make-${{ matrix.compiler }}-linux-${{ matrix.build_type }} -LAH
 
       - name: Build
         run: |
-          cmake --build --preset ci-ninja-${{ matrix.compiler }}-linux-${{ matrix.build_type }} --parallel 4
+          cmake --build --preset ci-make-${{ matrix.compiler }}-linux-${{ matrix.build_type }} --parallel 4
 
       - name: Test
         run: |
-          ctest --preset ci-ninja-${{ matrix.compiler }}-linux-${{ matrix.build_type }} --output-on-failure
+          ctest --preset ci-make-${{ matrix.compiler }}-linux-${{ matrix.build_type }} --output-on-failure
 
       - name: Install
         run: |
-          cmake --build --preset ci-ninja-${{ matrix.compiler }}-linux-${{ matrix.build_type }} --target doxygen
-          cmake --install $GITHUB_WORKSPACE/out/build/ci-ninja-${{ matrix.compiler }}-linux-${{ matrix.build_type }}
+          cmake --build --preset ci-make-${{ matrix.compiler }}-linux-${{ matrix.build_type }} --target doxygen
+          cmake --install $GITHUB_WORKSPACE/out/build/ci-make-${{ matrix.compiler }}-linux-${{ matrix.build_type }}
           zip --symlinks --recurse-paths --quiet simbody-${{ steps.commithash.outputs.hash }}.zip simbody-${{ steps.commithash.outputs.hash }}
 
       - name: Upload

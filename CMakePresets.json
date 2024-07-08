@@ -232,8 +232,8 @@
             "configuration": "Release"
         },
         {
-            "name": "ci-ninja-macos-release",
-            "configurePreset": "ci-ninja-macos-release",
+            "name": "ci-make-macos-release",
+            "configurePreset": "ci-make-macos-release",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
@@ -241,29 +241,29 @@
             }
         },
         {
-            "name": "ci-ninja-clang-linux-release",
-            "configurePreset": "ci-ninja-clang-linux-release",
+            "name": "ci-make-clang-linux-release",
+            "configurePreset": "ci-make-clang-linux-release",
             "inherits": [
                 "linux"
             ]
         },
         {
-            "name": "ci-ninja-clang-linux-debug",
-            "configurePreset": "ci-ninja-clang-linux-debug",
+            "name": "ci-make-clang-linux-debug",
+            "configurePreset": "ci-make-clang-linux-debug",
             "inherits": [
                 "linux"
             ]
         },
         {
-            "name": "ci-ninja-gcc-linux-release",
-            "configurePreset": "ci-ninja-gcc-linux-release",
+            "name": "ci-make-gcc-linux-release",
+            "configurePreset": "ci-make-gcc-linux-release",
             "inherits": [
                 "linux"
             ]
         },
         {
-            "name": "ci-ninja-gcc-linux-debug",
-            "configurePreset": "ci-ninja-gcc-linux-debug",
+            "name": "ci-make-gcc-linux-debug",
+            "configurePreset": "ci-make-gcc-linux-debug",
             "inherits": [
                 "linux"
             ]
@@ -318,8 +318,8 @@
             "configuration": "Release"
         },
         {
-            "name": "ci-ninja-macos-release",
-            "configurePreset": "ci-ninja-macos-release",
+            "name": "ci-make-macos-release",
+            "configurePreset": "ci-make-macos-release",
             "inherits": [
                 "base"
             ],
@@ -330,32 +330,32 @@
             }
         },
         {
-            "name": "ci-ninja-clang-linux-release",
-            "configurePreset": "ci-ninja-clang-linux-release",
+            "name": "ci-make-clang-linux-release",
+            "configurePreset": "ci-make-clang-linux-release",
             "inherits": [
                 "base",
                 "linux"
             ]
         },
         {
-            "name": "ci-ninja-clang-linux-debug",
-            "configurePreset": "ci-ninja-clang-linux-debug",
+            "name": "ci-make-clang-linux-debug",
+            "configurePreset": "ci-make-clang-linux-debug",
             "inherits": [
                 "base",
                 "linux"
             ]
         },
         {
-            "name": "ci-ninja-gcc-linux-release",
-            "configurePreset": "ci-ninja-gcc-linux-release",
+            "name": "ci-make-gcc-linux-release",
+            "configurePreset": "ci-make-gcc-linux-release",
             "inherits": [
                 "base",
                 "linux"
             ]
         },
         {
-            "name": "ci-ninja-gcc-linux-debug",
-            "configurePreset": "ci-ninja-gcc-linux-debug",
+            "name": "ci-make-gcc-linux-debug",
+            "configurePreset": "ci-make-gcc-linux-debug",
             "inherits": [
                 "base",
                 "linux"
