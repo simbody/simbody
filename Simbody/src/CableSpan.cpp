@@ -199,7 +199,7 @@ struct CableSpanData {
 
             // Construct all MatrixWorkspaces for up to and including the
             // requested dimension.
-            for (int i = matrixWorkspaces.size(); i <= nActive; ++i) {
+            for (size_t i = matrixWorkspaces.size(); i <= nActive; ++i) {
                 matrixWorkspaces.emplace_back(i);
             }
 
@@ -873,7 +873,7 @@ public:
             // size next time, only to find it rejected again.
 
             const int numStepsTaken =
-                dataInst.geodesicIntegratorStates.size() - 1;
+                static_cast<int>(dataInst.geodesicIntegratorStates.size()) - 1;
 
             // If the integrator took a single step or none: The final arc
             // length is shorter than the initial step size attempted. The step
@@ -2246,7 +2246,7 @@ void calcPathErrorJacobian(
     // Number of free coordinates for a generic geodesic.
     constexpr int NQ = c_GeodesicDOF;
 
-    const int numberOfCurvesInContact = lines.size() - 1;
+    const int numberOfCurvesInContact = static_cast<int>(lines.size()) - 1;
 
     // Reset the values in the jacobian.
     J *= 0.;
