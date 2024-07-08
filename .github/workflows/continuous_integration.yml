@@ -148,7 +148,7 @@ jobs:
         with:
           # The upload-artifact zipping does not preserve symlinks or executable
           # bits. So we zip ourselves, even though this causes a double-zip.
-          name: simbody-${{ steps.commithash.outputs.hash }}-linux
+          name: simbody-${{ steps.commithash.outputs.hash }}-linux-${{ matrix.compiler }}-${{ matrix.build_type }}
           path: simbody-${{ steps.commithash.outputs.hash }}.zip
 
 
