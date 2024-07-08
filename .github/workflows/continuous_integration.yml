@@ -48,7 +48,7 @@ jobs:
       - name: Install
         run: |
           cmake --build --preset ci-msvc-windows-release --config Release --parallel 4 --target doxygen
-          cmake --install $env:GITHUB_WORKSPACE\\out\\build\\ci-msvc-windows-release --config Release --parallel 4 -- /verbosity:quiet
+          cmake --install $env:GITHUB_WORKSPACE\\out\\build\\ci-msvc-windows-release --config Release
           move $env:GITHUB_WORKSPACE\\out\\install\\ci-msvc-windows-release simbody-${{ steps.commithash.outputs.hash }}
 
       - name: Upload
