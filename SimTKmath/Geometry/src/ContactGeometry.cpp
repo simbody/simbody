@@ -928,6 +928,9 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
 {
     // TODO: this code was taken from ContactGeometryImpl::shootGeodesicInDirection2(), but an overall refactor of the GeodesicIntegrator code is needed.
 
+    // Upper limit for number of integration steps, to prevent infinite loop.
+    constexpr int c_MaxIterations = 10000;
+
     // integrator settings
     constexpr Real startArcLength = 0;
 
@@ -971,6 +974,12 @@ void ContactGeometryImpl::shootGeodesicInDirectionImplicitly(
 
         integ.takeOneStep(finalArcLength);
         ++stepcnt;
+
+        SimTK_ERRCHK1_ALWAYS(
+            stepcnt < c_MaxIterations,
+            "ContactGeometry::shootGeodesicInDirectionImplicitly",
+            "Geodesic integration terminated, step count exceeded limit of %i",
+            c_MaxIterations);
     }
 }
 
