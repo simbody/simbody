@@ -338,8 +338,7 @@ void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically(
     dR.setRotationFromAngleAboutUnitVector(dAngle, axis);
 
     // Compute the frenet frames at the geodesic knot points.
-    int knotIx = 0;
-    while (true) {
+    for (int knotIx = 0; knotIx < numberOfKnotPoints; ++knotIx) {
         // Write the geodesic knot point to the sink.
         ContactGeometry::GeodesicKnotPoint y;
         y.arcLength =
@@ -352,9 +351,8 @@ void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically(
         y.jacobiTrans    = a;
         y.jacobiTransDot = aDot;
         geodesicKnotPointsSink(y);
-        ++knotIx;
 
-        if (knotIx == numberOfKnotPoints) {
+        if (knotIx + 1 == numberOfKnotPoints) {
             return;
         }
 
