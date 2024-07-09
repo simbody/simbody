@@ -1950,7 +1950,7 @@ void calcUnitForceAtCableOrigin(
     // Origin contact point moment arm in ground.
     const CableSpanData::Pos& dataPos = cable.getDataPos(s);
 
-    const Vec3& arm_G =
+    const Vec3 arm_G =
         dataPos.originPoint_G - cable.getOriginBody().getBodyOriginLocation(s);
 
     unitForce_G[0] = -arm_G % dataPos.originTangent_G;
@@ -1964,8 +1964,8 @@ void calcUnitForceAtCableTermination(
 {
     const CableSpanData::Pos& dataPos = cable.getDataPos(s);
 
-    const Vec3& arm_G = dataPos.terminationPoint_G -
-                        cable.getTerminationBody().getBodyOriginLocation(s);
+    const Vec3 arm_G = dataPos.terminationPoint_G -
+                       cable.getTerminationBody().getBodyOriginLocation(s);
 
     unitForce_G[0] = -arm_G % dataPos.terminationTangent_G;
     unitForce_G[1] = -Vec3(dataPos.terminationTangent_G);
