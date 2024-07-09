@@ -92,7 +92,7 @@ public:
     /** Delete the cable if this handle was the last reference to it. **/
     ~CableSpan() noexcept = default;
     /** Copy constructor is shallow and reference counted. **/
-    CableSpan(const CableSpan& source) = default;
+    CableSpan(const CableSpan&) = default;
     /** Copy assignment is shallow and reference counted. **/
     CableSpan& operator=(const CableSpan& source) = default;
     CableSpan(CableSpan&&) noexcept               = default;
