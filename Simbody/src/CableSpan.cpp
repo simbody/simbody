@@ -136,18 +136,23 @@ struct MatrixWorkspace {
         pathError         = Vector(C * n, 0.);
     }
 
-    // Obtain iterator over the NaturalGeodesicCorrection per curve segment.
-    const NaturalGeodesicCorrection* getCurveCorrections() const
+    // Return the NaturalGeodesicCorrection for the curve segment at the
+    // "active" curve index, where "active" means counting those that are in
+    // contact with the obstacle.
+    NaturalGeodesicCorrection getCurveCorrection(int activeCurveIx) const
     {
-        static_assert(
-            sizeof(NaturalGeodesicCorrection) == sizeof(Real) * c_GeodesicDOF,
-            "Invalid size of geodesic correction.");
         SimTK_ASSERT(
-            pathCorrection.size() * sizeof(Real) ==
-                nObstaclesInContact * sizeof(NaturalGeodesicCorrection),
-            "Invalid size of path corrections vector");
-        return reinterpret_cast<const NaturalGeodesicCorrection*>(
-            &pathCorrection[0]);
+            activeCurveIx >= nObstaclesInContact,
+            "Index of curve (counting active only) exceeds number of segments in contact with obstacles");
+        SimTK_ASSERT(
+            pathCorrection.size() == nObstaclesInContact * c_GeodesicDOF,
+            "Invalid size of pathCorrection vector.");
+        int eltIx = activeCurveIx * c_GeodesicDOF;
+        return {
+            pathCorrection[eltIx],
+            pathCorrection[eltIx + 1],
+            pathCorrection[eltIx + 2],
+            pathCorrection[eltIx + 3]};
     }
 
     // All straight line segments in the current path.
@@ -1721,14 +1726,15 @@ private:
 
             // Apply the corrections to each CurveSegment to reduce the path
             // error.
-            const NaturalGeodesicCorrection* corrIt =
-                data.getCurveCorrections();
+            int activeCurveIx = 0; // Index of curve in all that are in contact.
             forEachActiveCurveSegment(
                 s,
                 [&](const CurveSegment& curve)
                 {
-                    curve.applyGeodesicCorrection(s, *corrIt);
-                    ++corrIt;
+                    curve.applyGeodesicCorrection(
+                        s,
+                        data.getCurveCorrection(activeCurveIx));
+                    ++activeCurveIx;
                 });
 
             // The applied corrections have changed the path: invalidate each
@@ -2489,8 +2495,8 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 
     // Compute the maximum allowed step size that we take along the
     // correction vector.
-    Real stepSize                           = 1.;
-    const NaturalGeodesicCorrection* corrIt = data.getCurveCorrections();
+    Real stepSize     = 1.;
+    int activeCurveIx = 0; // Index of curve in all that are in contact.
     forEachActiveCurveSegment(
         s,
         [&](const CurveSegment& curve)
@@ -2500,10 +2506,10 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
             calcMaxAllowedCorrectionStepSize(
                 curve,
                 s,
-                *corrIt,
+                data.getCurveCorrection(activeCurveIx),
                 getParameters().solverMaxStepSize,
                 stepSize);
-            ++corrIt;
+            ++activeCurveIx;
         });
     // Apply the maximum stepsize to the corrections.
     data.pathCorrection *= stepSize;
@@ -2606,14 +2612,15 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                     curve.getDataInst(sCopy).wrappingStatus);
             }
 
-            const NaturalGeodesicCorrection* corrIt =
-                data.getCurveCorrections();
+            int activeCurveIx = 0; // Index of curve in all that are in contact.
             cable.forEachActiveCurveSegment(
                 sCopy,
                 [&](const CurveSegment& curve)
                 {
-                    curve.applyGeodesicCorrection(sCopy, *corrIt);
-                    ++corrIt;
+                    curve.applyGeodesicCorrection(
+                        sCopy,
+                        data.getCurveCorrection(activeCurveIx));
+                    ++activeCurveIx;
                 });
 
             for (const CurveSegment& curve : cable.m_curveSegments) {
