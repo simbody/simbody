@@ -394,7 +394,6 @@ apply forces to the system.
 See CableSpan. **/
 class SimTK_SIMBODY_EXPORT CableSubsystem : public Subsystem {
 public:
-    CableSubsystem();
     explicit CableSubsystem(MultibodySystem&);
 
     const MultibodySystem& getMultibodySystem() const;

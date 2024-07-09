@@ -2765,11 +2765,6 @@ int CableSubsystem::Impl::calcDecorativeGeometryAndAppendImpl(
 //                          CableSubsystem
 //==============================================================================
 
-CableSubsystem::CableSubsystem()
-{
-    adoptSubsystemGuts(new Impl());
-}
-
 CableSubsystem::CableSubsystem(MultibodySystem& mbs)
 {
     adoptSubsystemGuts(new Impl());
