@@ -326,7 +326,7 @@ void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically(
 
     // The angle rotated by each integration step.
     const Real dAngle =
-        finalArcLength / radius / static_cast<Real>(numberOfKnotPoints - 1);
+        finalArcLength / (radius * static_cast<Real>(numberOfKnotPoints - 1));
 
     // If the tangent is along Xaxis and the normal is along Yaxis, the
     // axis of rotation is the negative of the binormal axis.
