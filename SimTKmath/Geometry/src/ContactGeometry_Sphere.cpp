@@ -290,8 +290,7 @@ void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically(
     SimTK_ERRCHK1_ALWAYS(
         numberOfKnotPoints >= 2,
         "ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically",
-        "Argument numberOfKnotPoints must be greater than 2 (got "
-        "numberOfKnotPoints = %d)",
+        "Argument numberOfKnotPoints must be greater than 2 (got numberOfKnotPoints = %d)",
         numberOfKnotPoints);
 
     // Define the geodesic state on the sphere as a frenet frame, i.e. a
