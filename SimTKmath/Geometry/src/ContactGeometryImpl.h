@@ -108,18 +108,24 @@ public:
     const OBBTree& getOBBTree() const {return obbTree;}
 
 
-    Real  calcSurfaceValue(const Vec3& point) const;
-    UnitVec3 calcSurfaceUnitNormal(const Vec3& point) const;
-    Vec3  calcSurfaceGradient(const Vec3& point) const;
-    Mat33 calcSurfaceHessian(const Vec3& point) const;
-    Real  calcGaussianCurvature(const Vec3& gradient,
-                                const Mat33& Hessian) const;
-    Real  calcSurfaceCurvatureInDirection(const Vec3& point, 
-                                          const UnitVec3& direction) const;
+    virtual Real calcSurfaceValue(const Vec3& point) const;
 
-    Real calcSurfaceTorsionInDirection(
-            const Vec3& point,
-            const UnitVec3& direction) const;
+    UnitVec3 calcSurfaceUnitNormal(const Vec3& point) const;
+
+    virtual Vec3 calcSurfaceGradient(const Vec3& point) const;
+
+    virtual Mat33 calcSurfaceHessian(const Vec3& point) const;
+
+    Real calcGaussianCurvature(const Vec3& gradient, const Mat33& Hessian)
+        const;
+
+    virtual Real calcSurfaceCurvatureInDirection(
+        const Vec3& point,
+        const UnitVec3& direction) const;
+
+    virtual Real calcSurfaceTorsionInDirection(
+        const Vec3& point,
+        const UnitVec3& direction) const;
 
     // Generic method for calculating principal curvatures kmax,kmin and
     // corresponding unit tangent vector directions R_SP.x() and R_SP.y().
@@ -606,6 +612,39 @@ public:
     void calcCurvature(const Vec3& point, Vec2& curvature,
                        Rotation& orientation) const override;
 
+    Real calcSurfaceValue(const Vec3& x) const override
+    {
+        return -x[0] * x[0] - x[1] * x[1] + radius * radius;
+    }
+
+    Vec3 calcSurfaceGradient(const Vec3& x) const override
+    {
+        return {-2. * x[0], -2. * x[1], 0.};
+    }
+
+    Mat33 calcSurfaceHessian(const Vec3&) const override
+    {
+        return Mat33{
+            -2., 0., 0.,
+            0., -2., 0.,
+            0., 0., 0.,
+        };
+    }
+
+    Real calcSurfaceCurvatureInDirection(
+        const Vec3& point,
+        const UnitVec3& direction) const override
+    {
+        return -(direction[0] * point[1] - direction[1] * point[0]) / radius;
+    }
+
+    Real calcSurfaceTorsionInDirection(
+        const Vec3& point,
+        const UnitVec3& direction) const override
+    {
+        return 0.;
+    }
+
     bool isAnalyticFormAvailable() const override {
         return true;
     }
@@ -701,6 +740,40 @@ public:
     Vec3 calcSupportPoint(const UnitVec3& direction) const override {
         return radius*direction;
     }
+
+    Real calcSurfaceValue(const Vec3& x) const override
+    {
+        return -dot(x, x) + radius * radius;
+    }
+
+    Vec3 calcSurfaceGradient(const Vec3& x) const override
+    {
+        return -2. * x;
+    }
+
+    Mat33 calcSurfaceHessian(const Vec3&) const override
+    {
+        return Mat33{
+            -2., 0., 0.,
+            0., -2., 0.,
+            0., 0., -2.,
+        };
+    }
+
+    Real calcSurfaceCurvatureInDirection(
+        const Vec3& point,
+        const UnitVec3& direction) const override
+    {
+        return 1. / radius;
+    }
+
+    Real calcSurfaceTorsionInDirection(
+        const Vec3& point,
+        const UnitVec3& direction) const override
+    {
+        return 0.;
+    }
+
     void calcCurvature(const Vec3& point, Vec2& curvature, 
                        Rotation& orientation) const override;
 
@@ -780,6 +853,31 @@ public:
     {   radii = r; curvatures = Vec3(1/r[0],1/r[1],1/r[2]); }
 
     const Vec3& getCurvatures() const {return curvatures;}
+
+    Real calcSurfaceValue(const Vec3& x) const override
+    {
+        return 1. - x[0] * x[0] / (radii[0] * radii[0]) -
+               x[1] * x[1] / (radii[1] * radii[1]) -
+               x[2] * x[2] / (radii[2] * radii[2]);
+    }
+
+    Vec3 calcSurfaceGradient(const Vec3& x) const override
+    {
+        return {
+            -2. * x[0] / (radii[0] * radii[0]),
+            -2. * x[1] / (radii[1] * radii[1]),
+            -2. * x[2] / (radii[2] * radii[2]),
+        };
+    }
+
+    Mat33 calcSurfaceHessian(const Vec3&) const override
+    {
+        return Mat33{
+            - 2. / (radii[0] * radii[0]), 0., 0.,
+            0., - 2. / (radii[1] * radii[1]), 0.,
+            0., 0., - 2. / (radii[2] * radii[2]),
+        };
+    }
 
     // See below.
     inline Vec3 findPointWithThisUnitNormal(const UnitVec3& n) const;
