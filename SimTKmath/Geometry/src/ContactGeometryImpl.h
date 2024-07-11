@@ -606,6 +606,19 @@ public:
     void calcCurvature(const Vec3& point, Vec2& curvature,
                        Rotation& orientation) const override;
 
+    bool isAnalyticFormAvailable() const override {
+        return true;
+    }
+
+    void shootGeodesicInDirectionAnalytically(
+        const Vec3& initialPointApprox,
+        const Vec3& initialTangentApprox,
+        Real finalArcLength,
+        int numberOfKnotPoints,
+        const std::function<
+            void(const ContactGeometry::GeodesicKnotPoint&)>&
+            geodesicKnotPointsSink) const override;
+
     void shootGeodesicInDirectionUntilLengthReachedAnalytical
        (const Vec3& xP, const UnitVec3& tP,
         const Real& terminatingLength, const GeodesicOptions& options, 

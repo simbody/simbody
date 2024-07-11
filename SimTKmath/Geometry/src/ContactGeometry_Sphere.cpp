@@ -296,9 +296,9 @@ void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically(
     // Define the geodesic state on the sphere as a frenet frame, i.e. a
     // rotation matrix defined by the tangent, surface-normal and binormal
     // axes.
-    const CoordinateAxis tangentAxis  = CoordinateAxis::XCoordinateAxis();
-    const CoordinateAxis normalAxis   = CoordinateAxis::YCoordinateAxis();
-    const CoordinateAxis binormalAxis = CoordinateAxis::ZCoordinateAxis();
+    const CoordinateAxis tangentAxis  = XAxis;
+    const CoordinateAxis normalAxis   = YAxis;
+    const CoordinateAxis binormalAxis = ZAxis;
 
     // Construct frenet frame at geodesic start.
     Rotation R;
@@ -334,8 +334,7 @@ void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically(
 
     // Compute the rotation matrix that transforms one frenet frame to the
     // frenet frame at the next integration step.
-    Rotation dR;
-    dR.setRotationFromAngleAboutUnitVector(dAngle, axis);
+    Rotation dR(dAngle, axis);
 
     // Compute the frenet frames at the geodesic knot points.
     for (int knotIx = 0; knotIx < numberOfKnotPoints; ++knotIx) {
