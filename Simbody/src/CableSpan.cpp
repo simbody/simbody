@@ -2608,7 +2608,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             Vector predictedPathError =
                 data.pathErrorJacobian * data.pathCorrection + data.pathError;
 
-            std::vector<ObstacleWrappingStatus> prevWrappingStatus{};
+            std::vector<ObstacleWrappingStatus> prevWrappingStatus;
             for (const CurveSegment& curve : cable.m_curveSegments) {
                 prevWrappingStatus.push_back(
                     curve.getDataInst(sCopy).wrappingStatus);
@@ -2651,16 +2651,16 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             // obstacles. If any CurveSegment's WrappingStatus has changed, we
             // will not continue with the test. Since the perturbation is
             // small, this is unlikely to happen often.
-            bool WrappingStatusChanged = false;
+            bool wrappingStatusChanged = false;
             {
                 int ix = -1;
                 for (const CurveSegment& curve : cable.m_curveSegments) {
-                    WrappingStatusChanged |=
+                    wrappingStatusChanged |=
                         prevWrappingStatus.at(++ix) !=
                         curve.getDataInst(sCopy).wrappingStatus;
                 }
             }
-            if (WrappingStatusChanged) {
+            if (wrappingStatusChanged) {
                 os << "Wrapping status changed: Stopping test\n";
                 break;
             }
@@ -2711,12 +2711,11 @@ int CableSubsystem::Impl::realizeSubsystemTopologyImpl(State& state) const
     // Topology cache is const.
     Impl* mutableThis = const_cast<Impl*>(this);
 
-    CableSpanData::Instance dataInst{};
     CacheEntryIndex indexDataInst = allocateCacheEntry(
         state,
         Stage::Instance,
         Stage::Infinity,
-        new Value<CableSpanData::Instance>(dataInst));
+        new Value<CableSpanData::Instance>());
 
     for (CableSpanIndex ix(0); ix < cables.size(); ++ix) {
         CableSpan& path = mutableThis->updCable(ix);
