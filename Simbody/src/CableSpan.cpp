@@ -1579,18 +1579,25 @@ public:
                             .setColor(c_Color)
                             .setLineThickness(c_LineThickness));
                 } else {
+                    Vec3 surfacePoint_S(NaN);
                     try {
-                        const Vec3 surfacePoint_S =
+                        surfacePoint_S =
                             curve.getContactGeometry()
                                 .projectDownhillToNearestPoint(trackingPoint_S);
-                        const Vec3 surfacePoint_G =
-                            X_GS.shiftFrameStationToBase(surfacePoint_S);
-                        decorations.push_back(
-                            DecorativeLine(trackingPoint_G, surfacePoint_G)
-                                .setColor(Orange)
-                                .setLineThickness(c_LineThickness));
                     } catch (...) {
+                        // Yes catching all is bad, but since this plotting
+                        // option is just for debugging, and this
+                        // projection is likely to fail as we get further
+                        // from the surface, we just dont plot it if we
+                        // don't have it.
+                        continue;
                     }
+                    const Vec3 surfacePoint_G =
+                        X_GS.shiftFrameStationToBase(surfacePoint_S);
+                    decorations.push_back(
+                        DecorativeLine(trackingPoint_G, surfacePoint_G)
+                            .setColor(Orange)
+                            .setLineThickness(c_LineThickness));
                 }
             }
         }
