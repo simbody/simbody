@@ -147,7 +147,7 @@ struct MatrixWorkspace {
         SimTK_ASSERT(
             pathCorrection.size() == nObstaclesInContact * c_GeodesicDOF,
             "Invalid size of pathCorrection vector.");
-        int eltIx = activeCurveIx * c_GeodesicDOF;
+        const int eltIx = activeCurveIx * c_GeodesicDOF;
         return {
             pathCorrection[eltIx],
             pathCorrection[eltIx + 1],
