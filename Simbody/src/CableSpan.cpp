@@ -2197,7 +2197,12 @@ Vec4 calcJacobianOfPathErrorAtP(
     // Compute partial derivative of path error to the natural geodesic
     // corrections. For derivation see TODO.
     const Vec3 y = X_GP.RInv() * cross(axis, line.direction);
-    return Vec4{tau * y[0] + kt * y[2], -kb * y[0] - tau * y[2], -y[1], 0.} +
+
+    const Real v0 = dot(y, Vec3{tau, 0., kt});
+    const Real v1 = dot(y, Vec3{-kb, 0., -tau});
+    const Real v2 = -y[1];
+
+    return Vec4{v0, v1, v2, 0.} +
            calcJacobianOfPrevPathError(curve, s, line, axis);
 }
 
@@ -2225,11 +2230,12 @@ Vec4 calcJacobianOfPathErrorAtQ(
     // frenet frame.
     const Vec3 y = X_GQ.RInv() * cross(axis, line.direction);
 
-    return Vec4{
-               tau * y[0] + kt * y[2],
-               -a * kb * y[0] - aDot * y[1] - a * tau * y[2],
-               -r * kb * y[0] - rDot * y[1] - r * tau * y[2],
-               tau * y[0] + kt * y[2]} +
+    const Real v0 = dot(y, Vec3{tau, 0., kt});
+    const Real v1 = dot(y, Vec3{-a * kb, -aDot, -a * tau});
+    const Real v2 = dot(y, Vec3{-r * kb, -rDot, -r * tau});
+    const Real v3 = dot(y, Vec3{tau, 0., kt});
+
+    return Vec4{v0, v1, v2, v3} +
            calcJacobianOfNextPathError(curve, s, line, axis);
 }
 
