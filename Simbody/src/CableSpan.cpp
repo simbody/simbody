@@ -1433,30 +1433,19 @@ public:
     }
 
     //--------------------------------------------------------------------------
-    // Helpers functions: Accessing obstacles in contact with cable.
+    // Helper function
     //--------------------------------------------------------------------------
-
-    // Iterate over the cable's curve segments, and call provided function for
-    // those that are in contact with the obstacle's surfacce.
-    void forEachActiveCurveSegment(
-        const State& s,
-        const std::function<void(const CurveSegment& curve)>& callBack) const
-    {
-        for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
-            const CurveSegment& curve = getObstacleCurveSegment(ix);
-            if (!curve.isInContactWithSurface(s)) {
-                continue;
-            }
-            callBack(curve);
-        }
-    }
 
     // Count the number of CurveSegments that are in contact with the obstacle's
     // surface.
     int countActive(const State& s) const
     {
         int counter = 0;
-        forEachActiveCurveSegment(s, [&](const CurveSegment&) { ++counter; });
+        for (const CurveSegment& curve : m_curveSegments) {
+            if (curve.isInContactWithSurface(s)) {
+                ++counter;
+            }
+        }
         return counter;
     }
 
@@ -1691,13 +1680,11 @@ private:
                 totalCableLength += line.length;
             }
             // Add length of each curve segment.
-            forEachActiveCurveSegment(
-                s,
-                [&](const CurveSegment& curve)
-                {
-                    // Update the total cable length.
+            for (const CurveSegment& curve : m_curveSegments) {
+                if (curve.isInContactWithSurface(s)) {
                     totalCableLength += curve.getDataInst(s).arcLength;
-                });
+                }
+            }
             return totalCableLength;
         };
 
@@ -1732,15 +1719,14 @@ private:
             // Apply the corrections to each CurveSegment to reduce the path
             // error.
             int activeCurveIx = 0; // Index of curve in all that are in contact.
-            forEachActiveCurveSegment(
-                s,
-                [&](const CurveSegment& curve)
-                {
+            for (const CurveSegment& curve : m_curveSegments) {
+                if (curve.isInContactWithSurface(s)) {
                     curve.applyGeodesicCorrection(
                         s,
                         data.getCurveCorrection(activeCurveIx));
                     ++activeCurveIx;
-                });
+                }
+            }
 
             // The applied corrections have changed the path: invalidate each
             // segment's cache.
@@ -1779,10 +1765,8 @@ private:
             getOriginBody().findStationVelocityInGround(s, m_originPoint_B);
         Vec3 x_GQ = m_originPoint_B;
 
-        forEachActiveCurveSegment(
-            s,
-            [&](const CurveSegment& curve)
-            {
+        for (const CurveSegment& curve : m_curveSegments) {
+            if (curve.isInContactWithSurface(s)) {
                 const MobilizedBody& mobod = curve.getMobilizedBody();
                 const CurveSegmentData::Pos& curveDataPos = curve.getDataPos(s);
 
@@ -1791,11 +1775,13 @@ private:
                 const Vec3 v_GP =
                     CalcPointVelocityInGround(mobod, curveDataPos.X_GP.p());
 
+                // TODO is this correct after
                 lengthDot += dot(e_G, v_GP - v_GQ);
 
                 x_GQ = curveDataPos.X_GQ.p();
                 v_GQ = CalcPointVelocityInGround(mobod, x_GQ);
-            });
+            }
+        }
 
         const Vec3 v_GP = getTerminationBody().findStationVelocityInGround(
             s,
@@ -2074,20 +2060,21 @@ void calcLineSegments(
     lines.clear();
     Vec3 prevPathPoint(pathOriginPoint);
 
-    cable.forEachActiveCurveSegment(
-        s,
-        [&](const CurveSegment& curve)
-        {
-            const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
+    for (CableSpanObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(s)) {
+            continue;
+        }
+        const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
 
-            // Compute the line segment from the previous point to the
-            // first curve contact point.
-            lines.emplace_back(prevPathPoint, dataPos.X_GP.p());
+        // Compute the line segment from the previous point to the
+        // first curve contact point.
+        lines.emplace_back(prevPathPoint, dataPos.X_GP.p());
 
-            // The next line segment will start at the curve's final contact
-            // point.
-            prevPathPoint = dataPos.X_GQ.p();
-        });
+        // The next line segment will start at the curve's final contact
+        // point.
+        prevPathPoint = dataPos.X_GQ.p();
+    }
 
     // Compute the last line segment.
     lines.emplace_back(prevPathPoint, pathTerminationPoint);
@@ -2127,23 +2114,24 @@ void calcPathErrorVector(
     // Iterator over the straight line segments connecting each curve segment.
     auto lineIt = lines.begin();
 
-    cable.forEachActiveCurveSegment(
-        s,
-        [&](const CurveSegment& curve)
-        {
-            const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
-            // Compute path error at first contact point.
-            for (CoordinateAxis axis : axes) {
-                pathError(++pathErrorIx) =
-                    calcPathErrorElement(*lineIt, dataPos.X_GP.R(), axis);
-            }
-            ++lineIt;
-            // Compute path error at final contact point.
-            for (CoordinateAxis axis : axes) {
-                pathError(++pathErrorIx) =
-                    calcPathErrorElement(*lineIt, dataPos.X_GQ.R(), axis);
-            }
-        });
+    for (CableSpanObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(s)) {
+            continue;
+        }
+        const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
+        // Compute path error at first contact point.
+        for (CoordinateAxis axis : axes) {
+            pathError(++pathErrorIx) =
+                calcPathErrorElement(*lineIt, dataPos.X_GP.R(), axis);
+        }
+        ++lineIt;
+        // Compute path error at final contact point.
+        for (CoordinateAxis axis : axes) {
+            pathError(++pathErrorIx) =
+                calcPathErrorElement(*lineIt, dataPos.X_GQ.R(), axis);
+        }
+    }
 }
 
 } // namespace
@@ -2281,56 +2269,57 @@ void calcPathErrorJacobian(
         }
     };
 
-    auto linesIt = lines.begin();
-    cable.forEachActiveCurveSegment(
-        s,
-        [&](const CurveSegment& curve)
-        {
-            const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
-            for (CoordinateAxis axis : axes) {
-                const UnitVec3 a_P     = dataPos.X_GP.R().getAxisUnitVec(axis);
-                const LineSegment& l_P = *linesIt;
+    int lineIx = 0;
+    for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(s)) {
+            continue;
+        }
+        const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
+        for (CoordinateAxis axis : axes) {
+            const UnitVec3 a_P     = dataPos.X_GP.R().getAxisUnitVec(axis);
+            const LineSegment& l_P = lines.at(lineIx);
 
-                AddBlock(calcJacobianOfPathErrorAtP(curve, s, l_P, a_P));
+            AddBlock(calcJacobianOfPathErrorAtP(curve, s, l_P, a_P));
 
-                const ObstacleIndex prevObsIx =
-                    curve.findPrevObstacleInContactWithCable(s);
-                if (prevObsIx.isValid()) {
-                    AddBlock(
-                        calcJacobianOfNextPathError(
-                            cable.getObstacleCurveSegment(prevObsIx),
-                            s,
-                            l_P,
-                            a_P),
-                        -NQ);
-                }
-                ++row;
+            const ObstacleIndex prevObsIx =
+                curve.findPrevObstacleInContactWithCable(s);
+            if (prevObsIx.isValid()) {
+                AddBlock(
+                    calcJacobianOfNextPathError(
+                        cable.getObstacleCurveSegment(prevObsIx),
+                        s,
+                        l_P,
+                        a_P),
+                    -NQ);
             }
+            ++row;
+        }
 
-            ++linesIt;
+        ++lineIx;
 
-            for (CoordinateAxis axis : axes) {
-                const UnitVec3 a_Q     = dataPos.X_GQ.R().getAxisUnitVec(axis);
-                const LineSegment& l_Q = *linesIt;
+        for (CoordinateAxis axis : axes) {
+            const UnitVec3 a_Q     = dataPos.X_GQ.R().getAxisUnitVec(axis);
+            const LineSegment& l_Q = lines.at(lineIx);
 
-                AddBlock(calcJacobianOfPathErrorAtQ(curve, s, l_Q, a_Q));
+            AddBlock(calcJacobianOfPathErrorAtQ(curve, s, l_Q, a_Q));
 
-                const ObstacleIndex nextObsIx =
-                    curve.findNextObstacleInContactWithCable(s);
-                if (nextObsIx.isValid()) {
-                    AddBlock(
-                        calcJacobianOfPrevPathError(
-                            cable.getObstacleCurveSegment(nextObsIx),
-                            s,
-                            l_Q,
-                            a_Q),
-                        NQ);
-                }
-                ++row;
+            const ObstacleIndex nextObsIx =
+                curve.findNextObstacleInContactWithCable(s);
+            if (nextObsIx.isValid()) {
+                AddBlock(
+                    calcJacobianOfPrevPathError(
+                        cable.getObstacleCurveSegment(nextObsIx),
+                        s,
+                        l_Q,
+                        a_Q),
+                    NQ);
             }
+            ++row;
+        }
 
-            col += NQ;
-        });
+        col += NQ;
+    }
 }
 
 } // namespace
@@ -2501,10 +2490,8 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
     // correction vector.
     Real stepSize     = 1.;
     int activeCurveIx = 0; // Index of curve in all that are in contact.
-    forEachActiveCurveSegment(
-        s,
-        [&](const CurveSegment& curve)
-        {
+    for (const CurveSegment& curve : m_curveSegments) {
+        if (curve.isInContactWithSurface(s)) {
             // Each curve segment will evaluate if the stepsize is not too large
             // given the local curvature.
             calcMaxAllowedCorrectionStepSize(
@@ -2514,7 +2501,8 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
                 getParameters().solverMaxStepSize,
                 stepSize);
             ++activeCurveIx;
-        });
+        }
+    }
     // Apply the maximum stepsize to the corrections.
     data.pathCorrection *= stepSize;
 
@@ -2617,15 +2605,15 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             }
 
             int activeCurveIx = 0; // Index of curve in all that are in contact.
-            cable.forEachActiveCurveSegment(
-                sCopy,
-                [&](const CurveSegment& curve)
-                {
+            for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+                const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+                if (curve.isInContactWithSurface(s)) {
                     curve.applyGeodesicCorrection(
                         sCopy,
                         data.getCurveCorrection(activeCurveIx));
                     ++activeCurveIx;
-                });
+                }
+            }
 
             for (const CurveSegment& curve : cable.m_curveSegments) {
                 curve.invalidatePosEntry(sCopy);
