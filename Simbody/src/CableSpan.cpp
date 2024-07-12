@@ -1854,10 +1854,11 @@ ObstacleIndex CurveSegment::findPrevObstacleInContactWithCable(
 {
     const CableSpan::Impl& cable = getCable();
     // Find the first obstacle that makes contact before this CurveSegment.
-    for (ObstacleIndex ix(m_obstacleIndex); ix > 0;) {
-        --ix;
-        if (cable.getObstacleCurveSegment(ix).isInContactWithSurface(state)) {
-            return ix;
+    for (ObstacleIndex ix(m_obstacleIndex); ix > 0; --ix) {
+        ObstacleIndex prevIx(ix - 1);
+        if (cable.getObstacleCurveSegment(prevIx).isInContactWithSurface(
+                state)) {
+            return prevIx;
         }
     }
     // No obstacles in contact before this segment.
