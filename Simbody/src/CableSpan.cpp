@@ -1172,7 +1172,7 @@ public:
             // the knots by a certain "angle" (e.g. 5 degrees is pretty fine),
             // and using the radius of curvature to convert the angle to a
             // spatial interspacing of the samples.
-            constexpr Real c_AngularSpacingInDegrees = 5.;
+            constexpr Real c_AngularSpacing = 0.087; // ~ 5 degrees
 
             // To convert the angular spacing to a spatial spacing we need the
             // curvature. The curvature is generally not constant along a
@@ -1188,7 +1188,7 @@ public:
             // Estimate the spatial interspacing from the angular spacing and
             // the radius of curvature.
             const Real lengthInterspacing =
-                minRadiusOfCurvature * c_AngularSpacingInDegrees / 180. * Pi;
+                minRadiusOfCurvature * c_AngularSpacing;
 
             // Now shoot the geodesic analytically with the desired granularity.
             const int numberOfKnotPoints =
