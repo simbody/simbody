@@ -1704,19 +1704,22 @@ private:
         // Computing the CableSpan's path is done iteratively by computing
         // corrections for the CurveSegments until the pathErrorVector is small
         // enough.
-        dataPos.loopIter = 0;
-        while (true) {
+        for (dataPos.loopIter = 0;
+             dataPos.loopIter < getParameters().solverMaxIterations;
+             ++dataPos.loopIter) {
             // Compute all data required for updating the CableSpanData::Pos
             // cache.
             const MatrixWorkspace& data = calcDataInst(s);
 
             // Stop iterating if:
-            // - No obstacles in contact with path: Path is straight line.
-            // - Converged: No significant correction.
-            // - Not converged: Max iterations has been reached.
-            if (data.nObstaclesInContact == 0 ||
-                data.pathCorrection.normInf() < Eps ||
-                dataPos.loopIter >= getParameters().solverMaxIterations) {
+            // 1. No obstacles in contact with path: Path is straight line.
+            const bool noneInContact = data.nObstaclesInContact == 0;
+            // 2. Converged: No significant correction.
+            const bool converged = data.pathCorrection.normInf() < Eps;
+            // 3. Not converged: Max iterations has been reached.
+            const bool maxIterationsReached =
+                dataPos.loopIter >= getParameters().solverMaxIterations - 1;
+            if (noneInContact || converged || maxIterationsReached) {
                 // Update cache entry and stop solver.
                 dataPos.smoothness  = data.maxPathError;
                 dataPos.cableLength = calcTotalCableLength(data.lineSegments);
@@ -1746,8 +1749,6 @@ private:
                 // again.
                 curve.invalidatePosEntry(s);
             }
-
-            ++dataPos.loopIter;
         }
 
         return dataPos;
