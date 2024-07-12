@@ -983,20 +983,14 @@ public:
 
         // Compute the point on the line nearest the surface.
         const IntegratorTolerances& tols = getIntegratorTolerances();
-        bool touchdownDetected           = false;
-        try {
-            // This routine might fail to converge if the line is too far from
-            // the surface. This should not be a problem, because in that case
-            // we definitely have not touched down.
-            touchdownDetected =
-                getContactGeometry().calcNearestPointOnLineImplicitly(
-                    prevPoint_S,
-                    nextPoint_S,
-                    tols.constraintProjectionMaxIterations,
-                    tols.constraintProjectionTolerance,
-                    pointOnLineNearSurface_S);
-        } catch (...) {
-        }
+        bool touchdownDetected =
+            getContactGeometry().calcNearestPointOnLineImplicitly(
+                prevPoint_S,
+                nextPoint_S,
+                tols.constraintProjectionMaxIterations,
+                tols.constraintProjectionTolerance,
+                pointOnLineNearSurface_S) ==
+            ContactGeometry::NearestPointOnLineResult::PointFallsBelowSurface;
 
         // In case of touchdown, shoot a zero-length geodesic at the touchdown
         // point.

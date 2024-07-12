@@ -772,12 +772,13 @@ trackSeparationFromLine(const Vec3& pointOnLine,
     return succeeded;
 }
 
-bool ContactGeometry::calcNearestPointOnLineImplicitly(
-    const Vec3& pointA,
-    const Vec3& pointB,
-    int maxIterations,
-    Real tolerance,
-    Vec3& nearestPointOnLine) const
+ContactGeometry::NearestPointOnLineResult ContactGeometry::
+    calcNearestPointOnLineImplicitly(
+        const Vec3& pointA,
+        const Vec3& pointB,
+        int maxIterations,
+        Real tolerance,
+        Vec3& nearestPointOnLine) const
 {
     return getImpl().calcNearestPointOnLineImplicitly(
         pointA,
@@ -787,38 +788,45 @@ bool ContactGeometry::calcNearestPointOnLineImplicitly(
         nearestPointOnLine);
 }
 
-bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
-    const Vec3& pointA,
-    const Vec3& pointB,
-    int maxIterations,
-    Real tolerance,
-    Vec3& nearestPointOnLine) const
+ContactGeometry::NearestPointOnLineResult ContactGeometryImpl::
+    calcNearestPointOnLineImplicitly(
+        const Vec3& pointA,
+        const Vec3& pointB,
+        int maxIterations,
+        Real tolerance,
+        Vec3& nearestPointOnLine) const
 {
-    // TODO the sign of the constraint is such that positive is inside the surface.
+    // Result status flag for algorithm below.
+    using Result = ContactGeometry::NearestPointOnLineResult;
+
+    // TODO the sign of the constraint is such that positive is inside the
+    // surface.
 
     // If pointA == pointB then the nearest point is either pointA or pointB.
     const Vec3 d = pointB - pointA;
     if (d.normSqr() < Eps) {
         nearestPointOnLine = pointA;
-        return calcSurfaceValue(nearestPointOnLine) > 0;
+        return calcSurfaceValue(nearestPointOnLine) > 0
+                   ? Result::PointFallsBelowSurface
+                   : Result::Converged;
     }
 
     // Initial guess.
-    Real alpha   = -dot(d, pointA - nearestPointOnLine) / dot(d, d);
-    alpha        = clamp(0., alpha, 1.);
+    Real alpha = -dot(d, pointA - nearestPointOnLine) / dot(d, d);
+    alpha      = clamp(0., alpha, 1.);
 
-    int iter = 0;
-
-    for (; iter < maxIterations; ++iter) {
+    for (int iter = 0; iter < maxIterations; ++iter) {
         // Touchdown point on line.
         const Vec3 pointOnLine = pointA + d * alpha;
 
         // Constraint evaluation at touchdown point.
         const Real c = -calcSurfaceValue(pointOnLine);
 
-        // Break on touchdown.
-        if (std::abs(c) < tolerance) {
-            break;
+        // Exit if point falls below surface.
+        if (c < Eps) {
+            // Write the point on line that drops below the surface.
+            nearestPointOnLine = pointOnLine;
+            return Result::PointFallsBelowSurface;
         }
 
         // Gradient and Hessian of surface at point on line.
@@ -837,35 +845,30 @@ bool ContactGeometryImpl::calcNearestPointOnLineImplicitly(
 
         // Clamp the stepsize.
         constexpr Real maxStep = 0.2;
-        Real nextAlpha = alpha - clamp(-maxStep, step, maxStep);
+        const Real prevAlpha   = alpha;
+        alpha -= clamp(-maxStep, step, maxStep);
 
         // Clamp alpha to valid range.
-        nextAlpha = clamp(0., nextAlpha, 1.);
+        alpha = clamp(0., alpha, 1.);
 
         // Intercept invalid alpha.
-        SimTK_ERRCHK_ALWAYS(!isNaN(nextAlpha),
+        SimTK_ERRCHK_ALWAYS(
+            !isNaN(alpha),
             "ContactGeometry::calcNearestPointOnLineImplicitly",
             "Failed to compute point on line near surface: NaNs detected");
 
         // Compute step size after all clamping.
-        const Real actualStep = nextAlpha - alpha;
+        const Real actualStep = alpha - prevAlpha;
 
         // Stop when converged.
-        alpha = nextAlpha;
         if (std::abs(actualStep) < tolerance) {
-            break;
+            // Write the point on line nearest the surface.
+            nearestPointOnLine = pointA + d * alpha;
+            return Result::Converged;
         }
     }
 
-    // Write the point on line nearest the surface.
-    nearestPointOnLine = pointA + d * clamp(0., alpha, 1.);
-
-    const bool touchdown = -calcSurfaceValue(nearestPointOnLine) < tolerance;
-
-    SimTK_ASSERT_ALWAYS(iter < maxIterations,
-        "Failed to compute point on line near surface: Reached max iterations");
-
-    return touchdown;
+    return Result::MaxIterationsExceeded;
 }
 
 //==============================================================================

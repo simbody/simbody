@@ -256,15 +256,23 @@ bool trackSeparationFromLine(const Vec3& pointOnLine,
                              Vec3& closestPointOnLine,
                              Real& height) const;
 
+/** Exit flag returned by calcNearestPointOnLineImplicitly. */
+enum class NearestPointOnLineResult
+{
+    Converged,
+    MaxIterationsExceeded,
+    PointFallsBelowSurface,
+};
+
 /** Compute the nearest point on the line spanned by points pA-pB to the surface.
-This function exits early, returning true, if the point lies below the surface.
+This function exits early if the point lies below the surface.
 
 @param pointA Line origin point.
 @param pointB Line termination point.
 @param maxIterations Maximum number of solver iterations.
 @param tolerance If the stepsize falls below this value stop iterating
 @param nearestPointOnLine The computed nearest point on the line.
-@return Returns true if the point lies below the surface.
+@return The NearestPointOnLineResult signifying the result status upon exit.
 
 <h3>Theory</h3>
 Computing the point is done by searching for a maximum of the surface
@@ -288,7 +296,7 @@ alpha += g * (pB-pA) / ( ~(pB-pA) * H * (pB-pA) )
 The search is terminated when either the step size falls below given tolerance,
 or the max number of iterations is exceeded, or if the point falls below the
 surface. **/
-bool calcNearestPointOnLineImplicitly(
+NearestPointOnLineResult calcNearestPointOnLineImplicitly(
     const Vec3& pointA,
     const Vec3& pointB,
     int maxIterations,
