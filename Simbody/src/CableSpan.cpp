@@ -821,6 +821,9 @@ public:
                 });
 
             // Copy the state at the boundary frames.
+            SimTK_ASSERT(
+                dataInst.geodesicIntegratorStates.size() > 0,
+                "CurveSegment: Failed to shoot a new geodesic: buffer empty");
             geodesicBoundaryStates = {
                 dataInst.geodesicIntegratorStates.front(),
                 dataInst.geodesicIntegratorStates.back(),
