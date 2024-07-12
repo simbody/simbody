@@ -2120,7 +2120,7 @@ void calcPathErrorVector(
     Vector& pathError)
 {
     // Reset path error vector to zero.
-    pathError *= 0;
+    pathError.setToZero();
 
     // The element in the path error vector to write to.
     int pathErrorIx = -1;
@@ -2259,7 +2259,7 @@ void calcPathErrorJacobian(
     const int numberOfCurvesInContact = static_cast<int>(lines.size()) - 1;
 
     // Reset the values in the jacobian.
-    J *= 0.;
+    J.setToZero();
     SimTK_ASSERT3(
         J.ncol() == numberOfCurvesInContact * NQ &&
             J.nrow() ==
