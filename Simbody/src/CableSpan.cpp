@@ -286,8 +286,7 @@ struct CurveSegmentData {
         // For an analytic contact geometry this container will be empty.
         // Otherwise, the first and last sample will contain X_SP and X_SQ
         // defined above.
-        std::vector<ContactGeometry::GeodesicKnotPoint>
-            geodesicIntegratorStates;
+        std::vector<ContactGeometry::GeodesicKnotPoint> geodesicKnotPoints;
         // The initial integrator stepsize to try next time when shooting a
         // geodesic. This step size estimate will improve each time after
         // shooting a new geodesic.
@@ -804,7 +803,7 @@ public:
             // For implicit surfaces we must use a numerical integrator to
             // compute the initial and final frames. Because this is relatively
             // costly, we will cache this geodesic.
-            dataInst.geodesicIntegratorStates.clear();
+            dataInst.geodesicKnotPoints.clear();
             const IntegratorTolerances& tols = getIntegratorTolerances();
             geometry.shootGeodesicInDirectionImplicitly(
                 point_S,
@@ -817,16 +816,16 @@ public:
                 [&](const ContactGeometry::GeodesicKnotPoint& q)
                 {
                     // Store the knot points in the cache.
-                    dataInst.geodesicIntegratorStates.push_back(q);
+                    dataInst.geodesicKnotPoints.push_back(q);
                 });
 
             // Copy the state at the boundary frames.
             SimTK_ASSERT(
-                dataInst.geodesicIntegratorStates.size() > 0,
+                dataInst.geodesicKnotPoints.size() > 0,
                 "CurveSegment: Failed to shoot a new geodesic: buffer empty");
             geodesicBoundaryStates = {
-                dataInst.geodesicIntegratorStates.front(),
-                dataInst.geodesicIntegratorStates.back(),
+                dataInst.geodesicKnotPoints.front(),
+                dataInst.geodesicKnotPoints.back(),
             };
         }
 
@@ -881,7 +880,7 @@ public:
             // size next time, only to find it rejected again.
 
             const int numStepsTaken =
-                static_cast<int>(dataInst.geodesicIntegratorStates.size()) - 1;
+                static_cast<int>(dataInst.geodesicKnotPoints.size()) - 1;
 
             // If the integrator took a single step or none: The final arc
             // length is shorter than the initial step size attempted. The step
@@ -900,8 +899,8 @@ public:
                 // smaller if it was rejected. If rejected, we will reduce the
                 // init step size for next time.
                 const Real actualFirstStepSize =
-                    dataInst.geodesicIntegratorStates.at(1).arcLength -
-                    dataInst.geodesicIntegratorStates.front().arcLength;
+                    dataInst.geodesicKnotPoints.at(1).arcLength -
+                    dataInst.geodesicKnotPoints.front().arcLength;
                 const bool initStepWasRejected =
                     actualFirstStepSize < initIntegratorStepSize;
                 if (initStepWasRejected) {
@@ -914,8 +913,8 @@ public:
                     // cannot be larger than initIntegratorStepSize: we must
                     // take a look at the second step size.
                     const Real actualSecondStepSize =
-                        dataInst.geodesicIntegratorStates.at(2).arcLength -
-                        dataInst.geodesicIntegratorStates.at(1).arcLength;
+                        dataInst.geodesicKnotPoints.at(2).arcLength -
+                        dataInst.geodesicKnotPoints.at(1).arcLength;
                     // We already established that the initIntegratorStepSize
                     // was accepted, now we are only looking to increase the
                     // step size.
@@ -1208,7 +1207,7 @@ public:
         // If the surface did not have an analytic form, we simply forward the
         // knots from the GeodesicIntegrator.
         for (const ContactGeometry::GeodesicKnotPoint& q :
-             dataInst.geodesicIntegratorStates) {
+             dataInst.geodesicKnotPoints) {
             calcPathPointAndWriteToSink(q);
         }
     }
