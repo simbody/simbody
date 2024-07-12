@@ -2655,9 +2655,10 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
             {
                 int ix = -1;
                 for (const CurveSegment& curve : cable.m_curveSegments) {
-                    wrappingStatusChanged |=
+                    wrappingStatusChanged =
+                        wrappingStatusChanged ||
                         prevWrappingStatus.at(++ix) !=
-                        curve.getDataInst(sCopy).wrappingStatus;
+                            curve.getDataInst(sCopy).wrappingStatus;
                 }
             }
             if (wrappingStatusChanged) {
@@ -2689,7 +2690,7 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                           perturbation
                    << " )\n";
             }
-            success &= passedTest;
+            success = success && passedTest;
         }
     }
     return success;
