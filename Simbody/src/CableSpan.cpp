@@ -1290,7 +1290,8 @@ public:
         MobilizedBodyIndex terminationBody,
         Vec3 terminationPoint_B) :
         m_originBody(originBody),
-        m_originPoint_B(originPoint_B), m_terminationBody(terminationBody),
+        m_originPoint_B(originPoint_B),
+        m_terminationBody(terminationBody),
         m_terminationPoint_B(terminationPoint_B)
     {}
 
@@ -1439,14 +1440,14 @@ public:
     // those that are in contact with the obstacle's surfacce.
     void forEachActiveCurveSegment(
         const State& s,
-        const std::function<void(const CurveSegment& curve)>& callMe) const
+        const std::function<void(const CurveSegment& curve)>& callBack) const
     {
         for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
             const CurveSegment& curve = getObstacleCurveSegment(ix);
             if (!curve.isInContactWithSurface(s)) {
                 continue;
             }
-            callMe(curve);
+            callBack(curve);
         }
     }
 
