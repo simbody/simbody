@@ -26,7 +26,7 @@
 #
 #----------------------------------------------------
 
-project(SimTKcommon)
+project(SimTKcommon VERSION ${Simbody_VERSION})
 
 # SimTKcommon depends on the Platform files but nothing else.
 include_directories(${PLATFORM_INCLUDE_DIRECTORIES})
@@ -42,45 +42,21 @@ set(SimTKCOMMON_SOURCE_SUBDIRS
 # into the binaries. This also determines the versioned library names
 # in which case all dependencies must use the same version.
 
-set(SimTKCOMMON_MAJOR_VERSION ${SIMBODY_MAJOR_VERSION})
-set(SimTKCOMMON_MINOR_VERSION ${SIMBODY_MINOR_VERSION})
-set(SimTKCOMMON_PATCH_VERSION ${SIMBODY_PATCH_VERSION})
-
-# Report the version number to the CMake UI. Don't include the
-# build version if it is zero.
-set(PATCH_VERSION_STRING)
-if(SimTKCOMMON_PATCH_VERSION)
-    set(PATCH_VERSION_STRING ".${SimTKCOMMON_PATCH_VERSION}")
-endif()
-
-set(SimTKCOMMON_VERSION
-    "${SimTKCOMMON_MAJOR_VERSION}.${SimTKCOMMON_MINOR_VERSION}${PATCH_VERSION_STRING}")
-
 # This is the suffix if we're building and depending on versioned libraries.
-set(VN "_${SimTKCOMMON_VERSION}")
-
+set(VN "_${SimTKcommon_VERSION}")
 
 set(SimTKCOMMON_COPYRIGHT_YEARS "2005-10")
 
 # underbar separated list of dotted authors, no spaces or commas
 set(SimTKCOMMON_AUTHORS "Michael.Sherman_Peter.Eastman")
 
-set(SimTKCOMMON_SVN_REVISION ${SIMBODY_SVN_REVISION})
-
-add_definitions(-DSimTK_SimTKCOMMON_LIBRARY_NAME=${SimTKCOMMON_LIBRARY_NAME}
-                -DSimTK_SimTKCOMMON_MAJOR_VERSION=${SimTKCOMMON_MAJOR_VERSION}
-                -DSimTK_SimTKCOMMON_MINOR_VERSION=${SimTKCOMMON_MINOR_VERSION}
-                -DSimTK_SimTKCOMMON_PATCH_VERSION=${SimTKCOMMON_PATCH_VERSION})
-
-if(NEED_QUOTES)
-   add_definitions(-DSimTK_SimTKCOMMON_SVN_REVISION="${SimTKCOMMON_SVN_REVISION}"
-                   -DSimTK_SimTKCOMMON_COPYRIGHT_YEARS="${SimTKCOMMON_COPYRIGHT_YEARS}"
-                   -DSimTK_SimTKCOMMON_AUTHORS="${SimTKCOMMON_AUTHORS}")
-else(NEED_QUOTES)
-   add_definitions(-DSimTK_SimTKCOMMON_SVN_REVISION=${SimTKCOMMON_SVN_REVISION}
-                   -DSimTK_SimTKCOMMON_COPYRIGHT_YEARS=${SimTKCOMMON_COPYRIGHT_YEARS}
-                   -DSimTK_SimTKCOMMON_AUTHORS=${SimTKCOMMON_AUTHORS})
-endif(NEED_QUOTES)
+add_compile_definitions(
+    SimTK_SimTKCOMMON_LIBRARY_NAME=${SimTKCOMMON_LIBRARY_NAME}
+    SimTK_SimTKCOMMON_MAJOR_VERSION=${SimTKcommon_VERSION_MAJOR}
+    SimTK_SimTKCOMMON_MINOR_VERSION=${SimTKcommon_VERSION_MINOR}
+    SimTK_SimTKCOMMON_PATCH_VERSION=${SimTKcommon_VERSION_PATCH}
+    SimTK_SimTKCOMMON_COPYRIGHT_YEARS="${SimTKCOMMON_COPYRIGHT_YEARS}"
+    SimTK_SimTKCOMMON_AUTHORS="${SimTKCOMMON_AUTHORS}")
 
 # -DSimTK_SimTKCOMMON_LIBRARY_TYPE has to be defined in the target subdirectories.
 # -DSimTKcommon_EXPORTS defined automatically when Windows DLL build is being done.
@@ -95,10 +71,10 @@ set(STATIC_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN}_static)
 if(BUILD_UNVERSIONED_LIBRARIES)
     set(TEST_SHARED_TARGET ${SHARED_TARGET})
     set(TEST_STATIC_TARGET ${STATIC_TARGET})
-else(BUILD_UNVERSIONED_LIBRARIES)
+else()
     set(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
     set(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
-endif(BUILD_UNVERSIONED_LIBRARIES)
+endif()
 
 
 # These are all the places to search for header files which are
@@ -106,15 +82,14 @@ endif(BUILD_UNVERSIONED_LIBRARIES)
 set(API_INCLUDE_DIRS) # start empty
 set(SimTKCOMMON_INCLUDE_DIRS) # start empty
 foreach(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
-    # append
-    set(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
+    list(APPEND API_INCLUDE_DIRS
      ${PROJECT_SOURCE_DIR}/${subdir}/include
      ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon
      ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon/internal)
     # Referencing headers must always be done relative to this level.
-    set(SimTKCOMMON_INCLUDE_DIRS ${SimTKCOMMON_INCLUDE_DIRS}
+    list(APPEND SimTKCOMMON_INCLUDE_DIRS
      ${PROJECT_SOURCE_DIR}/${subdir}/include)
-endforeach(subdir)
+endforeach()
 
 
 # Include the SimTKcommon API include directories now so that SimTKcommon code
@@ -133,13 +108,13 @@ set(API_ABS_INCLUDE_FILES)
 
 foreach(dir ${API_INCLUDE_DIRS})
     file(GLOB fullpaths ${dir}/*.h)    # returns full pathnames
-    set(API_ABS_INCLUDE_FILES ${API_ABS_INCLUDE_FILES} ${fullpaths})
+    list(APPEND API_ABS_INCLUDE_FILES ${fullpaths})
 
     foreach(pathname ${fullpaths})
         get_filename_component(filename ${pathname} NAME)
-        set(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES} ${dir}/${filename})
-    endforeach(pathname)
-endforeach(dir)
+        list(APPEND API_REL_INCLUDE_FILES ${dir}/${filename})
+    endforeach()
+endforeach()
 
 # collect up source files
 set(SOURCE_FILES) # empty
@@ -148,9 +123,9 @@ set(SOURCE_INCLUDE_FILES)
 foreach(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     file(GLOB src_files  ${subdir}/src/*.cpp)
     file(GLOB incl_files ${subdir}/src/*.h)
-    set(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
-    set(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
-endforeach(subdir)
+    list(APPEND SOURCE_FILES         ${src_files})
+    list(APPEND SOURCE_INCLUDE_FILES ${incl_files})
+endforeach()
 
 #
 # Installation
@@ -180,5 +155,5 @@ endif()
 
 if( BUILD_TESTING )
     add_subdirectory( tests )
-endif( BUILD_TESTING )
+endif()
 

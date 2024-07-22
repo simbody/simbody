@@ -21,7 +21,7 @@
 #
 #----------------------------------------------------
 
-project(SimTKsimbody)
+project(SimTKsimbody VERSION ${Simbody_VERSION})
 
 # SimTKsimbody depends on PlatformFiles, SimTKcommon, and SimTKmath only.
 include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
@@ -36,9 +36,9 @@ include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
 set(SIMBODY_SOURCE_SUBDIRS . Visualizer)
 
 add_definitions(-DSimTK_SIMBODY_LIBRARY_NAME=${SimTKSIMBODY_LIBRARY_NAME}
-                -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
-                -DSimTK_SIMBODY_MINOR_VERSION=${SIMBODY_MINOR_VERSION}
-                -DSimTK_SIMBODY_PATCH_VERSION=${SIMBODY_PATCH_VERSION})
+                -DSimTK_SIMBODY_MAJOR_VERSION=${SimTKsimbody_VERSION_MAJOR}
+                -DSimTK_SIMBODY_MINOR_VERSION=${SimTKsimbody_VERSION_MINOR}
+                -DSimTK_SIMBODY_PATCH_VERSION=${SimTKsimbody_VERSION_PATCH})
 
 
 set(SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
@@ -51,26 +51,25 @@ set(STATIC_TARGET_VN ${SimTKSIMBODY_LIBRARY_NAME}${VN}_static)
 if(BUILD_UNVERSIONED_LIBRARIES)
     set(TEST_SHARED_TARGET ${SHARED_TARGET})
     set(TEST_STATIC_TARGET ${STATIC_TARGET})
-else(BUILD_UNVERSIONED_LIBRARIES)
+else()
     set(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
     set(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
-endif(BUILD_UNVERSIONED_LIBRARIES)
+endif()
 
 # These are all the places to search for header files which are
 # to be part of the API.
 set(API_INCLUDE_DIRS) # start empty
 set(SimTKSIMBODY_INCLUDE_DIRS) # start empty
 foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
-    # append
-    set(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
+    list(APPEND API_INCLUDE_DIRS
      ${PROJECT_SOURCE_DIR}/${subdir}/include
      ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody
      ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody/internal)
 
     # Referencing headers must always be done relative to this level.
-    set(SimTKSIMBODY_INCLUDE_DIRS ${SimTKSIMBODY_INCLUDE_DIRS}
+    list(APPEND SimTKSIMBODY_INCLUDE_DIRS
      ${PROJECT_SOURCE_DIR}/${subdir}/include)
-endforeach(subdir)
+endforeach()
 
 # Include the Simbody API include directories now so that Simbody code
 # can use them.
@@ -89,13 +88,13 @@ set(API_ABS_INCLUDE_FILES)
 
 foreach(dir ${API_INCLUDE_DIRS})
     file(GLOB fullpaths ${dir}/*.h)    # returns full pathnames
-    set(API_ABS_INCLUDE_FILES ${API_ABS_INCLUDE_FILES} ${fullpaths})
+    list(APPEND API_ABS_INCLUDE_FILES ${fullpaths})
 
     foreach(pathname ${fullpaths})
         get_filename_component(filename ${pathname} NAME)
-        set(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES} ${dir}/${filename})
-    endforeach(pathname)
-endforeach(dir)
+        list(APPEND API_REL_INCLUDE_FILES ${dir}/${filename})
+    endforeach()
+endforeach()
 
 # collect up source files
 set(SOURCE_FILES) # empty
@@ -104,11 +103,11 @@ set(SOURCE_INCLUDE_FILES)
 foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
     file(GLOB src_files  ${subdir}/src/*.cpp ${subdir}/src/*/*.cpp)
     file(GLOB incl_files ${subdir}/src/*.h)
-    set(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
-    set(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
+    list(APPEND SOURCE_FILES         ${src_files})
+    list(APPEND SOURCE_INCLUDE_FILES ${incl_files})
 
     #include_directories(${PROJECT_SOURCE_DIR}/${subdir}/include)
-endforeach(subdir)
+endforeach()
 
 #include_directories(${PROJECT_SOURCE_DIR}/src)
 

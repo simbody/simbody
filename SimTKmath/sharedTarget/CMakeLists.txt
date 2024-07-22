@@ -47,20 +47,15 @@ if(BUILD_UNVERSIONED_LIBRARIES)
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-    if(NOT ${CMAKE_VERSION} VERSION_LESS 3.0.2)
-        # This removes the need for client projects to use
-        # `include_directories(${Simbody_INCLUDE_DIR})`. However, this ability
-        # was only introduced in CMake 3.0.
-        target_include_directories(${SHARED_TARGET} INTERFACE
-            $<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>
-            )
-    endif()
+    target_include_directories(${SHARED_TARGET} INTERFACE
+        $<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>
+        )
 
     if(SIMBODY_COVERAGE)
         add_coverage(${SHARED_TARGET})
     endif()
 
-endif(BUILD_UNVERSIONED_LIBRARIES)
+endif()
 
 
 if(BUILD_VERSIONED_LIBRARIES)
@@ -86,14 +81,12 @@ if(BUILD_VERSIONED_LIBRARIES)
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-    if(NOT ${CMAKE_VERSION} VERSION_LESS 3.0.2)
-        target_include_directories(${SHARED_TARGET_VN} INTERFACE
-            $<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>
-            )
-    endif()
+    target_include_directories(${SHARED_TARGET_VN} INTERFACE
+        $<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>
+        )
 
     if(SIMBODY_COVERAGE)
         add_coverage(${SHARED_TARGET_VN})
     endif()
 
-endif(BUILD_VERSIONED_LIBRARIES)
+endif()

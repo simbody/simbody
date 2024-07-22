@@ -32,7 +32,7 @@ foreach(TEST_PROG ${ADHOC_TESTS})
           PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
         target_link_libraries(${TEST_ROOT} 
                       ${TEST_SHARED_TARGET})
-    endif(BUILD_TESTS_AND_EXAMPLES_SHARED)
+    endif()
 
     if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
         # Link with static library
@@ -49,11 +49,11 @@ foreach(TEST_PROG ${ADHOC_TESTS})
                       ${TEST_STATIC_TARGET})
     endif()
 
-endforeach(TEST_PROG ${ADHOC_TESTS})
+endforeach()
 
 file(GLOB ADHOC_OBJS "*.obj" "*.vtp")
 foreach(TEST_OBJ ${ADHOC_OBJS})
     get_filename_component(OBJ_ROOT ${TEST_OBJ} NAME)
     configure_file(${TEST_OBJ} 
             ${CMAKE_CURRENT_BINARY_DIR}/${OBJ_ROOT} COPYONLY)
-endforeach(TEST_OBJ ${ADHOC_OBJS})
+endforeach()

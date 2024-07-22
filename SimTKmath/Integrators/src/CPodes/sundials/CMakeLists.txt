@@ -27,4 +27,4 @@ set(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} PARENT_SCOPE)
 # build tests that depend on source at this level
 if( BUILD_TESTING )
    add_subdirectory(tests)
-endif( BUILD_TESTING )
+endif()
