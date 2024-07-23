@@ -571,7 +571,7 @@ return !(d == 5.0); // return zero if sdot_ worked
 }
 ")
 
-try_compile(OTHER_LAPACK_FUNCTIONAL
+try_compile(OTHER_LAPACK_FUNCTIONAL ${CMAKE_CURRENT_BINARY_DIR}
     SOURCES ${CMAKE_CURRENT_BINARY_DIR}/lapack_test.c
     CMAKE_FLAGS -DINCLUDE_DIRECTORIES=${CMAKE_CURRENT_SOURCE_DIR}/SimTKcommon/include
     LINK_LIBRARIES ${LAPACK_BEING_USED})
