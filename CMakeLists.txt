@@ -556,8 +556,7 @@ endif()
 
 # Try to link against the requested BLAS/LAPACK libraries
 set(CMAKE_TRY_COMPILE_TARGET_TYPE EXECUTABLE)
-try_compile(OTHER_LAPACK_FUNCTIONAL
-    SOURCE_FROM_CONTENT lapack_test.c
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lapack_test.c
 "\
 #include \"SimTKlapack.h\"
 int main () {
@@ -570,7 +569,10 @@ float d = sdot_(n, x, stride, y, stride);
 
 return !(d == 5.0); // return zero if sdot_ worked
 }
-"
+")
+
+try_compile(OTHER_LAPACK_FUNCTIONAL
+    SOURCES ${CMAKE_CURRENT_BINARY_DIR}/lapack_test.c
     CMAKE_FLAGS -DINCLUDE_DIRECTORIES=${CMAKE_CURRENT_SOURCE_DIR}/SimTKcommon/include
     LINK_LIBRARIES ${LAPACK_BEING_USED})
 if(OTHER_LAPACK_FUNCTIONAL)
