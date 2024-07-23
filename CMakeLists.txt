@@ -483,6 +483,50 @@ add_compile_definitions(
    SimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}"
 )
 
+#
+# Allow automated build and dashboard.
+#
+
+if(BUILD_TESTING)
+    include(CTest) # automatically calls enable_testing()
+    ## When in Debug mode and running valgrind, some of the test
+    ## cases take longer than the default 1500 seconds.
+    set(CTEST_TESTING_TIMEOUT 7200)
+endif()
+
+# These are used in Doxyfile.in and SimbodyConfig.cmake.in.
+set(SIMBODY_INSTALL_DOXYGENDIR   "${CMAKE_INSTALL_DOCDIR}/api")
+set(SIMBODY_DOXYGEN_TAGFILE_NAME "SimbodyDoxygenTagfile")
+if( INSTALL_DOCS )
+    add_subdirectory(doc)
+endif()
+
+# Specify where visualizer should be installed. This needs to be in the
+# root CMakeLists.txt so the cmake config file can see this value.
+#
+# Also specify where include files are installed.
+if(WIN32)
+    # Install visualizer to bin, since it needs to be co-located with dll's
+    set(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
+    # Install include files into base include folder since it's a sandbox
+    set(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+else()
+    # Visualizer is not intended to be a user executable. Proper place is
+    # inside the lib directory
+    set(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_LIBEXECDIR}/simbody)
+    # Install include files in simbody subfolder to avoid polluting the
+    # global build folder
+    set(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/simbody)
+endif()
+set(SIMBODY_VISUALIZER_INSTALL_DIR
+    ${CMAKE_INSTALL_PREFIX}/${SIMBODY_VISUALIZER_REL_INSTALL_DIR})
+
+# Each of these returns a list of API include directories for
+# use by the later builds.
+add_custom_target(PlatformFiles ALL)
+add_subdirectory( Platform )
+# PLATFORM_INCLUDE_DIRECTORIES now set; 'blas' and 'lapack' targets defined on Windows
+
 if(BUILD_USING_OTHER_LAPACK)
     set(LAPACK_BEING_USED ${BUILD_USING_OTHER_LAPACK} CACHE INTERNAL
         "The BLAS/LAPACK libraries that will be linked against by the Simbody libraries.")
@@ -553,49 +597,7 @@ set(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} ${PTHREAD_LIB}
                         ${REALTIME_LIB} ${DL_LIBRARY} ${MATH_LIBRARY})
 set(MATH_LIBS_TO_USE_VN ${MATH_LIBS_TO_USE})
 
-#
-# Allow automated build and dashboard.
-#
 
-if(BUILD_TESTING)
-    include(CTest) # automatically calls enable_testing()
-    ## When in Debug mode and running valgrind, some of the test
-    ## cases take longer than the default 1500 seconds.
-    set(CTEST_TESTING_TIMEOUT 7200)
-endif()
-
-# These are used in Doxyfile.in and SimbodyConfig.cmake.in.
-set(SIMBODY_INSTALL_DOXYGENDIR   "${CMAKE_INSTALL_DOCDIR}/api")
-set(SIMBODY_DOXYGEN_TAGFILE_NAME "SimbodyDoxygenTagfile")
-if( INSTALL_DOCS )
-    add_subdirectory(doc)
-endif()
-
-# Specify where visualizer should be installed. This needs to be in the
-# root CMakeLists.txt so the cmake config file can see this value.
-#
-# Also specify where include files are installed.
-if(WIN32)
-    # Install visualizer to bin, since it needs to be co-located with dll's
-    set(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
-    # Install include files into base include folder since it's a sandbox
-    set(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
-else()
-    # Visualizer is not intended to be a user executable. Proper place is
-    # inside the lib directory
-    set(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_LIBEXECDIR}/simbody)
-    # Install include files in simbody subfolder to avoid polluting the
-    # global build folder
-    set(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/simbody)
-endif()
-set(SIMBODY_VISUALIZER_INSTALL_DIR
-    ${CMAKE_INSTALL_PREFIX}/${SIMBODY_VISUALIZER_REL_INSTALL_DIR})
-
-# Each of these returns a list of API include directories for
-# use by the later builds.
-add_custom_target(PlatformFiles ALL)
-add_subdirectory( Platform )
-# PLATFORM_INCLUDE_DIRECTORIES now set
 add_subdirectory( SimTKcommon )
 # SimTKCOMMON_INCLUDE_DIRECTORIES now set
 add_subdirectory( SimTKmath )
