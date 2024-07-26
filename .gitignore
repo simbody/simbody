@@ -20,3 +20,5 @@ obj-*
 /cmake-build-*
 .idea/
 /out/
+/.vs/
+/CMakeUserPresets.json
