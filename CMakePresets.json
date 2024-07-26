@@ -1,0 +1,373 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "hidden": true,
+            "name": "linux",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "ci-base",
+            "displayName": "CI configuration",
+            "description": "Sets build configuration for CI",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "installDir": "${sourceDir}/out/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "BLA_VENDOR": "Generic"
+            },
+            "warnings": {
+                "dev": true,
+                "deprecated": true
+            }
+        },
+        {
+            "name": "default",
+            "displayName": "Default build configuration",
+            "description": "The right build configuration for most users",
+            "inherits": "ci-base",
+            "cacheVariables": {
+                "BUILD_TESTING": false,
+                "CMAKE_COMPILE_WARNING_AS_ERROR": false
+            },
+            "warnings": {
+                "dev": false,
+                "deprecated": false
+            }
+        },
+        {
+            "name": "msvc-default",
+            "displayName": "Default MSVC build configuration",
+            "description": "The right MSVC build configuration for most users",
+            "inherits": "ci-base",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "generator": "Visual Studio 17 2022",
+            "architecture": {
+                "value": "x64"
+            },
+            "cacheVariables": {
+                "BUILD_TESTING": false,
+                "CMAKE_COMPILE_WARNING_AS_ERROR": false
+            },
+            "environment": {
+                "CXXFLAGS": "/w"
+            },
+            "warnings": {
+                "dev": false,
+                "deprecated": false
+            }
+        },
+        {
+            "name": "dev-default",
+            "displayName": "Default build configuration for devs",
+            "description": "The right build configuration for most developers",
+            "inherits": "ci-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            },
+            "environment": {
+                "CXXFLAGS": "-Wall"
+            }
+        },
+        {
+            "name": "msvc-dev-default",
+            "displayName": "Default MSVC build configuration for devs",
+            "description": "The right MSVC build configuration for most developers",
+            "inherits": "ci-base",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "generator": "Visual Studio 17 2022",
+            "architecture": {
+                "value": "x64"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            },
+            "environment": {
+                "CXXFLAGS": "/WX"
+            }
+        },
+        {
+            "name": "ci-msvc-windows-release",
+            "displayName": "Windows CI default",
+            "description": "Default CI configuration for Windows (MSVC, Release)",
+            "inherits": "msvc-dev-default",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "ci-make-macos-release",
+            "displayName": "MacOS CI default",
+            "description": "Default CI configuration for MacOS (Make, Clang, Release)",
+            "inherits": "ci-base",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "10.10"
+            },
+            "environment": {
+                "CXXFLAGS": "-Werror"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "ci-make-linux",
+            "inherits": [
+                "ci-base",
+                "linux"
+            ],
+            "environment": {
+                "CXXFLAGS": "-Werror"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "ci-make-linux-debug",
+            "inherits": "ci-make-linux",
+            "cacheVariables": {
+                "SIMBODY_COVERAGE": true,
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "ci-make-clang-linux-release",
+            "displayName": "Configure Linux CI (Make, Clang, Release)",
+            "description": "CI configuration for Linux (Make, Clang, Release)",
+            "inherits": "ci-make-linux",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "ci-make-clang-linux-debug",
+            "displayName": "Configure Linux CI (Make, Clang, Debug)",
+            "description": "CI configuration for Linux (Make, Clang, Debug)",
+            "inherits": "ci-make-linux-debug",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "ci-make-gcc-linux-release",
+            "displayName": "Configure Linux CI (Make, GCC, Release)",
+            "description": "CI configuration for Linux (Make, GCC, Release)",
+            "inherits": "ci-make-linux",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "ci-make-gcc-linux-debug",
+            "displayName": "Configure Linux CI (Make, GCC, Debug)",
+            "description": "CI configuration for Linux (Make, GCC, Debug)",
+            "inherits": "ci-make-linux-debug",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "hidden": true,
+            "name": "linux",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "default",
+            "configurePreset": "default"
+        },
+        {
+            "name": "dev-default",
+            "configurePreset": "dev-default"
+        },
+        {
+            "name": "msvc-default",
+            "configurePreset": "msvc-default",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "configuration": "Release"
+        },
+        {
+            "name": "msvc-dev-default",
+            "configurePreset": "msvc-dev-default",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "ci-msvc-windows-release",
+            "configurePreset": "ci-msvc-windows-release",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "configuration": "Release"
+        },
+        {
+            "name": "ci-make-macos-release",
+            "configurePreset": "ci-make-macos-release",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "ci-make-clang-linux-release",
+            "configurePreset": "ci-make-clang-linux-release",
+            "inherits": [
+                "linux"
+            ]
+        },
+        {
+            "name": "ci-make-clang-linux-debug",
+            "configurePreset": "ci-make-clang-linux-debug",
+            "inherits": [
+                "linux"
+            ]
+        },
+        {
+            "name": "ci-make-gcc-linux-release",
+            "configurePreset": "ci-make-gcc-linux-release",
+            "inherits": [
+                "linux"
+            ]
+        },
+        {
+            "name": "ci-make-gcc-linux-debug",
+            "configurePreset": "ci-make-gcc-linux-debug",
+            "inherits": [
+                "linux"
+            ]
+        }
+    ],
+    "testPresets": [
+        {
+            "hidden": true,
+            "name": "base",
+            "execution": {
+                "noTestsAction": "error",
+                "scheduleRandom": true
+            },
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "hidden": true,
+            "name": "linux",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "dev-default",
+            "configurePreset": "dev-default",
+            "inherits": [
+                "base"
+            ]
+        },
+        {
+            "name": "msvc-dev-default",
+            "configurePreset": "msvc-dev-default",
+            "inherits": [
+                "base"
+            ]
+        },
+        {
+            "name": "ci-msvc-windows-release",
+            "configurePreset": "ci-msvc-windows-release",
+            "inherits": [
+                "base"
+            ],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "configuration": "Release"
+        },
+        {
+            "name": "ci-make-macos-release",
+            "configurePreset": "ci-make-macos-release",
+            "inherits": [
+                "base"
+            ],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "ci-make-clang-linux-release",
+            "configurePreset": "ci-make-clang-linux-release",
+            "inherits": [
+                "base",
+                "linux"
+            ]
+        },
+        {
+            "name": "ci-make-clang-linux-debug",
+            "configurePreset": "ci-make-clang-linux-debug",
+            "inherits": [
+                "base",
+                "linux"
+            ]
+        },
+        {
+            "name": "ci-make-gcc-linux-release",
+            "configurePreset": "ci-make-gcc-linux-release",
+            "inherits": [
+                "base",
+                "linux"
+            ]
+        },
+        {
+            "name": "ci-make-gcc-linux-debug",
+            "configurePreset": "ci-make-gcc-linux-debug",
+            "inherits": [
+                "base",
+                "linux"
+            ]
+        }
+    ]
+}
