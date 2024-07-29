@@ -551,7 +551,7 @@ public:
         } else {
             // Otherwise assume no contact.
             dataInst.trackingPointOnLine_S = Vec3{0.};
-            dataInst.wrappingStatus        = ObstacleWrappingStatus::LiftedFromSurface;
+            dataInst.wrappingStatus = ObstacleWrappingStatus::LiftedFromSurface;
         }
         // Use auto-update discrete variable to retain the previous path as a
         // warmstart.
@@ -2114,8 +2114,8 @@ void calcPathErrorVector(
 
     // The element in the path error vector to write to.
     int pathErrorIx = -1;
-    // Iterator over the straight line segments connecting each curve segment.
-    auto lineIt = lines.begin();
+    // Index to a straight line segment.
+    int lineIx = 0;
 
     for (CableSpanObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
         const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
@@ -2126,13 +2126,13 @@ void calcPathErrorVector(
         // Compute path error at first contact point.
         for (CoordinateAxis axis : axes) {
             pathError(++pathErrorIx) =
-                calcPathErrorElement(*lineIt, dataPos.X_GP.R(), axis);
+                calcPathErrorElement(lines.at(lineIx), dataPos.X_GP.R(), axis);
         }
-        ++lineIt;
+        ++lineIx;
         // Compute path error at final contact point.
         for (CoordinateAxis axis : axes) {
             pathError(++pathErrorIx) =
-                calcPathErrorElement(*lineIt, dataPos.X_GQ.R(), axis);
+                calcPathErrorElement(lines.at(lineIx), dataPos.X_GQ.R(), axis);
         }
     }
 }
@@ -2278,6 +2278,7 @@ void calcPathErrorJacobian(
         }
     };
 
+    // Index to a straight line segment.
     int lineIx = 0;
     for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
         const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
