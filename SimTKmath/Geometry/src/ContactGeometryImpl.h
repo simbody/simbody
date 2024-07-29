@@ -107,6 +107,10 @@ public:
 
     const OBBTree& getOBBTree() const {return obbTree;}
 
+    virtual bool isSurfaceDefined(const Vec3& point) const
+    {
+        return true;
+    }
 
     virtual Real calcSurfaceValue(const Vec3& point) const;
 
@@ -1035,6 +1039,10 @@ public:
     void getBoundingSphere(Vec3& center, Real& radius) const override {
         center = boundingSphere.getCenter();
         radius = boundingSphere.getRadius();
+    }
+
+    bool isSurfaceDefined(const Vec3& point) const override {
+        return getBicubicSurface().isSurfaceDefined({point[0], point[1]});
     }
 
     bool isSmooth() const override {return true;}

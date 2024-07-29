@@ -162,6 +162,9 @@ void ContactGeometry::calcCurvature(const Vec3& point, Vec2& curvature,
 const Function& ContactGeometry::getImplicitFunction() const 
 {   return getImpl().getImplicitFunction(); }
 
+bool ContactGeometry::isSurfaceDefined(const Vec3& point) const {
+    return getImpl().isSurfaceDefined(point);
+}
 
 Real ContactGeometry::calcSurfaceValue(const Vec3& point) const {
     return getImpl().calcSurfaceValue(point);

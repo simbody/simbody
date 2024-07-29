@@ -157,6 +157,12 @@ implementation. **/
 /** Generate a DecorativeGeometry that matches the shape of this ContactGeometry **/
 DecorativeGeometry createDecorativeGeometry() const;
 
+/** This function checks to see if a point is within the defined bounds of this
+particular ContactGeometry. Attempting to invoke calcSurfaceValue(),
+calcSurfaceGradient() etc, on an out-of-range point will raise an exception;
+use this method to check first if you are not sure. **/
+bool isSurfaceDefined(const Vec3& point) const;
+
 /** Given a point, find the nearest point on the surface of this object. If 
 multiple points on the surface are equally close to the specified point, this 
 may return any of them.
