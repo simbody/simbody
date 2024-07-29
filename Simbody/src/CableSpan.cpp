@@ -422,18 +422,15 @@ Real calcSurfaceCurvature(
         X_S.R().getAxisUnitVec(direction));
 }
 
-// Evaluate whether a point lies above the given surface.
-bool isPointAboveSurface(const ContactGeometry& geometry, const Vec3& point_S)
+// Evaluate whether a point lies below the given surface.
+bool isPointBelowSurface(const ContactGeometry& geometry, const Vec3& point_S)
 {
-    // Try block was added here because some surfaces throw an exception when
-    // calling calcSurfaceValue outside of a given range.
-    try {
-        // TODO surface value is negative above surface.
-        return geometry.calcSurfaceValue(point_S) < 0.;
-    } catch (...) {
-        // TODO this is a bit too risky.
-        return true;
+    // We are not below the surface if the surface is not defined at the point.
+    if (!geometry.isSurfaceDefined(point_S)) {
+        return false;
     }
+    // NOTE surface value is negative above surface.
+    return geometry.calcSurfaceValue(point_S) > 0.;
 }
 
 } // namespace
@@ -745,7 +742,7 @@ public:
             calcSurfaceFrameInGround(state).shiftBaseStationToFrame(
                 findPrevPathPoint_G(state));
         SimTK_ERRCHK_ALWAYS(
-            isPointAboveSurface(getContactGeometry(), prevPoint_S),
+            !isPointBelowSurface(getContactGeometry(), prevPoint_S),
             "CurveSegment::Impl::assertSurfaceBounds",
             "Preceding point lies inside the surface");
         return prevPoint_S;
@@ -757,7 +754,7 @@ public:
             calcSurfaceFrameInGround(state).shiftBaseStationToFrame(
                 findNextPathPoint_G(state));
         SimTK_ERRCHK_ALWAYS(
-            isPointAboveSurface(getContactGeometry(), nextPoint_S),
+            !isPointBelowSurface(getContactGeometry(), nextPoint_S),
             "CurveSegment::Impl::assertSurfaceBounds",
             "Next point lies inside the surface");
         return nextPoint_S;
