@@ -124,22 +124,22 @@ class Cone;
 
 /** The state of a geodesic at a (knot) point along the geodesic. */
 struct GeodesicKnotPoint {
-    // The length of the geodesic at this state.
+    /** The length of the geodesic at this point. **/
     Real arcLength = NaN;
 
-    // The location of the point on the curve.
+    /** The location of the point on the curve. **/
     Vec3 point {NaN};
-    // The tangent is the derivative of the point to arc length.
+    /** The tangent is the derivative of the point to arc length. **/
     UnitVec3 tangent {NaN, NaN, NaN};
 
-    // The scalar related to the rotational jacobi field.
+    /** The scalar related to the rotational jacobi field. **/
     Real jacobiRot = NaN;
-    // The scalar related to the binormal translational jacobi field.
+    /** The scalar related to the binormal translational jacobi field. **/
     Real jacobiTrans = NaN;
 
-    // The derivative of jacobiRot to arc length.
+    /** The derivative of jacobiRot to arc length. **/
     Real jacobiRotDot = NaN;
-    // The derivative of jacobiTrans to arc length.
+    /** The derivative of jacobiTrans to arc length. **/
     Real jacobiTransDot = NaN;
 };
 
