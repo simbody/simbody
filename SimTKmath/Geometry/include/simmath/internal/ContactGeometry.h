@@ -642,9 +642,35 @@ is closest to that point. Otherwise, find the shortest length geodesic.
 void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
         const GeodesicOptions& options, Geodesic& geod) const;
 
+/** Use this function to determine if you can compute a geodesic analytically
+using shootGeodesicInDirectionAnalytically. **/
 bool isAnalyticFormAvailable() const;
 
-// TODO describe
+/** Given an approximate initial point and an approximate initial tangent
+direction compute the geodesic of given arc length analytically. This method is
+only available for a few surfaces for which an analytic description actually
+exists. Use ContactGeometry::isAnalyticFormAvailable to check if you do not
+know. The initial point will be projected to the surface, and the initial
+tangent projected to the normal plane before computing the geodesic. The
+resulting geodesic is written to the provided sink as GeodesicKnotPoints.
+
+Since the geodesic is computed analytically the final GeodesicKnotPoint could
+be computed directly after the initial GeodesicKnotPoint, resulting in only two
+knots being computed. However, it is often useful to obtain some intermediate
+knots as well (e.g. for visualization purposes), which is why the
+numberOfKnotPoints is a parameter. If you do not need any intermediate knots,
+set this equal to 2.
+
+@param initialPointApprox Coordinates of starting point in local surface
+coordinates. This point will be projected to the surface.
+@param initialTangentApprox Direction of geodesic at start, in local surface
+coordinates. This vector will be projected to the normal plane, and normalized.
+@param finalArcLength Length of the computed geodesic.
+@param numberOfKnotPoints The total number of knot points used to describe the
+geodesic. Must be larger or equal to 2.
+@param geodesicKnotPointsSink The resulting geodesic is written to this sink as
+knot points at equal length intervals.
+**/
 void shootGeodesicInDirectionAnalytically(
     const Vec3& initialPointApprox,
     const Vec3& initialTangentApprox,
@@ -653,7 +679,28 @@ void shootGeodesicInDirectionAnalytically(
     const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
         geodesicKnotPointsSink) const;
 
-// TODO describe
+/** Given an approximate initial point and an approximate initial tangent
+direction compute the geodesic of given arc length implicitly. The initial
+point will be projected to the surface, and the initial tangent projected to
+the normal plane before computing the geodesic. The geodesic is computed by
+numerical integration, and each GeodesciKnotPoint point is written to the
+provided sink.
+
+@param initialPointApprox Coordinates of starting point in local surface
+coordinates. This point will be projected to the surface.
+@param initialTangentApprox Direction of geodesic at start, in local surface
+coordinates. This vector will be projected to the normal plane, and normalized.
+@param finalArcLength Length of the computed geodesic.
+@param initialIntegratorStepSize Initial step size used by the numerical
+integrator.
+@param integratorAccuracy Numerical integrator accuracy (controls the
+integration step size).
+@param constraintTolerance Surface constraint tolerance at the integrator knot
+points.
+@param maxIterations TODO not connected.
+@param geodesicKnotPointsSink The resulting geodesic is written to this sink as
+computed integrator knot points.
+**/
 void shootGeodesicInDirectionImplicitly(
     const Vec3& initialPointApprox,
     const Vec3& initialTangentApprox,
@@ -663,7 +710,7 @@ void shootGeodesicInDirectionImplicitly(
     Real constraintTolerance,
     int maxIterations,
     const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
-        log) const;
+        geodesicKnotPointsSink) const;
 
 /** Given the current positions of two points P and Q moving on this surface, 
 and the previous geodesic curve G' connecting prior locations P' and Q' of
