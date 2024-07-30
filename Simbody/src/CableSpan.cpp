@@ -143,8 +143,7 @@ struct MatrixWorkspace {
     {
         SimTK_ASSERT(
             activeCurveIx < nObstaclesInContact,
-            "Index of curve (counting active only) exceeds number of segments "
-            "in contact with obstacles");
+            "Index of curve (counting active only) exceeds number of segments in contact with obstacles");
         SimTK_ASSERT(
             pathCorrection.size() == nObstaclesInContact * c_GeodesicDOF,
             "Invalid size of pathCorrection vector.");
