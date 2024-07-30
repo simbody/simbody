@@ -156,16 +156,42 @@ struct MatrixWorkspace {
             pathCorrection[eltIx + 3]};
     }
 
-    // All straight line segments in the current path.
+    /* All straight line segments in the current path. */
     std::vector<LineSegment> lineSegments;
+    /* The path error vector captures the misalignment of the straight line and
+    curved segments at the contact points. The computation of the path is then
+    done by driving this path error to zero (up to tolerance), such that all
+    segments are smoothly connected. active obstacles.
 
-    // TODO describe
+    To derive the path errors, consider a single active obstacle (active being those that are in contact with the cable), and define:
+    - Let the subscripts P and Q denote the initial and final contact point on the obstacle respectively.
+    - The direction of the straight line segment connected to the obstacle: e_P, e_Q
+    - The direction of the surface normal at contact points: n_P, n_Q
+    - The direction of the geodesic binormal at contact points: b_P, b_Q
+
+    For each active obstacle four path error elements are then computed:
+    1. dot(e_P, n_P)
+    2. dot(e_P, b_P)
+    3. dot(e_Q, n_Q)
+    4. dot(e_Q, b_Q)
+
+    Stacking all four path error elements, of all active obstacles, gives the
+    path error vector. */
     Vector pathError;
+    /* The path error jacobian is the jacobian of the path error vector to the
+    natural geodesic corrections of all active obstacles. */
     Matrix pathErrorJacobian;
-    Vector pathCorrection;
+    /* The factorization for solving the pathErrorJacobian in least squares sense. */
+    // TODO rename to factor
     FactorQTZ inverse;
-
+    /* The path correction vector contains the NaturalGeodesicCorrection
+    vector of each active obstacle stacked as a vector. This vector is
+    computed at each solver iteration, and applying these corrections
+    attempts to drive the path error vector to zero. */
+    Vector pathCorrection;
+    /* The infinity norm of the path error vector. */
     Real maxPathError       = NaN;
+    /* The number of active obstacles. */
     int nObstaclesInContact = -1;
 };
 
@@ -827,8 +853,8 @@ public:
             };
         }
 
-        // Use the geodeis state at the boundary frames to compute the fields in
-        // CurveSegmentData::Instance.
+        // Use the geodesic state at the boundary frames to compute the fields
+        // in CurveSegmentData::Instance.
 
         // Compute the Frenet frames at the boundary frames.
         dataInst.X_SP = calcFrenetFrameFromGeodesicState(
@@ -1163,7 +1189,7 @@ public:
         };
 
         if (getContactGeometry().isAnalyticFormAvailable()) {
-            // TODO Depending on what is actually desired by the end-user, this
+            // NOTE Depending on what is actually desired by the end-user, this
             // might need revision.
 
             // For analytic surfaces there is no numerical integrator to give a
@@ -1273,7 +1299,17 @@ private:
 //==============================================================================
 //                         Class Cablespan::Impl
 //==============================================================================
-// TODO describe (the impl side of CableSpan)
+/* This is the internal implementation class for CableSpan.
+
+The CableSpan::Impl's main job is to set up the solver for computing the path
+over the surfaces. A list of CurveSegments is stored, and whenever an obstacle
+is added to the CableSpan, this will create a new CurveSegment internally. The
+CurveSegment deals with computing the local geodesic, and detecting contact or
+liftoff, and manages the related cached data. We then collect info on the
+computed geodesics, to evaluate the path smoothness (see
+CableSpanData::Instance::pathError). Depending on the given tolerance, we
+compute the NaturalGeodesicCorrection vector for each CurveSegment to improve
+the smoothness, and try again. */
 class CableSpan::Impl {
 public:
     //--------------------------------------------------------------------------
@@ -1300,6 +1336,9 @@ public:
     //--------------------------------------------------------------------------
 
     // Allocate state variables and cache entries.
+    // The cached CableSpanData::Instance is shared among those CableSpan
+    // managed by one CableSubsystem, and accessed by the provided
+    // indexOfDataInstEntry.
     void realizeTopology(State& state, CacheEntryIndex indexOfDataInstEntry)
     {
         m_indexDataInst = indexOfDataInstEntry;
@@ -1775,7 +1814,6 @@ private:
                 const Vec3 v_GP =
                     CalcPointVelocityInGround(mobod, curveDataPos.X_GP.p());
 
-                // TODO is this correct after
                 lengthDot += dot(e_G, v_GP - v_GQ);
 
                 x_GQ = curveDataPos.X_GQ.p();
@@ -1912,6 +1950,9 @@ Vec3 CurveSegment::findNextPathPoint_G(const State& state) const
 namespace
 {
 
+/* Computes the unit force exerted by a CurveSegment on the obstacle body
+represented in ground frame. The force can then be obtained by multiplication
+with the cable tension. */
 void calcUnitForceExertedByCurve(
     const CurveSegment& curve,
     const State& s,
@@ -1932,14 +1973,17 @@ void calcUnitForceExertedByCurve(
     unitForce_G[1] = t_Q - t_P;
 }
 
+/* Computes the unit force exerted by the cable at the cable origin, on the
+origin body, represented in ground frame. The force can then be obtained by
+multiplication with the cable tenson. */
 void calcUnitForceAtCableOrigin(
     const CableSpan::Impl& cable,
     const State& s,
     SpatialVec& unitForce_G)
 {
-    // Origin contact point moment arm in ground.
     const CableSpanData::Pos& dataPos = cable.getDataPos(s);
 
+    // Origin contact point moment arm in ground.
     const Vec3 arm_G =
         dataPos.originPoint_G - cable.getOriginBody().getBodyOriginLocation(s);
 
@@ -1947,6 +1991,9 @@ void calcUnitForceAtCableOrigin(
     unitForce_G[1] = -Vec3(dataPos.originTangent_G);
 }
 
+/* Computes the unit force exerted by the cable at the cable termination, on the
+termination body, represented in ground frame. The force can then be obtained by
+multiplication with the cable tenson. */
 void calcUnitForceAtCableTermination(
     const CableSpan::Impl& cable,
     const State& s,
