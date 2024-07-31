@@ -163,7 +163,7 @@ int main()
     // Mobilizer for path termination.
     MobilizedBody::Translation cableTerminationBody(
         matter.Ground(),
-        Transform(Vec3(10., 1.0, -1.)),
+        Transform(Vec3(20., 1.0, -1.)),
         aBody,
         Transform());
 
@@ -209,6 +209,53 @@ int main()
         Transform(Rotation(0.5 * Pi, XAxis), Vec3{5., 0., 0.}),
         std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
         Vec3{0., -1., 0.});
+
+    // Add bicubic surface obstacle.
+    {
+        Real patchScaleX = 2.0;
+        Real patchScaleY = 2.0;
+        Real patchScaleF = 0.75;
+
+        const int Nx = 4, Ny = 4;
+
+        const Real xData[Nx] = {-2, -1, 1, 2};
+        const Real yData[Ny] = {-2, -1, 1, 2};
+
+        const Real fData[Nx*Ny] = {
+            2,    3,      3,      1,
+            0,    1.5,    1.5,    0,
+            0,    1.5,    1.5,    0,
+            2,    3,      3,      1};
+
+        const Vector x_(Nx, xData);
+        const Vector y_(Ny, yData);
+        const Matrix f_(Nx, Ny, fData);
+
+        Vector x = patchScaleX * x_;
+        Vector y = patchScaleY * y_;
+        Matrix f = patchScaleF * f_;
+
+        BicubicSurface patch(x, y, f, 0);
+        Transform patchTransform(
+            Rotation(0.5 * Pi, Vec3(0., 0., 1.)),
+            Vec3(10., 0., -1.));
+
+        // Draw wire frame on surface patch.
+        /* PolygonalMesh patchMesh = patch.createPolygonalMesh(10); */
+        /* matter.Ground().addBodyDecoration( */
+        /*     patchTransform, */
+        /*     DecorativeMesh(patchMesh) */
+        /*         .setColor(Cyan) */
+        /*         .setOpacity(.75) */
+        /*         .setRepresentation(DecorativeGeometry::DrawWireframe)); */
+
+        cable.addObstacle(
+            matter.Ground(),
+            patchTransform,
+            std::shared_ptr<const ContactGeometry>(
+                new ContactGeometry::SmoothHeightMap(patch)),
+            Vec3{0., 0., 1.});
+    }
 
     // Visaulize the system.
     system.setUseUniformBackground(true); // no ground plane in display
