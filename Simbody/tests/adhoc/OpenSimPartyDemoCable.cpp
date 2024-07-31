@@ -32,231 +32,44 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
-// This force element implements an elastic cable of a given nominal length,
-// and a stiffness k that generates a k*x force opposing stretch beyond
-// the slack length. There is also a dissipation term (k*x)*c*xdot. We keep
-// track of dissipated power here so we can use conservation of energy to check
-// that the cable and force element aren't obviously broken.
-//
-// This code was directly taken from ExampleCablePath.
-class MyCableSpringImpl : public Force::Custom::Implementation
-{
-public:
-    MyCableSpringImpl(
-        const GeneralForceSubsystem& forces,
-        const CableSpan& cable,
-        Real stiffness,
-        Real nominal,
-        Real damping) :
-        forces(forces),
-        m_Cable(cable), k(stiffness), x0(nominal), c(damping)
-    {
-        assert(stiffness >= 0 && nominal >= 0 && damping >= 0);
-    }
-
-    const CableSpan& getCable() const
-    {
-        return m_Cable;
-    }
-
-    // Must be at stage Velocity. Evalutes tension if necessary.
-    Real getTension(const State& s) const
-    {
-        ensureTensionCalculated(s);
-        return Value<Real>::downcast(forces.getCacheEntry(s, tensionx));
-    }
-
-    // Must be at stage Velocity.
-    Real getPowerDissipation(const State& s) const
-    {
-        const Real stretch = calcStretch(s);
-        if (stretch == 0)
-            return 0;
-        const Real rate = m_Cable.calcLengthDot(s);
-        return k * stretch * std::max(c * rate, -1.) * rate;
-    }
-
-    // This integral is always available.
-    Real getDissipatedEnergy(const State& s) const
-    {
-        return forces.getZ(s)[workx];
-    }
-
-    //--------------------------------------------------------------------------
-    //                       Custom force virtuals
-
-    // Ask the cable to apply body forces given the tension calculated here.
-    void calcForce(
-        const State& s,
-        Vector_<SpatialVec>& bodyForces,
-        Vector_<Vec3>& particleForces,
-        Vector& mobilityForces) const override
-    {
-        m_Cable.applyBodyForces(s, getTension(s), bodyForces);
-    }
-
-    // Return the potential energy currently stored by the stretch of the cable.
-    Real calcPotentialEnergy(const State& s) const override
-    {
-        const Real stretch = calcStretch(s);
-        if (stretch == 0)
-            return 0;
-        return k * square(stretch) / 2;
-    }
-
-    // Allocate the s variable for tracking dissipated energy, and a
-    // cache entry to hold the calculated tension.
-    void realizeTopology(State& s) const override
-    {
-        Vector initWork(1, 0.);
-        workx    = forces.allocateZ(s, initWork);
-        tensionx = forces.allocateLazyCacheEntry(
-            s,
-            Stage::Velocity,
-            new Value<Real>(NaN));
-    }
-
-    // Report power dissipation as the derivative for the work variable.
-    void realizeAcceleration(const State& s) const override
-    {
-        Real& workDot = forces.updZDot(s)[workx];
-        workDot       = getPowerDissipation(s);
-    }
-    //--------------------------------------------------------------------------
-
-private:
-    // Return the amount by which the cable is stretched beyond its nominal
-    // length or zero if the cable is slack. Must be at stage Position.
-    Real calcStretch(const State& s) const
-    {
-        const Real stretch = m_Cable.calcLength(s) - x0;
-        return std::max(stretch, 0.);
-    }
-
-    // Must be at stage Velocity to calculate tension.
-    Real calcTension(const State& s) const
-    {
-        const Real stretch = calcStretch(s);
-        if (stretch == 0)
-            return 0;
-        const Real rate = m_Cable.calcLengthDot(s);
-        if (c * rate < -1)
-            cout << "c*rate=" << c * rate << "; limited to -1\n";
-        const Real tension = k * stretch * (1 + std::max(c * rate, -1.));
-        return tension;
-    }
-
-    // If s is at stage Velocity, we can calculate and store tension
-    // in the cache if it hasn't already been calculated.
-    void ensureTensionCalculated(const State& s) const
-    {
-        if (forces.isCacheValueRealized(s, tensionx))
-            return;
-        Value<Real>::updDowncast(forces.updCacheEntry(s, tensionx)) =
-            calcTension(s);
-        forces.markCacheValueRealized(s, tensionx);
-    }
-
-    const GeneralForceSubsystem& forces;
-    CableSpan m_Cable;
-    Real k, x0, c;
-    mutable ZIndex workx;
-    mutable CacheEntryIndex tensionx;
-};
-
-// A nice handle to hide most of the cable spring implementation. This defines
-// a user's API.
-class MyCableSpring : public Force::Custom
-{
-public:
-    MyCableSpring(
-        GeneralForceSubsystem& forces,
-        const CableSpan& cable,
-        Real stiffness,
-        Real nominal,
-        Real damping) :
-        Force::Custom(
-            forces,
-            new MyCableSpringImpl(forces, cable, stiffness, nominal, damping))
-    {}
-
-    // Expose some useful methods.
-    const CableSpan& getCable() const
-    {
-        return getImpl().getCable();
-    }
-    Real getTension(const State& s) const
-    {
-        return getImpl().getTension(s);
-    }
-    Real getPowerDissipation(const State& s) const
-    {
-        return getImpl().getPowerDissipation(s);
-    }
-    Real getDissipatedEnergy(const State& s) const
-    {
-        return getImpl().getDissipatedEnergy(s);
-    }
-
-private:
-    const MyCableSpringImpl& getImpl() const
-    {
-        return dynamic_cast<const MyCableSpringImpl&>(getImplementation());
-    }
-};
-
 // This gets called periodically to dump out interesting things about
 // the cables and the system as a whole. It also saves states so that we
 // can play back at the end.
 static Array_<State> saveStates;
-class ShowStuff : public PeriodicEventReporter
-{
+class ShowStuff : public PeriodicEventReporter {
 public:
-    ShowStuff(
-        const MultibodySystem& mbs,
-        const MyCableSpring& cable1,
-        /* const MyCableSpring& cable2, */
-        Real interval) :
-        PeriodicEventReporter(interval),
-        mbs(mbs), cable1(cable1)
-    {}
+    ShowStuff(const MultibodySystem& mbs, 
+              const CableSpring& cable1, Real interval) 
+    :   PeriodicEventReporter(interval), 
+        mbs(mbs), cable1(cable1) {}
 
-    static void showHeading(std::ostream& o)
-    {
-        printf(
-            "%8s %10s %10s %10s %10s %10s %10s %10s %10s %12s\n",
-            "time",
-            "length",
-            "rate",
-            "integ-rate",
-            "unitpow",
-            "tension",
-            "disswork",
-            "KE",
-            "PE",
-            "KE+PE-W");
+    static void showHeading(std::ostream& o) {
+        printf("%8s %10s %10s %10s %10s %10s %10s %10s %10s %12s\n",
+            "time", "length", "rate", "integ-rate", "unitpow", "tension", "disswork",
+            "KE", "PE", "KE+PE-W");
     }
 
-    /** This is the implementation of the EventReporter virtual. **/
-    void handleEvent(const State& s) const override
-    {
-        const CableSpan& path1 = cable1.getCable();
-        /* const CableSpan& path2 = cable2.getCable(); */
-        printf(
-            "%8g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g CPU=%g\n",
-            s.getTime(),
-            path1.calcLength(s),
-            path1.calcLengthDot(s),
-            path1.calcCablePower(s, 1), // unit power
-            cable1.getTension(s),
-            cable1.getDissipatedEnergy(s),
+    /** This is the implementation of the EventReporter virtual. **/ 
+    void handleEvent(const State& state) const override {
+        const CablePath& path1 = cable1.getCablePath();
+        printf("%8g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %12.6g CPU=%g\n",
+            state.getTime(),
+            path1.getCableLength(state),
+            path1.getCableLengthDot(state),
+            path1.getIntegratedCableLengthDot(state),
+            path1.calcCablePower(state, 1), // unit power
+            cable1.getTension(state),
+            cable1.getDissipatedEnergy(state),
+            mbs.calcKineticEnergy(state),
+            mbs.calcPotentialEnergy(state),
+            mbs.calcEnergy(state)
+                + cable1.getDissipatedEnergy(state),
             cpuTime());
-        saveStates.push_back(s);
+        saveStates.push_back(state);
     }
-
 private:
-    const MultibodySystem& mbs;
-    MyCableSpring cable1;
+    const MultibodySystem&  mbs;
+    CableSpring             cable1;
 };
 
 int main() {
@@ -267,7 +80,7 @@ int main() {
 
     matter.setShowDefaultGeometry(false);
 
-    CableSubsystem cables(system);
+    CableTrackerSubsystem cables(system);
     GeneralForceSubsystem forces(system);
 
     Force::Gravity gravity(forces, matter, -YAxis, 9.81);
@@ -316,7 +129,7 @@ int main() {
        new Function::Sinusoid(0.25*Pi, 0.2*Pi, 0*initialPendulumOffset), pendulumTibia, MobilizerQIndex(0));
                
     // Build a wrapping cable path
-    CableSpan path2(cables, Ground, Vec3(-2, 3, 1),             // origin
+    CablePath path2(cables, Ground, Vec3(1, 3, 1),             // origin
                             pendulumTibia, Vec3(1, -4, 0));  // termination
     
     // Create a bicubic surface
@@ -364,28 +177,39 @@ int main() {
     pendulumFemur.addBodyDecoration(patchTransform,
          DecorativeMesh(lowResPatchMesh).setRepresentation(DecorativeGeometry::DrawWireframe));
 
-    path2.addObstacle(
-        pendulumFemur,
-        patchTransform,
-        std::shared_ptr<const ContactGeometry>(new ContactGeometry::SmoothHeightMap(patch)),
-        Vec3{0, 0, 0});
+    Vec3 patchP(-0.5,-1,2), patchQ(-0.5,1,2);
+
+    pendulumFemur.addBodyDecoration(patchTransform,
+        DecorativePoint(patchP).setColor(Green).setScale(2));
+
+    pendulumFemur.addBodyDecoration(patchTransform,
+        DecorativePoint(patchQ).setColor(Red).setScale(2));
+
+     CableObstacle::Surface patchObstacle(path2, pendulumFemur, patchTransform,
+         ContactGeometry::SmoothHeightMap(patch));
+        
+      patchObstacle.setContactPointHints(patchP, patchQ);
+    
+      patchObstacle.setDisabledByDefault(true);
 
     // Sphere
     Real      sphRadius = 1.5;
 
-    Vec3      sphOffset(0.1, -0.5, 0);
+    Vec3      sphOffset(0, -0.5, 0);
     Rotation  sphRotation(0*Pi, YAxis);
-
     Transform sphTransform(sphRotation, sphOffset);
 
-    path2.addObstacle(
-        pendulumTibia,
-        sphTransform,
-        std::shared_ptr<const ContactGeometry>(new ContactGeometry::Sphere(sphRadius)),
-        Vec3{-3, 0, 0});
+    CableObstacle::Surface tibiaSphere(path2, pendulumTibia, sphTransform,
+        ContactGeometry::Sphere(sphRadius));
+
+    Vec3 sphP(1.5,-0.5,0), sphQ(1.5,0.5,0);
+    tibiaSphere.setContactPointHints(sphP, sphQ);
+
+    pendulumTibia.addBodyDecoration(sphTransform,
+        DecorativeSphere(sphRadius).setColor(Red).setOpacity(0.5));
 
     // Make cable a spring
-    MyCableSpring cable2(forces, path2, 50., 18., 0.1);
+    CableSpring cable2(forces, path2, 50., 18., 0.1); 
 
     Visualizer viz(system);
     viz.setShowFrameNumber(true);
@@ -398,7 +222,7 @@ int main() {
 
     system.realize(state, Stage::Position);
     viz.report(state);
-    cout << "path2 init length=" << path2.calcLength(state) << endl;
+    cout << "path2 init length=" << path2.getCableLength(state) << endl;
     cout << "Hit ENTER ...";
     getchar();
 
