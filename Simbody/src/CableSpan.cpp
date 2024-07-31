@@ -158,9 +158,10 @@ struct MatrixWorkspace {
     /* All straight line segments in the current path. */
     std::vector<LineSegment> lineSegments;
     /* The path error vector captures the misalignment of the straight line and
-    curved segments at the contact points. The computation of the path is then
-    done by driving this path error to zero (up to tolerance), such that all
-    segments are smoothly connected.
+    curved segments at the contact points, as well as the penalty for taking a
+    large optimization step. The computation of the path is then done by
+    driving this path error to zero (up to tolerance), such that all segments
+    are smoothly connected, and the optimization step size converges to zero.
 
     To derive the path errors, consider a single active obstacle (active being
     those that are in contact with the cable), and define:
@@ -178,7 +179,12 @@ struct MatrixWorkspace {
     4. dot(e_Q, b_Q)
 
     Stacking all four path error elements, of all active obstacles, gives the
-    path error vector. */
+    first elements of the path error vector.
+
+    Additionally, for each active obstacle, one element is added to the path
+    error vector that constrains the length of the geodesic to remain the same.
+    This helps regulate the search for the path in case the jacobian of the path
+    error loses rank. The value of these elements is simply zero. */
     Vector pathError;
     /* The path error jacobian is the jacobian of the path error vector to the
     natural geodesic corrections of all active obstacles. */
@@ -2393,12 +2399,21 @@ namespace
 // each curve.
 void calcPathCorrections(MatrixWorkspace& data)
 {
-    // TODO add explanation...
-    // Add a cost to changing the length.
+    // The last elements of the path error vector contain the change in length
+    // of each curve segment, and require it to remain zero. The change in
+    // length is the last element of the NaturalGeodesicCorrection vector. The
+    // jacobian is therefore zero everywhere, except for one (=1) at the element
+    // of the third NaturalGeodesicCorrection of the corresponding curve
+    // segment. Finally we write a weight instead of a one to obtain a weighted
+    // least squares. As the weight we take the current maximum path error. This
+    // will heavily penalize changing the length when we are far from the
+    // optimal solution, and ramp up convergence as we get closer.
     for (int i = 0; i < data.nObstaclesInContact; ++i) {
+        // Determine the row and column of the nonzero element in the jacobian.
         int r = data.nObstaclesInContact *
                     MatrixWorkspace::c_NumPathErrorConstraints + i;
         int c = c_GeodesicDOF * (i + 1) - 1;
+        // Write the weight that will penalize changing the curve length.
         data.pathErrorJacobian.set(r, c, data.maxPathError);
     }
 
