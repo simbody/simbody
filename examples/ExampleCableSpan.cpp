@@ -68,15 +68,14 @@ public:
     CableDecorator(MultibodySystem& mbs, const CableSpan& cable) :
         m_mbs(&mbs), m_cable(cable)
     {
-        for (CableSpanObstacleIndex ix(0);
-             ix < m_cable.getNumObstacles();
+        for (CableSpanObstacleIndex ix(0); ix < m_cable.getNumObstacles();
              ++ix) {
             m_obstacleDecorations.push_back(
                 m_cable.getObstacleContactGeometry(ix)
                     .createDecorativeGeometry()
                     .setResolution(3));
             m_obstacleDecorationsOffsets.push_back(
-                    m_obstacleDecorations.back().getTransform());
+                m_obstacleDecorations.back().getTransform());
         }
     }
 
@@ -84,8 +83,7 @@ public:
         const State& state,
         Array_<DecorativeGeometry>& decorations) override
     {
-        for (CableSpanObstacleIndex ix(0);
-             ix < m_cable.getNumObstacles();
+        for (CableSpanObstacleIndex ix(0); ix < m_cable.getNumObstacles();
              ++ix) {
             // Draw the obstacle surface.
             // Green if cable is in contact with surface, grey otheriwse.
@@ -93,7 +91,7 @@ public:
                 m_cable.getObstacleContactGeometry(ix);
             const bool isInContactWithSurface =
                 m_cable.isInContactWithObstacle(state, ix);
-            const Vec3 color = isInContactWithSurface ? Yellow : Gray;
+            const Vec3 color   = isInContactWithSurface ? Yellow : Gray;
             const Real opacity = isInContactWithSurface ? 1. : 0.25;
             Transform X_GB =
                 m_mbs->getMatterSubsystem()
@@ -106,7 +104,8 @@ public:
             const Transform X_GD = X_GS.compose(X_SD);
             // Draw the obstacle's local frame.
             // This is the frame that you define the contact point hint in.
-            decorations.push_back(DecorativeFrame(0.5).setTransform(X_GS).setColor(Purple));
+            decorations.push_back(
+                DecorativeFrame(0.5).setTransform(X_GS).setColor(Purple));
             // Draw the obstacle contact geometry.
             decorations.push_back(m_obstacleDecorations.at(ix)
                                       .setTransform(X_GD)
@@ -129,8 +128,10 @@ public:
             }
 
             // Draw the frenet frames at the geodesic boundary points.
-            decorations.push_back(DecorativeFrame(0.2).setTransform(m_cable.calcCurveSegmentInitialFrenetFrame(state, ix)));
-            decorations.push_back(DecorativeFrame(0.2).setTransform(m_cable.calcCurveSegmentFinalFrenetFrame(state, ix)));
+            decorations.push_back(DecorativeFrame(0.2).setTransform(
+                m_cable.calcCurveSegmentInitialFrenetFrame(state, ix)));
+            decorations.push_back(DecorativeFrame(0.2).setTransform(
+                m_cable.calcCurveSegmentFinalFrenetFrame(state, ix)));
         }
     }
 
@@ -144,109 +145,102 @@ public:
 
 int main()
 {
-    try {
-        // Create the system.
-        MultibodySystem system;
-        SimbodyMatterSubsystem matter(system);
-        CableSubsystem cables(system);
+    // Create the system.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
 
-        // A dummy body.
-        Body::Rigid aBody(MassProperties(1.0, Vec3(0), Inertia(1)));
+    // A dummy body.
+    Body::Rigid aBody(MassProperties(1.0, Vec3(0), Inertia(1)));
 
-        // Mobilizer for path origin.
-        MobilizedBody::Translation cableOriginBody(
-            matter.Ground(),
-            Vec3(-8., 0.1, 0.),
-            aBody,
-            Transform());
+    // Mobilizer for path origin.
+    MobilizedBody::Translation cableOriginBody(
+        matter.Ground(),
+        Vec3(-8., 0.1, 0.),
+        aBody,
+        Transform());
 
-        // Mobilizer for path termination.
-        MobilizedBody::Translation cableTerminationBody(
-            matter.Ground(),
-            Transform(Vec3(10., 1.0, -1.)),
-            aBody,
-            Transform());
+    // Mobilizer for path termination.
+    MobilizedBody::Translation cableTerminationBody(
+        matter.Ground(),
+        Transform(Vec3(10., 1.0, -1.)),
+        aBody,
+        Transform());
 
-        // Construct a new cable.
-        CableSpan cable(
-            cables,
-            cableOriginBody,
-            Vec3{0.},
-            cableTerminationBody,
-            Vec3{0.});
+    // Construct a new cable.
+    CableSpan cable(
+        cables,
+        cableOriginBody,
+        Vec3{0.},
+        cableTerminationBody,
+        Vec3{0.});
 
-        // Add some obstacles to the cable.
+    // Add some obstacles to the cable.
 
-        // Add torus obstacle.
-        cable.addObstacle(
-            matter.Ground(), // Obstacle mobilizer body.
-            Transform(
-                Rotation(0.5 * Pi, YAxis),
-                Vec3{-4., 0., 0.}), // Surface to body transform.
-            std::shared_ptr<ContactGeometry>(
-                new ContactGeometry::Torus(1., 0.2)), // Obstacle geometry.
-            {0.1, 0.2, 0.} // Initial contact point hint.
-        );
+    // Add torus obstacle.
+    cable.addObstacle(
+        matter.Ground(), // Obstacle mobilizer body.
+        Transform(
+            Rotation(0.5 * Pi, YAxis),
+            Vec3{-4., 0., 0.}), // Surface to body transform.
+        std::shared_ptr<ContactGeometry>(
+            new ContactGeometry::Torus(1., 0.2)), // Obstacle geometry.
+        {0.1, 0.2, 0.}                            // Initial contact point hint.
+    );
 
-        // Add ellipsoid obstacle.
-        cable.addObstacle(
-            matter.Ground(),
-            Transform(Vec3{-2., 0., 0.}),
-            std::shared_ptr<ContactGeometry>(
-                new ContactGeometry::Ellipsoid({1.5, 2.6, 1.})),
-            {0.0, 0., 1.1});
+    // Add ellipsoid obstacle.
+    cable.addObstacle(
+        matter.Ground(),
+        Transform(Vec3{-2., 0., 0.}),
+        std::shared_ptr<ContactGeometry>(
+            new ContactGeometry::Ellipsoid({1.5, 2.6, 1.})),
+        {0.0, 0., 1.1});
 
-        // Add sphere obstacle.
-        cable.addObstacle(
-            matter.Ground(),
-            Transform(Vec3{2., 0., 0.}),
-            std::shared_ptr<ContactGeometry>(new ContactGeometry::Sphere(1.)),
-            {0.1, 1.1, 0.}
-        );
+    // Add sphere obstacle.
+    cable.addObstacle(
+        matter.Ground(),
+        Transform(Vec3{2., 0., 0.}),
+        std::shared_ptr<ContactGeometry>(new ContactGeometry::Sphere(1.)),
+        {0.1, 1.1, 0.});
 
-        // Add cylinder obstacle.
-        cable.addObstacle(
-            matter.Ground(),
-            Transform(Rotation(0.5*Pi, XAxis), Vec3{5., 0., 0.}),
-            std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
-            Vec3{0., -1., 0.}
-        );
+    // Add cylinder obstacle.
+    cable.addObstacle(
+        matter.Ground(),
+        Transform(Rotation(0.5 * Pi, XAxis), Vec3{5., 0., 0.}),
+        std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
+        Vec3{0., -1., 0.});
 
-        // Visaulize the system.
-        system.setUseUniformBackground(true); // no ground plane in display
-        Visualizer viz(system);
-        viz.addDecorationGenerator(new CableDecorator(system, cable));
-        ShowStuff showStuff(cables, 1e-3);
+    // Visaulize the system.
+    system.setUseUniformBackground(true); // no ground plane in display
+    Visualizer viz(system);
+    viz.addDecorationGenerator(new CableDecorator(system, cable));
+    ShowStuff showStuff(cables, 1e-3);
 
-        // Initialize the system and s.
-        system.realizeTopology();
-        State s = system.getDefaultState();
+    // Initialize the system and s.
+    system.realizeTopology();
+    State s = system.getDefaultState();
+    system.realize(s, Stage::Position);
+
+    system.realize(s, Stage::Report);
+    viz.report(s);
+    showStuff.handleEvent(s);
+
+    std::cout << "Hit ENTER ..., or q\n";
+    const char ch = getchar();
+    if (ch == 'Q' || ch == 'q') {
+        return 0;
+    }
+
+    Real angle = 0.;
+    while (true) {
         system.realize(s, Stage::Position);
-
-        system.realize(s, Stage::Report);
+        cable.calcLength(s);
         viz.report(s);
-        showStuff.handleEvent(s);
 
-        std::cout << "Hit ENTER ..., or q\n";
-        const char ch = getchar();
-        if (ch == 'Q' || ch == 'q') {
-            return 0;
-        }
-
-        Real angle = 0.;
-        while (true) {
-            system.realize(s, Stage::Position);
-            cable.calcLength(s);
-            viz.report(s);
-
-            // Move the cable origin.
-            angle += 0.01;
-            cableOriginBody.setQ(
-                s,
-                Vec3(sin(angle), 5. * sin(angle * 1.5), 5. * sin(angle * 2.)));
-        }
-
-    } catch (const std::exception& e) {
-        std::cout << "EXCEPTION: " << e.what() << "\n";
+        // Move the cable origin.
+        angle += 0.01;
+        cableOriginBody.setQ(
+            s,
+            Vec3(sin(angle), 5. * sin(angle * 1.5), 5. * sin(angle * 2.)));
     }
 }
