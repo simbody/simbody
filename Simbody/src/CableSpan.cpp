@@ -181,8 +181,7 @@ struct MatrixWorkspace {
     natural geodesic corrections of all active obstacles. */
     Matrix pathErrorJacobian;
     /* The factorization for solving the pathErrorJacobian in least squares sense. */
-    // TODO rename to factor
-    FactorQTZ inverse;
+    FactorQTZ factor;
     /* The path correction vector contains the NaturalGeodesicCorrection
     vector of each active obstacle stacked as a vector. This vector is
     computed at each solver iteration, and applying these corrections
@@ -2399,8 +2398,8 @@ void calcPathCorrections(MatrixWorkspace& data)
         data.pathErrorJacobian.set(r, c, data.maxPathError);
     }
 
-    data.inverse = data.pathErrorJacobian;
-    data.inverse.solve(data.pathError, data.pathCorrection);
+    data.factor = data.pathErrorJacobian;
+    data.factor.solve(data.pathError, data.pathCorrection);
     data.pathCorrection *= -1.;
 }
 
