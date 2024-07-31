@@ -160,11 +160,14 @@ struct MatrixWorkspace {
     /* The path error vector captures the misalignment of the straight line and
     curved segments at the contact points. The computation of the path is then
     done by driving this path error to zero (up to tolerance), such that all
-    segments are smoothly connected. active obstacles.
+    segments are smoothly connected.
 
-    To derive the path errors, consider a single active obstacle (active being those that are in contact with the cable), and define:
-    - Let the subscripts P and Q denote the initial and final contact point on the obstacle respectively.
-    - The direction of the straight line segment connected to the obstacle: e_P, e_Q
+    To derive the path errors, consider a single active obstacle (active being
+    those that are in contact with the cable), and define:
+    - Let the subscripts P and Q denote the initial and final contact point on
+      the obstacle respectively.
+    - The direction of the straight line segment connected to the obstacle at
+      the contact points: e_P, e_Q
     - The direction of the surface normal at contact points: n_P, n_Q
     - The direction of the geodesic binormal at contact points: b_P, b_Q
 
@@ -180,7 +183,8 @@ struct MatrixWorkspace {
     /* The path error jacobian is the jacobian of the path error vector to the
     natural geodesic corrections of all active obstacles. */
     Matrix pathErrorJacobian;
-    /* The factorization for solving the pathErrorJacobian in least squares sense. */
+    /* The factorization for solving the pathErrorJacobian in least squares
+    sense. */
     FactorQTZ factor;
     /* The path correction vector contains the NaturalGeodesicCorrection
     vector of each active obstacle stacked as a vector. This vector is
@@ -188,7 +192,7 @@ struct MatrixWorkspace {
     attempts to drive the path error vector to zero. */
     Vector pathCorrection;
     /* The infinity norm of the path error vector. */
-    Real maxPathError       = NaN;
+    Real maxPathError = NaN;
     /* The number of active obstacles. */
     int nObstaclesInContact = -1;
 };
