@@ -422,23 +422,66 @@ public:
     /** @endcond **/
 };
 
+/** @cond **/ // Hide from Doxygen.
 //==============================================================================
-//                      SUBSYSTEM TESTING HELPER
-//==============================================================================
-// Helper class for testing the internally computed path error jacboian.
-class SimTK_SIMBODY_EXPORT CableSubsystemTestHelper {
+/** Helper class for testing correctness of all currently computed paths in a
+CableSubsystem.
+
+For each CableSpan's computed path it is checked that:
+1. Any curve segment over an obstacle is a correct geodesic.
+2. The path error jacobian matches a perturbation test.
+
+The geodesics and jacobians are internal to the CableSpan's implementation, we
+refer to the following publication to understand their role:
+
+    Scholz, A., Sherman, M., Stavness, I. et al (2016). A fast multi-obstacle
+    muscle wrapping method using natural geodesic variations. Multibody System
+    Dynamics 36, 195–219.
+
+Consider a bug in the code, then this test is designed to have
+high sensitivity (and lower specificity). That is, if you pass, you can rest
+assured that all curve segments are indeed geodesics, and that the jacobian
+correctly predicts the local effect of the NaturalGeodesicCorrection on the
+path error vector. It is possible to fail this test in the absence of any bugs;
+e.g. by setting a very poor solver accuracy for the CableSpan, and using a very
+small perturbation value in the jacobian perturbation test. For use in a unit
+test a high sensitivity works just fine: If you pass it normally, you should
+pass it after a code refactor as well.
+
+Testing each computed path in your simulation is possible, but will criple your
+simulation speed.
+
+State must be realized to Stage::Position before testing. **/
+class CableSubsystemTestHelper {
 public:
-    // Verify the computed path error jacobian by applying a small correction
-    // to each CurveSegment's geodesic (i.e. a perturbation), and computing the
-    // resulting change in the path error vector.
-    bool applyPerturbationTest(
-        const MultibodySystem& system,
+    /** Construct a CableSubsystemTestHelper that can be used to test a
+    CableSubsystem. **/
+    CableSubsystemTestHelper();
+    ~CableSubsystemTestHelper() noexcept;
+    CableSubsystemTestHelper(const CableSubsystemTestHelper&);
+    CableSubsystemTestHelper& operator=(const CableSubsystemTestHelper&);
+    CableSubsystemTestHelper(CableSubsystemTestHelper&&) noexcept = default;
+    CableSubsystemTestHelper& operator=(CableSubsystemTestHelper&&) noexcept =
+        default;
+
+    /** Test the paths of all CableSpan registered in a CableSubsystem.
+    State must be realized to Stage::Position.
+    An exception is thrown when the test fails.
+    @param state State of the system.
+    @param subsystem CableSubsystem containing all paths to be tested.
+    @param testReport Interesting test results will be written to this stream.
+    **/
+    void testCurrentPath(
+        const State& state,
         const CableSubsystem& subsystem,
-        const State& s,
-        Real perturbation,
-        Real bound,
-        std::ostream& os);
+        std::ostream& testReport) const;
+
+    class Impl;
+
+private:
+    std::unique_ptr<Impl> m_impl;
 };
+/** @endcond **/
 
 } // namespace SimTK
 

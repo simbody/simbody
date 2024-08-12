@@ -18,6 +18,7 @@
 
 #include "simbody/internal/CableSpan.h"
 
+#include "CableSpan_SubsystemTestHelper.h"
 #include "SimTKcommon/internal/State.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
@@ -372,10 +373,10 @@ TODO These need reasonable default values. */
 struct IntegratorTolerances {
     // The accuracy used to control the stepsize of the variable step geodesic
     // integrator.
-    Real geodesicIntegratorAccuracy = 1e-6;
+    Real geodesicIntegratorAccuracy = 1e-9;
     // TODO the surface projection tolerance should be linked to the geodesic
     // integrator accuracy.
-    Real constraintProjectionTolerance = 1e-6;
+    Real constraintProjectionTolerance = 1e-9;
     // TODO should be used during numerical integration as well, but not
     // connected yet.
     int constraintProjectionMaxIterations = 50;
@@ -2589,28 +2590,88 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 // subsequently.
 // Only curve segments that are in contact with their respective obstacles are
 // tested.
-bool CableSubsystemTestHelper::applyPerturbationTest(
-    const MultibodySystem& system,
+void CableSubsystemTestHelper::Impl::runPerturbationTest(
+    const State& state,
     const CableSubsystem& subsystem,
-    const State& s,
-    Real perturbation,
-    Real bound,
-    std::ostream& os)
+    std::ostream& os) const
 {
     // Result of this perturbation test.
     bool success = true;
 
-    for (const CableSpan& cableIt : subsystem.getImpl().cables) {
-        const CableSpan::Impl& cable = cableIt.getImpl();
+    // Helper lambda for comparing two vectors of ObstacleWrappingStatus.
+    auto isEqual = [](const std::vector<ObstacleWrappingStatus>& a,
+                      const std::vector<ObstacleWrappingStatus>& b) -> bool
+    {
+        bool out = a.size() == b.size();
+        for (int i = 0; i < a.size(); ++i) {
+            out = out && a.at(i) == b.at(i);
+        }
+        return out;
+    };
+
+    // Helper lambda returning true if any active curve segment has zero length.
+    auto anyCurveSegmentHasZeroLength =
+        [&](const State& s, const CableSpan::Impl& cable) -> bool
+    {
+        for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+            const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+            if (!curve.isInContactWithSurface(s)) {
+                continue;
+            }
+            if (std::abs(curve.getDataInst(s).arcLength) < Eps) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (CableSpanIndex cableIx(0); cableIx < subsystem.getNumCables();
+         ++cableIx) {
+        os << "START Jacobian Perturbation Test of Cable " << cableIx << "\n";
+        const CableSpan::Impl& cable = subsystem.getCable(cableIx).getImpl();
+
+        // Sanity checks on the config parameters:
+
+        // The jacobian should predict effect on the path error vector up to 1
+        // percent, at least.
+        SimTK_ERRCHK1_ALWAYS(
+            m_perturbationTestParameters.tolerance <= 1.,
+            "CableSubsystemTestHelper::Impl::runPerturbationTest",
+            "Perturbation test tolerance (=%e) should be less or equal to 1",
+            m_perturbationTestParameters.tolerance);
+        // Assertions below are ball park estimates, but what we want to avoid
+        // is testing a very small perturbation on a very inaccurate curve
+        // segment. That won't work.
+        SimTK_ERRCHK2_ALWAYS(
+            cable.getParameters().geodesicIntegratorAccuracy <
+                m_perturbationTestParameters.perturbation * 1e-3,
+            "CableSubsystemTestHelper::Impl::runPerturbationTest",
+            "Curve segment accuracy (=%e) should be smaller than the applied perturbation (=%e) times 1e-3",
+            cable.getParameters().geodesicIntegratorAccuracy,
+            m_perturbationTestParameters.perturbation);
+        SimTK_ERRCHK2_ALWAYS(
+            m_perturbationTestParameters.perturbation <=
+                m_perturbationTestParameters.tolerance * 1e-4,
+            "CableSubsystemTestHelper::Impl::runPerturbationTest",
+            "Applied perturbation (=%e) should be less or equal to the assertion tolerance (=%e) times 1e-4.",
+            m_perturbationTestParameters.perturbation,
+            m_perturbationTestParameters.tolerance);
 
         // Axes considered when computing the path error.
         const std::array<CoordinateAxis, 2> axes{NormalAxis, BinormalAxis};
 
         // Count the number of active curve segments.
-        const int nActive = cable.countActive(s);
+        const int nActive = cable.countActive(state);
 
         if (nActive == 0) {
-            os << "Cable has no active segments: Skipping perturbation test\n";
+            os << "Cable has no active segments:";
+            os << "Skipping perturbation test\n";
+            continue;
+        }
+
+        if (anyCurveSegmentHasZeroLength(state, cable)) {
+            os << "Cable has zero-length curve segments:";
+            os << "Skipping perturbation test\n";
             continue;
         }
 
@@ -2618,10 +2679,11 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
         // of a geodesic correction. There are 4 DOF for each geodesic, and
         // just to be sure we apply a negative and positive perturbation along
         // each DOF of each geodesic.
-        for (int i = 0; i < (c_GeodesicDOF * 2 * nActive); ++i) {
+        Real perturbation = m_perturbationTestParameters.perturbation;
+        for (int i = 0; i < c_GeodesicDOF * 2 * nActive + 1; ++i) {
             // We do not want to mess with the actual state, so we make a copy.
-            const State sCopy = s;
-            system.realize(sCopy, Stage::Position);
+            const State sCopy = state;
+            subsystem.getMultibodySystem().realize(sCopy, Stage::Position);
 
             // Trigger realizing position level cache, resetting the
             // configuration.
@@ -2638,12 +2700,11 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 break;
             }
 
-            MatrixWorkspace& data = cable.updDataInst(s).updOrInsert(nActive);
+            // Compute the path error vector and jacobian, before the applied
+            // perturbation.
 
-            // Define the perturbation we will use for testing the jacobian.
-            perturbation *= -1.;
-            data.pathCorrection.setTo(0.);
-            data.pathCorrection.set(i / 2, perturbation);
+            MatrixWorkspace& data =
+                cable.updDataInst(sCopy).updOrInsert(nActive);
 
             calcLineSegments(
                 cable,
@@ -2666,19 +2727,29 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 axes,
                 data.pathErrorJacobian);
 
+            // Define the perturbation we will use for testing the jacobian.
+            data.pathCorrection.setTo(0.);
+            if (i != 0) {
+                perturbation *= -1.;
+                data.pathCorrection.set((i - 1) / 2, perturbation);
+            }
+
+            // Use the jacobian to predict the perturbed path error vector.
             Vector predictedPathError =
                 data.pathErrorJacobian * data.pathCorrection + data.pathError;
 
+            // Store the wrapping status before applying the perturbation.
             std::vector<ObstacleWrappingStatus> prevWrappingStatus;
             for (const CurveSegment& curve : cable.m_curveSegments) {
                 prevWrappingStatus.push_back(
                     curve.getDataInst(sCopy).wrappingStatus);
             }
 
+            // Apply the perturbation.
             int activeCurveIx = 0; // Index of curve in all that are in contact.
             for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
                 const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
-                if (curve.isInContactWithSurface(s)) {
+                if (curve.isInContactWithSurface(sCopy)) {
                     curve.applyGeodesicCorrection(
                         sCopy,
                         data.getCurveCorrection(activeCurveIx));
@@ -2694,6 +2765,8 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 cable.getObstacleCurveSegment(ix).calcDataPos(sCopy);
             }
 
+            // Compute the path error vector after having applied the
+            // perturbation.
             calcLineSegments(
                 cable,
                 sCopy,
@@ -2707,54 +2780,70 @@ bool CableSubsystemTestHelper::applyPerturbationTest(
                 axes,
                 data.pathError);
 
+            // The curve lengths are clipped at zero, which distorts the
+            // perturbation test. We simply skip these edge cases.
+            if (anyCurveSegmentHasZeroLength(sCopy, cable)) {
+                os << "Cable has zero-length curve segments after "
+                      "perturbation:";
+                os << "Skipping perturbation test\n";
+                continue;
+            }
+
             // We can only use the path error jacobian if the small
             // perturbation did not trigger any liftoff or touchdown on any
             // obstacles. If any CurveSegment's WrappingStatus has changed, we
             // will not continue with the test. Since the perturbation is
             // small, this is unlikely to happen often.
-            bool wrappingStatusChanged = false;
-            {
-                int ix = -1;
-                for (const CurveSegment& curve : cable.m_curveSegments) {
-                    wrappingStatusChanged =
-                        wrappingStatusChanged ||
-                        prevWrappingStatus.at(++ix) !=
-                            curve.getDataInst(sCopy).wrappingStatus;
-                }
+            std::vector<ObstacleWrappingStatus> nextWrappingStatus;
+            for (const CurveSegment& curve : cable.m_curveSegments) {
+                nextWrappingStatus.push_back(
+                    curve.getDataInst(sCopy).wrappingStatus);
             }
-            if (wrappingStatusChanged) {
+            if (!isEqual(prevWrappingStatus, nextWrappingStatus)) {
                 os << "Wrapping status changed: Stopping test\n";
                 break;
             }
 
             const Real predictionError =
-                (predictedPathError - data.pathError).norm();
+                (predictedPathError - data.pathError).normInf();
 
-            bool passedTest = std::abs(predictionError / perturbation) <= bound;
+            // Tolerance was given as a percentage, multiply by 0.01 to get the
+            // correct scale.
+            const Real tolerance =
+                m_perturbationTestParameters.tolerance * 1e-2;
+            bool passedTest =
+                std::abs(predictionError / perturbation) <= tolerance;
             if (!passedTest) {
                 os << "FAILED perturbation test for correction = "
                    << data.pathCorrection << "\n";
-                os << "    Got      : " << data.pathError << "\n";
-                os << "    Predicted: " << predictedPathError << "\n";
-                os << "    Err      : "
+                os << "path error after perturbation:\n";
+                os << "    Got        : " << data.pathError << "\n";
+                os << "    Predicted  : " << predictedPathError << "\n";
+                os << "    Difference : "
                    << (predictedPathError - data.pathError) / perturbation
                    << "\n";
-                os << "    Err norm : "
+                os << "    Max diff   : "
                    << (predictedPathError - data.pathError).normInf() /
                           perturbation
-                   << "\n";
+                   << " <= " << tolerance << " = eps\n";
             } else {
                 os << "PASSED perturbation test for correction = "
                    << data.pathCorrection << "\n";
-                os << " ( error = "
+                os << " ( max diff = "
                    << (predictedPathError - data.pathError).normInf() /
                           perturbation
-                   << " )\n";
+                   << " <= " << tolerance << " = eps )\n";
             }
             success = success && passedTest;
         }
     }
-    return success;
+    // Flush all info to the report, in case we throw an exception.
+    if (success) {
+        os << "PASSED TEST: jacobian perturbation test" << std::endl;
+    } else {
+        os << "FAILED TEST: jacobian perturbation test" << std::endl;
+    }
+    SimTK_ASSERT_ALWAYS(success, "Perturbation test failed");
 }
 
 //==============================================================================

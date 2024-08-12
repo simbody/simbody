@@ -639,14 +639,15 @@ public:
         const Vec3& point,
         const UnitVec3& direction) const override
     {
-        return -(direction[0] * point[1] - direction[1] * point[0]) / radius;
-    }
+        const Real knum =
+            direction[0] * direction[0] + direction[1] * direction[1];
 
-    Real calcSurfaceTorsionInDirection(
-        const Vec3& point,
-        const UnitVec3& direction) const override
-    {
-        return 0.;
+        // Prevent 0/0
+        if (std::abs(knum) < TinyReal) {
+            return 0;
+        }
+
+        return knum / std::sqrt(point[0] * point[0] + point[1] * point[1]);
     }
 
     bool isAnalyticFormAvailable() const override {
@@ -765,15 +766,15 @@ public:
     }
 
     Real calcSurfaceCurvatureInDirection(
-        const Vec3& point,
-        const UnitVec3& direction) const override
+        const Vec3&,
+        const UnitVec3&) const override
     {
         return 1. / radius;
     }
 
     Real calcSurfaceTorsionInDirection(
-        const Vec3& point,
-        const UnitVec3& direction) const override
+        const Vec3&,
+        const UnitVec3&) const override
     {
         return 0.;
     }
