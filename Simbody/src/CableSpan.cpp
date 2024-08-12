@@ -2099,13 +2099,20 @@ Real CableSpan::Impl::calcCablePower(const State& state, Real tension) const
 }
 
 //==============================================================================
-//                             Path Error Vector
+//                             Path Error Vector and Jacobian
 //==============================================================================
-// This section contains helper functions for computing the path error vector.
+/* This section contains helper functions for computing the path error vector
+and it's jacobian to the natural geodesic corrections.
+
+For derivations and background we will refer to the relevant parts in the
+original paper: "A fast multi-obstacle muscle wrapping method using natural
+geodesic variations" by Andreas Scholz et al (Scholz2015). */
 namespace
 {
 
-// Compute the straight line segments in between the obstacles.
+/* Compute the straight line segments in between the obstacles.
+
+Denoted by "e^i" and "e^{i+1} in Scholz2015 Fig 1. */
 void calcLineSegments(
     const CableSpan::Impl& cable,
     const State& s,
@@ -2136,13 +2143,11 @@ void calcLineSegments(
     lines.emplace_back(prevPathPoint, pathTerminationPoint);
 }
 
-// Helper for computing a single element of the path error vector.
-// The algorithm for finding the correct path will attempt to drive this path
-// error to zero. Since we would like the curve's tangents to be aligned with
-// the straight line segments, the path error is defined as the alignment of the
-// line segments with the normal and binormal axes.
-// In that case: zero path error -> no alignment of line segments with normal
-// and binormal -> line segments must be aligned with the tangents.
+/* Helper for computing a single element of the path error vector.
+The algorithm for finding the correct path will attempt to drive this path
+error to zero.
+
+These are the elements in equation 14 in Scholz2015. */
 Real calcPathErrorElement(
     const LineSegment& e,
     const FrenetFrame& X,
@@ -2151,9 +2156,10 @@ Real calcPathErrorElement(
     return dot(e.direction, X.R().getAxisUnitVec(axis));
 }
 
-// Compute the path error for each curve segment at the boundary frames, and
-// stack them in a vector. At each boundary frame (X_GP, X_GQ) the path error
-// along the given axes is computed, in that order.
+/* Compute the path error for each curve segment at the boundary frames, and
+stack them in a vector.
+
+If axes = {NormalAxis, BinormalAxis} this gives equation 14 in Scholz2015 */
 template <size_t N>
 void calcPathErrorVector(
     const CableSpan::Impl& cable,
@@ -2171,6 +2177,7 @@ void calcPathErrorVector(
     int lineIx = 0;
 
     for (CableSpanObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        // Path errors are only computed for obstacles that make contact.
         const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
         if (!curve.isInContactWithSurface(s)) {
             continue;
@@ -2195,11 +2202,15 @@ void calcPathErrorVector(
 //==============================================================================
 //                             Path Error Jacobian
 //==============================================================================
-// This section contains helper functions for computing the jacobian of the
-// previously defined path error vector to the natural geodesic corrections.
 namespace
 {
 
+/* Given the path error related to the final contact point of the previous
+CurveSegment, compute the jacobian to the NaturalGeodesicCorrections of the
+current CurveSegment.
+
+See Scholz2015 equation 56: if axis = NormalAxis this computes the third row,
+if axis = BinormalAxis this computes the fourth row. */
 Vec4 calcJacobianOfPrevPathError(
     const CurveSegment& curve,
     const State& state,
@@ -2208,14 +2219,18 @@ Vec4 calcJacobianOfPrevPathError(
 {
     const Transform& X_GP = curve.getDataPos(state).X_GP;
 
-    // Compute partial derivative of path error to first contact point position
-    // (x_PS), represented in the Frenet frame.
     Vec3 dErrDx = axis - line.direction * dot(line.direction, axis);
     dErrDx      = X_GP.RInv() * (dErrDx / line.length);
 
     return {dErrDx[0], dErrDx[2], 0., 0.};
 }
 
+/* Given the path error related to the initial contact point of the next
+CurveSegment, compute the jacobian to the NaturalGeodesicCorrections of the
+current CurveSegment.
+
+See Scholz2015 equation 55: if axis = NormalAxis this computes the first row,
+if axis = BinormalAxis this computes the second row. */
 Vec4 calcJacobianOfNextPathError(
     const CurveSegment& curve,
     const State& s,
@@ -2236,6 +2251,11 @@ Vec4 calcJacobianOfNextPathError(
     return {dErrDx[0], dErrDx[2] * a, dErrDx[2] * r, dErrDx[0]};
 }
 
+/* Given the path error related to the initial contact point of a CurveSegment
+compute the jacobian to the NaturalGeodesicCorrections.
+
+See Scholz2015 equation 54: if axis = NormalAxis this computes the first row,
+if axis = BinormalAxis this computes the second row. */
 Vec4 calcJacobianOfPathErrorAtP(
     const CurveSegment& curve,
     const State& s,
@@ -2262,6 +2282,11 @@ Vec4 calcJacobianOfPathErrorAtP(
            calcJacobianOfPrevPathError(curve, s, line, axis);
 }
 
+/* Given the path error related to the final contact point of a CurveSegment
+compute the jacobian to the NaturalGeodesicCorrections.
+
+See Scholz2015 equation 54: if axis = NormalAxis this computes the third row,
+if axis = BinormalAxis this computes the fourth row. */
 Vec4 calcJacobianOfPathErrorAtQ(
     const CurveSegment& curve,
     const State& s,
@@ -2295,6 +2320,10 @@ Vec4 calcJacobianOfPathErrorAtQ(
            calcJacobianOfNextPathError(curve, s, line, axis);
 }
 
+/* Computes the jacobian of the path error vector to the
+NaturalGeodesicCorrections of all CurveSegments.
+
+When axes = {Normal, Binormal}, this equals equation 53 in Scholz2015. */
 template <size_t N>
 void calcPathErrorJacobian(
     const CableSpan::Impl& cable,
@@ -2306,10 +2335,11 @@ void calcPathErrorJacobian(
     // Number of free coordinates for a generic geodesic.
     constexpr int NQ = c_GeodesicDOF;
 
-    const int numberOfCurvesInContact = static_cast<int>(lines.size()) - 1;
-
     // Reset the values in the jacobian.
     J.setToZero();
+
+    // Sanity check on the matrix dimensions.
+    const int numberOfCurvesInContact = static_cast<int>(lines.size()) - 1;
     SimTK_ASSERT3(
         J.ncol() == numberOfCurvesInContact * NQ &&
             J.nrow() ==
@@ -2323,11 +2353,11 @@ void calcPathErrorJacobian(
     int row = 0;
     int col = 0;
 
-    // Helper for writing a computed block to the jacobian.
+    // Helper for adding a computed block to the jacobian.
     auto AddBlock = [&](const Vec4& block, int colOffset = 0)
     {
         for (int ix = 0; ix < 4; ++ix) {
-            J.updElt(row, col + colOffset + ix) += block[ix];
+            J(row, col + colOffset + ix) += block[ix];
         }
     };
 
@@ -2339,45 +2369,63 @@ void calcPathErrorJacobian(
             continue;
         }
         const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
+
+        // Compute the jacobian elements of the path error related to the
+        // initial contact point.
         for (CoordinateAxis axis : axes) {
+            // The path error of which to take the jacobian is: dot(a_P, l_P)
             const UnitVec3 a_P     = dataPos.X_GP.R().getAxisUnitVec(axis);
             const LineSegment& l_P = lines.at(lineIx);
 
+            // Write to the block diagonal of J the jacobian of the path error
+            // to the CurveSegment's NaturalGeodesicCorrection.
             AddBlock(calcJacobianOfPathErrorAtP(curve, s, l_P, a_P));
 
+            // Write to the off-diagonal of J the jacobian of the path
+            // error to the previous CurveSegment's NaturalGeodesicCorrection.
             const ObstacleIndex prevObsIx =
                 curve.findPrevObstacleInContactWithCable(s);
             if (prevObsIx.isValid()) {
+                constexpr int colShift = -NQ; // the off-diagonal block.
                 AddBlock(
                     calcJacobianOfNextPathError(
                         cable.getObstacleCurveSegment(prevObsIx),
                         s,
                         l_P,
                         a_P),
-                    -NQ);
+                    colShift);
             }
+            // Increment to the next path error element.
             ++row;
         }
 
-        ++lineIx;
-
+        // Compute the jacobian elements of the path error related to the final
+        // contact point.
+        ++lineIx; // Increment to the next straight line segment.
         for (CoordinateAxis axis : axes) {
+            // The path error of which to take the jacobian is: dot(a_Q, l_Q)
             const UnitVec3 a_Q     = dataPos.X_GQ.R().getAxisUnitVec(axis);
             const LineSegment& l_Q = lines.at(lineIx);
 
+            // Write to the block diagonal of J the jacobian of the path error
+            // to the CurveSegment's NaturalGeodesicCorrection.
             AddBlock(calcJacobianOfPathErrorAtQ(curve, s, l_Q, a_Q));
 
+            // Write to the off-diagonal of J the jacobian of the path
+            // error to the next CurveSegment's NaturalGeodesicCorrection.
             const ObstacleIndex nextObsIx =
                 curve.findNextObstacleInContactWithCable(s);
             if (nextObsIx.isValid()) {
+                constexpr int colShift = NQ; // the off-diagonal block.
                 AddBlock(
                     calcJacobianOfPrevPathError(
                         cable.getObstacleCurveSegment(nextObsIx),
                         s,
                         l_Q,
                         a_Q),
-                    NQ);
+                    colShift);
             }
+            // Increment to the next path error element.
             ++row;
         }
 

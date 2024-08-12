@@ -58,7 +58,7 @@ as the warm start. This is done by computing natural geodesic corrections for
 each curve segment to compute the locally shortest path, as described in the
 following publication:
 
-    Scholz, A., Sherman, M., Stavness, I. et al (2016). A fast multi-obstacle
+    Scholz, A., Sherman, M., Stavness, I. et al (2015). A fast multi-obstacle
     muscle wrapping method using natural geodesic variations. Multibody System
     Dynamics 36, 195–219.
 
@@ -434,7 +434,7 @@ For each CableSpan's computed path it is checked that:
 The geodesics and jacobians are internal to the CableSpan's implementation, we
 refer to the following publication to understand their role:
 
-    Scholz, A., Sherman, M., Stavness, I. et al (2016). A fast multi-obstacle
+    Scholz, A., Sherman, M., Stavness, I. et al (2015). A fast multi-obstacle
     muscle wrapping method using natural geodesic variations. Multibody System
     Dynamics 36, 195–219.
 
