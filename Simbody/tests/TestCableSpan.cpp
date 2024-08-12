@@ -208,8 +208,10 @@ void testSimpleCable()
         "Invalid number of obstacles");
 
     SimTK_ASSERT2_ALWAYS(
-            cable.getSmoothness(s) <= cable.getSmoothnessTolerance(),
-            "Test failed: Cable smoothness (=%e) must be smaller than set tolerance (=%e)", cable.getSmoothness(s), cable.getSmoothnessTolerance());
+        cable.getSmoothness(s) <= cable.getSmoothnessTolerance(),
+        "Test failed: Cable smoothness (=%e) must be smaller than set tolerance (=%e)",
+        cable.getSmoothness(s),
+        cable.getSmoothnessTolerance());
 
     std::array<std::string, 4> obsNames{
         "torus",
@@ -234,9 +236,7 @@ void testSimpleCable()
 
         SimTK_ASSERT4_ALWAYS(
             std::abs(gotLength - expectedLength) < lengthTolerance,
-            "%s curve segment length (=%f) does not match expected length "
-            "(=%f), "
-            "with error %e",
+            "%s curve segment length (=%f) does not match expected length (=%f), with error %e",
             obsNames.at(obsIx).c_str(),
             gotLength,
             expectedLength,
@@ -257,8 +257,7 @@ void testSimpleCable()
     SimTK_ASSERT3_ALWAYS(
         std::abs(expectedTotalCableLength - gotTotalCableLength) <
             lengthTolerance,
-        "Expected cable length (=%f) does not match computed cable length "
-        "(=%f), error = %e",
+        "Expected cable length (=%f) does not match computed cable length (=%f), error = %e",
         expectedTotalCableLength,
         gotTotalCableLength,
         expectedTotalCableLength - gotTotalCableLength);
@@ -283,8 +282,7 @@ void testSimpleCable()
         SimTK_ASSERT1_ALWAYS(
             (expected_X_GP.R().asMat33() - got_X_GP.R().asMat33()).norm() <
                 frenetFrameTolerance,
-            "%s curve segment frame orientation at initial contact point "
-            "incorrect",
+            "%s curve segment frame orientation at initial contact point incorrect",
             obsNames.at(obsIx).c_str());
 
         SimTK_ASSERT1_ALWAYS(
@@ -294,8 +292,7 @@ void testSimpleCable()
         SimTK_ASSERT1_ALWAYS(
             (expected_X_GQ.R().asMat33() - got_X_GQ.R().asMat33()).norm() <
                 frenetFrameTolerance,
-            "%s curve segment frame orientation at final contact point "
-            "incorrect",
+            "%s curve segment frame orientation at final contact point incorrect",
             obsNames.at(obsIx).c_str());
     };
 
@@ -390,7 +387,8 @@ void testSimpleCable()
     }
 }
 
-/** Test computed cable path over all supported surfaces, testing geodesics, jacobians, and kinematics.
+/** Test computed cable path over all supported surfaces, testing geodesics,
+jacobians, and kinematics.
 
 The cable wraps over (in order):
 1. Torus,
@@ -529,8 +527,10 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
     Real prevCableLength = NaN;
 
     // Let the cable end points be parameterized by an angle, and draw the path
-    // for different angles. If we want to check the CableSpan::lengthDot we will use a smaller stepsize, and smaller final angle, and not run CableSubsystemTestHelper on each computed path.
-    const Real dAngle = assertCableLengthDerivative ? 1e-4 : 0.05;
+    // for different angles. If we want to check the CableSpan::lengthDot we
+    // will use a smaller stepsize, and smaller final angle, and not run
+    // CableSubsystemTestHelper on each computed path.
+    const Real dAngle     = assertCableLengthDerivative ? 1e-4 : 0.05;
     const Real finalAngle = assertCableLengthDerivative ? 0.5 * Pi : 2. * Pi;
     for (Real angle = 0.; angle < finalAngle; angle += dAngle) {
 
@@ -576,12 +576,17 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
         // Assert length derivative using the change in length.
         if (assertCableLengthDerivative && !isNaN(prevCableLength)) {
             const Real tolerance = 5e-3;
-            const Real expectedCableLengthDot = (cableLength - prevCableLength) / dAngle;
+            const Real expectedCableLengthDot =
+                (cableLength - prevCableLength) / dAngle;
             const Real gotCableLengthDot = cable.calcLengthDot(s);
             SimTK_ASSERT4_ALWAYS(
-                std::abs(gotCableLengthDot - expectedCableLengthDot) < tolerance,
+                std::abs(gotCableLengthDot - expectedCableLengthDot) <
+                    tolerance,
                 "Test failed: Cable length dot (=%f) does not match expected cable length dot (=%f), with error %f, at angle %f",
-                gotCableLengthDot, expectedCableLengthDot, gotCableLengthDot - expectedCableLengthDot, angle);
+                gotCableLengthDot,
+                expectedCableLengthDot,
+                gotCableLengthDot - expectedCableLengthDot,
+                angle);
         }
 
         // Total cable length should be longer than direct distance between the
@@ -592,16 +597,22 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
                 .norm();
         SimTK_ASSERT2_ALWAYS(
             cableLength > distanceBetweenEndPoints,
-            "Test failed: Cable length (=%f) smaller than distance between end points (=%f)", cableLength, distanceBetweenEndPoints);
+            "Test failed: Cable length (=%f) smaller than distance between end points (=%f)",
+            cableLength,
+            distanceBetweenEndPoints);
 
         // Make sure that we acutally solved the path up to tolerance.
         SimTK_ASSERT2_ALWAYS(
             cable.getSmoothness(s) <= cable.getSmoothnessTolerance(),
-            "Test failed: Cable smoothness (=%e) must be smaller than set tolerance (=%e)", cable.getSmoothness(s), cable.getSmoothnessTolerance());
+            "Test failed: Cable smoothness (=%e) must be smaller than set tolerance (=%e)",
+            cable.getSmoothness(s),
+            cable.getSmoothnessTolerance());
 
         prevCableLength = cableLength;
     }
-    std::cout << "PASSED TEST: testAllSurfaceKinds (assertCableLengthDerivative = " << assertCableLengthDerivative << std::endl;
+    std::cout
+        << "PASSED TEST: testAllSurfaceKinds (assertCableLengthDerivative = "
+        << assertCableLengthDerivative << std::endl;
 }
 
 /** CableSpan touchdown and liftoff test.
@@ -723,7 +734,8 @@ void testTouchdownAndLiftoff()
 
         system.realize(s, Stage::Report);
 
-        // All obstacles are positioned such that for negative yCoord of the endpoints, the cable touches down on the obstacle.
+        // All obstacles are positioned such that for negative yCoord of the
+        // endpoints, the cable touches down on the obstacle.
         for (CableSpanIndex cableIx(0); cableIx < cables.getNumCables();
              ++cableIx) {
             cables.getCable(cableIx).calcLength(s);
@@ -734,8 +746,7 @@ void testTouchdownAndLiftoff()
             const bool expectedContactStatus = yCoord < 0.;
             SimTK_ASSERT4_ALWAYS(
                 gotContactStatus == expectedContactStatus,
-                "Cable %i expected contact status (=%i) does not match "
-                "computed contact status (=%i) at yCoord = %f",
+                "Cable %i expected contact status (=%i) does not match computed contact status (=%i) at yCoord = %f",
                 cableIx,
                 expectedContactStatus,
                 gotContactStatus,
@@ -753,5 +764,5 @@ int main()
     testSimpleCable();
     testTouchdownAndLiftoff();
     testAllSurfaceKinds(false); // Test all geodesics and jacobians.
-    testAllSurfaceKinds(true); // Test length derivative.
+    testAllSurfaceKinds(true);  // Test length derivative.
 }
