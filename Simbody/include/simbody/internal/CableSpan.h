@@ -96,7 +96,7 @@ public:
     /** Copy assignment is shallow and reference counted. **/
     CableSpan& operator=(const CableSpan& source) = default;
     CableSpan(CableSpan&&) noexcept               = default;
-    CableSpan& operator=(CableSpan&&) noexcept = default;
+    CableSpan& operator=(CableSpan&&) noexcept    = default;
 
     /** @name Cable construction */
     ///@{
@@ -442,11 +442,12 @@ Consider a bug in the code, then this test is designed to have
 high sensitivity (and lower specificity). That is, if you pass, you can rest
 assured that all curve segments are indeed geodesics, and that the jacobian
 correctly predicts the local effect of the NaturalGeodesicCorrection on the
-path error vector. It is possible to fail this test in the absence of any bugs;
-e.g. by setting a very poor solver accuracy for the CableSpan, and using a very
-small perturbation value in the jacobian perturbation test. For use in a unit
-test a high sensitivity works just fine: If you pass it normally, you should
-pass it after a code refactor as well.
+path error vector. It is possible to fail this test in the absence of any bugs
+by using incompatible configuration parameters; e.g. by setting a very poor
+integrator accuracy for the CableSpan, and using a very small perturbation value
+in the jacobian perturbation test. For use in a unit test a high sensitivity
+works just fine: If you pass it normally, you should pass it after a code
+refactor as well.
 
 Testing each computed path in your simulation is possible, but will criple your
 simulation speed.
