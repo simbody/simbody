@@ -345,11 +345,11 @@ struct CurveSegmentData {
     };
     struct Pos final {
         // Position and orientation of contact geometry w.r.t. ground.
-        Transform X_GS{};
+        Transform X_GS;
         // Frenet frame at the initial contact point w.r.t. ground.
-        FrenetFrame X_GP{};
+        FrenetFrame X_GP;
         // Frenet frame at the final contact point w.r.t. ground.
-        FrenetFrame X_GQ{};
+        FrenetFrame X_GQ;
     };
 };
 
