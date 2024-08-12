@@ -472,8 +472,7 @@ void runCurveSegmentGeodesicTest(
     SimTK_ASSERT_ALWAYS(
         trackMaxErr((calcSurfaceUnitNormal(y0) - y0.R.col(1)).norm()) <
             parameters.constraintTolerance,
-        "Initial normal of UnconstrainedGeodesic does not match surface "
-        "normal");
+        "Initial normal of UnconstrainedGeodesic does not match surface normal");
     SimTK_ASSERT_ALWAYS(
         trackMaxErr((y0.R * (~y0.R) - Mat33(1)).norm()) <
             parameters.constraintTolerance,
@@ -516,13 +515,11 @@ void runCurveSegmentGeodesicTest(
         cable.calcCurveSegmentInitialFrenetFrame(state, obsIx);
     SimTK_ASSERT_ALWAYS(
         trackMaxErr((X_GP.p() - y0.x).norm()) < parameters.assertionTolerance,
-        "Curve segment frenet frame at initial contact point does not match "
-        "UnconstrainedGeodesic");
+        "Curve segment frenet frame at initial contact point does not match UnconstrainedGeodesic");
     SimTK_ASSERT_ALWAYS(
         trackMaxErr((X_GP.R().asMat33() * (~y0.R) - Mat33(1)).norm()) <
             parameters.assertionTolerance,
-        "Curve segment frenet frame at initial contact point does not match "
-        "UnconstrainedGeodesic");
+        "Curve segment frenet frame at initial contact point does not match UnconstrainedGeodesic");
     os << "PASSED TEST: Initial curve segment frame on surface";
     os << " (err = " << maxErr << " < " << parameters.assertionTolerance
        << " = eps)" << std::endl;
@@ -533,13 +530,11 @@ void runCurveSegmentGeodesicTest(
     const Transform X_GQ = cable.calcCurveSegmentFinalFrenetFrame(state, obsIx);
     SimTK_ASSERT_ALWAYS(
         trackMaxErr((X_GQ.p() - y1.x).norm()) < parameters.assertionTolerance,
-        "Curve segment frenet frame at final contact point does not match "
-        "UnconstrainedGeodesic");
+        "Curve segment frenet frame at final contact point does not match UnconstrainedGeodesic");
     SimTK_ASSERT_ALWAYS(
         trackMaxErr((X_GQ.R().asMat33() * (~y1.R) - Mat33(1)).norm()) <
             parameters.assertionTolerance,
-        "Curve segment frenet frame at final contact point does not match "
-        "UnconstrainedGeodesic");
+        "Curve segment frenet frame at final contact point does not match UnconstrainedGeodesic");
     os << "PASSED TEST: Final curve segment frame matches "
           "UnconstrainedGeodesic";
     os << " (err = " << maxErr << " < " << parameters.assertionTolerance
