@@ -282,8 +282,8 @@ This function exits early if the point lies below the surface.
 
 <h3>Theory</h3>
 Computing the point is done by searching for a maximum of the surface
-constraint value c=f(p), along the line. The point on the line pL can be expressed
-with one unknown scalar alpha as:
+constraint value `c=f(p)`, along the line. The point on the line `pL` can be
+expressed with one unknown scalar alpha as:
 <pre>
 pL = pA + alpha * (pB-pA)  with 0 <= alpha <= 1.
 </pre>
@@ -291,7 +291,7 @@ This gives the optimization problem as:
 <pre>
 max f(alpha), s.t. 0 <= alpha <= 1
 </pre>
-The constraint f(alpha) can be approximated using the gradient g, and hessian H:
+The constraint `f(alpha)` can be approximated using the gradient `g`, and hessian `H`:
 <pre>
 f(alpha) = c + g * (pB - pA) * alpha + 1/2 * ~(pB - pA) * H * (pB - pA) * alpha^2 + ...
 </pre>
