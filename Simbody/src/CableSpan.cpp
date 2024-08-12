@@ -367,9 +367,7 @@ namespace
 //  Integrator Tolerances
 //------------------------------------------------------------------------------
 /* These are all the parameters needed to configure the GeodesicIntegrator
-when computing a new geodesic over the obstacle's surface.
-
-TODO These need reasonable default values. */
+when computing a new geodesic over the obstacle's surface. */
 struct IntegratorTolerances {
     // The accuracy used to control the stepsize of the variable step geodesic
     // integrator.
@@ -377,8 +375,9 @@ struct IntegratorTolerances {
     // TODO the surface projection tolerance should be linked to the geodesic
     // integrator accuracy.
     Real constraintProjectionTolerance = 1e-9;
-    // TODO should be used during numerical integration as well, but not
-    // connected yet.
+    // The tolerance used when projecting the geodesic's state to the surface
+    // during integration.
+    // TODO this is not connected to anything yet.
     int constraintProjectionMaxIterations = 50;
 };
 
@@ -2270,8 +2269,6 @@ Vec4 calcJacobianOfPathErrorAtP(
     const Real kt  = dataInst.curvatures_P[0];
     const Real kb  = dataInst.curvatures_P[1];
 
-    // Compute partial derivative of path error to the natural geodesic
-    // corrections. For derivation see TODO.
     const Vec3 y = X_GP.RInv() * cross(axis, line.direction);
 
     const Real v0 = dot(y, Vec3{tau, 0., kt});
@@ -2307,8 +2304,6 @@ Vec4 calcJacobianOfPathErrorAtQ(
     const Real aDot = dataInst.jacobiDot_Q[0];
     const Real rDot = dataInst.jacobiDot_Q[1];
 
-    // Partial derivative of path error to the given axis, represented in the
-    // frenet frame.
     const Vec3 y = X_GQ.RInv() * cross(axis, line.direction);
 
     const Real v0 = dot(y, Vec3{tau, 0., kt});
