@@ -366,15 +366,15 @@ public:
 private:
     const Impl& getImpl() const
     {
-        return *m_Impl;
+        return *m_impl;
     }
 
     Impl& updImpl()
     {
-        return *m_Impl;
+        return *m_impl;
     }
 
-    std::shared_ptr<Impl> m_Impl;
+    std::shared_ptr<Impl> m_impl;
 
     friend CableSubsystem;
 

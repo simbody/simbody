@@ -2981,7 +2981,7 @@ CableSubsystem::Impl& CableSubsystem::updImpl()
 //                                CableSpan
 //==============================================================================
 
-CableSpan::CableSpan() : m_Impl(new Impl())
+CableSpan::CableSpan() : m_impl(new Impl())
 {}
 
 CableSpan::CableSpan(
@@ -2990,7 +2990,7 @@ CableSpan::CableSpan(
     const Vec3& originPoint_B,
     MobilizedBodyIndex terminationBody,
     const Vec3& terminationPoint_B) :
-    m_Impl(new Impl(
+    m_impl(new Impl(
         originBody,
         originPoint_B,
         terminationBody,
