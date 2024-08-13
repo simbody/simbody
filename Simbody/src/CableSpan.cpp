@@ -1889,7 +1889,7 @@ private:
     Vec3 m_terminationPoint_B{NaN};
 
     // Path CurveSegments over the obstacles.
-    Array_<CurveSegment, ObstacleIndex> m_curveSegments{};
+    Array_<CurveSegment, ObstacleIndex> m_curveSegments;
 
     // All configuration parameters.
     CableSpanParameters m_parameters{};
