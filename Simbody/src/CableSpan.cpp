@@ -16,12 +16,13 @@
  limitations under the License.
  ----------------------------------------------------------------------------*/
 
-#include "simbody/internal/CableSpan.h"
+#include "CableSpan_SubsystemTestHelper_Impl.h"
 
-#include "CableSpan_SubsystemTestHelper.h"
-#include "SimTKcommon/internal/State.h"
+#include "simbody/internal/CableSpan.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+
+#include "SimTKcommon/internal/State.h"
 
 using namespace SimTK;
 

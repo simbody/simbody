@@ -33,7 +33,7 @@ We will use the following notation:
 - n: Normal at point on geodesic.
 - b: Binormal at point on geodesic. */
 
-#include "CableSpan_SubsystemTestHelper.h"
+#include "CableSpan_SubsystemTestHelper_Impl.h"
 
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
