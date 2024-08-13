@@ -17,7 +17,6 @@
  ----------------------------------------------------------------------------*/
 
 #include "Simbody.h"
-#include "simbody/internal/CableSpan.h"
 #include <iostream>
 
 using namespace SimTK;
