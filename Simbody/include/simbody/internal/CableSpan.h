@@ -488,7 +488,7 @@ Testing each computed path in your simulation is possible, but will criple your
 simulation speed.
 
 State must be realized to Stage::Position before testing. **/
-class CableSubsystemTestHelper {
+class SimTK_SIMBODY_EXPORT CableSubsystemTestHelper {
 public:
     /** Construct a CableSubsystemTestHelper that can be used to test a
     CableSubsystem. **/
