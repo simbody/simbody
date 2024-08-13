@@ -2646,7 +2646,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                       const std::vector<ObstacleWrappingStatus>& b) -> bool
     {
         bool out = a.size() == b.size();
-        for (int i = 0; i < a.size(); ++i) {
+        for (size_t i = 0; i < a.size(); ++i) {
             out = out && a.at(i) == b.at(i);
         }
         return out;
