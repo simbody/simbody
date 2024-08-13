@@ -636,22 +636,25 @@ void testTouchdownAndLiftoff()
     // A dummy body.
     Body::Rigid aBody(MassProperties(1., Vec3(0), Inertia(1)));
 
-    // Mobilizer for path origin.
-    MobilizedBody::Translation cableOriginBody(
-        matter.Ground(),
-        Vec3(-2., 0., 0.),
-        aBody,
-        Transform());
-
-    // Mobilizer for path termination.
-    MobilizedBody::Translation cableTerminationBody(
-        matter.Ground(),
-        Transform(Vec3(2., 0., 0.)),
-        aBody,
-        Transform());
-
-    auto createCable = [&]()
+    // Helper for creating a cable with a single obstacle at a certain offset location.
+    auto createCable =
+        [&](const std::function<ContactGeometry*()>& createSurface,
+            const Transform& X_BS, const Transform& sceneOffset)
     {
+        // Mobilizer for path origin.
+        MobilizedBody::Translation cableOriginBody(
+            matter.Ground(),
+            sceneOffset.shiftFrameStationToBase(Vec3(-2., 0., 0.)),
+            aBody,
+            Transform());
+
+        // Mobilizer for path termination.
+        MobilizedBody::Translation cableTerminationBody(
+            matter.Ground(),
+            sceneOffset.shiftFrameStationToBase(Vec3(2., 0., 0.)),
+            aBody,
+            Transform());
+
         CableSpan cable(
             cables,
             cableOriginBody,
@@ -660,48 +663,37 @@ void testTouchdownAndLiftoff()
             Vec3{0.});
         cable.setCurveSegmentAccuracy(1e-12);
         cable.setSmoothnessTolerance(1e-6);
-        return cable;
+
+        cable.addObstacle(
+            matter.Ground(),
+            sceneOffset.compose(
+            X_BS),
+            std::shared_ptr<ContactGeometry>(createSurface()));
     };
 
     // Create a cable with a torus obstacle.
-    {
-        CableSpan cable = createCable();
-        cable.addObstacle(
-            matter.Ground(),
-            Transform(Rotation(0.5 * Pi, YAxis), Vec3{0., 1.75, 0.}),
-            std::shared_ptr<ContactGeometry>(
-                new ContactGeometry::Torus(2., 0.25)));
-    }
+    createCable(
+        [&]() { return new ContactGeometry::Torus(2., 0.25); },
+        Transform(Rotation(0.5 * Pi, YAxis), Vec3{0., 1.75, 0.}),
+        Transform(Vec3(0., 2., 0.)));
 
     // Create a cable with an ellipsoid obstacle.
-    {
-        CableSpan cable = createCable();
-        cable.addObstacle(
-            matter.Ground(),
-            Transform(Vec3{0., -0.5, 0.}),
-            std::shared_ptr<ContactGeometry>(
-                new ContactGeometry::Ellipsoid({1., 0.5, 0.75})));
-    }
+    createCable(
+        [&]() { return new ContactGeometry::Ellipsoid({1., 0.5, 0.75}); },
+        Transform(Vec3{0., -0.5, 0.}),
+        Transform(Vec3(0., 0., 0.)));
 
     // Create a cable with a sphere obstacle.
-    {
-        CableSpan cable = createCable();
-        cable.addObstacle(
-            matter.Ground(),
-            Transform(Vec3{0., -1.5, 0.}),
-            std::shared_ptr<ContactGeometry>(new ContactGeometry::Sphere(1.5)));
-    }
+    createCable(
+        [&]() { return new ContactGeometry::Sphere(1.5); },
+        Transform(Vec3{0., -1.5, 0.}),
+        Transform(Vec3(0., -2., 0.)));
 
     // Create a cable with a cylinder obstacle.
-    {
-        CableSpan cable = createCable();
-        // Add cylinder obstacle.
-        cable.addObstacle(
-            matter.Ground(),
-            Transform(Rotation(0. * Pi, XAxis), Vec3{0., -2., 0.}),
-            std::shared_ptr<ContactGeometry>(
-                new ContactGeometry::Cylinder(2.)));
-    }
+    createCable(
+        [&]() { return new ContactGeometry::Cylinder(2.); },
+        Transform(Vec3{0., -2., 0.}),
+        Transform(Vec3(0., -6., 0.)));
 
     // Optionally visualize the system.
     system.setUseUniformBackground(true); // no ground plane in display
@@ -725,11 +717,17 @@ void testTouchdownAndLiftoff()
         cables.getNumCables());
 
     for (Real angle = 1e-2; angle < 4. * Pi; angle += 0.02) {
-        const Real yCoord = 0.1 * sin(angle);
-
         // Move the cable end points.
-        cableOriginBody.setQ(s, Vec3(0., yCoord, 0.));
-        cableTerminationBody.setQ(s, Vec3(0., yCoord, 0.));
+        const Real yCoord = 0.1 * sin(angle);
+        for (CableSpanIndex cableIx(0); cableIx < cables.getNumCables();
+             ++cableIx) {
+            matter
+                .getMobilizedBody(cables.getCable(cableIx).getOriginBodyIndex())
+                .setQToFitTranslation(s, Vec3(0., yCoord, 0.));
+            matter
+                .getMobilizedBody(cables.getCable(cableIx).getTerminationBodyIndex())
+                .setQToFitTranslation(s, Vec3(0., yCoord, 0.));
+        }
 
         system.realize(s, Stage::Report);
 
