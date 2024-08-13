@@ -155,6 +155,41 @@ public:
 
     ///@}
 
+    /** @name End points configuration */
+    ///@{
+
+    /** Get the index of the mobilized body that the cable's origin point is
+    attached to. **/
+    MobilizedBodyIndex getOriginBodyIndex() const;
+
+    /** Set the index of the mobilized body that the cable's origin point is
+    attached to. **/
+    void setOriginBodyIndex(MobilizedBodyIndex originBody);
+
+    /** Get the index of the mobilized body that the cable's termination point
+    is attached to. **/
+    MobilizedBodyIndex getTerminationBodyIndex() const;
+
+    /** Set the index of the mobilized body that the cable's termination point
+    is attached to. **/
+    void setTerminationBodyIndex(MobilizedBodyIndex terminationBody);
+
+    /** Get the cable's origin point defined in body fixed coordinates. **/
+    Vec3 getOriginPoint_B() const;
+
+    /** Set the cable's origin point defined in body fixed coordinates. **/
+    void setOriginPoint_B(const Vec3& originPoint_B);
+
+    /** Get the cable's termination point defined in body fixed coordinates.
+    **/
+    Vec3 getTerminationPoint_B() const;
+
+    /** Set the cable's termination point defined in body fixed coordinates.
+    **/
+    void setTerminationPoint_B(const Vec3& terminationPoint_B);
+
+    ///@}
+
     /** @name Obstacle configuration */
     ///@{
 
