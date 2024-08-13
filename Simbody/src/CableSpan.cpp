@@ -2665,7 +2665,7 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 void CableSubsystemTestHelper::Impl::runPerturbationTest(
     const State& state,
     const CableSubsystem& subsystem,
-    std::ostream& os) const
+    std::ostream& testReport) const
 {
     // Result of this perturbation test.
     bool success = true;
@@ -2699,7 +2699,8 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
 
     for (CableSpanIndex cableIx(0); cableIx < subsystem.getNumCables();
          ++cableIx) {
-        os << "START Jacobian Perturbation Test of Cable " << cableIx << "\n";
+        testReport << "START Jacobian Perturbation Test of Cable " << cableIx
+                   << "\n";
         const CableSpan::Impl& cable = subsystem.getCable(cableIx).getImpl();
 
         // Sanity checks on the config parameters:
@@ -2736,14 +2737,14 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
         const int nActive = cable.countActive(state);
 
         if (nActive == 0) {
-            os << "Cable has no active segments:";
-            os << "Skipping perturbation test\n";
+            testReport << "Cable has no active segments:";
+            testReport << "Skipping perturbation test\n";
             continue;
         }
 
         if (anyCurveSegmentHasZeroLength(state, cable)) {
-            os << "Cable has zero-length curve segments:";
-            os << "Skipping perturbation test\n";
+            testReport << "Cable has zero-length curve segments:";
+            testReport << "Skipping perturbation test\n";
             continue;
         }
 
@@ -2767,8 +2768,9 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
             // this realization for example). We can only test the jacobian if
             // the wrapping status of all obstacles remains the same.
             if (cable.countActive(sCopy) != nActive) {
-                os << "Cable wrapping status changed after cloning the state: "
-                      "Skipping perturbation test\n";
+                testReport
+                    << "Cable wrapping status changed after cloning the state: "
+                       "Skipping perturbation test\n";
                 break;
             }
 
@@ -2855,9 +2857,9 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
             // The curve lengths are clipped at zero, which distorts the
             // perturbation test. We simply skip these edge cases.
             if (anyCurveSegmentHasZeroLength(sCopy, cable)) {
-                os << "Cable has zero-length curve segments after "
-                      "perturbation:";
-                os << "Skipping perturbation test\n";
+                testReport << "Cable has zero-length curve segments after "
+                              "perturbation:";
+                testReport << "Skipping perturbation test\n";
                 continue;
             }
 
@@ -2872,7 +2874,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                     curve.getDataInst(sCopy).wrappingStatus);
             }
             if (!isEqual(prevWrappingStatus, nextWrappingStatus)) {
-                os << "Wrapping status changed: Stopping test\n";
+                testReport << "Wrapping status changed: Stopping test\n";
                 break;
             }
 
@@ -2886,34 +2888,35 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
             bool passedTest =
                 std::abs(predictionError / perturbation) <= tolerance;
             if (!passedTest) {
-                os << "FAILED perturbation test for correction = "
-                   << data.pathCorrection << "\n";
-                os << "path error after perturbation:\n";
-                os << "    Got        : " << data.pathError << "\n";
-                os << "    Predicted  : " << predictedPathError << "\n";
-                os << "    Difference : "
-                   << (predictedPathError - data.pathError) / perturbation
-                   << "\n";
-                os << "    Max diff   : "
-                   << (predictedPathError - data.pathError).normInf() /
-                          perturbation
-                   << " <= " << tolerance << " = eps\n";
+                testReport << "FAILED perturbation test for correction = "
+                           << data.pathCorrection << "\n";
+                testReport << "path error after perturbation:\n";
+                testReport << "    Got        : " << data.pathError << "\n";
+                testReport << "    Predicted  : " << predictedPathError << "\n";
+                testReport << "    Difference : "
+                           << (predictedPathError - data.pathError) /
+                                  perturbation
+                           << "\n";
+                testReport << "    Max diff   : "
+                           << (predictedPathError - data.pathError).normInf() /
+                                  perturbation
+                           << " <= " << tolerance << " = eps\n";
             } else {
-                os << "PASSED perturbation test for correction = "
-                   << data.pathCorrection << "\n";
-                os << " ( max diff = "
-                   << (predictedPathError - data.pathError).normInf() /
-                          perturbation
-                   << " <= " << tolerance << " = eps )\n";
+                testReport << "PASSED perturbation test for correction = "
+                           << data.pathCorrection << "\n";
+                testReport << " ( max diff = "
+                           << (predictedPathError - data.pathError).normInf() /
+                                  perturbation
+                           << " <= " << tolerance << " = eps )\n";
             }
             success = success && passedTest;
         }
     }
     // Flush all info to the report, in case we throw an exception.
     if (success) {
-        os << "PASSED TEST: jacobian perturbation test" << std::endl;
+        testReport << "PASSED TEST: jacobian perturbation test" << std::endl;
     } else {
-        os << "FAILED TEST: jacobian perturbation test" << std::endl;
+        testReport << "FAILED TEST: jacobian perturbation test" << std::endl;
     }
     SimTK_ASSERT_ALWAYS(success, "Perturbation test failed");
 }
