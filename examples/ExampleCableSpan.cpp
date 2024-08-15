@@ -98,7 +98,7 @@ public:
                     .getMobilizedBody(m_cable.getObstacleMobilizedBodyIndex(ix))
                     .getBodyTransform(state);
             const Transform X_GS =
-                X_GB.compose(m_cable.getObstacleXformSurfaceToBody(ix));
+                X_GB.compose(m_cable.getObstacleTransformSurfaceToBody(ix));
 
             const Transform X_SD = m_obstacleDecorationsOffsets.at(ix);
             const Transform X_GD = X_GS.compose(X_SD);

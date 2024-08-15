@@ -63,7 +63,7 @@ public:
                     .getBodyTransform(state);
             // Transform from Ground to obstacle contact surface offset frame.
             const Transform X_GS =
-                X_GB.compose(m_cable.getObstacleXformSurfaceToBody(ix));
+                X_GB.compose(m_cable.getObstacleTransformSurfaceToBody(ix));
             // Transform from ground to decoration surface.
             const Transform X_GD =
                 X_GS.compose(m_obstacleDecorationsOffsets.at(ix));

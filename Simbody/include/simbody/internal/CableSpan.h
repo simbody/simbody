@@ -213,7 +213,7 @@ public:
     @param ix The index of the obstacle in this CableSpan.
     @return The orientation and position of the obstacle's surface with respect
     to it's mobilized body. **/
-    const Transform& getObstacleXformSurfaceToBody(
+    const Transform& getObstacleTransformSurfaceToBody(
         CableSpanObstacleIndex ix) const;
 
     /** Set the orientation and position of the obstacle's surface with respect
@@ -221,7 +221,7 @@ public:
     @param ix The index of the obstacle in this CableSpan.
     @param X_BS The orientation and position of the obstacle's surface with
     respect to it's mobilized body. **/
-    void setObstacleXformSurfaceToBody(
+    void setObstacleTransformSurfaceToBody(
         CableSpanObstacleIndex ix,
         const Transform& X_BS);
 

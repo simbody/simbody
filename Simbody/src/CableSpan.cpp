@@ -679,12 +679,12 @@ public:
         m_body = body;
     }
 
-    const Transform& getXformSurfaceToBody() const
+    const Transform& getTransformSurfaceToBody() const
     {
         return m_X_BS;
     }
 
-    void setXformSurfaceToBody(const Transform& X_BS)
+    void setTransformSurfaceToBody(const Transform& X_BS)
     {
         m_X_BS = X_BS;
     }
@@ -3159,16 +3159,16 @@ void CableSpan::setObstacleMobilizedBodyIndex(
     updImpl().updObstacleCurveSegment(ix).setMobilizedBodyIndex(body);
 }
 
-const Transform& CableSpan::getObstacleXformSurfaceToBody(
+const Transform& CableSpan::getObstacleTransformSurfaceToBody(
     ObstacleIndex ix) const
 {
-    return getImpl().getObstacleCurveSegment(ix).getXformSurfaceToBody();
+    return getImpl().getObstacleCurveSegment(ix).getTransformSurfaceToBody();
 }
-void CableSpan::setObstacleXformSurfaceToBody(
+void CableSpan::setObstacleTransformSurfaceToBody(
     ObstacleIndex ix,
     const Transform& X_BS)
 {
-    updImpl().updObstacleCurveSegment(ix).setXformSurfaceToBody(X_BS);
+    updImpl().updObstacleCurveSegment(ix).setTransformSurfaceToBody(X_BS);
 }
 
 const ContactGeometry& CableSpan::getObstacleContactGeometry(

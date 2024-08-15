@@ -115,7 +115,7 @@ Transform getXformSurfaceToGround(
         subsystem.getMultibodySystem().getMatterSubsystem().getMobilizedBody(
             cable.getObstacleMobilizedBodyIndex(obsIx));
     return body.getBodyTransform(state).compose(
-        cable.getObstacleXformSurfaceToBody(obsIx));
+        cable.getObstacleTransformSurfaceToBody(obsIx));
 }
 
 /* This is the unconstrained geodesic (system) which has the
