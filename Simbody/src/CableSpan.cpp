@@ -1221,7 +1221,7 @@ public:
             // curvature at the boundary frames to know the curvature along the
             // entire geodesic.
             const Real maxCurvature_P = max(abs(dataInst.curvatures_P));
-            const Real maxCurvature_Q = max(abs(dataInst.curvatures_P));
+            const Real maxCurvature_Q = max(abs(dataInst.curvatures_Q));
             const Real minRadiusOfCurvature =
                 1. / std::max(maxCurvature_P, maxCurvature_Q);
 
