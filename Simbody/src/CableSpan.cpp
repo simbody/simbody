@@ -1159,13 +1159,18 @@ public:
         // Update the Stage::Position level cache.
         CurveSegmentData::Pos& dataPos = updDataPos(state);
 
-        // Check if the obstacle is enabled.
-        if (dataInst.wrappingStatus != ObstacleWrappingStatus::Disabled) {
-            // Store tramsform from local surface frame to ground.
-            dataPos.X_GS = calcSurfaceFrameInGround(state);
+        // Store tramsform from local surface frame to ground.
+        dataPos.X_GS = calcSurfaceFrameInGround(state);
+
+        // Check if the obstacle is in contact with the cable.
+        if (isInContactWithSurface(state)) {
             // Store the geodesic's Frenet frames in ground frame.
             dataPos.X_GP = dataPos.X_GS.compose(dataInst.X_SP);
             dataPos.X_GQ = dataPos.X_GS.compose(dataInst.X_SQ);
+        } else {
+            // No contact = no geodesic.
+            dataPos.X_GP.setToNaN();
+            dataPos.X_GQ.setToNaN();
         }
 
         getSubsystem().markCacheValueRealized(state, m_indexDataPos);

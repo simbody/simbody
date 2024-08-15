@@ -362,9 +362,9 @@ public:
     /** Compute the Frenet frame associated with the obstacle's curve segment at
     the initial contact point on that obstacle.
     If the path is not in contact with the obstacle's surface the frame will
-    contain invalid data. The Frenet frame is measured relative to ground, with
-    the tangent along the X axis, the surface normal along the Y axis and the
-    binormal along the Z axis.
+    contain invalid data (NaNs). The Frenet frame is measured relative to
+    ground, with the tangent along the X axis, the surface normal along the Y
+    axis and the binormal along the Z axis.
     State must be realized to Stage::Position.
     @param state State of the system.
     @param ix The index of the obstacle in this CableSpan.
@@ -376,9 +376,9 @@ public:
     /** Compute the Frenet frame associated with the obstacle's curve segment at
     the final contact point on that obstacle.
     If the path is not in contact with the obstacle's surface the frame will
-    contain invalid data. The Frenet frame is measured relative to ground, with
-    the tangent along the X axis, the surface normal along the Y axis and the
-    binormal along the Z axis.
+    contain invalid data (NaNs). The Frenet frame is measured relative to
+    ground, with the tangent along the X axis, the surface normal along the Y
+    axis and the binormal along the Z axis.
     State must be realized to Stage::Position.
     @param state State of the system.
     @param ix The index of the obstacle in this CableSpan.
