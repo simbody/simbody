@@ -63,14 +63,14 @@ namespace
 struct UnconstrainedGeodesicState {
     // Position of the current point on the geodeisc.
     Vec3 x{NaN};
-    // The (unconstrained) frenet frame orientation at the current point on the
+    // The (unconstrained) Frenet frame orientation at the current point on the
     // geodesic, with the columns containing the tangent, normal and binormal
     // directions (in that order). Note that this orientation should be a
     // Rotation matrix, but since it is unconstrained, it is just a Mat33.
     Mat33 R{NaN}; // = [t_G, n_G, b_G]
 };
 
-/* This helper converts an UnconstrainedGeodesicState to a frenet frame. */
+/* This helper converts an UnconstrainedGeodesicState to a Frenet frame. */
 Transform calcFrenetFrame(const UnconstrainedGeodesicState& q)
 {
     const UnitVec3 n(q.R.col(1));
@@ -78,7 +78,7 @@ Transform calcFrenetFrame(const UnconstrainedGeodesicState& q)
     return {Rotation().setRotationFromTwoAxes(n, YAxis, t, XAxis), q.x};
 }
 
-/* Helper function for projecting the approximate initial frenet frame
+/* Helper function for projecting the approximate initial Frenet frame
 X_GP_approx to the surface. It is important when integrating the
 UnconstrainedGeodesicState that we do start on the surface. */
 Transform projectFirstContactFrameToSurface(
@@ -128,7 +128,7 @@ S = [x_G, t_G, n_G, b_G]
 
 The goal is to verify correctness of the CableSpan's curve segment over an
 obstacle: Therefore the constructor takes the obstacle geometry, the surface
-offset frame, and the curve segment's initial frenet frame. With this
+offset frame, and the curve segment's initial Frenet frame. With this
 information we should be able to compute the geodesic that matches the curve
 segment.
 */
@@ -268,7 +268,7 @@ public:
         ContactGeometry m_geometry;
         // Surface to ground transform.
         Transform m_X_GS;
-        // Initial frenet frame of the geodesic.
+        // Initial Frenet frame of the geodesic.
         Transform m_X_GP;
     };
 };
@@ -515,11 +515,11 @@ void runCurveSegmentGeodesicTest(
         cable.calcCurveSegmentInitialFrenetFrame(state, obsIx);
     SimTK_ASSERT_ALWAYS(
         trackMaxErr((X_GP.p() - y0.x).norm()) < parameters.assertionTolerance,
-        "Curve segment frenet frame at initial contact point does not match UnconstrainedGeodesic");
+        "Curve segment Frenet frame at initial contact point does not match UnconstrainedGeodesic");
     SimTK_ASSERT_ALWAYS(
         trackMaxErr((X_GP.R().asMat33() * (~y0.R) - Mat33(1)).norm()) <
             parameters.assertionTolerance,
-        "Curve segment frenet frame at initial contact point does not match UnconstrainedGeodesic");
+        "Curve segment Frenet frame at initial contact point does not match UnconstrainedGeodesic");
     os << "PASSED TEST: Initial curve segment frame on surface";
     os << " (err = " << maxErr << " < " << parameters.assertionTolerance
        << " = eps)" << std::endl;
@@ -530,11 +530,11 @@ void runCurveSegmentGeodesicTest(
     const Transform X_GQ = cable.calcCurveSegmentFinalFrenetFrame(state, obsIx);
     SimTK_ASSERT_ALWAYS(
         trackMaxErr((X_GQ.p() - y1.x).norm()) < parameters.assertionTolerance,
-        "Curve segment frenet frame at final contact point does not match UnconstrainedGeodesic");
+        "Curve segment Frenet frame at final contact point does not match UnconstrainedGeodesic");
     SimTK_ASSERT_ALWAYS(
         trackMaxErr((X_GQ.R().asMat33() * (~y1.R) - Mat33(1)).norm()) <
             parameters.assertionTolerance,
-        "Curve segment frenet frame at final contact point does not match UnconstrainedGeodesic");
+        "Curve segment Frenet frame at final contact point does not match UnconstrainedGeodesic");
     os << "PASSED TEST: Final curve segment frame matches "
           "UnconstrainedGeodesic";
     os << " (err = " << maxErr << " < " << parameters.assertionTolerance

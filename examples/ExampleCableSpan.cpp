@@ -127,7 +127,7 @@ public:
                 continue;
             }
 
-            // Draw the frenet frames at the geodesic boundary points.
+            // Draw the Frenet frames at the geodesic boundary points.
             decorations.push_back(DecorativeFrame(0.2).setTransform(
                 m_cable.calcCurveSegmentInitialFrenetFrame(state, ix)));
             decorations.push_back(DecorativeFrame(0.2).setTransform(

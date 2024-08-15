@@ -94,10 +94,10 @@ enum class ObstacleWrappingStatus {
 //------------------------------------------------------------------------------
 //  Frenet Frame
 //------------------------------------------------------------------------------
-/* The frenet frame plays an important role in defining the state of a geodesic.
+/* The Frenet frame plays an important role in defining the state of a geodesic.
 In the end it is simply a Transform, which is why we define it as an alias.
 
-The position of the frenet frame is defined to lie on the geodesic, but for
+The position of the Frenet frame is defined to lie on the geodesic, but for
 the orientation of the frame different conventions are used.
 Here we define it as (see Scholz2015):
 - X axis: tangent to geodesic
@@ -430,7 +430,7 @@ const UnitVec3& getBinormal(const FrenetFrame& X)
     return X.R().getAxisUnitVec(BinormalAxis);
 }
 
-// Compute the frenet frame at a knot point of a geodesic.
+// Compute the Frenet frame at a knot point of a geodesic.
 FrenetFrame calcFrenetFrameFromGeodesicState(
     const ContactGeometry& geometry,
     const ContactGeometry::GeodesicKnotPoint& q)
@@ -817,7 +817,7 @@ public:
         const bool useAnalyticGeodesic  = geometry.isAnalyticFormAvailable();
 
         if (useAnalyticGeodesic) {
-            // For analytic surfaces we can compute the inital and final frenet
+            // For analytic surfaces we can compute the inital and final Frenet
             // frames without computing any intermediate knot points.
             int numberOfKnotPoints = 2;
             int knotIx             = 0;
@@ -1163,7 +1163,7 @@ public:
         if (dataInst.wrappingStatus != ObstacleWrappingStatus::Disabled) {
             // Store tramsform from local surface frame to ground.
             dataPos.X_GS = calcSurfaceFrameInGround(state);
-            // Store the geodesic's frenet frames in ground frame.
+            // Store the geodesic's Frenet frames in ground frame.
             dataPos.X_GP = dataPos.X_GS.compose(dataInst.X_SP);
             dataPos.X_GQ = dataPos.X_GS.compose(dataInst.X_SQ);
         }
@@ -2272,7 +2272,7 @@ Vec4 calcJacobianOfNextPathError(
     const Real r                               = dataInst.jacobi_Q[1];
 
     // Partial derivative of path error to contact point position (x_QS),
-    // represented in the frenet frame.
+    // represented in the Frenet frame.
     Vec3 dErrDx = axis - line.direction * dot(line.direction, axis);
     dErrDx      = X_GQ.RInv() * (-dErrDx / line.length);
 
