@@ -107,18 +107,18 @@ public:
     @param subsystem The subsystem that this cable is adopted by.
     @param originBody The mobilized body that the origin point is rigidly
     attached to.
-    @param originPoint_B The origin point of the cable defined in body fixed
+    @param originStation The origin point of the cable defined in body fixed
     coordinates.
     @param terminationBody The mobilized body that the termination point is
     rigidly attached to.
-    @param terminationPoint_B The termination point of the cable defined in
+    @param terminationStation The termination point of the cable defined in
     body fixed coordinates. **/
     CableSpan(
         CableSubsystem& subsystem,
         MobilizedBodyIndex originBody,
-        const Vec3& originPoint_B,
+        const Vec3& originStation,
         MobilizedBodyIndex terminationBody,
-        const Vec3& terminationPoint_B);
+        const Vec3& terminationStation);
 
     /** Add an obstacle to the cable's path that must be wrapped over.
     @param obstacleBody The body that the contact geometry is rigidly attached
@@ -175,18 +175,18 @@ public:
     void setTerminationBodyIndex(MobilizedBodyIndex terminationBody);
 
     /** Get the cable's origin point defined in body fixed coordinates. **/
-    Vec3 getOriginPoint_B() const;
+    Vec3 getOriginStation() const;
 
     /** Set the cable's origin point defined in body fixed coordinates. **/
-    void setOriginPoint_B(const Vec3& originPoint_B);
+    void setOriginStation(const Vec3& originStation);
 
     /** Get the cable's termination point defined in body fixed coordinates.
     **/
-    Vec3 getTerminationPoint_B() const;
+    Vec3 getTerminationStation() const;
 
     /** Set the cable's termination point defined in body fixed coordinates.
     **/
-    void setTerminationPoint_B(const Vec3& terminationPoint_B);
+    void setTerminationStation(const Vec3& terminationStation);
 
     ///@}
 

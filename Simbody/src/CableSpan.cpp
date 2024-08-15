@@ -1331,13 +1331,13 @@ public:
     // registered at any CableSubsystem.
     Impl(
         MobilizedBodyIndex originBody,
-        Vec3 originPoint_B,
+        Vec3 originStation,
         MobilizedBodyIndex terminationBody,
-        Vec3 terminationPoint_B) :
+        Vec3 terminationStation) :
         m_originBody(originBody),
-        m_originPoint_B(originPoint_B),
+        m_originStation(originStation),
         m_terminationBody(terminationBody),
-        m_terminationPoint_B(terminationPoint_B)
+        m_terminationStation(terminationStation)
     {}
 
     //--------------------------------------------------------------------------
@@ -1458,14 +1458,14 @@ public:
     Vec3 calcOriginPointInGround(const State& state) const
     {
         return getOriginBody().getBodyTransform(state).shiftFrameStationToBase(
-            m_originPoint_B);
+            m_originStation);
     }
 
     Vec3 calcTerminationPointInGround(const State& state) const
     {
         return getTerminationBody()
             .getBodyTransform(state)
-            .shiftFrameStationToBase(m_terminationPoint_B);
+            .shiftFrameStationToBase(m_terminationStation);
     }
 
     //--------------------------------------------------------------------------
@@ -1531,24 +1531,24 @@ public:
         m_terminationBody = terminationBody;
     }
 
-    const Vec3& getOriginPoint_B() const
+    const Vec3& getOriginStation() const
     {
-        return m_originPoint_B;
+        return m_originStation;
     }
 
-    void setOriginPoint_B(const Vec3& originPoint_B)
+    void setOriginStation(const Vec3& originStation)
     {
-        m_originPoint_B = originPoint_B;
+        m_originStation = originStation;
     }
 
-    const Vec3& getTerminationPoint_B() const
+    const Vec3& getTerminationStation() const
     {
-        return m_terminationPoint_B;
+        return m_terminationStation;
     }
 
-    void setTerminationPoint_B(const Vec3& terminationPoint_B)
+    void setTerminationStation(const Vec3& terminationStation)
     {
-        m_terminationPoint_B = terminationPoint_B;
+        m_terminationStation = terminationStation;
     }
 
     int getNumObstacles() const
@@ -1838,8 +1838,8 @@ private:
         Real& lengthDot = (dataVel.lengthDot = 0.);
 
         Vec3 v_GQ =
-            getOriginBody().findStationVelocityInGround(s, m_originPoint_B);
-        Vec3 x_GQ = m_originPoint_B;
+            getOriginBody().findStationVelocityInGround(s, m_originStation);
+        Vec3 x_GQ = m_originStation;
 
         for (const CurveSegment& curve : m_curveSegments) {
             if (curve.isInContactWithSurface(s)) {
@@ -1860,7 +1860,7 @@ private:
 
         const Vec3 v_GP = getTerminationBody().findStationVelocityInGround(
             s,
-            m_terminationPoint_B);
+            m_terminationStation);
 
         const UnitVec3 e_G(dataPos.terminationPoint_G - x_GQ);
 
@@ -1880,13 +1880,13 @@ private:
     CacheEntryIndex m_indexDataPos  = CacheEntryIndex::Invalid();
     CacheEntryIndex m_indexDataVel  = CacheEntryIndex::Invalid();
 
-    // Path origin point (body and point in body coordinates).
+    // Path origin attachment point (a body and a station on the body).
     MobilizedBodyIndex m_originBody = MobilizedBodyIndex::Invalid();
-    Vec3 m_originPoint_B{NaN};
+    Vec3 m_originStation{NaN};
 
-    // Path termination point (body and point in body coordinates).
+    // Path termination attachment point (a body and a station on the body).
     MobilizedBodyIndex m_terminationBody = MobilizedBodyIndex::Invalid();
-    Vec3 m_terminationPoint_B{NaN};
+    Vec3 m_terminationStation{NaN};
 
     // Path CurveSegments over the obstacles.
     Array_<CurveSegment, ObstacleIndex> m_curveSegments;
@@ -1958,7 +1958,7 @@ Vec3 CurveSegment::findPrevPathPoint_G(const State& state) const
     return getCable()
         .getOriginBody()
         .getBodyTransform(state)
-        .shiftFrameStationToBase(cable.getOriginPoint_B());
+        .shiftFrameStationToBase(cable.getOriginStation());
 }
 
 Vec3 CurveSegment::findNextPathPoint_G(const State& state) const
@@ -1977,7 +1977,7 @@ Vec3 CurveSegment::findNextPathPoint_G(const State& state) const
     const CableSpan::Impl& cable = getCable();
     return cable.getTerminationBody()
         .getBodyTransform(state)
-        .shiftFrameStationToBase(cable.getTerminationPoint_B());
+        .shiftFrameStationToBase(cable.getTerminationStation());
 }
 
 //==============================================================================
@@ -3062,15 +3062,15 @@ CableSpan::CableSpan() : m_impl(new Impl())
 CableSpan::CableSpan(
     CableSubsystem& subsystem,
     MobilizedBodyIndex originBody,
-    const Vec3& originPoint_B,
+    const Vec3& originStation,
     MobilizedBodyIndex terminationBody,
-    const Vec3& terminationPoint_B) :
+    const Vec3& terminationStation) :
     m_impl(
         new Impl(
             originBody,
-            originPoint_B,
+            originStation,
             terminationBody,
-            terminationPoint_B))
+            terminationStation))
 {
     CableSpanIndex ix = subsystem.updImpl().adoptCable(*this);
     updImpl().setSubsystem(subsystem, ix);
@@ -3096,24 +3096,24 @@ void CableSpan::setTerminationBodyIndex(MobilizedBodyIndex terminationBody)
     m_impl->setTerminationBodyIndex(terminationBody);
 }
 
-Vec3 CableSpan::getOriginPoint_B() const
+Vec3 CableSpan::getOriginStation() const
 {
-    return m_impl->getOriginPoint_B();
+    return m_impl->getOriginStation();
 }
 
-void CableSpan::setOriginPoint_B(const Vec3& originPoint_B)
+void CableSpan::setOriginStation(const Vec3& originStation)
 {
-    m_impl->setOriginPoint_B(originPoint_B);
+    m_impl->setOriginStation(originStation);
 }
 
-Vec3 CableSpan::getTerminationPoint_B() const
+Vec3 CableSpan::getTerminationStation() const
 {
-    return m_impl->getTerminationPoint_B();
+    return m_impl->getTerminationStation();
 }
 
-void CableSpan::setTerminationPoint_B(const Vec3& terminationPoint_B)
+void CableSpan::setTerminationStation(const Vec3& terminationStation)
 {
-    m_impl->setTerminationPoint_B(terminationPoint_B);
+    m_impl->setTerminationStation(terminationStation);
 }
 
 ObstacleIndex CableSpan::addObstacle(
