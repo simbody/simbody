@@ -260,11 +260,15 @@ public:
     ///@{
 
     /** Get the accuracy used by the numerical integrator when computing a
-    geodesic over an obstacle. **/
+    geodesic over an obstacle.
+    Note: This does not affect the integrator that is used to propagate the
+    multibody system over time, that is a different integrator. **/
     Real getCurveSegmentAccuracy() const;
 
     /** Set the accuracy used by the numerical integrator when computing a
-    geodesic over an obstacle. **/
+    geodesic over an obstacle.
+    Note: This does not affect the integrator that is used to propagate the
+    multibody system over time, that is a different integrator. **/
     void setCurveSegmentAccuracy(Real accuracy);
 
     /** Get the maximum number of solver iterations for finding the optimal
