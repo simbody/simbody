@@ -387,7 +387,7 @@ void testSimpleCable()
 }
 
 /** Test computed cable path over all supported surfaces, testing geodesics,
-jacobians, and kinematics.
+Jacobians, and kinematics.
 
 The cable wraps over (in order):
 1. Torus,
@@ -399,7 +399,7 @@ The cable wraps over (in order):
 
 The flag assertCableLengthDerivative is used to switch between verifying that
 the computed cable length derivative matches the change in length during
-simulation, OR verifying that all computed geodesics and jacobians are
+simulation, OR verifying that all computed geodesics and Jacobians are
 correct. Doing both requires too much time. **/
 void testAllSurfaceKinds(bool assertCableLengthDerivative)
 {
@@ -566,7 +566,7 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
             viz->report(s);
         }
 
-        // Check that the geodesics and path error vector & jacobian are
+        // Check that the geodesics and path error vector & Jacobian are
         // correct.
         if (!assertCableLengthDerivative) {
             CableSubsystemTestHelper().testCurrentPath(s, cables, std::cout);
@@ -760,6 +760,6 @@ int main()
 {
     testSimpleCable();
     testTouchdownAndLiftoff();
-    testAllSurfaceKinds(false); // Test all geodesics and jacobians.
+    testAllSurfaceKinds(false); // Test all geodesics and Jacobians.
     testAllSurfaceKinds(true);  // Test length derivative.
 }

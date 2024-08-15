@@ -185,11 +185,11 @@ struct MatrixWorkspace {
 
     Additionally, for each active obstacle, one element is added to the path
     error vector that constrains the length of the geodesic to remain the same.
-    This helps regulate the search for the path in case the jacobian of the path
+    This helps regulate the search for the path in case the Jacobian of the path
     error loses rank. The value of these elements is simply zero. */
     Vector pathError;
-    /* The path error jacobian is the jacobian of the path error vector to the
-    natural geodesic corrections of all active obstacles. */
+    /* The Jacobian of the path error vector to the natural geodesic
+    corrections of all active obstacles. */
     Matrix pathErrorJacobian;
     /* The factorization for solving the pathErrorJacobian in least squares
     sense. */
@@ -2130,7 +2130,7 @@ Real CableSpan::Impl::calcCablePower(const State& state, Real tension) const
 //                             Path Error Vector and Jacobian
 //==============================================================================
 /* This section contains helper functions for computing the path error vector
-and it's jacobian to the natural geodesic corrections.
+and it's Jacobian to the natural geodesic corrections.
 
 For derivations and background we will refer to the relevant parts in the
 original paper: "A fast multi-obstacle muscle wrapping method using natural
@@ -2234,7 +2234,7 @@ namespace
 {
 
 /* Given the path error related to the final contact point of the previous
-CurveSegment, compute the jacobian to the NaturalGeodesicCorrections of the
+CurveSegment, compute the Jacobian to the NaturalGeodesicCorrections of the
 current CurveSegment.
 
 See Scholz2015 equation 56: if axis = NormalAxis this computes the third row,
@@ -2254,7 +2254,7 @@ Vec4 calcJacobianOfPrevPathError(
 }
 
 /* Given the path error related to the initial contact point of the next
-CurveSegment, compute the jacobian to the NaturalGeodesicCorrections of the
+CurveSegment, compute the Jacobian to the NaturalGeodesicCorrections of the
 current CurveSegment.
 
 See Scholz2015 equation 55: if axis = NormalAxis this computes the first row,
@@ -2280,7 +2280,7 @@ Vec4 calcJacobianOfNextPathError(
 }
 
 /* Given the path error related to the initial contact point of a CurveSegment
-compute the jacobian to the NaturalGeodesicCorrections.
+compute the Jacobian to the NaturalGeodesicCorrections.
 
 See Scholz2015 equation 54: if axis = NormalAxis this computes the first row,
 if axis = BinormalAxis this computes the second row. */
@@ -2309,7 +2309,7 @@ Vec4 calcJacobianOfPathErrorAtP(
 }
 
 /* Given the path error related to the final contact point of a CurveSegment
-compute the jacobian to the NaturalGeodesicCorrections.
+compute the Jacobian to the NaturalGeodesicCorrections.
 
 See Scholz2015 equation 54: if axis = NormalAxis this computes the third row,
 if axis = BinormalAxis this computes the fourth row. */
@@ -2344,7 +2344,7 @@ Vec4 calcJacobianOfPathErrorAtQ(
            calcJacobianOfNextPathError(curve, s, line, axis);
 }
 
-/* Computes the jacobian of the path error vector to the
+/* Computes the Jacobian of the path error vector to the
 NaturalGeodesicCorrections of all CurveSegments.
 
 When axes = {Normal, Binormal}, this equals equation 53 in Scholz2015. */
@@ -2359,7 +2359,7 @@ void calcPathErrorJacobian(
     // Number of free coordinates for a generic geodesic.
     constexpr int NQ = c_GeodesicDOF;
 
-    // Reset the values in the jacobian.
+    // Reset the values in the Jacobian.
     J.setToZero();
 
     // Sanity check on the matrix dimensions.
@@ -2373,11 +2373,11 @@ void calcPathErrorJacobian(
         J.ncol(),
         numberOfCurvesInContact);
 
-    // Current indexes to write the elements of the jacobian to,
+    // Current indexes to write the elements of the Jacobian to,
     int row = 0;
     int col = 0;
 
-    // Helper for adding a computed block to the jacobian.
+    // Helper for adding a computed block to the Jacobian.
     auto AddBlock = [&](const Vec4& block, int colOffset = 0)
     {
         for (int ix = 0; ix < 4; ++ix) {
@@ -2394,18 +2394,18 @@ void calcPathErrorJacobian(
         }
         const CurveSegmentData::Pos& dataPos = curve.getDataPos(s);
 
-        // Compute the jacobian elements of the path error related to the
+        // Compute the Jacobian elements of the path error related to the
         // initial contact point.
         for (CoordinateAxis axis : axes) {
-            // The path error of which to take the jacobian is: dot(a_P, l_P)
+            // The path error of which to take the Jacobian is: dot(a_P, l_P)
             const UnitVec3 a_P     = dataPos.X_GP.R().getAxisUnitVec(axis);
             const LineSegment& l_P = lines.at(lineIx);
 
-            // Write to the block diagonal of J the jacobian of the path error
+            // Write to the block diagonal of J the Jacobian of the path error
             // to the CurveSegment's NaturalGeodesicCorrection.
             AddBlock(calcJacobianOfPathErrorAtP(curve, s, l_P, a_P));
 
-            // Write to the off-diagonal of J the jacobian of the path
+            // Write to the off-diagonal of J the Jacobian of the path
             // error to the previous CurveSegment's NaturalGeodesicCorrection.
             const ObstacleIndex prevObsIx =
                 curve.findPrevObstacleInContactWithCable(s);
@@ -2423,19 +2423,19 @@ void calcPathErrorJacobian(
             ++row;
         }
 
-        // Compute the jacobian elements of the path error related to the final
+        // Compute the Jacobian elements of the path error related to the final
         // contact point.
         ++lineIx; // Increment to the next straight line segment.
         for (CoordinateAxis axis : axes) {
-            // The path error of which to take the jacobian is: dot(a_Q, l_Q)
+            // The path error of which to take the Jacobian is: dot(a_Q, l_Q)
             const UnitVec3 a_Q     = dataPos.X_GQ.R().getAxisUnitVec(axis);
             const LineSegment& l_Q = lines.at(lineIx);
 
-            // Write to the block diagonal of J the jacobian of the path error
+            // Write to the block diagonal of J the Jacobian of the path error
             // to the CurveSegment's NaturalGeodesicCorrection.
             AddBlock(calcJacobianOfPathErrorAtQ(curve, s, l_Q, a_Q));
 
-            // Write to the off-diagonal of J the jacobian of the path
+            // Write to the off-diagonal of J the Jacobian of the path
             // error to the next CurveSegment's NaturalGeodesicCorrection.
             const ObstacleIndex nextObsIx =
                 curve.findNextObstacleInContactWithCable(s);
@@ -2468,21 +2468,21 @@ namespace
 
 // Solve for the geodesic corrections by attempting to set the path error to
 // zero. We call this after having filled in the pathError vector and pathError
-// jacobian in the MatrixWorkspace. The result is a vector of Corrections for
+// Jacobian in the MatrixWorkspace. The result is a vector of Corrections for
 // each curve.
 void calcPathCorrections(MatrixWorkspace& data)
 {
     // The last elements of the path error vector contain the change in length
     // of each curve segment, and require it to remain zero. The change in
     // length is the last element of the NaturalGeodesicCorrection vector. The
-    // jacobian is therefore zero everywhere, except for one (=1) at the element
+    // Jacobian is therefore zero everywhere, except for one (=1) at the element
     // of the third NaturalGeodesicCorrection of the corresponding curve
     // segment. Finally we write a weight instead of a one to obtain a weighted
     // least squares. As the weight we take the current maximum path error. This
     // will heavily penalize changing the length when we are far from the
     // optimal solution, and ramp up convergence as we get closer.
     for (int i = 0; i < data.nObstaclesInContact; ++i) {
-        // Determine the row and column of the nonzero element in the jacobian.
+        // Determine the row and column of the nonzero element in the Jacobian.
         int r = data.nObstaclesInContact *
                     MatrixWorkspace::c_NumPathErrorConstraints + i;
         int c = c_GeodesicDOF * (i + 1) - 1;
@@ -2610,14 +2610,14 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
     calcPathErrorVector<2>(*this, s, data.lineSegments, axes, data.pathError);
     data.maxPathError = data.pathError.normInf();
 
-    // Only proceed with computing the jacobian and geodesic corrections if the
+    // Only proceed with computing the Jacobian and geodesic corrections if the
     // path error is large.
     if (data.maxPathError < getParameters().smoothnessTolerance) {
         data.pathCorrection *= 0.;
         return data;
     }
 
-    // Evaluate the path error jacobian to the natural geodesic corrections
+    // Evaluate the path error Jacobian to the natural geodesic corrections
     // of each curve segment.
     calcPathErrorJacobian<2>(
         *this,
@@ -2656,7 +2656,7 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 //==============================================================================
 //                         CableSubsystemTestHelper
 //==============================================================================
-// Test correctness of the path error jacobian by applying a small perturbation
+// Test correctness of the path error Jacobian by applying a small perturbation
 // and comparing the effect on the path error. The perturbation is applied in
 // the form of a small geodesic correction along each degree of freedom
 // subsequently.
@@ -2705,7 +2705,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
 
         // Sanity checks on the config parameters:
 
-        // The jacobian should predict effect on the path error vector up to 1
+        // The Jacobian should predict effect on the path error vector up to 1
         // percent, at least.
         SimTK_ERRCHK1_ALWAYS(
             m_perturbationTestParameters.tolerance <= 1.,
@@ -2765,7 +2765,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
             // The wrapping status of each obstacle is reset after copying the
             // state. The matrix sizes are no longer compatible if this results
             // in a change in wrapping status (if we are touching down during
-            // this realization for example). We can only test the jacobian if
+            // this realization for example). We can only test the Jacobian if
             // the wrapping status of all obstacles remains the same.
             if (cable.countActive(sCopy) != nActive) {
                 testReport
@@ -2774,7 +2774,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 break;
             }
 
-            // Compute the path error vector and jacobian, before the applied
+            // Compute the path error vector and Jacobian, before the applied
             // perturbation.
 
             MatrixWorkspace& data =
@@ -2801,14 +2801,14 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 axes,
                 data.pathErrorJacobian);
 
-            // Define the perturbation we will use for testing the jacobian.
+            // Define the perturbation we will use for testing the Jacobian.
             data.pathCorrection.setTo(0.);
             if (i != 0) {
                 perturbation *= -1.;
                 data.pathCorrection.set((i - 1) / 2, perturbation);
             }
 
-            // Use the jacobian to predict the perturbed path error vector.
+            // Use the Jacobian to predict the perturbed path error vector.
             Vector predictedPathError =
                 data.pathErrorJacobian * data.pathCorrection + data.pathError;
 
@@ -2863,7 +2863,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 continue;
             }
 
-            // We can only use the path error jacobian if the small
+            // We can only use the path error Jacobian if the small
             // perturbation did not trigger any liftoff or touchdown on any
             // obstacles. If any CurveSegment's WrappingStatus has changed, we
             // will not continue with the test. Since the perturbation is
@@ -2914,9 +2914,9 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
     }
     // Flush all info to the report, in case we throw an exception.
     if (success) {
-        testReport << "PASSED TEST: jacobian perturbation test" << std::endl;
+        testReport << "PASSED TEST: Jacobian perturbation test" << std::endl;
     } else {
-        testReport << "FAILED TEST: jacobian perturbation test" << std::endl;
+        testReport << "FAILED TEST: Jacobian perturbation test" << std::endl;
     }
     SimTK_ASSERT_ALWAYS(success, "Perturbation test failed");
 }

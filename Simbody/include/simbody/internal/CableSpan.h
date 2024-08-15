@@ -468,9 +468,9 @@ CableSubsystem.
 
 For each CableSpan's computed path it is checked that:
 1. Any curve segment over an obstacle is a correct geodesic.
-2. The path error jacobian matches a perturbation test.
+2. The path error Jacobian matches a perturbation test.
 
-The geodesics and jacobians are internal to the CableSpan's implementation, we
+The geodesics and Jacobians are internal to the CableSpan's implementation, we
 refer to the following publication to understand their role:
 
     Scholz, A., Sherman, M., Stavness, I. et al (2015). A fast multi-obstacle
@@ -479,12 +479,12 @@ refer to the following publication to understand their role:
 
 Consider a bug in the code, then this test is designed to have
 high sensitivity (and lower specificity). That is, if you pass, you can rest
-assured that all curve segments are indeed geodesics, and that the jacobian
+assured that all curve segments are indeed geodesics, and that the Jacobian
 correctly predicts the local effect of the NaturalGeodesicCorrection on the
 path error vector. It is possible to fail this test in the absence of any bugs
 by using incompatible configuration parameters; e.g. by setting a very poor
 integrator accuracy for the CableSpan, and using a very small perturbation value
-in the jacobian perturbation test. For use in a unit test a high sensitivity
+in the Jacobian perturbation test. For use in a unit test a high sensitivity
 works just fine: If you pass it normally, you should pass it after a code
 refactor as well.
 
