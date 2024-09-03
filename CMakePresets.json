@@ -1,5 +1,5 @@
 {
-    "version": 7,
+    "version": 3,
     "configurePresets": [
         {
             "hidden": true,
@@ -171,10 +171,8 @@
                 "CXXFLAGS": "-Werror"
             },
             "debug": {
-                "tryCompile": true
-            },
-            "trace": {
-                "mode": "expand"
+                "tryCompile": true,
+                "output": true
             }
         },
         {
