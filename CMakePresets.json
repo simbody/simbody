@@ -169,10 +169,6 @@
             ],
             "environment": {
                 "CXXFLAGS": "-Werror"
-            },
-            "debug": {
-                "tryCompile": true,
-                "output": true
             }
         },
         {
