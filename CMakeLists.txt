@@ -535,10 +535,10 @@ else()
     if(WIN32 AND NOT WINDOWS_USE_EXTERNAL_LIBS)
         set(LAPACK_PLATFORM_DEFAULT lapack;blas)
     else()
-        find_package(BLAS)
-        find_package(LAPACK)
+        find_package(BLAS) # defines IMPORTED target BLAS::BLAS
+        find_package(LAPACK) # defines IMPORTED target LAPACK::LAPACK
         if(BLAS_FOUND AND LAPACK_FOUND)
-            set(LAPACK_PLATFORM_DEFAULT ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+            set(LAPACK_PLATFORM_DEFAULT BLAS::BLAS LAPACK::LAPACK)
         else()
             message(WARNING "Could not find blas/lapack")
         endif()
