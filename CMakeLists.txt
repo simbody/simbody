@@ -555,12 +555,12 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lapack_test.c
 "\
 #include \"SimTKlapack.h\"
 int main () {
-int* n = 2;
-int* stride = 1;
+int n = 2;
+int stride = 1;
 float x[] = {1.0, 1.0};
 float y[] = {2.0, 3.0};
 
-float d = sdot_(n, x, stride, y, stride);
+float d = sdot_(&n, x, &stride, y, &stride);
 
 return !(d == 5.0); // return zero if sdot_ worked
 }
