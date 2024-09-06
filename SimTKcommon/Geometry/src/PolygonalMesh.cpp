@@ -65,6 +65,15 @@ const Vec3& PolygonalMesh::getVertexPosition(int vertex) const {
     return getImpl().vertices[vertex];
 }
 
+const UnitVec3& PolygonalMesh::getVertexNormal(int vertex) const {
+    assert(0 <= vertex && vertex < getNumVertices());
+    return getImpl().normals[vertex];
+}
+
+bool PolygonalMesh::hasNormals() const {
+    return getImpl().normals.size() > 0;
+}
+
 int PolygonalMesh::getNumVerticesForFace(int face) const {
     assert(0 <= face && face < getNumFaces());
     const Array_<int>& faceVertexStart = getImpl().faceVertexStart;
@@ -81,6 +90,12 @@ int PolygonalMesh::addVertex(const Vec3& position) {
     initializeHandleIfEmpty();
     updImpl().vertices.push_back(position);
     return getImpl().vertices.size()-1;
+}
+
+int PolygonalMesh::addVertexNormal(const UnitVec3& normal) {
+    initializeHandleIfEmpty();
+    updImpl().normals.push_back(normal);
+    return getImpl().normals.size() - 1;
 }
 
 int PolygonalMesh::addFace(const Array_<int>& vertices) {
@@ -236,7 +251,7 @@ and Polys elements.
 
 PointData and CellData -- Every dataset describes the data associated with 
 its points and cells with PointData and CellData XML elements as follows:
-    <PointData Scalars="Temperature" Vectors="Velocity">
+    <PointData Normals="Normals" Scalars="Temperature" Vectors="Velocity">
         <DataArray Name="Velocity" .../>
         <DataArray Name="Temperature" .../>
         <DataArray Name="Pressure" .../>
@@ -329,6 +344,18 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // the index that our first vertex will be assigned.
     // EDIT: We actually don't use this variable. Leaving for reference.
     // TODO const int firstVertex = getNumVertices();
+
+    // Read the normals
+    Xml::Element piecePointData = piece.getRequiredElement("PointData");
+    const String normalsData = piecePointData.getRequiredAttributeValue("Normals");
+    SimTK_ERRCHK1_ALWAYS(
+        piecePointData.getRequiredAttributeValue("Normals") == "Normals", method,
+        "VTP file missing normals info.",
+        piecePointData.getRequiredAttributeValue("Normals").c_str());
+    Vector_<Vec3> normals =
+        piecePointData.getRequiredElementValueAs<Vector_<Vec3> >("DataArray");
+
+    for (int i = 0; i < numPoints; ++i) addVertexNormal(UnitVec3(normals[i]));
 
     // The lone DataArray element in the Points element contains the points'
     // coordinates. Read it in as a Vector of Vec3s.
