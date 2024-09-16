@@ -629,17 +629,16 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
         if (m_keyword == "facet" || m_keyword == "facetnormal") {
             // Handle the line starting with either "facet" or "facetnormal"
             Vec3 faceNormal;
+            bool normalsSeen = false;
             if (m_keyword == "facetnormal") {
                 m_restOfLine >> faceNormal;
-                face_normals.push_back(faceNormal);
+                normalsSeen = true;
             } else if (m_keyword == "facet") {
                 // Check next word is "normal", if so parse normal
                 String normalString;
                 m_restOfLine >> normalString >> faceNormal;
-                face_normals.push_back(faceNormal);
-            } else {
-            
-            }
+                normalsSeen = true;
+            } 
             
             // Save result in face_normals and set in PolygonalMesh once done parsing/merging vertices
             getSignificantLine(false);
@@ -661,7 +660,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
                     "  badly formed vertex.", m_lineNo, m_pathcstr);
                 int vertIndex = getVertex(vertex, mesh);
                 vertices.push_back(vertIndex);
-                if (vertIndex == mesh.getNumVertices() - 1)
+                if (normalsSeen && vertIndex == mesh.getNumVertices() - 1)
                     mesh.addVertexNormal(UnitVec3(faceNormal));
                 getSignificantLine(false);
             }
