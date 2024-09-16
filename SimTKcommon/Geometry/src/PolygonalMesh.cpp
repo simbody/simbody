@@ -732,14 +732,19 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
     float vbuf[3]; unsigned short sbuf;
     const unsigned vz = 3*sizeof(float);
     for (unsigned fx=0; fx < nFaces; ++fx) {
-        m_ifs.read((char*)vbuf, vz); // normal ignored
+        m_ifs.read((char*)vbuf, vz); 
+        const UnitVec3 faceNormal((Real)vbuf[0], (Real)vbuf[1], (Real)vbuf[2]);
         for (int vx=0; vx < 3; ++vx) {
             m_ifs.read((char*)vbuf, vz);
             SimTK_ERRCHK3_ALWAYS(m_ifs.good() && m_ifs.gcount()==vz, 
                 "PolygonalMesh::loadStlFile()", "Bad binary STL file '%s':\n"
                 "  couldn't read vertex %d for face %d.", m_pathcstr, vx, fx);
             const Vec3 vertex((Real)vbuf[0], (Real)vbuf[1], (Real)vbuf[2]);
-            vertices[vx] = getVertex(vertex, mesh);
+            int vertIndex = getVertex(vertex, mesh);
+            vertices.push_back(vertIndex);
+            if (vertIndex == mesh.getNumVertices() - 1)
+                mesh.addVertexNormal(faceNormal);
+            vertices[vx] = vertIndex;
         }
         mesh.addFace(vertices);
         // Now read and toss the "attribute byte count".
