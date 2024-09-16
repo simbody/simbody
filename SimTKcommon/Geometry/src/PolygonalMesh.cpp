@@ -197,6 +197,18 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
                 "Found invalid vertex description: %s", line.c_str());
             addVertex(Vec3(x, y, z));
         }
+        else if (command == "vn") {
+            // A vertex
+
+            Real x, y, z;
+            s >> x;
+            s >> y;
+            s >> z;
+            SimTK_ERRCHK1_ALWAYS(!s.fail(), methodName,
+                                 "Found invalid vertex normal description: %s",
+                                 line.c_str());
+            addVertexNormal(UnitVec3(x, y, z));
+        }
         else if (command == "f") {
             // A face
             
@@ -615,7 +627,21 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
         if (m_keyword == "color") continue;
 
         if (m_keyword == "facet" || m_keyword == "facetnormal") {
-            // We're ignoring the normal on the facet line.
+            // Handle the line starting with either "facet" or "facetnormal"
+            Vec3 faceNormal;
+            if (m_keyword == "facetnormal") {
+                m_restOfLine >> faceNormal;
+                face_normals.push_back(faceNormal);
+            } else if (m_keyword == "facet") {
+                // Check next word is "normal", if so parse normal
+                String normalString;
+                m_restOfLine >> normalString >> faceNormal;
+                face_normals.push_back(faceNormal);
+            } else {
+            
+            }
+            
+            // Save result in face_normals and set in PolygonalMesh once done parsing/merging vertices
             getSignificantLine(false);
 
             bool outerLoopSeen=false;
@@ -633,7 +659,10 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
                     "PolygonalMesh::loadStlFile()",
                     "Error at line %d in ASCII STL file '%s':\n"
                     "  badly formed vertex.", m_lineNo, m_pathcstr);
-                vertices.push_back(getVertex(vertex, mesh));
+                int vertIndex = getVertex(vertex, mesh);
+                vertices.push_back(vertIndex);
+                if (vertIndex == mesh.getNumVertices() - 1)
+                    mesh.addVertexNormal(UnitVec3(faceNormal));
                 getSignificantLine(false);
             }
 
