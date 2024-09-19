@@ -90,8 +90,10 @@ install(FILES ${CORE_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR})
 install(FILES ${TOP_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/simbody)
 install(FILES ${INTERNAL_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/simbody/internal)
 
-file(GLOB SIMBODY_DOCS doc/*.pdf doc/*.txt doc/*.md)
-install(FILES ${SIMBODY_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
+if( INSTALL_DOCS )
+    file(GLOB SIMBODY_DOCS doc/*.pdf doc/*.txt doc/*.md)
+    install(FILES ${SIMBODY_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
+endif()
 
 # set locally-scoped BUILD_SHARED_LIBS to globally cache'd SIMBODY_BUILD_SHARED_LIBS which defaults to
 # BUILD_SHARED_LIBS if defined, or ON otherwise

@@ -110,8 +110,10 @@ install(FILES ${CORE_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR})
 install(FILES ${TOP_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/simmath)
 install(FILES ${INTERNAL_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/simmath/internal)
 
-file(GLOB SIMMATH_DOCS doc/*.pdf doc/*.txt doc/*.md)
-install(FILES ${SIMMATH_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
+if( INSTALL_DOCS )
+    file(GLOB SIMMATH_DOCS doc/*.pdf doc/*.txt doc/*.md)
+    install(FILES ${SIMMATH_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
+endif()
 
 #
 # Set up file groups for better browsing in Visual Studio.
