@@ -285,6 +285,101 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
     setGeodesicToHelicalArc(radius, phiP, angle, m, c, geod);
 }
 
+void ContactGeometry::Cylinder::Impl::shootGeodesicInDirectionAnalytically(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    int numberOfKnotPoints,
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
+        geodesicKnotPointsSink) const
+{
+    SimTK_ERRCHK1_ALWAYS(
+        numberOfKnotPoints >= 2,
+        "ContactGeometry::Cylinder::Impl::shootGeodesicInDirectionAnalytically",
+        "Argument numberOfKnotPoints must be greater than 2 (got "
+        "numberOfKnotPoints = %d)",
+        numberOfKnotPoints);
+
+    // Define the geodesic state on the sphere as a frenet frame, i.e. a
+    // rotation matrix defined by the tangent, surface-normal and binormal
+    // axes.
+    const CoordinateAxis tangentAxis  = XAxis;
+    const CoordinateAxis normalAxis   = YAxis;
+    const CoordinateAxis binormalAxis = ZAxis;
+
+    // Construct frenet frame at geodesic start.
+    Rotation R;
+    R.setRotationFromTwoAxes(
+        UnitVec3(
+            Vec3{initialPointApprox[XAxis], initialPointApprox[YAxis], 0.}),
+        normalAxis,
+        initialTangentApprox,
+        tangentAxis);
+
+    // Forward integration of the geodesic (a helix) can be done by commputing
+    // a rotation matrix for rotating about the axis, and a height increment
+    // for translating along the axis. This rotation and translation increments
+    // are constant between equidistant knots along the geodesic.
+
+    // Let's define the "height" as the z-coordinate of a point on the geodesic.
+    // The initial height coordinate can be obtained directly:
+    const Real h0 = initialPointApprox[ZAxis];
+    // The height increment is then the translation along the axis per
+    // arclength increment is the projection of the tangent to the cylinder
+    // axis.
+    const Real dh_dl = R.getAxisUnitVec(tangentAxis)[ZAxis];
+
+    // The tangent projected to the cylinder axis gives the height increment
+    // per arclength increment. Therefore, the xy-components of the tangent
+    // will result in an angle increment per arclength increment, divided by
+    // radius ofcourse. The xy-component of the tangent can be found from the
+    // z-component of the binormal (up to sign), since they are orthogonal.
+    // This gives the rotation angle between start and end frame about cylinder
+    // axis as:
+    const UnitVec3& b_P = R.getAxisUnitVec(binormalAxis);
+    const Real angle    = -finalArcLength / radius * b_P[ZAxis];
+
+    // The angle increment per integration step is then:
+    const Real dAngle = angle / static_cast<Real>(numberOfKnotPoints - 1);
+
+    // The rotation matrix that transforms one frenet frame to the frenet frame
+    // at the next integration step is computed from the angle increment and
+    // the cylinder axis:
+    const Rotation dR(dAngle, ZAxis);
+
+    // Compute the frenet frames at the geodesic knot points.
+    for (int knotIx = 0; knotIx < numberOfKnotPoints; ++knotIx) {
+        // Compute the geodeis knot point at the current arclength.
+        ContactGeometry::GeodesicKnotPoint y;
+        y.arcLength =
+            finalArcLength * (static_cast<Real>(knotIx) /
+                              static_cast<Real>(numberOfKnotPoints - 1));
+        y.point = R.getAxisUnitVec(normalAxis) * radius +
+                  Vec3{0., 0., h0 + y.arcLength * dh_dl};
+        y.tangent = R.getAxisUnitVec(tangentAxis);
+        // Evaluating the jacobi scalars for a cylinder is relatively simple.
+        // A cylinder can be seen as a plane wrapped around the ZAxis. The
+        // geodesic on a cylinder is a helix, but becomes a straight line on
+        // that plane. Translating the startpoint of the straight line (on the
+        // plane) translates the end point (a = 1). Rotating the start of a
+        // straight line (on the plane) translates the endpoint by the straight
+        // line length (r = arcLength). So we have:
+        y.jacobiTrans    = 1.;
+        y.jacobiTransDot = 0.;
+        y.jacobiRot      = y.arcLength;
+        y.jacobiRotDot   = 1.;
+        // Write the geodesic knot point to the sink.
+        geodesicKnotPointsSink(y);
+
+        if (knotIx + 1 == numberOfKnotPoints) {
+            return;
+        }
+
+        // Compute the frenet frame at the next knot point.
+        R = dR * R;
+    }
+}
+
 void ContactGeometry::Cylinder::Impl::shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
         const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const {
 
