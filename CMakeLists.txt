@@ -44,7 +44,7 @@ if(DEFINED BUILD_SHARED_LIBS)
     set(shared_lib_default ${BUILD_SHARED_LIBS})
 endif()
 option(SIMBODY_BUILD_SHARED_LIBS
-    "Build dynamic (shared) Simbody libraries Defaults to ON or the value of BUILD_SHARED_LIBS if defined."
+    "Build dynamic (shared) Simbody libraries. Defaults to ON or the value of BUILD_SHARED_LIBS if defined."
     ${shared_lib_default})
 # TODO: Replace above with the following when cmake_minimum_required is bumped above 3.22
 # (use of DEFINED condition in cmake_dependent_option only supported after 3.22):
@@ -59,13 +59,11 @@ option(BUILD_DYNAMIC_LIBRARIES
     OFF)
 mark_as_advanced(BUILD_DYNAMIC_LIBRARIES)
 if(BUILD_DYNAMIC_LIBRARIES)
-    message(DEPRECATION "The BUILD_DYNAMIC_LIBRARIES build option is deprecated and will be
-        ignored in future versions of Simbody. Please set SIMBODY_BUILD_SHARED_LIBS=ON instead.")
-    if(NOT DEFINED BUILD_SHARED_LIBS)
+    message(DEPRECATION "The BUILD_DYNAMIC_LIBRARIES build option is deprecated and will be \
+ignored in future versions of Simbody. Please set SIMBODY_BUILD_SHARED_LIBS=ON instead.")
+    if(NOT SIMBODY_BUILD_SHARED_LIBS)
         set(SIMBODY_BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
-    else()
-        message(FATAL_ERROR "BUILD_DYNAMIC_LIBRARIES and BUILD_SHARED_LIBS have both been set, but can interfere with each other.
-            Please only use BUILD_SHARED_LIBS (or SIMBODY_BUILD_SHARED_LIBS) to control shared/static builds.")
+        unset(BUILD_DYNAMIC_LIBRARIES CACHE)
     endif()
 endif()
 
@@ -75,18 +73,16 @@ option(BUILD_STATIC_LIBRARIES
     OFF)
 mark_as_advanced(BUILD_STATIC_LIBRARIES)
 if(BUILD_STATIC_LIBRARIES)
-    message(DEPRECATION "The BUILD_STATIC_LIBRARIES build option is deprecated and will be
-        ignored in future versions of Simbody. Please set SIMBODY_BUILD_SHARED_LIBS=OFF instead.")
-    if(NOT DEFINED BUILD_SHARED_LIBS)
+    message(DEPRECATION "The BUILD_STATIC_LIBRARIES build option is deprecated and will be \
+ignored in future versions of Simbody. Please set SIMBODY_BUILD_SHARED_LIBS=OFF instead.")
+    if(SIMBODY_BUILD_SHARED_LIBS)
         set(SIMBODY_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-    else()
-        message(FATAL_ERROR "BUILD_DYNAMIC_LIBRARIES and BUILD_SHARED_LIBS have both been set, but can interfere with each other.
-            Please only use BUILD_SHARED_LIBS (or SIMBODY_BUILD_SHARED_LIBS) to control shared/static builds.")
+        unset(BUILD_STATIC_LIBRARIES CACHE)
     endif()
 endif()
 if(BUILD_DYNAMIC_LIBRARIES AND BUILD_STATIC_LIBRARIES)
-    message(FATAL_ERROR "Simultaneous static and shared library builds are no longer supported.
-        Please see the README for instructions to produce similar builds.")
+    message(FATAL_ERROR "Simultaneous static and shared library builds are no longer supported. \
+Please see the README for instructions to produce similar builds.")
 endif()
 
 option(BUILD_VISUALIZER
@@ -114,8 +110,8 @@ option(INSTALL_DOCS
 # SIMBODY_STATIC_LIBRARIES_POSTFIX
 
 set(BUILD_USING_NAMESPACE "" CACHE STRING
-    "Add a prefix to library filenames. (e.g. `BUILD_USING_NAMESPACE=ns_` would produce
-    libraries like 'libns_SimTKmath.so' on Unix).")
+    "Add a prefix to library filenames. (e.g. `BUILD_USING_NAMESPACE=ns_` would produce \
+libraries like 'libns_SimTKmath.so' on Unix).")
 mark_as_advanced(BUILD_USING_NAMESPACE)
 
 option(BUILD_VERSIONED_LIBRARIES
@@ -129,19 +125,20 @@ option(BUILD_UNVERSIONED_LIBRARIES
     OFF)
 mark_as_advanced(BUILD_UNVERSIONED_LIBRARIES)
 if(BUILD_UNVERSIONED_LIBRARIES)
-    message(DEPRECATION "The BUILD_UNVERSIONED_LIBRARIES build option is deprecated and will be
-    ignored in future versions of Simbody. Please set BUILD_VERSIONED_LIBRARIES=OFF instead.")
-    set(BUILD_VERSIONED_LIBRARIES OFF CACHE FORCE)
+    message(DEPRECATION "The BUILD_UNVERSIONED_LIBRARIES build option is deprecated and will be \
+ignored in future versions of Simbody. Please set BUILD_VERSIONED_LIBRARIES=OFF instead.")
+    set(BUILD_VERSIONED_LIBRARIES OFF CACHE BOOL "" FORCE)
+    unset(BUILD_UNVERSIONED_LIBRARIES CACHE)
 endif()
 
 if(BUILD_VERSIONED_LIBRARIES AND BUILD_UNVERSIONED_LIBRARIES)
-    message(FATAL_ERROR "Simultaneous versioned and unversioned library builds are no longer supported.
-        Please see the README for instructions to produce similar builds.")
+    message(FATAL_ERROR "Simultaneous versioned and unversioned library builds are no longer supported. \
+Please see the README for instructions to produce similar builds.")
 endif()
 
 set(SIMBODY_STATIC_LIBRARIES_POSTFIX "" CACHE STRING
-    "Add a postfix to static Simbody libraries (e.g. library names like 'libSimTKMath_static.dll').
-    Typically only useful to distinguish static/dynamic libaries on DLL platforms")
+    "Add a postfix to static Simbody libraries (e.g. library names like 'libSimTKMath_static.dll'). \
+Typically only useful to distinguish static/dynamic libaries on DLL platforms")
 mark_as_advanced(SIMBODY_STATIC_LIBRARIES_POSTFIX)
 
 ### Advanced dev options:
@@ -172,15 +169,17 @@ mark_as_advanced(BUILD_USING_OTHER_LAPACK)
 #----------------------------------------
 
 if(DEFINED BUILD_TESTS_AND_EXAMPLES_STATIC)
-    message(DEPRECATION "The BUILD_TESTS_AND_EXAMPLES_STATIC is deprecated. Only one set
-        of Simbody libraries are built now (shared or static is set by SIMBODY_BUILD_SHARED_LIBS),
-        and examples and tests are linked against these libraries.")
+    message(DEPRECATION "The BUILD_TESTS_AND_EXAMPLES_STATIC is deprecated. Only one set \
+of Simbody libraries are built now (shared or static is set by SIMBODY_BUILD_SHARED_LIBS), \
+and examples and tests are linked against these libraries.")
+    unset(BUILD_TESTS_AND_EXAMPLES_STATIC CACHE)
 endif()
 
 if(DEFINED BUILD_TESTS_AND_EXAMPLES_SHARED)
-    message(DEPRECATION "The BUILD_TESTS_AND_EXAMPLES_SHARED is deprecated. Only one set
-        of Simbody libraries are built now (shared or static is set by SIMBODY_BUILD_SHARED_LIBS),
-        and examples and tests are linked against these libraries.")
+    message(DEPRECATION "The BUILD_TESTS_AND_EXAMPLES_SHARED is deprecated. Only one set \
+of Simbody libraries are built now (shared or static is set by SIMBODY_BUILD_SHARED_LIBS), \
+and examples and tests are linked against these libraries.")
+    unset(BUILD_TESTS_AND_EXAMPLES_SHARED CACHE)
 endif()
 
 #-------------------------------------------------------------------------------
