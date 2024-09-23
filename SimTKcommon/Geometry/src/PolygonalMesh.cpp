@@ -65,6 +65,15 @@ const Vec3& PolygonalMesh::getVertexPosition(int vertex) const {
     return getImpl().vertices[vertex];
 }
 
+const UnitVec3& PolygonalMesh::getVertexNormal(int vertex) const {
+    assert(0 <= vertex && vertex < getNumVertices());
+    return getImpl().normals[vertex];
+}
+
+bool PolygonalMesh::hasNormals() const {
+    return getImpl().normals.size() > 0;
+}
+
 int PolygonalMesh::getNumVerticesForFace(int face) const {
     assert(0 <= face && face < getNumFaces());
     const Array_<int>& faceVertexStart = getImpl().faceVertexStart;
@@ -81,6 +90,12 @@ int PolygonalMesh::addVertex(const Vec3& position) {
     initializeHandleIfEmpty();
     updImpl().vertices.push_back(position);
     return getImpl().vertices.size()-1;
+}
+
+int PolygonalMesh::addVertexNormal(const UnitVec3& normal) {
+    initializeHandleIfEmpty();
+    updImpl().normals.push_back(normal);
+    return getImpl().normals.size() - 1;
 }
 
 int PolygonalMesh::addFace(const Array_<int>& vertices) {
@@ -182,6 +197,18 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
                 "Found invalid vertex description: %s", line.c_str());
             addVertex(Vec3(x, y, z));
         }
+        else if (command == "vn") {
+            // A vertex
+
+            Real x, y, z;
+            s >> x;
+            s >> y;
+            s >> z;
+            SimTK_ERRCHK1_ALWAYS(!s.fail(), methodName,
+                                 "Found invalid vertex normal description: %s",
+                                 line.c_str());
+            addVertexNormal(UnitVec3(x, y, z));
+        }
         else if (command == "f") {
             // A face
             
@@ -236,7 +263,7 @@ and Polys elements.
 
 PointData and CellData -- Every dataset describes the data associated with 
 its points and cells with PointData and CellData XML elements as follows:
-    <PointData Scalars="Temperature" Vectors="Velocity">
+    <PointData Normals="Normals" Scalars="Temperature" Vectors="Velocity">
         <DataArray Name="Velocity" .../>
         <DataArray Name="Temperature" .../>
         <DataArray Name="Pressure" .../>
@@ -329,6 +356,18 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // the index that our first vertex will be assigned.
     // EDIT: We actually don't use this variable. Leaving for reference.
     // TODO const int firstVertex = getNumVertices();
+
+    // Read the normals
+    Xml::Element piecePointData = piece.getRequiredElement("PointData");
+    const String normalsData = piecePointData.getRequiredAttributeValue("Normals");
+    SimTK_ERRCHK1_ALWAYS(
+        piecePointData.getRequiredAttributeValue("Normals") == "Normals", method,
+        "VTP file missing normals info.",
+        piecePointData.getRequiredAttributeValue("Normals").c_str());
+    Vector_<Vec3> normals =
+        piecePointData.getRequiredElementValueAs<Vector_<Vec3> >("DataArray");
+
+    for (int i = 0; i < numPoints; ++i) addVertexNormal(UnitVec3(normals[i]));
 
     // The lone DataArray element in the Points element contains the points'
     // coordinates. Read it in as a Vector of Vec3s.
@@ -588,7 +627,20 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
         if (m_keyword == "color") continue;
 
         if (m_keyword == "facet" || m_keyword == "facetnormal") {
-            // We're ignoring the normal on the facet line.
+            // Handle the line starting with either "facet" or "facetnormal"
+            Vec3 faceNormal;
+            bool normalsSeen = false;
+            if (m_keyword == "facetnormal") {
+                m_restOfLine >> faceNormal;
+                normalsSeen = true;
+            } else if (m_keyword == "facet") {
+                // Check next word is "normal", if so parse normal
+                String normalString;
+                m_restOfLine >> normalString >> faceNormal;
+                normalsSeen = true;
+            } 
+            
+            // Save result in face_normals and set in PolygonalMesh once done parsing/merging vertices
             getSignificantLine(false);
 
             bool outerLoopSeen=false;
@@ -606,7 +658,10 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
                     "PolygonalMesh::loadStlFile()",
                     "Error at line %d in ASCII STL file '%s':\n"
                     "  badly formed vertex.", m_lineNo, m_pathcstr);
-                vertices.push_back(getVertex(vertex, mesh));
+                int vertIndex = getVertex(vertex, mesh);
+                vertices.push_back(vertIndex);
+                if (normalsSeen && vertIndex == mesh.getNumVertices() - 1)
+                    mesh.addVertexNormal(UnitVec3(faceNormal));
                 getSignificantLine(false);
             }
 
@@ -677,14 +732,19 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
     float vbuf[3]; unsigned short sbuf;
     const unsigned vz = 3*sizeof(float);
     for (unsigned fx=0; fx < nFaces; ++fx) {
-        m_ifs.read((char*)vbuf, vz); // normal ignored
+        m_ifs.read((char*)vbuf, vz); 
+        const UnitVec3 faceNormal((Real)vbuf[0], (Real)vbuf[1], (Real)vbuf[2]);
         for (int vx=0; vx < 3; ++vx) {
             m_ifs.read((char*)vbuf, vz);
             SimTK_ERRCHK3_ALWAYS(m_ifs.good() && m_ifs.gcount()==vz, 
                 "PolygonalMesh::loadStlFile()", "Bad binary STL file '%s':\n"
                 "  couldn't read vertex %d for face %d.", m_pathcstr, vx, fx);
             const Vec3 vertex((Real)vbuf[0], (Real)vbuf[1], (Real)vbuf[2]);
-            vertices[vx] = getVertex(vertex, mesh);
+            int vertIndex = getVertex(vertex, mesh);
+            vertices.push_back(vertIndex);
+            if (vertIndex == mesh.getNumVertices() - 1)
+                mesh.addVertexNormal(faceNormal);
+            vertices[vx] = vertIndex;
         }
         mesh.addFace(vertices);
         // Now read and toss the "attribute byte count".
