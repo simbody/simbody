@@ -33,6 +33,7 @@ foreach(TEST_PROG ${REGR_TESTS})
     target_include_directories(${TEST_ROOT} PRIVATE
         ${PROJECT_SOURCE_DIR}/Integrators/src/CPodes/sundials/include
         ${SimTK_SDK}/include)
-    add_test(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
+    add_test(NAME ${TEST_ROOT}
+        COMMAND $<TARGET_FILE:${TEST_ROOT}>)
 
 endforeach()

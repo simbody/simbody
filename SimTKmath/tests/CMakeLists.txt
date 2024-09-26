@@ -36,7 +36,8 @@ foreach(TEST_PROG ${REGR_TESTS})
 
     # Link with library (shared or static determined by BUILD_SHARED_LIBS)
     target_link_libraries(${TEST_ROOT} SimTKmath)
-    add_test(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
+    add_test(NAME ${TEST_ROOT}
+        COMMAND $<TARGET_FILE:${TEST_ROOT}>)
 
 endforeach()
 
