@@ -25,6 +25,7 @@ foreach(TEST_PROG ${ADHOC_TESTS})
         add_dependencies(${TEST_ROOT} simbody-visualizer)
     endif()
     set_target_properties(${TEST_ROOT} PROPERTIES
+        FOLDER "Tests/SimTKsimbody/adhoc" # Organize target list in IDE
         PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
 
     # Link with library (shared or static determined by BUILD_SHARED_LIBS)

@@ -20,6 +20,7 @@ if(TARGET simbody-visualizer)
 endif()
 set_target_properties(${EX_NAME}
     PROPERTIES
+    FOLDER "Examples" # Organize target list in IDE
     PROJECT_LABEL "Example - ${EX_NAME}")
 target_link_libraries(${EX_NAME} SimTKsimbody)
 

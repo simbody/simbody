@@ -22,6 +22,7 @@ foreach(TEST_PROG ${ADHOC_TESTS})
 
     add_executable(${TEST_ROOT} ${TEST_PROG})
     set_target_properties(${TEST_ROOT} PROPERTIES
+        FOLDER "Tests/SimTKcommon/adhoc" # Organize target list in IDE
         PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
 
     # Link with library (shared or static determined by BUILD_SHARED_LIBS)

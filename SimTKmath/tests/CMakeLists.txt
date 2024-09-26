@@ -31,6 +31,7 @@ foreach(TEST_PROG ${REGR_TESTS})
 
     add_executable(${TEST_ROOT} ${TEST_PROG} ${ALL_HEADERS})
     set_target_properties(${TEST_ROOT} PROPERTIES
+        FOLDER "Tests/SimTKmath" # Organize target list in IDE
         PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
 
     # Link with library (shared or static determined by BUILD_SHARED_LIBS)

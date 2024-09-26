@@ -26,6 +26,7 @@ foreach(TEST_PROG ${REGR_TESTS})
 
     add_executable(${TEST_ROOT} ${TEST_PROG})
     set_target_properties(${TEST_ROOT} PROPERTIES
+        FOLDER "Tests/SimTKsimbody" # Organize target list in IDE
         PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
 
     # Link with library (shared or static determined by BUILD_SHARED_LIBS)

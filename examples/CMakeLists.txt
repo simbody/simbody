@@ -124,6 +124,7 @@ foreach(EX_PROG ${EXAMPLES})
     set_target_properties(${EX_NAME}
         PROPERTIES
         COMPILE_FLAGS "-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\""
+        FOLDER "Examples" # Organize target list in IDE
         PROJECT_LABEL "Example - ${EX_NAME}")
     target_link_libraries(${EX_NAME} SimTKsimbody)
 

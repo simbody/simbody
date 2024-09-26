@@ -16,9 +16,9 @@ add_executable(${EX_NAME} ${all_source_files} ${all_header_files})
 if(TARGET simbody-visualizer)
     add_dependencies(${EX_NAME} simbody-visualizer)
 endif()
-set_target_properties(${EX_NAME}
-                        PROPERTIES
-                        PROJECT_LABEL "Example - ${EX_NAME}")
+set_target_properties(${EX_NAME} PROPERTIES
+    FOLDER "Examples" # Organize target list in IDE
+    PROJECT_LABEL "Example - ${EX_NAME}")
 target_link_libraries(${EX_NAME} SimTKsimbody)
 
 if(SIMBODY_BUILD_SHARED_LIBS) # Don't install static examples

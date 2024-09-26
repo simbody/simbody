@@ -26,6 +26,7 @@ foreach(TEST_PROG ${REGR_TESTS})
 
     add_executable(${TEST_ROOT} ${TEST_PROG})
     set_target_properties(${TEST_ROOT} PROPERTIES
+        FOLDER "Tests/SimTKmath/CPodes/sundials" # Organize target list in IDE
         PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
     target_link_libraries(${TEST_ROOT} 
                 SimTKmath)
