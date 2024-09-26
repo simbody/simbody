@@ -587,8 +587,9 @@ if( BUILD_EXAMPLES )
 endif()
 
 if( INSTALL_DOCS )
-    file(GLOB TOPLEVEL_DOCS LICENSE.txt *.md doc/*.pdf doc/*.md)
-    install(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
+    file(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.md)
+    install(FILES LICENSE.txt README.md CHANGELOG.md CONTRIBUTING.md ${TOPLEVEL_DOCS}
+        DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()
 
 # Add uninstall target
