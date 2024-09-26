@@ -441,11 +441,6 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
         CACHE STRING "Control using BUILD_CXX" FORCE)
     set(CMAKE_C_FLAGS_MINSIZEREL ${BUILD_C_FLAGS_MINSIZEREL}
         CACHE STRING "Control using BUILD_CXX" FORCE)
-
-    set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
-    if(SIMBODY_COVERAGE)
-        find_package(codecov)
-    endif()
 elseif(MSVC)
 
     ## When building in any of the Release modes, tell VC++ cl compiler to use
