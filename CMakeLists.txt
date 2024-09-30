@@ -14,6 +14,7 @@ cmake_minimum_required(VERSION 3.17) # Needed for DEPRECATION message level
 cmake_policy(SET CMP0048 NEW)
 
 project(Simbody VERSION 3.8.0)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # TODO: Remove when cmake_minimum_required is bumped above 3.21
 if(CMAKE_VERSION VERSION_LESS 3.21.0)
@@ -215,7 +216,6 @@ endif()
 
 if((${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
    ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang") AND SIMBODY_COVERAGE)
-    set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
     find_package(codecov)
 endif()
 
