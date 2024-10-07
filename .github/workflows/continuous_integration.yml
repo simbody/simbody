@@ -23,9 +23,9 @@ jobs:
       - name: Install Doxygen
         # choco install doxygen.portable # <-- too unreliable.
         run: |
-          (New-Object System.Net.WebClient).DownloadFile("https://sourceforge.net/projects/myosin/files/doxygen-1.8.14.windows.x64.bin.zip/download", "doxygen.zip")
+          (New-Object System.Net.WebClient).DownloadFile("https://github.com/doxygen/doxygen/releases/download/Release_1_12_0/doxygen-1.12.0.windows.x64.bin.zip", "doxygen.zip")
           7z x $env:GITHUB_WORKSPACE/doxygen.zip -odoxygen
-          echo "$env:GITHUB_WORKSPACE\\doxygen" >> $GITHUB_PATH
+          echo "DOXYGEN_EXECUTABLE=$env:GITHUB_WORKSPACE\\doxygen\\doxygen.exe" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Obtain short git commit hash
         id: commithash
@@ -35,7 +35,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S $env:GITHUB_WORKSPACE --preset ci-msvc-windows-release -LAH
+          cmake -S $env:GITHUB_WORKSPACE --preset ci-msvc-windows-release -DDOXYGEN_EXECUTABLE=${{ env.DOXYGEN_EXECUTABLE }} -LAH
 
       - name: Build
         run: |

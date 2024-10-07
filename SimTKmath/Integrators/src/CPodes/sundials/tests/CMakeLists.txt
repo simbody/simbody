@@ -1,12 +1,5 @@
 # This set of tests was written by Radu Serban to test CPodes within
 # the Sundials framework. They do not use the SimTK C++ interface at all.
-#
-# Only static linking can be done here because the dynamic Simmath library
-# does not export internal cpodes functions.
-
-include_directories(
-    ${PROJECT_SOURCE_DIR}/Integrators/src/CPodes/sundials/include
-    ${SimTK_SDK}/include)
 
 # Adhoc tests are those test or demo programs which are not intended,
 # or not ready, to be part of the regression suite.
@@ -26,37 +19,21 @@ include_directories(
 # Visual Studio) the projects for building each of these adhoc
 # executables will be labeled "Regr - TheTestName" if a file
 # TheTestName.cpp is found in this directory.
-#
-# We check the BUILD_TESTS_AND_EXAMPLES_{SHARED,STATIC} variables to determine
-# whether to build dynamically linked, statically linked, or both
-# versions of the executable.
 
 file(GLOB REGR_TESTS "*.c")
 foreach(TEST_PROG ${REGR_TESTS})
     get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)
 
-    if(BUILD_TESTS_AND_EXAMPLES_SHARED)
-        # Link with shared library
-        add_executable(${TEST_ROOT} ${TEST_PROG})
-        set_target_properties(${TEST_ROOT}
-        PROPERTIES
-          PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
-        target_link_libraries(${TEST_ROOT} 
-                    ${TEST_SHARED_TARGET})
-        add_test(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
-    endif()
-
-    if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
-        # Link with static library
-        set(TEST_STATIC ${TEST_ROOT}Static)
-        add_executable(${TEST_STATIC} ${TEST_PROG})
-        set_target_properties(${TEST_STATIC}
-        PROPERTIES
-        COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
-        PROJECT_LABEL "Test_Regr - ${TEST_STATIC}")
-        target_link_libraries(${TEST_STATIC}
-                    ${TEST_STATIC_TARGET})
-        add_test(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
-    endif()
+    add_executable(${TEST_ROOT} ${TEST_PROG})
+    set_target_properties(${TEST_ROOT} PROPERTIES
+        FOLDER "Tests/SimTKmath/CPodes/sundials" # Organize target list in IDE
+        PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
+    target_link_libraries(${TEST_ROOT} 
+                SimTKmath)
+    target_include_directories(${TEST_ROOT} PRIVATE
+        ${PROJECT_SOURCE_DIR}/Integrators/src/CPodes/sundials/include
+        ${SimTK_SDK}/include)
+    add_test(NAME ${TEST_ROOT}
+        COMMAND $<TARGET_FILE:${TEST_ROOT}>)
 
 endforeach()
