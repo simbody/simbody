@@ -319,28 +319,18 @@ if(APPLE)
 endif()
 
 
-## Choose the maximum level of x86 instruction set that the compiler is
-## allowed to use.
-## Was using sse2 but changed to let the compilers choose. Most will
-## probably use sse2 or later by default.
-## On 64 bit MSVC 2013, the default is sse2 and the argument
-## isn't recognized so don't specify it.
-if(CMAKE_CL_64)
-    set(default_build_inst_set)
-else()
-    set(default_build_inst_set)
-endif()
-
 ## This can be set to a different value by the person running CMake.
 set(BUILD_INST_SET ""
     CACHE STRING
     "CPU instruction level compiler is permitted to use (default: let compiler decide).")
 mark_as_advanced( BUILD_INST_SET )
 
+## Choose the maximum level of x86 instruction set that the compiler is
+## allowed to use.
 if(BUILD_INST_SET)
     set(inst_set_to_use ${BUILD_INST_SET})
 else()
-    set(inst_set_to_use ${default_build_inst_set})
+    set(inst_set_to_use)
 endif()
 
 ## When building in any of the Release modes, tell gcc/clang to use
