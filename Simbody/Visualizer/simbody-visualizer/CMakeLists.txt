@@ -78,11 +78,14 @@ else()
             PROJECT_LABEL "Code - simbody-visualizer"
             DEBUG_OUTPUT_NAME simbody-visualizer${CMAKE_DEBUG_POSTFIX})
 
-    # Copy third-party libs (e.g. vendored GLUT) to the build directory
-    add_custom_command(TARGET simbody-visualizer PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:simbody-visualizer> $<TARGET_RUNTIME_DLLS:simbody-visualizer>
-        COMMAND_EXPAND_LISTS
-    )
+    # "$<TARGET_RUNTIME_DLLS:SimTKcommon>" is empty on non-DLL platforms, and the copy command fails with only 1 argument
+    if(WIN32)
+        # Copy third-party libs (e.g. vendored GLUT) to the build directory
+        add_custom_command(TARGET simbody-visualizer PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:simbody-visualizer> $<TARGET_FILE_DIR:simbody-visualizer>
+            COMMAND_EXPAND_LISTS
+        )
+    endif()
 
     # On OSX, bake the relative path to the Simbody libraries into the visualizer
     # executable. Then there's no need to set `DYLD_LIBRARY_PATH` to find the

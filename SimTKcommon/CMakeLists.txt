@@ -151,10 +151,11 @@ target_compile_features(SimTKcommon PUBLIC cxx_std_11)
 target_compile_options(SimTKcommon INTERFACE
     "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/wd4996>")
 
-if(BUILD_SHARED_LIBS)
+# "$<TARGET_RUNTIME_DLLS:SimTKcommon>" is empty on non-DLL platforms, and the copy command fails with only 1 argument
+if(BUILD_SHARED_LIBS AND WIN32)
     # Copy third-party libs (e.g. vendors BLAS/LAPACK) to the build directory; only valid for shared libraries
     add_custom_command(TARGET SimTKcommon PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:SimTKcommon> $<TARGET_RUNTIME_DLLS:SimTKcommon>
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:SimTKcommon> $<TARGET_FILE_DIR:SimTKcommon>
         COMMAND_EXPAND_LISTS
     )
 endif()
