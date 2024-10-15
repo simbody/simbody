@@ -41,12 +41,14 @@ public:
     void clear() {
         vertices.clear(); faceVertexIndex.clear(); faceVertexStart.clear();
         normals.clear();
+        faceVertexNormalIndex.clear();
         faceVertexStart.push_back(0);
     }
-    Array_<Vec3>    vertices;
-    Array_<int>     faceVertexIndex;
+    Array_<Vec3> vertices;
+    Array_<int> faceVertexIndex;
     Array_<int>     faceVertexStart;
     Array_<UnitVec3> normals;
+    Array_<int> faceVertexNormalIndex;
 };
 
 } // namespace SimTK

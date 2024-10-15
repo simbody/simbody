@@ -65,6 +65,14 @@ const Vec3& PolygonalMesh::getVertexPosition(int vertex) const {
     return getImpl().vertices[vertex];
 }
 
+const UnitVec3 PolygonalMesh::getVertexNormal(int faceIndex,
+        int vertexIndex) const {
+
+    assert(0 <= faceIndex && faceIndex < getNumFaces());
+    assert(0 <= vertexIndex && vertexIndex < getNumVerticesForFace(faceIndex));
+    return getImpl().normals[getFaceVertex(faceIndex, vertexIndex)];
+}
+
 const UnitVec3& PolygonalMesh::getVertexNormal(int vertex) const {
     assert(0 <= vertex && vertex < getNumVertices());
     return getImpl().normals[vertex];
@@ -92,7 +100,7 @@ int PolygonalMesh::addVertex(const Vec3& position) {
     return getImpl().vertices.size()-1;
 }
 
-int PolygonalMesh::addVertexNormal(const UnitVec3& normal) {
+int PolygonalMesh::addNormal(const UnitVec3& normal) {
     initializeHandleIfEmpty();
     updImpl().normals.push_back(normal);
     return getImpl().normals.size() - 1;
@@ -112,6 +120,21 @@ int PolygonalMesh::addFace(const Array_<int>& vertices) {
     return getImpl().faceVertexStart.size()-2;
 }
 
+int PolygonalMesh::addFaceWithNormals(const Array_<int>& vertices,
+                           const Array_<int>& normals) {
+    initializeHandleIfEmpty();
+    for (int i = 0; i < (int)vertices.size(); i++) {
+        updImpl().faceVertexIndex.push_back(vertices[i]);
+        updImpl().faceVertexNormalIndex.push_back(normals[i]);
+    }
+    // faceVertexStart is preloaded to have its first element 0 before any
+    // faces have been added. So the back() element of faceVertexStart is
+    // already the starting entry for the face we're adding.
+    // This is where the *next* face will begin.
+    updImpl().faceVertexStart.push_back(getImpl().faceVertexIndex.size());
+    // The current face start is now at end()-2 (back()-1).
+    return getImpl().faceVertexStart.size() - 2;
+}
 PolygonalMesh& PolygonalMesh::scaleMesh(Real scale) {
     if (!isEmptyHandle()) {
         Array_<Vec3>& vertices = updImpl().vertices;
@@ -171,6 +194,7 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
 
     std::string line;
     Array_<int> indices;
+    Array_<int> normalIndices;
     int initialVertices = getNumVertices();
     while (!file.eof()) {
         SimTK_ERRCHK_ALWAYS(file.good(), methodName,
@@ -205,24 +229,39 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
             s >> y;
             s >> z;
             SimTK_ERRCHK1_ALWAYS(!s.fail(), methodName,
-                                 "Found invalid vertex normal description: %s",
+                                 "Found invalid normal description: %s",
                                  line.c_str());
-            addVertexNormal(UnitVec3(x, y, z));
+            addNormal(UnitVec3(x, y, z));
         }
         else if (command == "f") {
             // A face
-            
             indices.clear();
-            int index;
+            normalIndices.clear();
+            int index, nIndex;
             while (s >> index) {
-                s.ignore(line.size(), ' ');
+                s.ignore(line.size(), '/');
                 if (index < 0)
                     index += getNumVertices()-initialVertices;
                 else
                     index--;
                 indices.push_back(index);
+                // Skip texture
+                s.ignore(line.size(), '/');
+                // get Normal index
+                s >> nIndex;
+                if (nIndex < 0)
+                    nIndex += getNumVertices() - initialVertices;
+                else
+                    nIndex--;
+                normalIndices.push_back(nIndex);
+                s.ignore(line.size(), ' ');
             }
-            addFace(indices);
+            if (normalIndices.size() == 0)
+                addFace(indices);
+            else {
+                addFaceWithNormals(indices, normalIndices);
+            }
+
         }
     }
 }
@@ -367,7 +406,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     Vector_<Vec3> normals =
         piecePointData.getRequiredElementValueAs<Vector_<Vec3> >("DataArray");
 
-    for (int i = 0; i < numPoints; ++i) addVertexNormal(UnitVec3(normals[i]));
+    for (int i = 0; i < numPoints; ++i) addNormal(UnitVec3(normals[i]));
 
     // The lone DataArray element in the Points element contains the points'
     // coordinates. Read it in as a Vector of Vec3s.
@@ -618,6 +657,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
         "Can't open file '%s'", m_pathcstr);
 
     Array_<int> vertices;
+    Array_<int> normals;
 
     // Don't allow EOF until we've seen two significant lines.
     while (getSignificantLine(m_sigLineNo >= 2)) {
@@ -651,6 +691,8 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
 
             // Now process vertices.
             vertices.clear();
+            normals.clear();
+            int normalIndex = mesh.addNormal(UnitVec3(faceNormal));
             while (m_keyword == "vertex") {
                 Vec3 vertex;
                 m_restOfLine >> vertex;
@@ -660,8 +702,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
                     "  badly formed vertex.", m_lineNo, m_pathcstr);
                 int vertIndex = getVertex(vertex, mesh);
                 vertices.push_back(vertIndex);
-                if (normalsSeen && vertIndex == mesh.getNumVertices() - 1)
-                    mesh.addVertexNormal(UnitVec3(faceNormal));
+                normals.push_back(normalIndex);
                 getSignificantLine(false);
             }
 
@@ -672,7 +713,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
                 "  a facet had %d vertices; at least 3 required.", 
                 m_lineNo, m_pathcstr, vertices.size());
 
-            mesh.addFace(vertices);
+            mesh.addFaceWithNormals(vertices, normals);
 
             // Vertices must end with 'endloop' if started with 'outer loop'.
             if (outerLoopSeen) {
@@ -701,7 +742,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
 //   uint8[80] - Header (ignored)
 //   uint32    - Number of triangles
 //   for each triangle
-//      float[3]    - normal vector (we ignore this)
+//      float[3]    - normal vector
 //      float[3]    - vertex 1  (counterclockwise order about the normal)
 //      float[3]    - vertex 2
 //      float[3]    - vertex 3
@@ -729,11 +770,14 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
         "  couldn't read triangle count.", m_pathcstr);
 
     Array_<int> vertices(3);
-    float vbuf[3]; unsigned short sbuf;
+    Array_<int> normals(3);
+    float vbuf[3];
+    unsigned short sbuf;
     const unsigned vz = 3*sizeof(float);
     for (unsigned fx=0; fx < nFaces; ++fx) {
         m_ifs.read((char*)vbuf, vz); 
         const UnitVec3 faceNormal((Real)vbuf[0], (Real)vbuf[1], (Real)vbuf[2]);
+        int normalIndex = mesh.addNormal(faceNormal);
         for (int vx=0; vx < 3; ++vx) {
             m_ifs.read((char*)vbuf, vz);
             SimTK_ERRCHK3_ALWAYS(m_ifs.good() && m_ifs.gcount()==vz, 
@@ -742,11 +786,10 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
             const Vec3 vertex((Real)vbuf[0], (Real)vbuf[1], (Real)vbuf[2]);
             int vertIndex = getVertex(vertex, mesh);
             vertices.push_back(vertIndex);
-            if (vertIndex == mesh.getNumVertices() - 1)
-                mesh.addVertexNormal(faceNormal);
             vertices[vx] = vertIndex;
+            normals.push_back(normalIndex);
         }
-        mesh.addFace(vertices);
+        mesh.addFaceWithNormals(vertices, normals);
         // Now read and toss the "attribute byte count".
         m_ifs.read((char*)&sbuf,sizeof(short));
         SimTK_ERRCHK2_ALWAYS(m_ifs.good() && m_ifs.gcount()==sizeof(short), 
