@@ -109,10 +109,67 @@ void testLoadObjFile() {
     ASSERT(mesh.getFaceVertex(3, 3) == 1);
 }
 
+void testLoadObjFileWithNormals() {
+    string file;
+    file += "# This is a comment\n";
+    file += "v 1.000000 1.000000 -1.000000\n";
+    file += "v 1.000000 -1.000000 -1.00000\n";
+    file += "v 1.000000 1.000000 1.000000\n";
+    file += "v 1.000000 -1.000000 1.000000\n";
+    file += "v -1.000000 1.000000 -1.00000\n";
+    file += "v -1.000000 -1.000000 -1.000\n";
+    file += "v -1.000000 1.000000 1.000000\n";
+    file += "v -1.000000 -1.000000 1.000000\n";
+    file += "vn -0.0000 1.0000 -0.0000\n";
+    file += "vn -0.0000 -0.0000 1.0000\n";
+    file += "vn -1.0000 -0.0000 -0.0000\n";
+    file += "vn -0.0000 -1.0000 -0.0000\n";
+    file += "vn 1.0000 -0.0000 -0.0000\n";
+    file += "vn -0.0000 -0.0000 -1.0000\n";
+    file += "s 0\n";
+    file += "usemtl Material\n";
+    file += "f 1/1/1 5/2/1 7/3/1 3/4/1\n";
+    file += "f 4/5/2 3/4/2 7/6/2 8/7/2\n";
+    file += "f 8/8/3 7/9/3 5/10/3 6/11/3\n";
+    file += "f 6/12/4 2/13/4 4/5/4 8/14/4\n";
+    file += "f 2/13/5 1/1/5 3/4/5 4/5/5\n";
+    file += "f 6/11/6 5/10/6 1/1/6 2/13/6\n";
+
+    PolygonalMesh mesh;
+    stringstream stream(file);
+    mesh.loadObjFile(stream);
+    ASSERT(mesh.getNumVertices() == 8);
+    ASSERT(mesh.getNumFaces() == 6);
+    const UnitVec3 norms[] = {
+        SimTK::CoordinateAxis::YCoordinateAxis(),
+        SimTK::CoordinateAxis::ZCoordinateAxis(),
+        -SimTK::CoordinateAxis::XCoordinateAxis(),
+        -SimTK::CoordinateAxis::YCoordinateAxis(),
+        SimTK::CoordinateAxis::XCoordinateAxis(),
+        -SimTK::CoordinateAxis::ZCoordinateAxis()
+    };
+    for (int i = 0; i < mesh.getNumFaces(); i++) {
+        ASSERT(mesh.getNumVerticesForFace(i) == 4);
+        int numVerts = mesh.getNumVerticesForFace(i);
+        UnitVec3 nextNorm = norms[i];
+        for (int v = 0; v < numVerts; v++) {
+            int idx = mesh.getFaceVertex(i, v);
+            const Vec3& pos = mesh.getVertexPosition(idx);
+            ASSERT(pos[0] == 1.0 && idx < 4 || pos[0] == -1.0 && idx >= 4);
+            ASSERT(pos[1] == 1.0 && idx % 2==0 || pos[1] == -1.0 && idx % 2==1);
+            // Get normals through the face/vertx indices
+            UnitVec3 norm = mesh.getVertexNormal(i, v);
+            ASSERT(norm == nextNorm);
+        }
+     }
+
+}
+
 int main() {
     try {
         testCreateMesh();
         testLoadObjFile();
+        testLoadObjFileWithNormals();
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
