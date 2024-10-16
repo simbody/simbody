@@ -165,15 +165,24 @@ public:
     int getNumVertices() const;
     /** Check whether the PolygonalMesh contains Normals information. */
     bool hasNormals() const;
+    /** Check whether some normals were custom computed outside of cross product of edges */
+    bool hasCustomNormals() const;
     /** Get the position of a vertex in the mesh.
     @param[in]  vertex  The index of the vertex (as returned by addVertex()).
     @return The position of the specified vertex, measured and expressed in
     the mesh local frame. **/
     const Vec3& getVertexPosition(int vertex) const;
+
+    /** Get the normal of a vertex in the mesh, vertex specified by face/vertex.
+    @param[in]  faceIndex  The index of the face (as returned by addFace()).
+    @return The Normal of the mesh at the specified face/vertex **/
+    const UnitVec3 getVertexNormal(int faceIndex, int vertexIndex) const;
+
     /** Get the normal of a vertex in the mesh.
     @param[in]  vertex  The index of the vertex (as returned by addVertex()).
     @return The Normal of the mesh at the specified vertex **/
     const UnitVec3& getVertexNormal(int vertex) const;
+
     /** Get the number of vertices that make up a particular face.
     @param[in]  face    The index of the face (as returned by addFace()). **/
     int getNumVerticesForFace(int face) const;
@@ -192,10 +201,13 @@ public:
     int addVertex(const Vec3& position);
 
     /** Add vertex normal to the mesh.
-    @param[in]  normal   The unit vector of the normal of the vertex to add, measured and
+    @param[in]  normal   The unit vector of the normal to add, measured and
                         expressed in the mesh local frame.
-    @return The index of the newly added vertex. **/
-    int addVertexNormal(const UnitVec3& normal);
+                        Depending on the mesh format this could be vertex normal
+                        or face normal, it's user responsibility to decide what
+                        these mean.
+    @return The index of the newly added normal. **/
+    int addNormal(const UnitVec3& normal);
 
     /** Add a face to the mesh. Note that the ordering of the vertices defines
     the outward normal for the face; they must be counterclockwise around the
@@ -206,6 +218,9 @@ public:
                             normal.
     @return The index of the newly added face. **/
     int addFace(const Array_<int>& vertices);
+
+    int addFaceWithNormals(const Array_<int>& vertices,
+                           const Array_<int>& normals);
 
     /** Scale a mesh by multiplying every vertex by a fixed value. Note that
     this permanently modifies the vertex locations within the mesh. Since the

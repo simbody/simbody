@@ -70,7 +70,10 @@ const UnitVec3 PolygonalMesh::getVertexNormal(int faceIndex,
 
     assert(0 <= faceIndex && faceIndex < getNumFaces());
     assert(0 <= vertexIndex && vertexIndex < getNumVerticesForFace(faceIndex));
-    return getImpl().normals[getFaceVertex(faceIndex, vertexIndex)];
+    int normalIndex =
+        getImpl().faceVertexNormalIndex[
+            getImpl().faceVertexStart[faceIndex] +vertexIndex];
+    return getImpl().normals[normalIndex];
 }
 
 const UnitVec3& PolygonalMesh::getVertexNormal(int vertex) const {
@@ -123,10 +126,12 @@ int PolygonalMesh::addFace(const Array_<int>& vertices) {
 int PolygonalMesh::addFaceWithNormals(const Array_<int>& vertices,
                            const Array_<int>& normals) {
     initializeHandleIfEmpty();
-    for (int i = 0; i < (int)vertices.size(); i++) {
+    for (int i = 0; i < (int)vertices.size(); i++)
         updImpl().faceVertexIndex.push_back(vertices[i]);
+
+    for (int i = 0; i < (int)normals.size(); i++)
         updImpl().faceVertexNormalIndex.push_back(normals[i]);
-    }
+
     // faceVertexStart is preloaded to have its first element 0 before any
     // faces have been added. So the back() element of faceVertexStart is
     // already the starting entry for the face we're adding.
@@ -238,22 +243,27 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
             indices.clear();
             normalIndices.clear();
             int index, nIndex;
-            while (s >> index) {
-                s.ignore(line.size(), '/');
+            // vertex_index/texture_index/normal_index triplet
+            std::string vtnString; 
+            while (s >> vtnString) {
+                std::stringstream vtnStringAsStream(vtnString);
+                vtnStringAsStream >> index;
                 if (index < 0)
                     index += getNumVertices()-initialVertices;
                 else
                     index--;
                 indices.push_back(index);
-                // Skip texture
-                s.ignore(line.size(), '/');
+                vtnStringAsStream.ignore(line.size(), '/');
+                if (!vtnStringAsStream.eof()) {
+                    // Skip texture
+                    vtnStringAsStream.ignore(line.size(), '/');
+                }
                 // get Normal index
-                s >> nIndex;
-                if (nIndex < 0)
-                    nIndex += getNumVertices() - initialVertices;
-                else
+                if (!vtnStringAsStream.eof()) {
+                    vtnStringAsStream >> nIndex;
                     nIndex--;
-                normalIndices.push_back(nIndex);
+                    normalIndices.push_back(nIndex);
+                }
                 s.ignore(line.size(), ' ');
             }
             if (normalIndices.size() == 0)
