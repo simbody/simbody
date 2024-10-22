@@ -416,8 +416,6 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     Vector_<Vec3> normals =
         piecePointData.getRequiredElementValueAs<Vector_<Vec3> >("DataArray");
 
-    for (int i = 0; i < numPoints; ++i) addNormal(UnitVec3(normals[i]));
-
     // The lone DataArray element in the Points element contains the points'
     // coordinates. Read it in as a Vector of Vec3s.
     Xml::Element pointData = points.getRequiredElement("DataArray");
@@ -436,9 +434,11 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 
     // Now that we have the point coordinates, use them to create the vertices
     // in our mesh.
-    for (int i=0; i < numPoints; ++i)
+    // VTP format provides one normal per vertex
+    for (int i = 0; i < numPoints; ++i) {
         addVertex(coords[i]);
-
+        addNormal(UnitVec3(normals[i]));
+    }
     // Polys are given by a connectivity array which lists the points forming
     // each polygon in a long unstructured list, then an offsets array, one per
     // polygon, which gives the index+1 of the *last* connectivity entry for
