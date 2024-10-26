@@ -165,7 +165,10 @@ public:
     int getNumVertices() const;
     /** Check whether the PolygonalMesh contains Normals information. */
     bool hasNormals() const;
-    /** Check whether some normals were custom computed outside of cross product of edges */
+    /** Check whether the PolygonalMesh contains Texture information. */
+    bool hasTextureCoordinates() const;
+    /** Check whether some normals were custom computed outside of cross product
+     * of edges */
     bool hasCustomNormals() const;
     /** Get the position of a vertex in the mesh.
     @param[in]  vertex  The index of the vertex (as returned by addVertex()).
@@ -183,6 +186,9 @@ public:
     @return The Normal of the mesh at the specified vertex **/
     const UnitVec3& getVertexNormal(int vertex) const;
 
+    const Vec2 PolygonalMesh::getVertexTextureCoordinate(int faceIndex,
+                                                         int vertexIndex) const;
+
     /** Get the number of vertices that make up a particular face.
     @param[in]  face    The index of the face (as returned by addFace()). **/
     int getNumVerticesForFace(int face) const;
@@ -193,6 +199,7 @@ public:
                         way as when the face was defined.
     @return The index of the specified vertex. **/
     int getFaceVertex(int face, int vertex) const;
+    int getFaceVertexIndex(int face, int vertex) const;
 
     /** Add a vertex to the mesh.
     @param[in]  position   The position of the vertex to add, measured and 
@@ -209,6 +216,8 @@ public:
     @return The index of the newly added normal. **/
     int addNormal(const UnitVec3& normal);
 
+    int addTextureCoordinate(const Vec2& textureCoord);
+
     /** Add a face to the mesh. Note that the ordering of the vertices defines
     the outward normal for the face; they must be counterclockwise around the
     desired normal.
@@ -220,7 +229,9 @@ public:
     int addFace(const Array_<int>& vertices);
 
     int addFaceWithNormals(const Array_<int>& vertices,
-                           const Array_<int>& normals);
+                           const Array_<int>& normalIndices);
+
+    void addFaceTextureCoordinates(const Array_<int>& textureIndices);
 
     /** Scale a mesh by multiplying every vertex by a fixed value. Note that
     this permanently modifies the vertex locations within the mesh. Since the

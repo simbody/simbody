@@ -109,7 +109,7 @@ void testLoadObjFile() {
     ASSERT(mesh.getFaceVertex(3, 3) == 1);
 }
 
-void testLoadObjFileWithNormals() {
+void testLoadObjFileWithNormalsTexture() {
     string file;
     file += "# This is a comment\n";
     file += "v 1.000000 1.000000 -1.000000\n";
@@ -126,6 +126,20 @@ void testLoadObjFileWithNormals() {
     file += "vn -0.0000 -1.0000 -0.0000\n";
     file += "vn 1.0000 -0.0000 -0.0000\n";
     file += "vn -0.0000 -0.0000 -1.0000\n";
+    file += "vt 0.625000 0.500000\n";
+    file += "vt 0.875000 0.500000\n";
+    file += "vt 0.875000 0.750000\n";
+    file += "vt 0.625000 0.750000\n";
+    file += "vt 0.375000 0.750000\n";
+    file += "vt 0.625000 1.000000\n";
+    file += "vt 0.375000 1.000000\n";
+    file += "vt 0.375000 0.000000\n";
+    file += "vt 0.625000 0.000000\n";
+    file += "vt 0.625000 0.250000\n";
+    file += "vt 0.375000 0.250000\n";
+    file += "vt 0.125000 0.500000\n";
+    file += "vt 0.375000 0.500000\n";
+    file += "vt 0.125000 0.750000\n";
     file += "s 0\n";
     file += "usemtl Material\n";
     file += "f 1/1/1 5/2/1 7/3/1 3/4/1\n";
@@ -148,6 +162,12 @@ void testLoadObjFileWithNormals() {
         SimTK::CoordinateAxis::XCoordinateAxis(),
         -SimTK::CoordinateAxis::ZCoordinateAxis()
     };
+    const Vec2 textureCoords[] = {
+        Vec2{0.625, 0.5},
+        Vec2{0.875, 0.5},
+        Vec2{0.875, 0.75},
+        Vec2{0.625, 0.75}
+    };
     for (int i = 0; i < mesh.getNumFaces(); i++) {
         ASSERT(mesh.getNumVerticesForFace(i) == 4);
         int numVerts = mesh.getNumVerticesForFace(i);
@@ -160,6 +180,10 @@ void testLoadObjFileWithNormals() {
             // Get normals through the face/vertx indices
             UnitVec3 norm = mesh.getVertexNormal(i, v);
             ASSERT(norm == nextNorm);
+            Vec2 tc = mesh.getVertexTextureCoordinate(i, v);
+            if (i == 0) {
+                ASSERT(textureCoords[v]==tc);
+            }
         }
      }
 
@@ -270,7 +294,7 @@ int main() {
     try {
         testCreateMesh();
         testLoadObjFile();
-        testLoadObjFileWithNormals();
+        testLoadObjFileWithNormalsTexture();
         testLoadVtpFile();
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

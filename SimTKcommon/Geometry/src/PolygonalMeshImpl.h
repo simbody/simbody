@@ -43,12 +43,16 @@ public:
         normals.clear();
         faceVertexNormalIndex.clear();
         faceVertexStart.push_back(0);
+        textureCoordinates.clear();
+        faceVertexTextureIndex.clear();
     }
     Array_<Vec3> vertices;
     Array_<int> faceVertexIndex;
     Array_<int>     faceVertexStart;
     Array_<UnitVec3> normals;
     Array_<int> faceVertexNormalIndex;
+    Array_<Vec2> textureCoordinates;
+    Array_<int> faceVertexTextureIndex;
 };
 
 } // namespace SimTK

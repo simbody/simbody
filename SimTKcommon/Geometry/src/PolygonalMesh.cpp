@@ -76,6 +76,16 @@ const UnitVec3 PolygonalMesh::getVertexNormal(int faceIndex,
     return getImpl().normals[normalIndex];
 }
 
+const Vec2 PolygonalMesh::getVertexTextureCoordinate(int faceIndex,
+                                                     int vertexIndex) const {
+    assert(0 <= faceIndex && faceIndex < getNumFaces());
+    assert(0 <= vertexIndex && vertexIndex < getNumVerticesForFace(faceIndex));
+    int textureIndex =
+        getImpl().faceVertexTextureIndex[
+            getImpl().faceVertexStart[faceIndex] + vertexIndex];
+    return getImpl().textureCoordinates[textureIndex];
+}
+
 const UnitVec3& PolygonalMesh::getVertexNormal(int vertex) const {
     assert(0 <= vertex && vertex < getNumVertices());
     return getImpl().normals[vertex];
@@ -83,6 +93,10 @@ const UnitVec3& PolygonalMesh::getVertexNormal(int vertex) const {
 
 bool PolygonalMesh::hasNormals() const {
     return getImpl().normals.size() > 0;
+}
+
+bool PolygonalMesh::hasTextureCoordinates() const {
+    return getImpl().textureCoordinates.size() > 0;
 }
 
 int PolygonalMesh::getNumVerticesForFace(int face) const {
@@ -109,6 +123,12 @@ int PolygonalMesh::addNormal(const UnitVec3& normal) {
     return getImpl().normals.size() - 1;
 }
 
+int PolygonalMesh::addTextureCoordinate(const Vec2& textureCoord) {
+    initializeHandleIfEmpty();
+    updImpl().textureCoordinates.push_back(textureCoord);
+    return getImpl().textureCoordinates.size() - 1;
+}
+
 int PolygonalMesh::addFace(const Array_<int>& vertices) {
     initializeHandleIfEmpty();
     for (int i = 0; i < (int) vertices.size(); i++)
@@ -123,14 +143,17 @@ int PolygonalMesh::addFace(const Array_<int>& vertices) {
     return getImpl().faceVertexStart.size()-2;
 }
 
+int PolygonalMesh::getFaceVertexIndex(int face, int vertex) const {
+    return getImpl().faceVertexStart[face] + vertex;
+}
 int PolygonalMesh::addFaceWithNormals(const Array_<int>& vertices,
-                           const Array_<int>& normals) {
+                           const Array_<int>& normalsIndices) {
     initializeHandleIfEmpty();
     for (int i = 0; i < (int)vertices.size(); i++)
         updImpl().faceVertexIndex.push_back(vertices[i]);
 
-    for (int i = 0; i < (int)normals.size(); i++)
-        updImpl().faceVertexNormalIndex.push_back(normals[i]);
+    for (int i = 0; i < (int)normalsIndices.size(); i++)
+        updImpl().faceVertexNormalIndex.push_back(normalsIndices[i]);
 
     // faceVertexStart is preloaded to have its first element 0 before any
     // faces have been added. So the back() element of faceVertexStart is
@@ -140,6 +163,14 @@ int PolygonalMesh::addFaceWithNormals(const Array_<int>& vertices,
     // The current face start is now at end()-2 (back()-1).
     return getImpl().faceVertexStart.size() - 2;
 }
+
+void PolygonalMesh::addFaceTextureCoordinates(const Array_<int>& textureIndices) {
+    initializeHandleIfEmpty();
+
+    for (int i = 0; i < (int)textureIndices.size(); i++)
+        updImpl().faceVertexTextureIndex.push_back(textureIndices[i]);
+}
+
 PolygonalMesh& PolygonalMesh::scaleMesh(Real scale) {
     if (!isEmptyHandle()) {
         Array_<Vec3>& vertices = updImpl().vertices;
@@ -154,6 +185,7 @@ PolygonalMesh& PolygonalMesh::transformMesh(const Transform& X_AM) {
         Array_<Vec3>& vertices = updImpl().vertices;
         for (int i = 0; i < (int) vertices.size(); i++)
             vertices[i] = X_AM*vertices[i];
+        // What to do to normalsIndices if available?
     }
     return *this;
 }
@@ -200,6 +232,7 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
     std::string line;
     Array_<int> indices;
     Array_<int> normalIndices;
+    Array_<int> textureIndices;
     int initialVertices = getNumVertices();
     while (!file.eof()) {
         SimTK_ERRCHK_ALWAYS(file.good(), methodName,
@@ -227,7 +260,7 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
             addVertex(Vec3(x, y, z));
         }
         else if (command == "vn") {
-            // A vertex
+            // A normal
 
             Real x, y, z;
             s >> x;
@@ -238,11 +271,23 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
                                  line.c_str());
             addNormal(UnitVec3(x, y, z));
         }
+        else if (command == "vt") {
+            // A texture coordinate
+
+            Real u, v;
+            s >> u;
+            s >> v;
+            SimTK_ERRCHK1_ALWAYS(!s.fail(), methodName,
+                                 "Found invalid texture coordinate description: %s",
+                                 line.c_str());
+            addTextureCoordinate(Vec2(u, v));
+        }
         else if (command == "f") {
             // A face
             indices.clear();
             normalIndices.clear();
-            int index, nIndex;
+            textureIndices.clear();
+            int index=-1, tIndex=-1, nIndex=-1;
             // vertex_index/texture_index/normal_index triplet
             std::string vtnString; 
             while (s >> vtnString) {
@@ -255,7 +300,10 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
                 indices.push_back(index);
                 vtnStringAsStream.ignore(line.size(), '/');
                 if (!vtnStringAsStream.eof()) {
-                    // Skip texture
+                    vtnStringAsStream >> tIndex;
+                    tIndex--;
+                    textureIndices.push_back(tIndex);
+                    // 
                     vtnStringAsStream.ignore(line.size(), '/');
                 }
                 // get Normal index
@@ -266,10 +314,12 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
                 }
                 s.ignore(line.size(), ' ');
             }
-            if (normalIndices.size() == 0)
+            if (indices.size()  != normalIndices.size())
                 addFace(indices);
             else {
                 addFaceWithNormals(indices, normalIndices);
+                if (textureIndices.size() == indices.size())
+                    addFaceTextureCoordinates(textureIndices);
             }
 
         }
@@ -408,14 +458,33 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 
     // Read the normals
     Xml::Element piecePointData = piece.getRequiredElement("PointData");
-    const String normalsData = piecePointData.getRequiredAttributeValue("Normals");
+    Array_<Xml::Element>  pointDataElements = piecePointData.getAllElements("DataArray");
+    const String normalsString =
+        piecePointData.getRequiredAttributeValue("Normals");
     SimTK_ERRCHK1_ALWAYS(
-        piecePointData.getRequiredAttributeValue("Normals") == "Normals", method,
-        "VTP file missing normals info.",
+        piecePointData.getRequiredAttributeValue("Normals") == "Normals",
+        method, "VTP file missing normals info.",
         piecePointData.getRequiredAttributeValue("Normals").c_str());
-    Vector_<Vec3> normals =
-        piecePointData.getRequiredElementValueAs<Vector_<Vec3> >("DataArray");
+    bool hasNormals = (normalsString == "Normals");
 
+    const String textureCoordinatesString =
+        piecePointData.getOptionalAttributeValue("TCoords");
+
+    bool hasTextureCoordinates =
+        (textureCoordinatesString == "TextureCoordinates");
+
+    Vector_<Vec3> normals;
+    Vector_<Vec2> textureCoordinates;
+
+    for (auto dataArray : pointDataElements) {
+        auto name = dataArray.getRequiredAttributeValue("Name");
+        if (name=="Normals")
+            dataArray.getValueAs(normals);
+        else if (name == "TextureCoordinates")
+            dataArray.getValueAs(textureCoordinates);
+    }
+    
+    std::cout << textureCoordinates << std::endl;
     // The lone DataArray element in the Points element contains the points'
     // coordinates. Read it in as a Vector of Vec3s.
     Xml::Element pointData = points.getRequiredElement("DataArray");
@@ -425,19 +494,23 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
         " got format=\"%s\" for Points DataArray.",
         pointData.getRequiredAttributeValue("format").c_str());
 
-    Vector_<Vec3> coords = 
+    Vector_<Vec3> pointCoords = 
         points.getRequiredElementValueAs< Vector_<Vec3> >("DataArray");
 
-    SimTK_ERRCHK2_ALWAYS(coords.size() == numPoints, method,
+    SimTK_ERRCHK2_ALWAYS(pointCoords.size() == numPoints, method,
         "Expected coordinates for %d points but got %d.",
-        numPoints, coords.size());
+        numPoints, pointCoords.size());
 
     // Now that we have the point coordinates, use them to create the vertices
     // in our mesh.
     // VTP format provides one normal per vertex
     for (int i = 0; i < numPoints; ++i) {
-        addVertex(coords[i]);
-        addNormal(UnitVec3(normals[i]));
+        addVertex(pointCoords[i]);
+        if (hasNormals)
+            addNormal(UnitVec3(normals[i]));
+        if (hasTextureCoordinates) 
+            addTextureCoordinate(textureCoordinates[i]);
+
     }
     // Polys are given by a connectivity array which lists the points forming
     // each polygon in a long unstructured list, then an offsets array, one per
