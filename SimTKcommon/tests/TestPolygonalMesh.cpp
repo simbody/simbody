@@ -168,20 +168,20 @@ void testLoadObjFileWithNormalsTexture() {
         Vec2{0.875, 0.75},
         Vec2{0.625, 0.75}
     };
-    for (int i = 0; i < mesh.getNumFaces(); i++) {
-        ASSERT(mesh.getNumVerticesForFace(i) == 4);
-        int numVerts = mesh.getNumVerticesForFace(i);
-        UnitVec3 nextNorm = norms[i];
+    for (int face = 0; face < mesh.getNumFaces(); face++) {
+        ASSERT(mesh.getNumVerticesForFace(face) == 4);
+        int numVerts = mesh.getNumVerticesForFace(face);
+        UnitVec3 nextNorm = norms[face];
         for (int v = 0; v < numVerts; v++) {
-            int idx = mesh.getFaceVertex(i, v);
+            int idx = mesh.getFaceVertex(face, v);
             const Vec3& pos = mesh.getVertexPosition(idx);
             ASSERT(pos[0] == 1.0 && idx < 4 || pos[0] == -1.0 && idx >= 4);
             ASSERT(pos[1] == 1.0 && idx % 2==0 || pos[1] == -1.0 && idx % 2==1);
             // Get normals through the face/vertx indices
-            UnitVec3 norm = mesh.getVertexNormal(i, v);
+            UnitVec3 norm = mesh.getVertexNormal(face, v);
             ASSERT(norm == nextNorm);
-            Vec2 tc = mesh.getVertexTextureCoordinate(i, v);
-            if (i == 0) {
+            Vec2 tc = mesh.getVertexTextureCoordinate(face, v);
+            if (face == 0) {
                 ASSERT(textureCoords[v]==tc);
             }
         }
