@@ -167,9 +167,7 @@ public:
     bool hasNormals() const;
     /** Check whether the PolygonalMesh contains Texture information. */
     bool hasTextureCoordinates() const;
-    /** Check whether some normals were custom computed outside of cross product
-     * of edges */
-    bool hasCustomNormals() const;
+
     /** Get the position of a vertex in the mesh.
     @param[in]  vertex  The index of the vertex (as returned by addVertex()).
     @return The position of the specified vertex, measured and expressed in
@@ -178,6 +176,7 @@ public:
 
     /** Get the normal of a vertex in the mesh, vertex specified by face/vertex.
     @param[in]  faceIndex  The index of the face (as returned by addFace()).
+    @param[in]  vertexIndex  The index of the vertex within the face.
     @return The Normal of the mesh at the specified face/vertex **/
     const UnitVec3 getVertexNormal(int faceIndex, int vertexIndex) const;
 
@@ -186,12 +185,17 @@ public:
     @return The Normal of the mesh at the specified vertex **/
     const UnitVec3& getVertexNormal(int vertex) const;
 
+    /** Get the texture coordinate of a vertex in the mesh, vertex specified by face/vertex.
+    @param[in]  faceIndex  The index of the face (as returned by addFace()).
+    @param[in]  vertexIndex  The index of the vertex within the face.
+    @return The texture coordinate of the face/vertex **/
     const Vec2 PolygonalMesh::getVertexTextureCoordinate(int faceIndex,
                                                          int vertexIndex) const;
 
     /** Get the number of vertices that make up a particular face.
     @param[in]  face    The index of the face (as returned by addFace()). **/
     int getNumVerticesForFace(int face) const;
+
     /** Get the index of one of the vertices of a face.
     @param[in]  face    The index of the face (as returned by addFace()).
     @param[in]  vertex  The index of the vertex within the face (from 0, 1, or 2 
@@ -199,7 +203,6 @@ public:
                         way as when the face was defined.
     @return The index of the specified vertex. **/
     int getFaceVertex(int face, int vertex) const;
-    int getFaceVertexIndex(int face, int vertex) const;
 
     /** Add a vertex to the mesh.
     @param[in]  position   The position of the vertex to add, measured and 

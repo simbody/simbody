@@ -143,9 +143,6 @@ int PolygonalMesh::addFace(const Array_<int>& vertices) {
     return getImpl().faceVertexStart.size()-2;
 }
 
-int PolygonalMesh::getFaceVertexIndex(int face, int vertex) const {
-    return getImpl().faceVertexStart[face] + vertex;
-}
 int PolygonalMesh::addFaceWithNormals(const Array_<int>& vertices,
                            const Array_<int>& normalsIndices) {
     initializeHandleIfEmpty();
