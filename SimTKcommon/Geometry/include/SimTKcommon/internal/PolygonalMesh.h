@@ -189,7 +189,7 @@ public:
     @param[in]  faceIndex  The index of the face (as returned by addFace()).
     @param[in]  vertexIndex  The index of the vertex within the face.
     @return The texture coordinate of the face/vertex **/
-    const Vec2 PolygonalMesh::getVertexTextureCoordinate(int faceIndex,
+    const Vec2 getVertexTextureCoordinate(int faceIndex,
                                                          int vertexIndex) const;
 
     /** Get the number of vertices that make up a particular face.
