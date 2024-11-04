@@ -78,6 +78,7 @@ will include this one). **/
 #include "simbody/internal/CableTrackerSubsystem.h"
 #include "simbody/internal/CablePath.h"
 #include "simbody/internal/CableSpring.h"
+#include "simbody/internal/CableSpan.h"
 #include "simbody/internal/Visualizer.h"
 #include "simbody/internal/Visualizer_InputListener.h"
 #include "simbody/internal/Visualizer_Reporter.h"

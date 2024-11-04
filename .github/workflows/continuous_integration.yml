@@ -140,7 +140,7 @@ jobs:
         run: |
           cmake --build --preset ci-make-${{ matrix.compiler }}-linux-${{ matrix.build_type }} --target doxygen
           cmake --install $GITHUB_WORKSPACE/out/build/ci-make-${{ matrix.compiler }}-linux-${{ matrix.build_type }}
-          mv $GITHUB_WORKSPACE/out/build/ci-make-${{ matrix.compiler }}-linux-${{ matrix.build_type }} simbody-${{ steps.commithash.outputs.hash }}
+          mv $GITHUB_WORKSPACE/out/install/ci-make-${{ matrix.compiler }}-linux-${{ matrix.build_type }} simbody-${{ steps.commithash.outputs.hash }}
           zip --symlinks --recurse-paths --quiet simbody-${{ steps.commithash.outputs.hash }}.zip simbody-${{ steps.commithash.outputs.hash }}
 
       - name: Upload
