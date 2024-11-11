@@ -308,11 +308,7 @@ endif()
 # RPATH
 # -----
 set(SIMBODY_USE_INSTALL_RPATH FALSE)
-if(APPLE)
-    # This variable gets used when configuring the Info.plist for
-    # simbody-visualizer.app; see cmake/MacOSXBundleInfo.plist.in.
-    set(MACOSX_BUNDLE_HIGH_RESOLUTION_CAPABLE "false")
-
+if(UNIX)
     # CMake 2.8.12 introduced the ability to set RPATH for shared libraries on
     # OSX. This helps executables find the libraries they depend on without
     # having to set the DYLD_LIBRARY_PATH environment variable.
@@ -330,11 +326,18 @@ if(APPLE)
     # RPATH) that can be baked into the executable just after compiling or any
     # time before running the executable (using the executable
     # "install_name_tool"). The RPATH stored in executables can also contain
-    # "@executable_path", etc.
+    # "@executable_path", etc. On Linux, rather than "@executable_path", we 
+    # must use "$ORIGIN" to find the location of the executable.
 
-    # Set the install name of libraries to contain "@rpath".
-    # This allows clients of our libraries to point to them however they wish.
-    set(CMAKE_MACOSX_RPATH ON)
+    if(APPLE)
+        # This variable gets used when configuring the Info.plist for
+        # simbody-visualizer.app; see cmake/MacOSXBundleInfo.plist.in.
+        set(MACOSX_BUNDLE_HIGH_RESOLUTION_CAPABLE "false")
+
+        # Set the install name of libraries to contain "@rpath".
+        # This allows clients of our libraries to point to them however they wish.
+        set(CMAKE_MACOSX_RPATH ON)
+    endif() 
 
     # We only need to set RPATH in executables if the libraries are installed
     # into directories that are not already searched by the linker.

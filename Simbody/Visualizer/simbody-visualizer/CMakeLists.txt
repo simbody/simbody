@@ -75,13 +75,10 @@ set_target_properties(${GUI_NAME} PROPERTIES
         PROJECT_LABEL "Code - ${GUI_NAME}"
         DEBUG_OUTPUT_NAME ${GUI_NAME}${CMAKE_DEBUG_POSTFIX})
 
-# On OSX, bake the relative path to the Simbody libraries into the visualizer
-# executable. Then there's no need to set `DYLD_LIBRARY_PATH` to find the
-# libraries when using the visualizer.
+# On OSX and Linux systems, bake the relative path to the Simbody libraries into 
+# the visualizer executable. Then there's no need to set `DYLD_LIBRARY_PATH` (or
+# `LD_LIBRARY_PATH` on Linux) to find the libraries when using the visualizer.
 if(${SIMBODY_USE_INSTALL_RPATH})
-    # @executable_path only makes sense on OSX, so if we use RPATH on
-    # Linux we'll have to revisit.
-
     # vis_dir_to_install_dir is most likely "../"
     if (APPLE)
         set(vis_install_dir
@@ -93,9 +90,15 @@ if(${SIMBODY_USE_INSTALL_RPATH})
             "${vis_install_dir}"
             "${CMAKE_INSTALL_PREFIX}")
     set(vis_dir_to_lib_dir "${vis_dir_to_install_dir}${CMAKE_INSTALL_LIBDIR}")
-    set_target_properties(${GUI_NAME} PROPERTIES
-        INSTALL_RPATH "\@executable_path/${vis_dir_to_lib_dir}"
+    if(APPLE)
+        set_target_properties(${GUI_NAME} PROPERTIES
+            INSTALL_RPATH "@executable_path/${vis_dir_to_lib_dir}"
         )
+    elseif(UNIX AND NOT APPLE)
+        set_target_properties(${GUI_NAME} PROPERTIES
+            INSTALL_RPATH "\$ORIGIN/${vis_dir_to_lib_dir}"
+        )
+    endif()
 endif()
 
 if(BUILD_DYNAMIC_LIBRARIES)
