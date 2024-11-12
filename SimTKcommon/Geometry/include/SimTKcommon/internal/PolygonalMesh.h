@@ -165,7 +165,14 @@ public:
     int getNumVertices() const;
     /** Check whether the PolygonalMesh contains Normals information. */
     bool hasNormals() const;
-    /** Check whether the PolygonalMesh contains Texture information. */
+    /** Check whether the PolygonalMesh contains Normals information at ALL vertices. */
+    bool hasNormalsAtVertices() const;
+    /** Check whether the PolygonalMesh contains Normals information.at ALL faces */
+    bool hasNormalsAtFaces() const;
+    /** Check whether the PolygonalMesh contains Texture information at every face/vertex 
+        If hasNormalsAtVertices() it's assumed texture coordinates have been computed at each vertex
+        so coordinates are ready to send to visualization, otherwise texture coordinates are assumed
+        to be per face/vertex, client needs to convert to visualization/triangulated layout. */
     bool hasTextureCoordinates() const;
 
     /** Get the position of a vertex in the mesh.
@@ -219,6 +226,10 @@ public:
     @return The index of the newly added normal. **/
     int addNormal(const UnitVec3& normal);
 
+    /** Add texture coordinate to the mesh.
+    @param[in]  textureCoord   The u-v vector of texture coordinates to be associated.
+                        with either a vertex or face/vertex.
+    @return The index of the newly added texture coordinate. **/
     int addTextureCoordinate(const Vec2& textureCoord);
 
     /** Add a face to the mesh. Note that the ordering of the vertices defines
@@ -295,9 +306,17 @@ public:
     @param[in]  pathname    The name of a .stl or .stla file. **/
     void loadStlFile(const String& pathname);
 
-private:
+    /** Return whether the mesh has normals specified at each vertex. **/
+    bool meshAttributesAvailablePerVertex() const;
+
+    /** Return whether the mesh has texture coordinates or not. **/
+    bool meshHasTextures() const;
+
+   private:
     explicit PolygonalMesh(PolygonalMeshImpl* impl) : HandleBase(impl) {}
     void initializeHandleIfEmpty();
+    void enforceMeshConsistency();
+    
 };
 
 } // namespace SimTK

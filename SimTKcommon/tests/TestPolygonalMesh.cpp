@@ -69,6 +69,9 @@ void testCreateMesh() {
     ASSERT(&mesh4.getImpl() != &mesh.getImpl());
     ASSERT(mesh4.getImplHandleCount()==1);
     ASSERT(mesh.getImplHandleCount()==3);
+
+    ASSERT(!mesh.hasNormals())
+    ASSERT(!mesh.hasTextureCoordinates())
 }
 
 void testLoadObjFile() {
@@ -107,6 +110,8 @@ void testLoadObjFile() {
     ASSERT(mesh.getFaceVertex(3, 1) == 2);
     ASSERT(mesh.getFaceVertex(3, 2) == 4);
     ASSERT(mesh.getFaceVertex(3, 3) == 1);
+    ASSERT(!mesh.hasNormals())
+    ASSERT(!mesh.hasTextureCoordinates())
 }
 
 void testLoadObjFileWithNormalsTexture() {
@@ -186,7 +191,10 @@ void testLoadObjFileWithNormalsTexture() {
             }
         }
      }
-
+    ASSERT(mesh.hasNormals())
+    ASSERT(!mesh.hasNormalsAtVertices())
+    ASSERT(mesh.hasNormalsAtFaces())
+    ASSERT(mesh.hasTextureCoordinates())
 }
 
 void testLoadVtpFile() {
@@ -279,14 +287,18 @@ void testLoadVtpFile() {
     mesh.loadVtpFile("plane.vtp");
     // verts = -0.5 -0.5 0, 0.5 -0.5 0, -0.5 0.5 0,  0.5 0.5 0
     // Normals = 0 0 1, 0 0 1,0 0 1, 0 0 1
-    Vec3 verts[] ={
-        {-.5, -.5, 0}, {.5, -.5, 0}, {-.5, .5, 0}, {.5, .5, 0}};
+    std::array<Vec3, 4> verts={Vec3{-.5, -.5, .0}, Vec3{.5, -.5, .0},
+                                 Vec3{-.5, .5, .0}, Vec3{.5, .5, .0}};
     ASSERT(mesh.getNumVertices() == 4);
     ASSERT(mesh.getNumFaces() == 1);
-    for (int v = 0; v < 4; ++v) {
+    for (int v = 0; v < verts.size(); ++v) {
         ASSERT(mesh.getVertexNormal(v) == UnitVec3(0, 0, 1));
         ASSERT(mesh.getVertexPosition(v) == verts[v]);
     }
+    ASSERT(mesh.hasNormals())
+    ASSERT(mesh.hasNormalsAtVertices())
+    ASSERT(!mesh.hasNormalsAtFaces())
+    ASSERT(mesh.hasTextureCoordinates())
 }
 
 

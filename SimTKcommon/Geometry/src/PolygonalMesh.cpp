@@ -92,7 +92,15 @@ const UnitVec3& PolygonalMesh::getVertexNormal(int vertex) const {
 }
 
 bool PolygonalMesh::hasNormals() const {
-    return getImpl().normals.size() > 0;
+    return hasNormalsAtVertices() || hasNormalsAtFaces();
+}
+
+bool PolygonalMesh::hasNormalsAtVertices() const {
+    return getImpl().normals.size() == getImpl().vertices.size();
+}
+
+bool PolygonalMesh::hasNormalsAtFaces() const {
+    return getNumFaces() == getImpl().normals.size();
 }
 
 bool PolygonalMesh::hasTextureCoordinates() const {
@@ -231,6 +239,8 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
     Array_<int> normalIndices;
     Array_<int> textureIndices;
     int initialVertices = getNumVertices();
+    bool expectTextureCoordinates = false;
+    bool expectNormals = false;
     while (!file.eof()) {
         SimTK_ERRCHK_ALWAYS(file.good(), methodName,
             "An error occurred while reading the input file.");
@@ -270,7 +280,6 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
         }
         else if (command == "vt") {
             // A texture coordinate
-
             Real u, v;
             s >> u;
             s >> v;
@@ -311,16 +320,28 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
                 }
                 s.ignore(line.size(), ' ');
             }
-            if (indices.size()  != normalIndices.size())
+            if (getNumFaces() == 0) { // First encountered face, set expectations
+                expectNormals = (indices.size() == normalIndices.size());
+                expectTextureCoordinates =
+                    (indices.size() == textureIndices.size());
+            }
+            if (indices.size() != normalIndices.size() || !expectNormals) {
                 addFace(indices);
+            }
             else {
                 addFaceWithNormals(indices, normalIndices);
-                if (textureIndices.size() == indices.size())
-                    addFaceTextureCoordinates(textureIndices);
             }
+            if (textureIndices.size() == indices.size() &&
+                expectTextureCoordinates) {
+                    addFaceTextureCoordinates(textureIndices);
+            } else
+                expectTextureCoordinates = false;
 
         }
     }
+    updImpl().meshInfoAtVertices = false;
+    updImpl().meshHasTextureCoordinates = expectTextureCoordinates;
+    enforceMeshConsistency();
 }
 
 
@@ -481,7 +502,6 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
             dataArray.getValueAs(textureCoordinates);
     }
     
-    std::cout << textureCoordinates << std::endl;
     // The lone DataArray element in the Points element contains the points'
     // coordinates. Read it in as a Vector of Vec3s.
     Xml::Element pointData = points.getRequiredElement("DataArray");
@@ -560,7 +580,9 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
         addFace(connectivity(startPoly, offsets[i]-startPoly));
         startPoly = offsets[i]; // move to the next poly
     }
-
+    updImpl().meshInfoAtVertices = true;
+    updImpl().meshHasTextureCoordinates = hasTextureCoordinates;
+    enforceMeshConsistency();
   } catch (const std::exception& e) {
       // This will throw a new exception with an enhanced message that
       // includes the original one.
@@ -570,7 +592,33 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
   }
 }
 
-//------------------------------------------------------------------------------
+// This method enforces the following assumptions to be used by clients:
+// If meshInfoAtVertices then normals and texture coordinates are either empty or fully populated
+// 
+void PolygonalMesh::enforceMeshConsistency() {
+    if (getImpl().meshInfoAtVertices) {
+        // number of vertices, normal must match
+        // If not we'll nuke the corresponding arrays and indicate we have no normals
+        int expected_size = getImpl().vertices.size();
+        if (expected_size != getImpl().normals.size()) {
+            // Wipe out normals to avoid downstream issues
+            updImpl().normals.clear();
+            updImpl().faceVertexNormalIndex.clear();
+        }
+        if (expected_size != getImpl().textureCoordinates.size()) {
+            updImpl().textureCoordinates.clear();
+            updImpl().faceVertexTextureIndex.clear();
+        } 
+    } else { // Assume meshInfo (normals, texture) available at faces/loops
+        int expected_size = getNumFaces();
+        if (expected_size != getImpl().normals.size()) {
+            // Wipe out normals to avoid downstream issues
+            updImpl().normals.clear();
+        }
+    }
+
+}
+    //------------------------------------------------------------------------------
 //                              VERTEX MAP
 //------------------------------------------------------------------------------
 // This is a local utility class for use in weeding out duplicate vertices.
@@ -674,6 +722,7 @@ void PolygonalMesh::loadStlFile(const String& pathname) {
     } else {
         stlfile.loadStlBinaryFile(*this);
     }
+    enforceMeshConsistency();
 }
 
 // The standard format for an ASCII STL file is:
