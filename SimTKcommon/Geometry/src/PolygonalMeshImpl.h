@@ -53,6 +53,9 @@ public:
     Array_<int> faceVertexNormalIndex;
     Array_<Vec2> textureCoordinates;
     Array_<int> faceVertexTextureIndex;
+
+    bool meshInfoAtVertices = false;
+    bool meshHasTextureCoordinates = false;
 };
 
 } // namespace SimTK
