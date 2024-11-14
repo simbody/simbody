@@ -197,6 +197,98 @@ void testLoadObjFileWithNormalsTexture() {
     ASSERT(mesh.hasTextureCoordinates())
 }
 
+void testConvertObjFileToVisualizationFormat() {
+    string file;
+    file += "# This is a comment\n";
+    file += "v 1.000000 1.000000 -1.000000\n";
+    file += "v 1.000000 -1.000000 -1.00000\n";
+    file += "v 1.000000 1.000000 1.000000\n";
+    file += "v 1.000000 -1.000000 1.000000\n";
+    file += "v -1.000000 1.000000 -1.00000\n";
+    file += "v -1.000000 -1.000000 -1.000\n";
+    file += "v -1.000000 1.000000 1.000000\n";
+    file += "v -1.000000 -1.000000 1.000000\n";
+    file += "vn -0.0000 1.0000 -0.0000\n";
+    file += "vn -0.0000 -0.0000 1.0000\n";
+    file += "vn -1.0000 -0.0000 -0.0000\n";
+    file += "vn -0.0000 -1.0000 -0.0000\n";
+    file += "vn 1.0000 -0.0000 -0.0000\n";
+    file += "vn -0.0000 -0.0000 -1.0000\n";
+    file += "vt 0.625000 0.500000\n";
+    file += "vt 0.875000 0.500000\n";
+    file += "vt 0.875000 0.750000\n";
+    file += "vt 0.625000 0.750000\n";
+    file += "vt 0.375000 0.750000\n";
+    file += "vt 0.625000 1.000000\n";
+    file += "vt 0.375000 1.000000\n";
+    file += "vt 0.375000 0.000000\n";
+    file += "vt 0.625000 0.000000\n";
+    file += "vt 0.625000 0.250000\n";
+    file += "vt 0.375000 0.250000\n";
+    file += "vt 0.125000 0.500000\n";
+    file += "vt 0.375000 0.500000\n";
+    file += "vt 0.125000 0.750000\n";
+    file += "s 0\n";
+    file += "usemtl Material\n";
+    file += "f 1/1/1 5/2/1 7/3/1 3/4/1\n";
+    file += "f 4/5/2 3/4/2 7/6/2 8/7/2\n";
+    file += "f 8/8/3 7/9/3 5/10/3 6/11/3\n";
+    file += "f 6/12/4 2/13/4 4/5/4 8/14/4\n";
+    file += "f 2/13/5 1/1/5 3/4/5 4/5/5\n";
+    file += "f 6/11/6 5/10/6 1/1/6 2/13/6\n";
+
+    PolygonalMesh mesh;
+    stringstream stream(file);
+    mesh.loadObjFile(stream);
+    // Convert mesh to triangles, create parallel arrays of indices, normals,
+    // texture-coords
+    // Results were below were identical to those produced using VTK's OBJReader that 
+    // visualize/render perfectly in the viewer
+    std::vector<std::array<int, 3>> triangles;
+    std::vector<int> vertexIndices;
+    std::vector<UnitVec3> normals;
+    std::vector<Vec2> textures;
+    bool hasNormals = true;  // By construction for obj files
+    bool hasTextureCoordinates = mesh.hasTextureCoordinates();
+    for (int face = 0; face < mesh.getNumFaces(); face++) {
+        int numVerts = mesh.getNumVerticesForFace(face);
+        // First triangle is 0, 1, 2, then 0, 2, 3, up to ... 0, n-2, n-1
+        for (int tri = 0; tri < numVerts - 2; tri++) {
+            std::array<int, 3> indices = {0, tri + 1, tri + 2};
+            // Make triangle of vertices 0, tri+1, tri+2
+            triangles.push_back(indices);
+            if (tri == 0) {
+                vertexIndices.push_back(mesh.getFaceVertex(face, indices[0]));
+                vertexIndices.push_back(mesh.getFaceVertex(face, indices[1]));
+            }
+            vertexIndices.push_back(mesh.getFaceVertex(face, indices[2]));
+            if (mesh.hasNormalsAtFaces()) {
+                if (tri == 0) {
+                    normals.push_back(mesh.getVertexNormal(face, indices[0]));
+                    normals.push_back(mesh.getVertexNormal(face, indices[1]));
+                }
+                normals.push_back(mesh.getVertexNormal(face, indices[2]));
+            }
+            if (mesh.hasTextureCoordinates()) {
+                if (tri == 0) {
+                    textures.push_back(
+                        mesh.getVertexTextureCoordinate(face, indices[0]));
+                    textures.push_back(
+                        mesh.getVertexTextureCoordinate(face, indices[1]));
+                }
+                textures.push_back(
+                    mesh.getVertexTextureCoordinate(face, indices[2]));
+            }
+        }
+    }
+    //int runningIndex = 0;
+    //for (int i = 0; i < vertexIndices.size(); i++) {
+    //    std::cout << mesh.getVertexPosition(vertexIndices[i]);
+    //    if (hasNormals) std::cout << normals.at(i);
+    //    if (hasTextureCoordinates) std::cout << textures.at(i);
+    //    std::cout << std::endl;
+    //}
+}
 void testLoadVtpFile() {
     PolygonalMesh mesh;
     string fileContent;
@@ -307,6 +399,7 @@ int main() {
         testCreateMesh();
         testLoadObjFile();
         testLoadObjFileWithNormalsTexture();
+        testConvertObjFileToVisualizationFormat();
         testLoadVtpFile();
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
