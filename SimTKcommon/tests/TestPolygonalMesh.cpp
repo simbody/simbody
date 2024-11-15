@@ -195,6 +195,8 @@ void testLoadObjFileWithNormalsTexture() {
     ASSERT(!mesh.hasNormalsAtVertices())
     ASSERT(mesh.hasNormalsAtFaces())
     ASSERT(mesh.hasTextureCoordinates())
+    ASSERT(mesh.hasTextureCoordinatesAtFaces())
+    ASSERT(!mesh.hasTextureCoordinatesAtVertices())
 }
 
 void testConvertObjFileToVisualizationFormat() {
@@ -242,14 +244,14 @@ void testConvertObjFileToVisualizationFormat() {
     mesh.loadObjFile(stream);
     // Convert mesh to triangles, create parallel arrays of indices, normals,
     // texture-coords
-    // Results were below were identical to those produced using VTK's OBJReader that 
-    // visualize/render perfectly in the viewer
+    // Results below were identical to those produced using VTK's OBJReader that 
+    // visualize/render correctly in viewers
     std::vector<std::array<int, 3>> triangles;
     std::vector<int> vertexIndices;
     std::vector<UnitVec3> normals;
     std::vector<Vec2> textures;
     bool hasNormals = true;  // By construction for obj files
-    bool hasTextureCoordinates = mesh.hasTextureCoordinates();
+    bool hasTextureCoordinatesAtFaces = mesh.hasTextureCoordinatesAtFaces();
     for (int face = 0; face < mesh.getNumFaces(); face++) {
         int numVerts = mesh.getNumVerticesForFace(face);
         // First triangle is 0, 1, 2, then 0, 2, 3, up to ... 0, n-2, n-1
@@ -269,7 +271,7 @@ void testConvertObjFileToVisualizationFormat() {
                 }
                 normals.push_back(mesh.getVertexNormal(face, indices[2]));
             }
-            if (mesh.hasTextureCoordinates()) {
+            if (mesh.hasTextureCoordinatesAtFaces()) {
                 if (tri == 0) {
                     textures.push_back(
                         mesh.getVertexTextureCoordinate(face, indices[0]));
@@ -281,13 +283,24 @@ void testConvertObjFileToVisualizationFormat() {
             }
         }
     }
-    //int runningIndex = 0;
-    //for (int i = 0; i < vertexIndices.size(); i++) {
-    //    std::cout << mesh.getVertexPosition(vertexIndices[i]);
-    //    if (hasNormals) std::cout << normals.at(i);
-    //    if (hasTextureCoordinates) std::cout << textures.at(i);
-    //    std::cout << std::endl;
-    //}
+    std::vector<UnitVec3> expectedNormals = std::vector<UnitVec3>{
+        UnitVec3{ 0., 1., 0. },  UnitVec3{ 0., 1., 0. },  UnitVec3{ 0., 1., 0. },  UnitVec3{ 0., 1., 0. },
+        UnitVec3{ 0., 0., 1. },  UnitVec3{ 0., 0., 1. },  UnitVec3{ 0., 0., 1. },  UnitVec3{ 0., 0., 1. },
+        UnitVec3{ -1., 0., 0. }, UnitVec3{ -1., 0., 0. }, UnitVec3{ -1., 0., 0. }, UnitVec3{ -1., 0., 0. },
+        UnitVec3{ 0., -1., 0. }, UnitVec3{ 0., -1., 0. }, UnitVec3{ 0., -1., 0. }, UnitVec3{ 0., -1., 0. },
+        UnitVec3{ 1., 0., 0. },  UnitVec3{ 1., 0., 0. },  UnitVec3{ 1., 0., 0. },  UnitVec3{ 1., 0., 0. },
+        UnitVec3{ 0., 0., -1. }, UnitVec3{ 0., 0., -1. }, UnitVec3{ 0., 0., -1. }, UnitVec3{ 0., 0., -1. }
+    };
+    std::vector<Vec2> expectedTextures = std::vector<Vec2>{
+        Vec2{0.625, 0.5},    Vec2{ 0.875, 0.5 },  Vec2{ 0.875, 0.75 }, Vec2{ 0.625, 0.75 },
+        Vec2{ 0.375, 0.75 }, Vec2{ 0.625, 0.75 }, Vec2{ 0.625, 1. },   Vec2{ 0.375, 1. },
+        Vec2{ 0.375, 0. },   Vec2{ 0.625, 0. },   Vec2{ 0.625, 0.25 }, Vec2{ 0.375, 0.25 },
+        Vec2{ 0.125, 0.5 },  Vec2{ 0.375, 0.5 },  Vec2{ 0.375, 0.75 }, Vec2{ 0.125, 0.75 },
+        Vec2{ 0.375, 0.5 },  Vec2{ 0.625, 0.5 },  Vec2{ 0.625, 0.75 }, Vec2{ 0.375, 0.75 },
+        Vec2{ 0.375, 0.25 }, Vec2{ 0.625, 0.25 }, Vec2{ 0.625, 0.5 },  Vec2{ 0.375, 0.5 }};
+
+    assert(normals == expectedNormals);
+    assert(textures == expectedTextures);
 }
 void testLoadVtpFile() {
     PolygonalMesh mesh;
@@ -390,7 +403,7 @@ void testLoadVtpFile() {
     ASSERT(mesh.hasNormals())
     ASSERT(mesh.hasNormalsAtVertices())
     ASSERT(!mesh.hasNormalsAtFaces())
-    ASSERT(mesh.hasTextureCoordinates())
+    ASSERT(mesh.hasTextureCoordinatesAtVertices())
 }
 
 
