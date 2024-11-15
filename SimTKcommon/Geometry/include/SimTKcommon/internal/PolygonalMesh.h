@@ -163,17 +163,22 @@ public:
     int getNumFaces() const;
     /** Get the number of vertices in the mesh. **/
     int getNumVertices() const;
+
     /** Check whether the PolygonalMesh contains Normals information. */
     bool hasNormals() const;
     /** Check whether the PolygonalMesh contains Normals information at ALL vertices. */
     bool hasNormalsAtVertices() const;
     /** Check whether the PolygonalMesh contains Normals information.at ALL faces */
     bool hasNormalsAtFaces() const;
-    /** Check whether the PolygonalMesh contains Texture information at every face/vertex 
-        If hasNormalsAtVertices() it's assumed texture coordinates have been computed at each vertex
-        so coordinates are ready to send to visualization, otherwise texture coordinates are assumed
-        to be per face/vertex, client needs to convert to visualization/triangulated layout. */
+
+    /** Check whether the PolygonalMesh contains Texture information.at ALL faces or vertices */
     bool hasTextureCoordinates() const;
+    /** Check whether the PolygonalMesh contains Texture information at every face/vertex 
+        client needs to convert to visualization/triangulated layout. */
+    bool hasTextureCoordinatesAtFaces() const;
+    /** Check whether the PolygonalMesh contains Texture information at every
+       vertex, ready for visualization/triangulation. */
+    bool hasTextureCoordinatesAtVertices() const;
 
     /** Get the position of a vertex in the mesh.
     @param[in]  vertex  The index of the vertex (as returned by addVertex()).
@@ -305,12 +310,6 @@ public:
     is some hope of getting a connected surface.
     @param[in]  pathname    The name of a .stl or .stla file. **/
     void loadStlFile(const String& pathname);
-
-    /** Return whether the mesh has normals specified at each vertex. **/
-    bool meshAttributesAvailablePerVertex() const;
-
-    /** Return whether the mesh has texture coordinates or not. **/
-    bool meshHasTextures() const;
 
    private:
     explicit PolygonalMesh(PolygonalMeshImpl* impl) : HandleBase(impl) {}

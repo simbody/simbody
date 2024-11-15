@@ -54,7 +54,7 @@ public:
     Array_<Vec2> textureCoordinates;
     Array_<int> faceVertexTextureIndex;
 
-    bool meshInfoAtVertices = false;
+    bool meshDataAtVertices = false;
     bool meshHasTextureCoordinates = false;
 };
 

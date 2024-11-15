@@ -104,7 +104,15 @@ bool PolygonalMesh::hasNormalsAtFaces() const {
 }
 
 bool PolygonalMesh::hasTextureCoordinates() const {
+    return hasTextureCoordinatesAtVertices() || hasTextureCoordinatesAtFaces();
+}
+
+bool PolygonalMesh::hasTextureCoordinatesAtFaces() const {
     return getImpl().textureCoordinates.size() > 0;
+}
+
+bool PolygonalMesh::hasTextureCoordinatesAtVertices() const {
+    return getImpl().textureCoordinates.size() == getImpl().vertices.size();
 }
 
 int PolygonalMesh::getNumVerticesForFace(int face) const {
@@ -339,7 +347,7 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
 
         }
     }
-    updImpl().meshInfoAtVertices = false;
+    updImpl().meshDataAtVertices = false;
     updImpl().meshHasTextureCoordinates = expectTextureCoordinates;
     enforceMeshConsistency();
 }
@@ -580,7 +588,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
         addFace(connectivity(startPoly, offsets[i]-startPoly));
         startPoly = offsets[i]; // move to the next poly
     }
-    updImpl().meshInfoAtVertices = true;
+    updImpl().meshDataAtVertices = true;
     updImpl().meshHasTextureCoordinates = hasTextureCoordinates;
     enforceMeshConsistency();
   } catch (const std::exception& e) {
@@ -593,11 +601,11 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 }
 
 // This method enforces the following assumptions to be used by clients:
-// If meshInfoAtVertices then normals and texture coordinates are either empty or fully populated
+// If meshDataAtVertices then normalIndices and texture coordinates are either empty or fully populated
 // 
 void PolygonalMesh::enforceMeshConsistency() {
-    if (getImpl().meshInfoAtVertices) {
-        // number of vertices, normal must match
+    if (getImpl().meshDataAtVertices) {
+        // number of vertices, normals must match
         // If not we'll nuke the corresponding arrays and indicate we have no normals
         int expected_size = getImpl().vertices.size();
         if (expected_size != getImpl().normals.size()) {
@@ -786,7 +794,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
         "Can't open file '%s'", m_pathcstr);
 
     Array_<int> vertices;
-    Array_<int> normals;
+    Array_<int> normalIndices;
 
     // Don't allow EOF until we've seen two significant lines.
     while (getSignificantLine(m_sigLineNo >= 2)) {
@@ -820,7 +828,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
 
             // Now process vertices.
             vertices.clear();
-            normals.clear();
+            normalIndices.clear();
             int normalIndex = mesh.addNormal(UnitVec3(faceNormal));
             while (m_keyword == "vertex") {
                 Vec3 vertex;
@@ -831,7 +839,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
                     "  badly formed vertex.", m_lineNo, m_pathcstr);
                 int vertIndex = getVertex(vertex, mesh);
                 vertices.push_back(vertIndex);
-                normals.push_back(normalIndex);
+                normalIndices.push_back(normalIndex);
                 getSignificantLine(false);
             }
 
@@ -842,7 +850,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
                 "  a facet had %d vertices; at least 3 required.", 
                 m_lineNo, m_pathcstr, vertices.size());
 
-            mesh.addFaceWithNormals(vertices, normals);
+            mesh.addFaceWithNormals(vertices, normalIndices);
 
             // Vertices must end with 'endloop' if started with 'outer loop'.
             if (outerLoopSeen) {
@@ -899,7 +907,7 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
         "  couldn't read triangle count.", m_pathcstr);
 
     Array_<int> vertices(3);
-    Array_<int> normals(3);
+    Array_<int> normalIndices(3);
     float vbuf[3];
     unsigned short sbuf;
     const unsigned vz = 3*sizeof(float);
@@ -916,9 +924,9 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
             int vertIndex = getVertex(vertex, mesh);
             vertices.push_back(vertIndex);
             vertices[vx] = vertIndex;
-            normals.push_back(normalIndex);
+            normalIndices.push_back(normalIndex);
         }
-        mesh.addFaceWithNormals(vertices, normals);
+        mesh.addFaceWithNormals(vertices, normalIndices);
         // Now read and toss the "attribute byte count".
         m_ifs.read((char*)&sbuf,sizeof(short));
         SimTK_ERRCHK2_ALWAYS(m_ifs.good() && m_ifs.gcount()==sizeof(short), 
