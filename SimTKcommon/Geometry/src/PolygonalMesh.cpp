@@ -196,9 +196,12 @@ PolygonalMesh& PolygonalMesh::scaleMesh(Real scale) {
 PolygonalMesh& PolygonalMesh::transformMesh(const Transform& X_AM) {
     if (!isEmptyHandle()) {
         Array_<Vec3>& vertices = updImpl().vertices;
-        for (int i = 0; i < (int) vertices.size(); i++)
-            vertices[i] = X_AM*vertices[i];
-        // What to do to normalsIndices if available?
+        for (int i = 0; i < (int)vertices.size(); i++)
+            vertices[i] = X_AM * vertices[i];
+        // Normals if available are rotated by the R component of X_AM
+        Array_<UnitVec3>& normals = updImpl().normals;
+        for (int i = 0; i < (int)normals.size(); i++)
+            normals[i] = X_AM.R() * normals[i];
     }
     return *this;
 }
@@ -265,7 +268,6 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
         s >> command;
         if (command == "v") {
             // A vertex
-            
             Real x, y, z;
             s >> x;
             s >> y;
@@ -276,7 +278,6 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
         }
         else if (command == "vn") {
             // A normal
-
             Real x, y, z;
             s >> x;
             s >> y;
@@ -317,7 +318,6 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
                     vtnStringAsStream >> tIndex;
                     tIndex--;
                     textureIndices.push_back(tIndex);
-                    // 
                     vtnStringAsStream.ignore(line.size(), '/');
                 }
                 // get Normal index
@@ -816,7 +816,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
                 m_restOfLine >> normalString >> faceNormal;
                 normalsSeen = true;
             } 
-            
+
             // Save result in face_normals and set in PolygonalMesh once done parsing/merging vertices
             getSignificantLine(false);
 
