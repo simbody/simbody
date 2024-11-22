@@ -282,8 +282,10 @@ public:
     **/
     void loadFile(const String& pathname);
 
-    /** Load a Wavefront OBJ (.obj) file, adding the vertices and faces it 
-    contains to this mesh, and ignoring anything else in the file. The suffix
+    /** Load a Wavefront OBJ (.obj) file, adding the vertices, faces, normals
+    and  texture coordinates it contains to this mesh, and ignoring anything 
+    else in the file. Normals and texture coordinates are kept if available to
+    all vertices/faces, ignored otherwise. The suffix
     for these files is typically ".obj" but we don't check here.
     @param[in]  pathname    The name of a .obj file. **/
     void loadObjFile(const String& pathname);
@@ -295,14 +297,18 @@ public:
                             contents. **/
     void loadObjFile(std::istream& file);
 
-    /** Load a VTK PolyData (.vtp) file, adding the vertices and faces it 
-    contains to this mesh and ignoring anything else in the file. The suffix 
+    /** Load a VTK PolyData (.vtp) file, adding the vertices, faces, normals
+    and  texture coordinates it contains to this mesh, and ignoring anything 
+    else in the file. Normals and texture coordinates are kept if available to
+    all vertices, ignored otherwise. The suffix 
     for these files is typically ".vtp" but we don't check here.
     @param[in]  pathname    The name of a .vtp file. **/
     void loadVtpFile(const String& pathname);
 
-    /** Load an STL file, adding the vertices and faces it contains to this 
-    mesh and ignoring anything else in the file. The file may be in ascii or 
+    /** Load an STL file, adding the vertices, faces , normals
+    it contains to this mesh, and ignoring anything 
+    else in the file. Normals are kept if available to
+    all vertices/faces, ignored otherwise. The file may be in ascii or 
     binary format. If the suffix is ".stla" then it can only be ascii. 
     Otherwise, including ".stl" or anything else, we'll examine the contents to 
     determine which format is used. STL files include many repeated vertices;
