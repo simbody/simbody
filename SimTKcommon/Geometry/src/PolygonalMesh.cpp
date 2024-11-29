@@ -922,7 +922,6 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
                 "  couldn't read vertex %d for face %d.", m_pathcstr, vx, fx);
             const Vec3 vertex((Real)vbuf[0], (Real)vbuf[1], (Real)vbuf[2]);
             int vertIndex = getVertex(vertex, mesh);
-            vertices.push_back(vertIndex);
             vertices[vx] = vertIndex;
             normalIndices.push_back(normalIndex);
         }
