@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2008-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors: Michael Sherman                                              *
+ * Contributors: Michael Sherman, Ayman Habib                                 *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -55,6 +55,14 @@ programmatically, and some static methods are provided here for generating some
 common shapes. If you don't know what kind of file you have, you can attempt to 
 read it with the loadFile() method which will examine the file extension to 
 determine the expected format.
+
+The file formats above support having normals (and/or texture coordinates) 
+either at each vertex (.vtp) or per face/vertex (obj, stl). We assume this 
+info is provided either at all or none of the vertices, otherwise it's ignored. 
+If normals are provided we assume they are interpolated at vertices, otherwise 
+normals shouldn't be in the files to begin with (redundant). Clients should check
+that info is available at vertices first, if not check face/vertex.
+Programmatically created meshes do not contain normals or textures as of now.
 
 The mesh has its own local frame and vertex locations are given in that 
 frame. You can scale and transform the vertices relative to that frame 
