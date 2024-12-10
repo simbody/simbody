@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2008-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors: Michael Sherman                                              *
+ * Contributors: Michael Sherman, Ayman Habib                                 *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -55,6 +55,14 @@ programmatically, and some static methods are provided here for generating some
 common shapes. If you don't know what kind of file you have, you can attempt to 
 read it with the loadFile() method which will examine the file extension to 
 determine the expected format.
+
+The file formats above support having normals (and/or texture coordinates) 
+either at each vertex (.vtp) or per face/vertex (obj, stl). We assume this 
+info is provided either at all or none of the vertices, otherwise it's ignored. 
+If normals are provided we assume they are interpolated at vertices, otherwise 
+normals shouldn't be in the files to begin with (redundant). Clients should check
+that info is available at vertices first, if not check face/vertex.
+Programmatically created meshes do not contain normals or textures as of now.
 
 The mesh has its own local frame and vertex locations are given in that 
 frame. You can scale and transform the vertices relative to that frame 
@@ -164,14 +172,50 @@ public:
     /** Get the number of vertices in the mesh. **/
     int getNumVertices() const;
 
+    /** Check whether the PolygonalMesh contains Normals information. */
+    bool hasNormals() const;
+    /** Check whether the PolygonalMesh contains Normals information at ALL vertices. */
+    bool hasNormalsAtVertices() const;
+    /** Check whether the PolygonalMesh contains Normals information.at ALL faces */
+    bool hasNormalsAtFaces() const;
+
+    /** Check whether the PolygonalMesh contains Texture information.at ALL faces or vertices */
+    bool hasTextureCoordinates() const;
+    /** Check whether the PolygonalMesh contains Texture information at every face/vertex 
+        client needs to convert to visualization/triangulated layout. */
+    bool hasTextureCoordinatesAtFaces() const;
+    /** Check whether the PolygonalMesh contains Texture information at every
+       vertex, ready for visualization/triangulation. */
+    bool hasTextureCoordinatesAtVertices() const;
+
     /** Get the position of a vertex in the mesh.
     @param[in]  vertex  The index of the vertex (as returned by addVertex()).
     @return The position of the specified vertex, measured and expressed in
     the mesh local frame. **/
     const Vec3& getVertexPosition(int vertex) const;
+
+    /** Get the normal of a vertex in the mesh, vertex specified by face/vertex.
+    @param[in]  faceIndex  The index of the face (as returned by addFace()).
+    @param[in]  vertexIndex  The index of the vertex within the face.
+    @return The Normal of the mesh at the specified face/vertex **/
+    const UnitVec3 getVertexNormal(int faceIndex, int vertexIndex) const;
+
+    /** Get the normal of a vertex in the mesh.
+    @param[in]  vertex  The index of the vertex (as returned by addVertex()).
+    @return The Normal of the mesh at the specified vertex **/
+    const UnitVec3& getVertexNormal(int vertex) const;
+
+    /** Get the texture coordinate of a vertex in the mesh, vertex specified by face/vertex.
+    @param[in]  faceIndex  The index of the face (as returned by addFace()).
+    @param[in]  vertexIndex  The index of the vertex within the face.
+    @return The texture coordinate of the face/vertex **/
+    const Vec2 getVertexTextureCoordinate(int faceIndex,
+                                                         int vertexIndex) const;
+
     /** Get the number of vertices that make up a particular face.
     @param[in]  face    The index of the face (as returned by addFace()). **/
     int getNumVerticesForFace(int face) const;
+
     /** Get the index of one of the vertices of a face.
     @param[in]  face    The index of the face (as returned by addFace()).
     @param[in]  vertex  The index of the vertex within the face (from 0, 1, or 2 
@@ -186,6 +230,21 @@ public:
     @return The index of the newly added vertex. **/
     int addVertex(const Vec3& position);
 
+    /** Add vertex normal to the mesh.
+    @param[in]  normal   The unit vector of the normal to add, measured and
+                        expressed in the mesh local frame.
+                        Depending on the mesh format this could be vertex normal
+                        or face normal, it's user responsibility to decide what
+                        these mean.
+    @return The index of the newly added normal. **/
+    int addNormal(const UnitVec3& normal);
+
+    /** Add texture coordinate to the mesh.
+    @param[in]  textureCoord   The u-v vector of texture coordinates to be associated.
+                        with either a vertex or face/vertex.
+    @return The index of the newly added texture coordinate. **/
+    int addTextureCoordinate(const Vec2& textureCoord);
+
     /** Add a face to the mesh. Note that the ordering of the vertices defines
     the outward normal for the face; they must be counterclockwise around the
     desired normal.
@@ -195,6 +254,11 @@ public:
                             normal.
     @return The index of the newly added face. **/
     int addFace(const Array_<int>& vertices);
+
+    int addFaceWithNormals(const Array_<int>& vertices,
+                           const Array_<int>& normalIndices);
+
+    void addFaceTextureCoordinates(const Array_<int>& textureIndices);
 
     /** Scale a mesh by multiplying every vertex by a fixed value. Note that
     this permanently modifies the vertex locations within the mesh. Since the
@@ -226,8 +290,10 @@ public:
     **/
     void loadFile(const String& pathname);
 
-    /** Load a Wavefront OBJ (.obj) file, adding the vertices and faces it 
-    contains to this mesh, and ignoring anything else in the file. The suffix
+    /** Load a Wavefront OBJ (.obj) file, adding the vertices, faces, normals
+    and  texture coordinates it contains to this mesh, and ignoring anything 
+    else in the file. Normals and texture coordinates are kept if available to
+    all vertices/faces, ignored otherwise. The suffix
     for these files is typically ".obj" but we don't check here.
     @param[in]  pathname    The name of a .obj file. **/
     void loadObjFile(const String& pathname);
@@ -239,14 +305,18 @@ public:
                             contents. **/
     void loadObjFile(std::istream& file);
 
-    /** Load a VTK PolyData (.vtp) file, adding the vertices and faces it 
-    contains to this mesh and ignoring anything else in the file. The suffix 
+    /** Load a VTK PolyData (.vtp) file, adding the vertices, faces, normals
+    and  texture coordinates it contains to this mesh, and ignoring anything 
+    else in the file. Normals and texture coordinates are kept if available to
+    all vertices, ignored otherwise. The suffix 
     for these files is typically ".vtp" but we don't check here.
     @param[in]  pathname    The name of a .vtp file. **/
     void loadVtpFile(const String& pathname);
 
-    /** Load an STL file, adding the vertices and faces it contains to this 
-    mesh and ignoring anything else in the file. The file may be in ascii or 
+    /** Load an STL file, adding the vertices, faces , normals
+    it contains to this mesh, and ignoring anything 
+    else in the file. Normals are kept if available to
+    all vertices/faces, ignored otherwise. The file may be in ascii or 
     binary format. If the suffix is ".stla" then it can only be ascii. 
     Otherwise, including ".stl" or anything else, we'll examine the contents to 
     determine which format is used. STL files include many repeated vertices;
@@ -255,9 +325,11 @@ public:
     @param[in]  pathname    The name of a .stl or .stla file. **/
     void loadStlFile(const String& pathname);
 
-private:
+   private:
     explicit PolygonalMesh(PolygonalMeshImpl* impl) : HandleBase(impl) {}
     void initializeHandleIfEmpty();
+    void enforceMeshConsistency();
+    
 };
 
 } // namespace SimTK
