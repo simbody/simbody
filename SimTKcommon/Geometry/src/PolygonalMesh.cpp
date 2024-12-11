@@ -486,11 +486,8 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     Xml::Element piecePointData = piece.getRequiredElement("PointData");
     Array_<Xml::Element>  pointDataElements = piecePointData.getAllElements("DataArray");
     const String normalsString =
-        piecePointData.getRequiredAttributeValue("Normals");
-    SimTK_ERRCHK1_ALWAYS(
-        piecePointData.getRequiredAttributeValue("Normals") == "Normals",
-        method, "VTP file missing normals info.",
-        piecePointData.getRequiredAttributeValue("Normals").c_str());
+        piecePointData.getOptionalAttributeValue("Normals");
+
     bool hasNormals = (normalsString == "Normals");
 
     const String textureCoordinatesString =
