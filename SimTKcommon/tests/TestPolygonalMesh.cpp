@@ -489,7 +489,6 @@ void testLoadVtpFileNoNormals() {
 
     mesh.loadVtpFile("planeNoNormals.vtp");
     // verts = -0.5 -0.5 0, 0.5 -0.5 0, -0.5 0.5 0,  0.5 0.5 0
-    // Normals = 0 0 1, 0 0 1,0 0 1, 0 0 1
     std::array<Vec3, 4> verts = {Vec3{-.5, -.5, .0}, Vec3{.5, -.5, .0},
                                  Vec3{-.5, .5, .0}, Vec3{.5, .5, .0}};
     ASSERT(mesh.getNumVertices() == 4);
