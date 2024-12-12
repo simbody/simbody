@@ -406,6 +406,99 @@ void testLoadVtpFile() {
     ASSERT(mesh.hasTextureCoordinatesAtVertices())
 }
 
+void testLoadVtpFileNoNormals() {
+    PolygonalMesh mesh;
+    string fileContent;
+    fileContent += "<?xml version='1.0'?>";
+    fileContent +=
+        "<VTKFile type='PolyData' version='0.1' byte_order='LittleEndian' "
+        "compressor='vtkZLibDataCompressor'>";
+    fileContent += "<PolyData>";
+    fileContent +=
+        "<Piece NumberOfPoints='4' NumberOfVerts='0' NumberOfLines='0' "
+        "NumberOfStrips='0' NumberOfPolys='1'>";
+    fileContent += "<PointData TCoords='TextureCoordinates'>";
+    fileContent +=
+        "<DataArray type='Float32' Name='TextureCoordinates' "
+        "NumberOfComponents='2' format='ascii' RangeMin='0' "
+        "RangeMax='1.4142135624'>";
+    fileContent += "    0 0 1 0 0 1";
+    fileContent += "    1 1";
+    fileContent += "</DataArray>";
+    fileContent += "</PointData>";
+    fileContent += "<CellData>";
+    fileContent += "</CellData>";
+    fileContent += "<Points>";
+    fileContent +=
+        "<DataArray type='Float32' Name='Array 0476C968' "
+        "NumberOfComponents='3' format='ascii' RangeMin='0.70710678119' "
+        "RangeMax='0.70710678119'>";
+    fileContent += "    -0.5 -0.5 0 0.5 -0.5 0";
+    fileContent += "    -0.5 0.5 0 0.5 0.5 0";
+    fileContent += "</DataArray>";
+    fileContent += "</Points>";
+    fileContent += "<Verts>";
+    fileContent +=
+        "<DataArray type='Int32' Name='connectivity' format='ascii' "
+        "RangeMin='1e+299' RangeMax='-1e+299'>";
+    fileContent += "</DataArray>";
+    fileContent +=
+        "<DataArray type='Int32' Name='offsets' format='ascii' "
+        "RangeMin='1e+299' RangeMax='-1e+299'>";
+    fileContent += "</DataArray>";
+    fileContent += "</Verts>";
+    fileContent += "<Lines>";
+    fileContent +=
+        "<DataArray type='Int32' Name='connectivity' format='ascii' "
+        "RangeMin='1e+299' RangeMax='-1e+299'>";
+    fileContent += "</DataArray>";
+    fileContent +=
+        "<DataArray type='Int32' Name='offsets' format='ascii' "
+        "RangeMin='1e+299' RangeMax='-1e+299'>";
+    fileContent += "</DataArray>";
+    fileContent += "</Lines>";
+    fileContent += "<Strips>";
+    fileContent +=
+        "<DataArray type='Int32' Name='connectivity' format='ascii' "
+        "RangeMin='1e+299' RangeMax='-1e+299'>";
+    fileContent += "</DataArray>";
+    fileContent +=
+        "<DataArray type='Int32' Name='offsets' format='ascii' "
+        "RangeMin='1e+299' RangeMax='-1e+299'>";
+    fileContent += "</DataArray>";
+    fileContent += "</Strips>";
+    fileContent += "<Polys>";
+    fileContent +=
+        "<DataArray type='Int32' Name='connectivity' format='ascii' "
+        "RangeMin='1e+299' RangeMax='-1e+299'>";
+    fileContent += "    0 1 3 2";
+    fileContent += "</DataArray>";
+    fileContent +=
+        "<DataArray type='Int32' Name='offsets' format='ascii' "
+        "RangeMin='1e+299' RangeMax='-1e+299'>";
+    fileContent += "    4";
+    fileContent += "</DataArray>";
+    fileContent += "</Polys>";
+    fileContent += "</Piece>";
+    fileContent += "</PolyData>";
+    fileContent += "</VTKFile>";
+
+    std::ofstream filePtr("planeNoNormals.vtp", std::ios::out);
+    filePtr << fileContent;
+    filePtr.close();
+
+    mesh.loadVtpFile("planeNoNormals.vtp");
+    // verts = -0.5 -0.5 0, 0.5 -0.5 0, -0.5 0.5 0,  0.5 0.5 0
+    std::array<Vec3, 4> verts = {Vec3{-.5, -.5, .0}, Vec3{.5, -.5, .0},
+                                 Vec3{-.5, .5, .0}, Vec3{.5, .5, .0}};
+    ASSERT(mesh.getNumVertices() == 4);
+    ASSERT(mesh.getNumFaces() == 1);
+    for (int v = 0; v < verts.size(); ++v) {
+        ASSERT(mesh.getVertexPosition(v) == verts[v]);
+    }
+    ASSERT(!mesh.hasNormals())
+    ASSERT(mesh.hasTextureCoordinatesAtVertices())
+}
 
 int main() {
     try {
@@ -414,6 +507,7 @@ int main() {
         testLoadObjFileWithNormalsTexture();
         testConvertObjFileToVisualizationFormat();
         testLoadVtpFile();
+        testLoadVtpFileNoNormals();
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
