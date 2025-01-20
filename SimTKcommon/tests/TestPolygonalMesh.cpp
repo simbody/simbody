@@ -500,6 +500,74 @@ void testLoadVtpFileNoNormals() {
     ASSERT(mesh.hasTextureCoordinatesAtVertices())
 }
 
+static void testLoadVtpNoNormalsNoTextureCoords() {
+
+    // This example was copied from OpenSim's legacy geometry directory,
+    // which can be found at `github.com/opensim-org/opensim-models/Geometry/anchor1.vtp`
+    constexpr auto anchor1VTP = R"(
+        <?xml version="1.0"?>
+        <VTKFile type="PolyData" version="0.1" byte_order="LittleEndian" compressor="vtkZLibDataCompressor">
+          <PolyData>
+            <Piece NumberOfPoints="24" NumberOfVerts="0" NumberOfLines="0" NumberOfStrips="0" NumberOfPolys="6">
+              <Points>
+                <DataArray type="Float32" NumberOfComponents="3" format="ascii">
+           -0.2500         0    0.3000
+           -0.2500         0    0.4000
+           -0.2500    0.1000    0.3000
+           -0.2500    0.1000    0.4000
+            0.2500         0    0.3000
+            0.2500         0    0.4000
+            0.2500    0.1000    0.3000
+            0.2500    0.1000    0.4000
+           -0.2500         0    0.3000
+           -0.2500         0    0.4000
+            0.2500         0    0.3000
+            0.2500         0    0.4000
+           -0.2500    0.1000    0.3000
+           -0.2500    0.1000    0.4000
+            0.2500    0.1000    0.3000
+            0.2500    0.1000    0.4000
+           -0.2500         0    0.3000
+            0.2500         0    0.3000
+           -0.2500    0.1000    0.3000
+            0.2500    0.1000    0.3000
+           -0.2500         0    0.4000
+            0.2500         0    0.4000
+           -0.2500    0.1000    0.4000
+            0.2500    0.1000    0.4000
+                </DataArray>
+              </Points>
+              <Polys>
+                <DataArray type="Int32" Name="connectivity" format="ascii">
+                  0 1 3 2 4 6
+                  7 5 8 10 11 9
+                  12 13 15 14 16 18
+                  19 17 20 21 23 22
+                </DataArray>
+                <DataArray type="Int32" Name="offsets" format="ascii">
+                  4 8 12 16 20 24
+                </DataArray>
+              </Polys>
+            </Piece>
+          </PolyData>
+        </VTKFile>
+    )";
+
+    // write vtp content to a file (API requirement)
+    {
+        std::ofstream ofs;
+        ofs.exceptions(std::ios::badbit | std::ios::failbit);
+        ofs.open("anchor1.vtp", std::ios::out);
+        ofs << anchor1VTP;
+    }
+
+    PolygonalMesh mesh;
+    mesh.loadVtpFile("anchor1.vtp");
+    ASSERT(mesh.getNumVertices() == 24);
+    ASSERT(!mesh.hasNormals());
+    ASSERT(!mesh.hasTextureCoordinates());
+}
+
 int main() {
     try {
         testCreateMesh();
@@ -508,6 +576,7 @@ int main() {
         testConvertObjFileToVisualizationFormat();
         testLoadVtpFile();
         testLoadVtpFileNoNormals();
+        testLoadVtpNoNormalsNoTextureCoords();
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
