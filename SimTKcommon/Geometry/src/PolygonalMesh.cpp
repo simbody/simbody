@@ -482,31 +482,33 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // EDIT: We actually don't use this variable. Leaving for reference.
     // TODO const int firstVertex = getNumVertices();
 
-    // Read the normals
-    Xml::Element piecePointData = piece.getRequiredElement("PointData");
-    Array_<Xml::Element>  pointDataElements = piecePointData.getAllElements("DataArray");
-    const String normalsString =
-        piecePointData.getOptionalAttributeValue("Normals");
-
-    bool hasNormals = (normalsString == "Normals");
-
-    const String textureCoordinatesString =
-        piecePointData.getOptionalAttributeValue("TCoords");
-
-    bool hasTextureCoordinates =
-        (textureCoordinatesString == "TextureCoordinates");
-
+    // Read the normals/texture coords (optional)
     Vector_<Vec3> normals;
+    bool hasNormals = false;
     Vector_<Vec2> textureCoordinates;
+    bool hasTextureCoordinates = false;
+    if (piece.hasElement("PointData")) {  // legacy VTP files may not contain a <PointData> block
+        Xml::Element piecePointData = piece.getRequiredElement("PointData");
+        Array_<Xml::Element>  pointDataElements = piecePointData.getAllElements("DataArray");
+        const String normalsString =
+            piecePointData.getOptionalAttributeValue("Normals");
 
-    for (auto dataArray : pointDataElements) {
-        auto name = dataArray.getRequiredAttributeValue("Name");
-        if (name=="Normals")
-            dataArray.getValueAs(normals);
-        else if (name == "TextureCoordinates")
-            dataArray.getValueAs(textureCoordinates);
+        hasNormals = (normalsString == "Normals");
+
+        const String textureCoordinatesString =
+            piecePointData.getOptionalAttributeValue("TCoords");
+
+        hasTextureCoordinates =
+            (textureCoordinatesString == "TextureCoordinates");
+
+        for (auto dataArray : pointDataElements) {
+            auto name = dataArray.getRequiredAttributeValue("Name");
+            if (name=="Normals")
+                dataArray.getValueAs(normals);
+            else if (name == "TextureCoordinates")
+                dataArray.getValueAs(textureCoordinates);
+        }
     }
-    
     // The lone DataArray element in the Points element contains the points'
     // coordinates. Read it in as a Vector of Vec3s.
     Xml::Element pointData = points.getRequiredElement("DataArray");
