@@ -2497,6 +2497,98 @@ void calcPathErrorJacobian(
     }
 }
 
+// TODO description.
+//
+// Put this on DataPos.
+// Use this to limit the step size as well.
+struct GeodesicBoundaryFrame : FrenetFrame {
+    GeodesicBoundaryFrame() = default;
+    GeodesicBoundaryFrame(
+        const ContactGeometry& geometry,
+        const ContactGeometry::GeodesicKnotPoint& y,
+        const Transform& X_SF)
+    {
+        throw std::runtime_error("NotYetImplemented");
+    }
+
+    Real kp    = NaN;
+    Real kb    = NaN;
+    Real tau_g = NaN;
+
+    Real a    = NaN;
+    Real aDot = NaN;
+
+    Real r    = NaN;
+    Real rDot = NaN;
+
+    Mat34 calcPositionVariation() const
+    {
+        throw std::runtime_error("NotYetImplemented");
+    }
+
+    Mat34 calcRotationVariation() const
+    {
+        throw std::runtime_error("NotYetImplemented");
+    }
+
+    // TODO move this to the clamping code because the name is misleading.
+    // It is not the max, but it adds all expected effects.
+    Real calcMaxAngularVariation(const NaturalGeodesicCorrection& q)
+    {
+        Real maxAbsVarEst = 0.;
+        const Mat34 w     = calcRotationVariation();
+        for (int i = 0; i < c_GeodesicDOF; ++i) {
+            const Real wMax        = max(w.col(i).abs());
+            const Real absAngleEst = std::abs(wMax * q(i));
+            maxAbsVarEst           = std::max(maxAbsVarEst, absAngleEst);
+        }
+
+        throw std::runtime_error("NotYetImplemented");
+    }
+};
+
+// TODO description.
+void calcPathErrorVector(
+    const State& state,
+    const CableSpan::Impl& cable,
+    const std::vector<LineSegment>& lines,
+    CoordinateAxis axis,
+    Vector& pathError)
+{
+    throw std::runtime_error("NotYetImplemented");
+}
+
+// TODO description.
+void calcPathErrorJacobian(
+    const State& state,
+    const CableSpan::Impl& cable,
+    const std::vector<LineSegment>& lines,
+    CoordinateAxis axis,
+    Matrix& jacobian)
+{
+    throw std::runtime_error("NotYetImplemented");
+}
+
+// TODO description.
+void calcLengthGradient(
+    const State& state,
+    const CableSpan::Impl& cable,
+    const std::vector<LineSegment>& lines,
+    Vector& gradient)
+{
+    throw std::runtime_error("NotYetImplemented");
+}
+
+// TODO description.
+void calcLengthHessian(
+    const State& state,
+    const CableSpan::Impl& cable,
+    const std::vector<LineSegment>& lines,
+    Matrix& hessian)
+{
+    throw std::runtime_error("NotYetImplemented");
+}
+
 } // namespace
 
 //==============================================================================
