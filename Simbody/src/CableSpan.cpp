@@ -353,6 +353,17 @@ struct CurveSegmentData {
         FrenetFrame X_GP;
         // Frenet frame at the final contact point w.r.t. ground.
         FrenetFrame X_GQ;
+        // Variation of position at frame P. Where each column is the variation
+        // of the position to each of the natural geodesic variations.
+        Mat34 v_P;
+        // Variation of rotation at frame P. Where each column is the variation
+        // of the orientation to each of the natural geodesic variations, as a
+        // rotation vector.
+        Mat34 w_P;
+        // Variation of position at frame Q.
+        Mat34 v_Q;
+        // Variation of rotation at frame Q.
+        Mat34 w_Q;
     };
 };
 
@@ -1169,10 +1180,57 @@ public:
             // Store the geodesic's Frenet frames in ground frame.
             dataPos.X_GP = dataPos.X_GS.compose(dataInst.X_SP);
             dataPos.X_GQ = dataPos.X_GS.compose(dataInst.X_SQ);
+
+            {
+                const FrenetFrame& X_GP = dataPos.X_GP;
+
+                const Real tau = dataInst.torsion_P;
+                const Real kn  = dataInst.curvatures_P[0];
+                const Real kb  = dataInst.curvatures_P[1];
+
+                dataPos.v_P.col(0) = Vec3(getTangent(X_GP));
+                dataPos.v_P.col(1) = Vec3(getBinormal(X_GP));
+                dataPos.v_P.col(2) = Vec3(0.);
+                dataPos.v_P.col(3) = Vec3(0.);
+
+                dataPos.w_P.col(0) = X_GP.R() * Vec3(tau, 0., kn);
+                dataPos.w_P.col(1) = X_GP.R() * Vec3(-kb, 0., -tau);
+                dataPos.w_P.col(2) = X_GP.R() * Vec3(0., -1., 0.);
+                dataPos.w_P.col(3) = Vec3(0);
+            }
+
+            {
+                const FrenetFrame& X_GQ = dataPos.X_GQ;
+
+                const Real tau = dataInst.torsion_Q;
+                const Real kn  = dataInst.curvatures_Q[0];
+                const Real kb  = dataInst.curvatures_Q[1];
+
+                const Real a    = dataInst.jacobi_Q[0];
+                const Real aDot = dataInst.jacobiDot_Q[0];
+
+                const Real r    = dataInst.jacobi_Q[1];
+                const Real rDot = dataInst.jacobiDot_Q[1];
+
+                dataPos.v_Q.col(0) = Vec3(getTangent(X_GQ));
+                dataPos.v_Q.col(1) = a * getBinormal(X_GQ);
+                dataPos.v_Q.col(2) = r * getBinormal(X_GQ);
+                dataPos.v_Q.col(3) = Vec3(getTangent(X_GQ));
+
+                dataPos.w_Q.col(0) = X_GQ.R() * Vec3(tau, 0., kn);
+                dataPos.w_Q.col(1) = X_GQ.R() * Vec3(-a * kb, -aDot, -a * tau);
+                dataPos.w_Q.col(2) = X_GQ.R() * Vec3(-r * kb, -rDot, -r * tau);
+                dataPos.w_Q.col(3) = dataPos.w_Q.col(0);
+            }
         } else {
             // No contact = no geodesic.
             dataPos.X_GP.setToNaN();
             dataPos.X_GQ.setToNaN();
+
+            dataPos.v_P.setToNaN();
+            dataPos.w_P.setToNaN();
+            dataPos.v_Q.setToNaN();
+            dataPos.w_Q.setToNaN();
         }
 
         getSubsystem().markCacheValueRealized(state, m_indexDataPos);
@@ -2498,90 +2556,6 @@ void calcPathErrorJacobian(
 }
 
 // TODO description.
-//
-// Put this on DataPos.
-// Use this to limit the step size as well.
-struct GeodesicBoundaryFrame : FrenetFrame {
-    GeodesicBoundaryFrame() = default;
-
-private:
-    GeodesicBoundaryFrame(
-        const FrenetFrame& X_GF,
-        Real kn,
-        Real kb,
-        Real tau,
-        Real a,
-        Real aDot,
-        Real r,
-        Real rDot)
-    {
-        throw std::runtime_error("NotYetImplemented");
-
-        FrenetFrame& frenetFrame = *this;
-        frenetFrame              = X_GF;
-
-        Mat34& dp = this->positionVariation;
-        dp.col(0) = Vec3(getTangent(X_GF));
-        dp.col(1) = a * getBinormal(X_GF);
-        dp.col(2) = r * getBinormal(X_GF);
-        dp.col(3) = Vec3(0.);
-
-        Mat34& w = this->rotationVariation;
-        w.col(0) = X_GF.R() * Vec3(tau, 0., kn);
-        w.col(1) = X_GF.R() * Vec3(-a * kb, -aDot, -a * tau);
-        w.col(2) = X_GF.R() * Vec3(-r * kb, -rDot, -r * tau);
-        w.col(3) = Vec3(0.);
-    }
-
-public:
-    GeodesicBoundaryFrame CreateFrameAtP(
-        const FrenetFrame& X_GF,
-        Real kn,
-        Real kb,
-        Real tau,
-        Real a,
-        Real aDot,
-        Real r,
-        Real rDot)
-    {
-        return {X_GF, kn, kb, tau, a, aDot, r, rDot};
-    }
-
-    GeodesicBoundaryFrame CreateFrameAtQ(
-        const FrenetFrame& X_GF,
-        Real kn,
-        Real kb,
-        Real tau,
-        Real a,
-        Real aDot,
-        Real r,
-        Real rDot)
-    {
-        GeodesicBoundaryFrame frame(X_GF, kn, kb, tau, a, aDot, r, rDot);
-        frame.positionVariation.col(3) = frame.positionVariation.col(0);
-        frame.rotationVariation.col(3) = frame.rotationVariation.col(0);
-    }
-
-    Mat34 positionVariation;
-    Mat34 rotationVariation;
-
-    // TODO move this to the clamping code because the name is misleading.
-    // It is not the max, but it adds all expected effects.
-    Real calcMaxAngularVariation(const NaturalGeodesicCorrection& q)
-    {
-        Real maxAbsVarEst = 0.;
-        const Mat34& w    = rotationVariation;
-        for (int i = 0; i < c_GeodesicDOF; ++i) {
-            const Real wMax        = max(w.col(i).abs());
-            const Real absAngleEst = std::abs(wMax * q(i));
-            maxAbsVarEst           = std::max(maxAbsVarEst, absAngleEst);
-        }
-
-        throw std::runtime_error("NotYetImplemented");
-    }
-};
-
-// TODO description.
 void calcPathErrorVector(
     const State& state,
     const CableSpan::Impl& cable,
@@ -2589,7 +2563,32 @@ void calcPathErrorVector(
     CoordinateAxis axis,
     Vector& pathError)
 {
-    throw std::runtime_error("NotYetImplemented");
+        throw std::runtime_error("NotYetImplemented");
+    // Reset path error vector to zero.
+    pathError.setToZero();
+
+    // The element in the path error vector to write to.
+    int pathErrorIx = -1;
+    // Index to a straight line segment.
+    int lineIx = 0;
+
+    for (CableSpanObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        // Path errors are only computed for obstacles that make contact.
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(state)) {
+            continue;
+        }
+        const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
+        // Compute path error at first contact point.
+        pathError(++pathErrorIx) =
+            dot(lines.at(lineIx).direction,
+                dataPos.X_GP.R().getAxisUnitVec(axis));
+        ++lineIx;
+        // Compute path error at final contact point.
+        pathError(++pathErrorIx) = -dot(
+            lines.at(lineIx).direction,
+            dataPos.X_GQ.R().getAxisUnitVec(axis));
+    }
 }
 
 // TODO description.
@@ -2600,7 +2599,104 @@ void calcPathErrorJacobian(
     CoordinateAxis axis,
     Matrix& jacobian)
 {
-    throw std::runtime_error("NotYetImplemented");
+        throw std::runtime_error("NotYetImplemented");
+    // Number of free coordinates for a generic geodesic.
+    constexpr int NQ = c_GeodesicDOF;
+
+    // Sanity check on the matrix dimensions.
+    const int numberOfCurvesInContact = static_cast<int>(lines.size()) - 1;
+    SimTK_ASSERT3(
+        J.ncol() >= numberOfCurvesInContact * NQ + colOffset &&
+            J.nrow() >= numberOfCurvesInContact * 2 + rowOffset,
+        "Jacobian matrix size (%d x %d) does not match number of curves (%d)",
+        J.nrow(),
+        J.ncol(),
+        numberOfCurvesInContact);
+
+    // Current indexes to write the elements of the Jacobian to,
+    int row = 0;
+    int col = 0;
+
+    Matrix& J = jacobian;
+
+    // Helper for adding a computed block to the Jacobian.
+    auto AddBlock = [&](const Vec4& block, int colShift = 0)
+    {
+        std::cout << "addBlock " << block << "\n";
+        for (int ix = 0; ix < 4; ++ix) {
+            J(row, col + colShift + ix) += block[ix];
+        }
+    };
+
+    // Index to a straight line segment.
+    int lineIx = 0;
+    for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(state)) {
+            continue;
+        }
+        const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
+
+        // The path error of which to take the Jacobian is: dot(a_P, l_P)
+        {
+            const UnitVec3& a = dataPos.X_GP.R().getAxisUnitVec(axis);
+            const UnitVec3& e = lines.at(lineIx).direction;
+            const Real l      = lines.at(lineIx).length;
+
+            const Vec3 dc_dv_P = (a - e * dot(e, a)) / l;
+            const Vec3 dc_dw_P = cross(a, e);
+
+            AddBlock(~dataPos.v_P * dc_dv_P + ~dataPos.w_P * dc_dw_P);
+
+            // Write to the off-diagonal of J the Jacobian of the path
+            // error to the previous CurveSegment's NaturalGeodesicCorrection.
+            const ObstacleIndex prevObsIx =
+                curve.findPrevObstacleInContactWithCable(state);
+            if (prevObsIx.isValid()) {
+                constexpr int colShift = -NQ; // the off-diagonal block.
+
+                const Vec3 dc_dv_Q = -dc_dv_P;
+                const Mat34& v_Q =
+                    cable.getObstacleCurveSegment(prevObsIx).getDataPos(state).v_Q;
+                AddBlock(~v_Q * dc_dv_Q, colShift);
+            }
+            // Increment to the next path error element.
+            ++row;
+        }
+
+        // Compute the Jacobian elements of the path error related to the final
+        // contact point.
+        ++lineIx; // Increment to the next straight line segment.
+        {
+            // The path error of which to take the Jacobian is: dot(a_Q, l_Q)
+            const UnitVec3& a = dataPos.X_GQ.R().getAxisUnitVec(axis);
+            const UnitVec3& e = lines.at(lineIx).direction;
+            const Real l      = lines.at(lineIx).length;
+
+            const Vec3 dc_dv_Q = (a - e * dot(e, a)) / l;
+            const Vec3 dc_dw_Q = -cross(a, e);
+
+            // Write to the block diagonal of J the Jacobian of the path error
+            // to the CurveSegment's NaturalGeodesicCorrection.
+            AddBlock(~dataPos.v_Q * dc_dv_Q + ~dataPos.w_Q * dc_dw_Q);
+
+            // Write to the off-diagonal of J the Jacobian of the path
+            // error to the next CurveSegment's NaturalGeodesicCorrection.
+            const ObstacleIndex nextObsIx =
+                curve.findNextObstacleInContactWithCable(state);
+            if (nextObsIx.isValid()) {
+                constexpr int colShift = NQ; // the off-diagonal block.
+                const Vec3 dc_dv_P     = -dc_dv_Q;
+                const Mat34& v_P =
+                    cable.getObstacleCurveSegment(nextObsIx).getDataPos(state).v_P;
+                AddBlock(~v_P * dc_dv_P, colShift);
+            }
+            // Increment to the next path error element.
+            ++row;
+        }
+
+        col += NQ;
+    }
 }
 
 // TODO description.
@@ -2610,7 +2706,34 @@ void calcLengthGradient(
     const std::vector<LineSegment>& lines,
     Vector& gradient)
 {
-    throw std::runtime_error("NotYetImplemented");
+    // Reset path error vector to zero.
+    gradient.setToZero();
+
+    // The row element in the path error vector to write to.
+    int row = -1;
+    // Index to a straight line segment.
+    int lineIx = 0;
+
+    for (CableSpanObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        // Only consider obstacles that make contact.
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(state)) {
+            continue;
+        }
+        const CurveSegmentData::Position& dataPos  = curve.getDataPos(state);
+
+        // Grab the straight line segment's directions.
+        const UnitVec3& e_P = lines.at(lineIx).direction;
+        const UnitVec3& e_Q = lines.at(lineIx + 1).direction;
+
+        // Compute variation of the total length to the natural geodesic
+        // variations of the current CurveSegment.
+        Vec4 gradientBlock = ~dataPos.v_P * e_P - ~dataPos.v_Q * e_Q;
+        for (int i = 0; i < 4; ++i) {
+            gradient(++row) = gradientBlock(i) + (i == 3 ? 1. : 0.);
+        }
+        ++lineIx;
+    }
 }
 
 // TODO description.
@@ -2621,6 +2744,155 @@ void calcLengthHessian(
     Matrix& hessian)
 {
     throw std::runtime_error("NotYetImplemented");
+    // Number of free coordinates for a generic geodesic.
+    constexpr int NQ = c_GeodesicDOF;
+
+    // Reset the values in the Jacobian.
+    Matrix& H = hessian;
+    H.setToZero();
+
+    // Sanity check on the matrix dimensions.
+    const int numberOfCurvesInContact = static_cast<int>(lines.size()) - 1;
+    SimTK_ASSERT3(
+        J.ncol() == numberOfCurvesInContact * NQ &&
+            J.nrow() ==
+                numberOfCurvesInContact * MatrixWorkspace::c_NumConstraints,
+        "Jacobian matrix size (%d x %d) does not match number of curves (%d)",
+        J.nrow(),
+        J.ncol(),
+        numberOfCurvesInContact);
+
+    // Current indexes to write the elements of the Jacobian to,
+    int row = 0;
+    int col = 0;
+
+    // Helper for adding a computed block to the Jacobian.
+    auto AddBlock = [&](const Mat44& block, int colOffset = 0)
+    {
+        /* std::cout << "adding block = " << block << "\n"; */
+        for (int r = 0; r < 4; ++r) {
+            for (int c = 0; c < 4; ++c) {
+                H(row + r, col + colOffset + c) += block(r, c);
+            }
+        }
+    };
+
+    Mat33 I(1.);
+
+    auto tilde = [](const Vec3& v) -> Mat33
+    {
+        return {
+            0., -v(2), v(1),
+            v(2), 0., -v(0),
+            -v(1), v(0), 0.,
+        };
+    };
+
+    // Index to a straight line segment.
+    int lineIx = 0;
+    for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(state)) {
+            continue;
+        }
+        const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
+
+        const bool addRateTerms = true;
+
+        // The path error of which to take the Jacobian is: dot(a_P, l_P)
+        {
+            const UnitVec3& e = lines.at(lineIx).direction;
+            const Real l      = lines.at(lineIx).length;
+
+            const Mat33 E = (I - e * ~e) / l;
+
+            const Mat34& v_P = dataPos.v_P;
+            const Mat34& w_P = dataPos.w_P;
+            if (addRateTerms) {
+                const Mat44 vblock = ~v_P * E * v_P;
+                Mat44 wblock       = ~v_P * tilde(e) * w_P;
+                // TODO this appears to be the remaining non-symmetric term.
+                /* wblock(0,2) = 0.; // TODO remove dot(e,b) term */
+                /* std::cout << "H_vP = " << vblock << "\n"; */
+                /* std::cout << "H_wP = " << wblock << "\n"; */
+                /* std::cout << "e^T b = " << dot(e, getBinormal(dataPos.X_GP))
+                 */
+                /*           << "\n"; */
+                AddBlock(vblock + wblock);
+            } else {
+                AddBlock(~v_P * E * v_P);
+            }
+
+            // Write to the off-diagonal of J the Jacobian of the path
+            // error to the previous CurveSegment's NaturalGeodesicCorrection.
+            const ObstacleIndex prevObsIx =
+                curve.findPrevObstacleInContactWithCable(state);
+            if (prevObsIx.isValid()) {
+                constexpr int colShift = -NQ; // the off-diagonal block.
+                const Mat34& v_Q =
+                    cable.getObstacleCurveSegment(prevObsIx).getDataPos(state).v_Q;
+                AddBlock(-~v_P * E * v_Q, colShift);
+            }
+        }
+
+        // Compute the Jacobian elements of the path error related to the final
+        // contact point.
+        ++lineIx; // Increment to the next straight line segment.
+        {
+            // The path error of which to take the Jacobian is: dot(a_Q, l_Q)
+            const UnitVec3& e = lines.at(lineIx).direction;
+            const Real l      = lines.at(lineIx).length;
+
+            const Mat33 E    = (I - e * ~e) / l;
+            const Mat34& v_Q = dataPos.v_Q;
+            const Mat34& w_Q = dataPos.w_Q;
+
+            if (addRateTerms) {
+
+                // Write to the block diagonal of J the Jacobian of the path
+                // error to the CurveSegment's NaturalGeodesicCorrection.
+                Mat44 vblock = ~v_Q * E * v_Q;
+                Mat44 wblock = -~v_Q * tilde(e) * w_Q;
+
+                // Derivative of jacobi scalars to ds can be obtained by noting
+                // that the hessian must be symmetric.
+                wblock(1, 0) = wblock(0, 1);
+                wblock(2, 0) = wblock(0, 2);
+                wblock(1, 3) = wblock(3, 1);
+                wblock(2, 3) = wblock(3, 2);
+
+                // What is the derivative of jacobi scalars to Beta & Theta?
+                /* const Real offDiag = 0.5 * (wblock(2,1) + wblock(1,2)); */
+                /* wblock(1,2) = offDiag; */
+                /* wblock(2,1) = offDiag; */
+
+                // Make sure Hessian is positive definite.
+                /* wblock(1,1) = std::abs(wblock(1,1)); */
+                /* wblock(2,2) = std::abs(wblock(2,2)); */
+
+                /* std::cout << "H_vQ = " << vblock << "\n"; */
+                /* std::cout << "H_wQ = " << wblock << "\n"; */
+                AddBlock(vblock + wblock);
+            } else {
+                AddBlock(~v_Q * E * v_Q);
+            }
+
+            // Write to the off-diagonal of J the Jacobian of the path
+            // error to the next CurveSegment's NaturalGeodesicCorrection.
+            const ObstacleIndex nextObsIx =
+                curve.findNextObstacleInContactWithCable(state);
+            if (nextObsIx.isValid()) {
+                constexpr int colShift = NQ; // the off-diagonal block.
+                const Mat34& v_P =
+                    cable.getObstacleCurveSegment(nextObsIx).getDataPos(state).v_P;
+                AddBlock(-~v_Q * E * v_P, colShift);
+            }
+        }
+
+        col += NQ;
+        row += NQ;
+    }
+    /* std::cout << "Hessian = " << H << "\n"; */
 }
 
 } // namespace
