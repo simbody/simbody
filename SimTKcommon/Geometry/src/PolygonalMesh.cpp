@@ -922,7 +922,7 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
             const Vec3 vertex((Real)vbuf[0], (Real)vbuf[1], (Real)vbuf[2]);
             int vertIndex = getVertex(vertex, mesh);
             vertices[vx] = vertIndex;
-            normalIndices.push_back(normalIndex);
+            normalIndices[vx] = normalIndex;
         }
         mesh.addFaceWithNormals(vertices, normalIndices);
         // Now read and toss the "attribute byte count".
