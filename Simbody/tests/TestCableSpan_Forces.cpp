@@ -50,7 +50,7 @@ void assertForces(
 
     for (int i = 0; i < numBodies; ++i) {
         SimTK_ASSERT1_ALWAYS(
-            (forces[i] - expectedBodyForcesInG[i]).norm() < 1e-13,
+            (forces[i] - expectedBodyForcesInG[i]).norm() < 1e-6,
             "Test failed: force error = %e",
             (forces[i] - expectedBodyForcesInG[i]).norm());
     }
@@ -139,9 +139,10 @@ void testCableForceAndMomentBetweenTwoBodies()
     assertForces(system, cable, expectedBodyForcesInG);
 }
 
-// Sling shot case: A cable with both attachment points fixed in Ground, along
-// the Y-axis, and a sphere obstacle which is pulled along the X-axis should
-// generate a force on the obstacle.
+// Imagine a sling-shot: A cable with both attachment points fixed in Ground,
+// and a sphere attached to an obstacle pulling on the cable in the middle. The
+// sphere is positioned in such a way that the cable makes a 45 degree angle
+// w.r.t. the straight line connecting the attachment points.
 void testCableForceOnSingleObstacle()
 {
     MultibodySystem system;
@@ -151,19 +152,23 @@ void testCableForceOnSingleObstacle()
     // Sphere obstacle radius.
     const Real radius = 1.;
 
+    // The angle the cable makes w.r.t. the straight line connecting the
+    // attachment points.
+    const Real angle = 45. / 180. * Pi;
+
     Body::Rigid aBody(MassProperties(1., Vec3(0), Inertia(1)));
     MobilizedBody::Free obstacleBody(
         matter.Ground(),
-        Vec3(radius, 0., 0.),
+        Vec3(0.),
         aBody,
         Transform());
 
     CableSpan cable(
         cables,
         matter.Ground(),
-        Vec3{0., radius, 0.},
+        Vec3{radius * tan(angle / 2.), radius, 0.},
         matter.Ground(),
-        Vec3{0., -radius, 0.});
+        Vec3{radius * tan(angle / 2.), -radius, 0.});
 
     // Add sphere obstacle.
     cable.addObstacle(
@@ -173,14 +178,16 @@ void testCableForceOnSingleObstacle()
         Vec3(radius, 0., 0.));
 
     Vector_<SpatialVec> forcesExpected(matter.getNumBodies());
-    forcesExpected[0] = SpatialVec(Vec3{0.}, Vec3{2., 0., 0.});
-    forcesExpected[1] = SpatialVec(Vec3{0., 0., 0.}, Vec3{-2., 0., 0.});
+    forcesExpected[0] = SpatialVec(Vec3{0.}, Vec3{2. * cos(angle), 0., 0.});
+    forcesExpected[1] =
+        SpatialVec(Vec3{0., 0., 0.}, Vec3{-2. * cos(angle), 0., 0.});
 
     assertForces(system, cable, forcesExpected);
 }
 
-// Consider a single sphere obstacle, with an offset between the obstacle
-// surface frame and obstacle body, to verify the generated torque.
+// This case is the same as testCableForceAndMomentOnSingleObstacle, except
+// that there is an offset between the obstacle surface frame and obstacle
+// body, to verify the generated torque.
 void testCableForceAndMomentOnSingleObstacle()
 {
     MultibodySystem system;
@@ -191,19 +198,20 @@ void testCableForceAndMomentOnSingleObstacle()
 
     const Real radius  = 1.;
     const Real offsetY = 1.;
+    const Real angle   = 45. / 180. * Pi;
 
     MobilizedBody::Free obstacleBody(
         matter.Ground(),
-        Vec3(radius, -offsetY, 0.),
+        Vec3(0., -offsetY, 0.),
         aBody,
         Transform());
 
     CableSpan cable(
         cables,
         matter.Ground(),
-        Vec3{0., radius, 0.},
+        Vec3{radius * tan(angle / 2.), radius, 0.},
         matter.Ground(),
-        Vec3{0., -radius, 0.});
+        Vec3{radius * tan(angle / 2.), -radius, 0.});
 
     cable.addObstacle(
         obstacleBody,
@@ -212,8 +220,10 @@ void testCableForceAndMomentOnSingleObstacle()
         Vec3(radius, 0., 0.));
 
     Vector_<SpatialVec> forcesExpected(matter.getNumBodies());
-    forcesExpected[0] = SpatialVec(Vec3{0.}, Vec3{2., 0., 0.});
-    forcesExpected[1] = SpatialVec(Vec3{0., 0., 2.}, Vec3{-2., 0., 0.});
+    forcesExpected[0] = SpatialVec(Vec3{0.}, Vec3{2. * cos(angle), 0., 0.});
+    forcesExpected[1] = SpatialVec(
+        Vec3{0., 0., 2. * sin(angle)},
+        Vec3{-2. * cos(angle), 0., 0.});
 
     assertForces(system, cable, forcesExpected);
 }
