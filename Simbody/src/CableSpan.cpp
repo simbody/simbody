@@ -2503,40 +2503,74 @@ void calcPathErrorJacobian(
 // Use this to limit the step size as well.
 struct GeodesicBoundaryFrame : FrenetFrame {
     GeodesicBoundaryFrame() = default;
+
+private:
     GeodesicBoundaryFrame(
-        const ContactGeometry& geometry,
-        const ContactGeometry::GeodesicKnotPoint& y,
-        const Transform& X_SF)
+        const FrenetFrame& X_GF,
+        Real kn,
+        Real kb,
+        Real tau,
+        Real a,
+        Real aDot,
+        Real r,
+        Real rDot)
     {
         throw std::runtime_error("NotYetImplemented");
+
+        FrenetFrame& frenetFrame = *this;
+        frenetFrame              = X_GF;
+
+        Mat34& dp = this->positionVariation;
+        dp.col(0) = Vec3(getTangent(X_GF));
+        dp.col(1) = a * getBinormal(X_GF);
+        dp.col(2) = r * getBinormal(X_GF);
+        dp.col(3) = Vec3(0.);
+
+        Mat34& w = this->rotationVariation;
+        w.col(0) = X_GF.R() * Vec3(tau, 0., kn);
+        w.col(1) = X_GF.R() * Vec3(-a * kb, -aDot, -a * tau);
+        w.col(2) = X_GF.R() * Vec3(-r * kb, -rDot, -r * tau);
+        w.col(3) = Vec3(0.);
     }
 
-    Real kp    = NaN;
-    Real kb    = NaN;
-    Real tau_g = NaN;
-
-    Real a    = NaN;
-    Real aDot = NaN;
-
-    Real r    = NaN;
-    Real rDot = NaN;
-
-    Mat34 calcPositionVariation() const
+public:
+    GeodesicBoundaryFrame CreateFrameAtP(
+        const FrenetFrame& X_GF,
+        Real kn,
+        Real kb,
+        Real tau,
+        Real a,
+        Real aDot,
+        Real r,
+        Real rDot)
     {
-        throw std::runtime_error("NotYetImplemented");
+        return {X_GF, kn, kb, tau, a, aDot, r, rDot};
     }
 
-    Mat34 calcRotationVariation() const
+    GeodesicBoundaryFrame CreateFrameAtQ(
+        const FrenetFrame& X_GF,
+        Real kn,
+        Real kb,
+        Real tau,
+        Real a,
+        Real aDot,
+        Real r,
+        Real rDot)
     {
-        throw std::runtime_error("NotYetImplemented");
+        GeodesicBoundaryFrame frame(X_GF, kn, kb, tau, a, aDot, r, rDot);
+        frame.positionVariation.col(3) = frame.positionVariation.col(0);
+        frame.rotationVariation.col(3) = frame.rotationVariation.col(0);
     }
+
+    Mat34 positionVariation;
+    Mat34 rotationVariation;
 
     // TODO move this to the clamping code because the name is misleading.
     // It is not the max, but it adds all expected effects.
     Real calcMaxAngularVariation(const NaturalGeodesicCorrection& q)
     {
         Real maxAbsVarEst = 0.;
-        const Mat34 w     = calcRotationVariation();
+        const Mat34& w    = rotationVariation;
         for (int i = 0; i < c_GeodesicDOF; ++i) {
             const Real wMax        = max(w.col(i).abs());
             const Real absAngleEst = std::abs(wMax * q(i));
