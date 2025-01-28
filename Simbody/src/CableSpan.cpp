@@ -2935,58 +2935,42 @@ void calcPathCorrections(MatrixWorkspace& data)
 
 // Given a correction vector computed from minimizing the cost function,
 // compute the maximum allowed stepsize along that correction vector.
-// The allowed step is computed by approximating the surface locally as
-// a circle in each direction, and limiting the radial displacement on that
-// circle.
+// The allowed step is computed using the orientation variation and the
+// correction vector. Multiplication of these two gives a rotation vector. The
+// stepsize is then clamped such that the inf-norm of that rotation vector does
+// not exceed the maximum allowed angular stepsize.
 void calcMaxAllowedCorrectionStepSize(
-    const CurveSegment& curve,
     const State& s,
+    const CurveSegment& curve,
     const NaturalGeodesicCorrection& c,
-    Real maxAngularStepsize,
+    Real allowedAngularDisplacement,
     Real& maxAllowedStepSize)
 {
-    // Helper to update the maximum allowed stepsize such that the linear
-    // displacement does not violate the max allowed step size.
-    auto UpdateMaxStepSize = [&](Real maxDisplacementEstimate, Real curvature)
-    {
-        // Use the local curvature to convert the allowed angular step size to
-        // a linear step size.
-        const Real maxAllowedDisplacement = maxAngularStepsize / curvature;
-        const Real allowedStepSize =
-            std::abs(maxAllowedDisplacement / maxDisplacementEstimate);
-        maxAllowedStepSize = std::min(maxAllowedStepSize, allowedStepSize);
+    const CurveSegmentData::Position& dataPos = curve.getDataPos(s);
+
+    // Helper for computing the maximum angular displacement estimate given the
+    // orientation variation at the boundary frame w.
+    auto CalcAbsAngularDisplacementEst = [&](const Mat34& w) -> Real {
+        Real maxAngularDisplacement = 0;
+        for (int i = 0; i < w.ncol(); ++i) {
+            const Real wAbsMax = max(w.col(i).abs());
+            maxAngularDisplacement = std::max(maxAngularDisplacement, wAbsMax * c(i));
+        }
+        return maxAngularDisplacement;
     };
 
-    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
+    // Compute the max angular displacement estimate given the angular
+    // displacement at the initial and final boundary frame.
+    const Real maxAngularDisplacement = std::max(
+            CalcAbsAngularDisplacementEst(dataPos.w_P),
+            CalcAbsAngularDisplacementEst(dataPos.w_Q));
 
-    // Clamp tangential displacement at the initial contact point.
-    {
-        const Real dxEst = c[0];
-        const Real k     = dataInst.curvatures_P[0];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp binormal displacement at the initial contact point.
-    {
-        const Real dxEst = c[1];
-        const Real k     = dataInst.curvatures_P[1];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp tangential displacement at the final contact point.
-    {
-        const Real dxEst = std::abs(c[0]) + std::abs(c[3]);
-        const Real k     = dataInst.curvatures_Q[0];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp binormal displacement at the final contact point.
-    {
-        const Real a     = dataInst.jacobi_Q[0];
-        const Real r     = dataInst.jacobi_Q[1];
-        const Real dxEst = std::abs(c[1] * a) + std::abs(c[2] * r);
-        const Real k     = dataInst.curvatures_Q[1];
-        UpdateMaxStepSize(dxEst, k);
+    // If the estimated angular displacement exceeds the allowed angular
+    // displacement, then, limit the stepsize.
+    if (maxAngularDisplacement > allowedAngularDisplacement) {
+        const Real allowedStepSize =
+            std::abs(allowedAngularDisplacement / maxAngularDisplacement);
+        maxAllowedStepSize = std::min(maxAllowedStepSize, allowedStepSize);
     }
 }
 
