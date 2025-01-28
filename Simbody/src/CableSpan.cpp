@@ -2779,7 +2779,7 @@ void calcLengthHessian(
 
     Mat33 I(1.);
 
-    auto tilde = [](const Vec3& v) -> Mat33
+    auto skewSymMat = [](const Vec3& v) -> Mat33
     {
         return {
             0., -v(2), v(1),
@@ -2810,7 +2810,7 @@ void calcLengthHessian(
             const Mat34& w_P = dataPos.w_P;
             if (addRateTerms) {
                 const Mat44 vblock = ~v_P * E * v_P;
-                Mat44 wblock       = ~v_P * tilde(e) * w_P;
+                Mat44 wblock       = ~v_P * skewSymMat(e) * w_P;
                 // TODO this appears to be the remaining non-symmetric term.
                 /* wblock(0,2) = 0.; // TODO remove dot(e,b) term */
                 /* std::cout << "H_vP = " << vblock << "\n"; */
@@ -2852,7 +2852,7 @@ void calcLengthHessian(
                 // Write to the block diagonal of J the Jacobian of the path
                 // error to the CurveSegment's NaturalGeodesicCorrection.
                 Mat44 vblock = ~v_Q * E * v_Q;
-                Mat44 wblock = -~v_Q * tilde(e) * w_Q;
+                Mat44 wblock = -~v_Q * skewSymMat(e) * w_Q;
 
                 // Derivative of jacobi scalars to ds can be obtained by noting
                 // that the hessian must be symmetric.
