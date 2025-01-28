@@ -2563,7 +2563,7 @@ void calcPathErrorVector(
     CoordinateAxis axis,
     Vector& pathError)
 {
-        throw std::runtime_error("NotYetImplemented");
+    throw std::runtime_error("NotYetImplemented");
     // Reset path error vector to zero.
     pathError.setToZero();
 
@@ -2599,7 +2599,7 @@ void calcPathErrorJacobian(
     CoordinateAxis axis,
     Matrix& jacobian)
 {
-        throw std::runtime_error("NotYetImplemented");
+    throw std::runtime_error("NotYetImplemented");
     // Number of free coordinates for a generic geodesic.
     constexpr int NQ = c_GeodesicDOF;
 
@@ -2656,8 +2656,9 @@ void calcPathErrorJacobian(
                 constexpr int colShift = -NQ; // the off-diagonal block.
 
                 const Vec3 dc_dv_Q = -dc_dv_P;
-                const Mat34& v_Q =
-                    cable.getObstacleCurveSegment(prevObsIx).getDataPos(state).v_Q;
+                const Mat34& v_Q   = cable.getObstacleCurveSegment(prevObsIx)
+                                       .getDataPos(state)
+                                       .v_Q;
                 AddBlock(~v_Q * dc_dv_Q, colShift);
             }
             // Increment to the next path error element.
@@ -2687,8 +2688,9 @@ void calcPathErrorJacobian(
             if (nextObsIx.isValid()) {
                 constexpr int colShift = NQ; // the off-diagonal block.
                 const Vec3 dc_dv_P     = -dc_dv_Q;
-                const Mat34& v_P =
-                    cable.getObstacleCurveSegment(nextObsIx).getDataPos(state).v_P;
+                const Mat34& v_P = cable.getObstacleCurveSegment(nextObsIx)
+                                       .getDataPos(state)
+                                       .v_P;
                 AddBlock(~v_P * dc_dv_P, colShift);
             }
             // Increment to the next path error element.
@@ -2720,7 +2722,7 @@ void calcLengthGradient(
         if (!curve.isInContactWithSurface(state)) {
             continue;
         }
-        const CurveSegmentData::Position& dataPos  = curve.getDataPos(state);
+        const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
 
         // Grab the straight line segment's directions.
         const UnitVec3& e_P = lines.at(lineIx).direction;
@@ -2829,8 +2831,9 @@ void calcLengthHessian(
                 curve.findPrevObstacleInContactWithCable(state);
             if (prevObsIx.isValid()) {
                 constexpr int colShift = -NQ; // the off-diagonal block.
-                const Mat34& v_Q =
-                    cable.getObstacleCurveSegment(prevObsIx).getDataPos(state).v_Q;
+                const Mat34& v_Q = cable.getObstacleCurveSegment(prevObsIx)
+                                       .getDataPos(state)
+                                       .v_Q;
                 AddBlock(-~v_P * E * v_Q, colShift);
             }
         }
@@ -2883,8 +2886,9 @@ void calcLengthHessian(
                 curve.findNextObstacleInContactWithCable(state);
             if (nextObsIx.isValid()) {
                 constexpr int colShift = NQ; // the off-diagonal block.
-                const Mat34& v_P =
-                    cable.getObstacleCurveSegment(nextObsIx).getDataPos(state).v_P;
+                const Mat34& v_P = cable.getObstacleCurveSegment(nextObsIx)
+                                       .getDataPos(state)
+                                       .v_P;
                 AddBlock(-~v_Q * E * v_P, colShift);
             }
         }
@@ -2950,11 +2954,13 @@ void calcMaxAllowedCorrectionStepSize(
 
     // Helper for computing the maximum angular displacement estimate given the
     // orientation variation at the boundary frame w.
-    auto CalcAbsAngularDisplacementEst = [&](const Mat34& w) -> Real {
+    auto CalcAbsAngularDisplacementEst = [&](const Mat34& w) -> Real
+    {
         Real maxAngularDisplacement = 0;
         for (int i = 0; i < w.ncol(); ++i) {
             const Real wAbsMax = max(w.col(i).abs());
-            maxAngularDisplacement = std::max(maxAngularDisplacement, wAbsMax * c(i));
+            maxAngularDisplacement =
+                std::max(maxAngularDisplacement, wAbsMax * c(i));
         }
         return maxAngularDisplacement;
     };
@@ -2962,8 +2968,8 @@ void calcMaxAllowedCorrectionStepSize(
     // Compute the max angular displacement estimate given the angular
     // displacement at the initial and final boundary frame.
     const Real maxAngularDisplacement = std::max(
-            CalcAbsAngularDisplacementEst(dataPos.w_P),
-            CalcAbsAngularDisplacementEst(dataPos.w_Q));
+        CalcAbsAngularDisplacementEst(dataPos.w_P),
+        CalcAbsAngularDisplacementEst(dataPos.w_Q));
 
     // If the estimated angular displacement exceeds the allowed angular
     // displacement, then, limit the stepsize.
