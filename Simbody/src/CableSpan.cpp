@@ -1894,6 +1894,16 @@ private:
         return dataPos;
     }
 
+    void calcSolverStep(
+        const State& s,
+        Algorithm algorithm,
+        MatrixWorkspace& data) const;
+
+    void calcOptimalPath(
+        const State& s,
+        Algo algorithm,
+        CableSpanData::Position& dataPos) const;
+
     void calcDataVel(const State& s, CableSpanData::Velocity& dataVel) const
     {
         const CableSpanData::Position& dataPos = getDataPos(s);
@@ -2980,6 +2990,54 @@ void calcMaxAllowedCorrectionStepSize(
     }
 }
 
+// Helper for computing the total cable length.
+// This is the sum of the lengths of all straight line segments, and all curve
+// segments.
+Real calcTotalCableLength(
+    const State& s,
+    const CableSpan::Impl& cable,
+    const std::vector<LineSegment>& lineSegments)
+{
+    Real totalCableLength = 0.;
+    // Add length of each line segment.
+    for (const LineSegment& line : lineSegments) {
+        totalCableLength += line.length;
+    }
+    // Add length of each curve segment.
+    for (ObstacleIndex obsIx(0); obsIx < cable.getNumObstacles(); ++obsIx) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(obsIx);
+        if (curve.isInContactWithSurface(s)) {
+            totalCableLength += curve.getDataInst(s).arcLength;
+        }
+    }
+    return totalCableLength;
+};
+
+// Helper for computing the stepsize such that a given path correction vector
+// does not exceed the max allowed angular displacement at the boundary frames
+// of the curve segments.
+void calcClampedPathCorrection(const State& s, const CableSpan::Impl& cable, Vector& pathCorrection)
+{
+    Real stepSize     = 1.;
+    int activeCurveIx = 0; // Index of curve in all that are in contact.
+    for (ObstacleIndex obsIx(0); obsIx < cable.getNumObstacles(); ++obsIx) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(obsIx);
+        if (curve.isInContactWithSurface(s)) {
+            // Each curve segment will evaluate if the stepsize is
+            // not too large given the local curvature.
+            calcMaxAllowedCorrectionStepSize(
+                    s,
+                    curve,
+                    MatrixWorkspace::getCurveCorrection(pathCorrection, activeCurveIx),
+                    cable.getParameters().solverMaxStepSize,
+                    stepSize);
+            ++activeCurveIx;
+        }
+    }
+    // Apply the maximum stepsize to the corrections.
+    pathCorrection *= stepSize;
+}
+
 } // namespace
 
 //------------------------------------------------------------------------------
@@ -3067,9 +3125,9 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
             // Each curve segment will evaluate if the stepsize is not too large
             // given the local curvature.
             calcMaxAllowedCorrectionStepSize(
-                curve,
                 s,
-                data.getCurveCorrection(activeCurveIx),
+                curve,
+                MatrixWorkspace::getCurveCorrection(data.pathCorrection, activeCurveIx),
                 getParameters().solverMaxStepSize,
                 stepSize);
             ++activeCurveIx;
@@ -3081,6 +3139,150 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
     return data;
 }
 
+void CableSpan::Impl::calcSolverStep(
+    const State& s,
+    Algorithm algorithm,
+    MatrixWorkspace& data) const
+{
+    /* std::cout << "START calcSolverStep"; */
+    const int numObstaclesInContact = countActive(s);
+    data.resize(numObstaclesInContact);
+
+    // SOLVER STEP 1
+
+    // Compute the straight-line segments of this cable span.
+    calcLineSegments(
+        *this,
+        s,
+        this->calcOriginPointInGround(s),
+        this->calcTerminationPointInGround(s),
+        data.lineSegments);
+
+    // Compute the total cable length.
+    const Real l = calcTotalCableLength(s, *this, data.lineSegments);
+
+    // If there is one line segment, there are no obstacles in contact with the cable, and the path error is zero.
+    if (data.lineSegments.size() == 1) {
+        data.maxNormalPathError   = 0.;
+        data.maxBinormalPathError = 0.;
+    } else {
+        calcPathErrorVector<1>(
+            *this,
+            s,
+            data.lineSegments,
+            {NormalAxis},
+            data.normalPathError);
+        calcPathErrorVector<1>(
+            *this,
+            s,
+            data.lineSegments,
+            {BinormalAxis},
+            data.binormalPathError);
+
+        data.maxNormalPathError   = data.normalPathError.normInf();
+        data.maxBinormalPathError = data.binormalPathError.normInf();
+    }
+
+    // Only proceed with computing the Jacobian and geodesic corrections if the path error is large.
+    data.converged =
+        data.pathError.getMaxPathError() <= getParameters().smoothnessTolerance;
+    if (data.converged) {
+        return;
+    }
+
+    // SOLVER STEP 2
+    // Minimal length algorithm
+    {
+        const std::vector<LineSegment>& lineSegments = pathErrors.lineSegments;
+        const int n = pathErrors.lineSegments.size() - 1;
+
+        SimTK_ERRCHK_ALWAYS(
+                n > 0,
+                "calcPathCorrectionData",
+                "no obstacles in contact, cannot compute system of equations");
+
+        Matrix& A = data.A;
+        Vector& b = data.b;
+        Vector& lambda = data.lambda;
+
+        Vector& q = data.q;
+
+        Matrix& J = data.pathErrorJacobian;
+        Vector& e = data.pathError;
+
+        Matrix& H = data.lengthHessian;
+        Vector& g = data.lengthGradient;
+
+        Matrix& HInvEst = data.lengthHessianInvEst;
+
+        /* std::cout << "-->MINIMALLENGTH"; */
+        const Real w = data.getMaxPathError();
+
+        calcPathErrorJacobian(s, cable, lineSegments, NormalAxis, J);
+        calcLengthGradient(s,cable, lineSegments, g);
+        calcLengthHessian(s, cable, lineSegments, H);
+
+        // TODO move to struct.
+        FactorSVD svd;
+        Vector sigma;
+        Matrix U;
+        Matrix rightVectors;
+
+        // Solve SVD of Hessian estimate.
+        svd = 0.5 * (H + ~H);
+        svd.getSingularValuesAndVectors(sigma, U, rightVectors);
+
+        // M = U D U^T
+        // M^{-1} = U D^-1 U^T
+        for (int r = 0; r < U.nrow(); ++r) {
+            for (int c = 0; c < U.ncol(); ++c) {
+                Real elt = 0.;
+                for (int i = 0; i < U.ncol(); ++c) {
+                    elt += U(r, i) * U(i, c) / (sigma(i) + w);
+                }
+                // TODO add weight here?
+                HInvEst(r, c) = elt;
+            }
+        }
+
+
+        // TODO move to struct.
+        FactorQTZ solver;
+
+        // Compute Lagrange multipliers.
+        // (J^T M^-1 J) * lambda = c - J M^-1 g = c - J d
+        //
+        // K = J^T M^-1 J
+        // m = c - J d
+        //
+        // K lambda = m
+        b = e - J * HInvEst * g;
+        solver = J * HInvEst * J.transpose();
+        solver.solve(b, lambda);
+
+        // Compute path corrections.
+        q = HInvEst * (-g - J.transpose() * lambda);
+
+        // Use a damped Newton step.
+        q *= 0.5;
+    }
+
+    // Compute the maximum allowed step size that we take along the
+    // correction vector.
+    calcClampedPathCorrection(s, *this, data.pathCorrection);
+
+    // Apply the corrections to each CurveSegment to reduce the path
+    // error.
+    int activeCurveIx = 0; // Index of curve in all that are in contact.
+    for (const CurveSegment& curve : m_curveSegments) {
+        if (curve.isInContactWithSurface(s)) {
+            curve.applyGeodesicCorrection(
+                    s,
+                    MatrixWorkspace::getCurveCorrection(data.pathCorrection, activeCurveIx));
+            ++activeCurveIx;
+        }
+    }
+}
 //==============================================================================
 //                         CableSubsystemTestHelper
 //==============================================================================
