@@ -3260,11 +3260,10 @@ const Vector& CableSpan::Impl::calcSolverStep(
     Algorithm algorithm,
     MatrixWorkspace& data) const
 {
-    /* std::cout << "START calcSolverStep"; */
-    const int numObstaclesInContact = countActive(s);
-    data.resize(numObstaclesInContact);
-
-    // SOLVER STEP 1
+    // SOLVER STEP 1: Compute the path errors. If the path errors are small we
+    // have computed the optimal path, and there is nothing to do. Otherwise we
+    // proceed with step 2: computing the corrections to reduce the path
+    // errors.
 
     // Compute the straight-line segments of this cable span.
     calcLineSegments(
@@ -3274,14 +3273,12 @@ const Vector& CableSpan::Impl::calcSolverStep(
         this->calcTerminationPointInGround(s),
         data.lineSegments);
 
-    // Compute the total cable length.
-    const Real l = calcTotalCableLength(s, *this, data.lineSegments);
+    // Reset the max path error field.
+    data.maxPathError = 0.;
 
-    // If there is one line segment, there are no obstacles in contact with the cable, and the path error is zero.
-    if (data.lineSegments.size() == 1) {
-        data.maxNormalPathError   = 0.;
-        data.maxBinormalPathError = 0.;
-    } else {
+    // If there is one line segment, there are no obstacles in contact with the
+    // cable, and the path error is zero. Otherwise we compute the path errors.
+    if (data.lineSegments.size() >= 1) {
         calcPathErrorVector<1>(
             *this,
             s,
@@ -3295,48 +3292,97 @@ const Vector& CableSpan::Impl::calcSolverStep(
             {BinormalAxis},
             data.binormalPathError);
 
-        data.maxNormalPathError   = data.normalPathError.normInf();
-        data.maxBinormalPathError = data.binormalPathError.normInf();
+        data.maxPathError   = std::max(data.normalPathError.normInf(), data.binormalPathError.normInf());
     }
 
-    // Only proceed with computing the Jacobian and geodesic corrections if the path error is large.
-    data.converged =
-        data.pathError.getMaxPathError() <= getParameters().smoothnessTolerance;
+    // If the path error is small we have converged to the optimal solution,
+    // and there is no need to compute the geodesic corrections.
+    data.converged = data.maxPathError <= getParameters().smoothnessTolerance;
     if (data.converged) {
-        return;
+        data.pathCorrection.setToZero();
+        return data.pathCorrection;
     }
 
-    // SOLVER STEP 2
-    // Minimal length algorithm
+    // SOLVER STEP 2: Compute the NaturalGeodesicCorrections for each CurveSegment that reduces the path errors.
+
+    // Scholz2015 algorithm.
+    if (algorithm == Algorithm::Scholz2015)
     {
-        const std::vector<LineSegment>& lineSegments = pathErrors.lineSegments;
-        const int n = pathErrors.lineSegments.size() - 1;
+        const int n = data.lineSegments.size() - 1;
+        const int nC = 2 * n;
+        const int nQ = 4 * n;
 
-        SimTK_ERRCHK_ALWAYS(
-                n > 0,
-                "calcPathCorrectionData",
-                "no obstacles in contact, cannot compute system of equations");
+        if (n <= 0) {
+            throw std::runtime_error("no obstacles in contact: cannot compute matrices");
+        }
 
-        Matrix& A = data.A;
-        Vector& b = data.b;
-        Vector& lambda = data.lambda;
+        Matrix A(nC, nC, NaN);
+        Vector b(nC, NaN);
 
-        Vector& q = data.q;
+        Matrix J(nC, nQ, NaN);
+        Vector e(nC, NaN);
 
-        Matrix& J = data.pathErrorJacobian;
-        Vector& e = data.pathError;
+        A.block(nC, 0, nC, nQ) = J;
+        b.block(nC, 0, nC, 1) = e;
 
-        Matrix& H = data.lengthHessian;
-        Vector& g = data.lengthGradient;
+        calcPathErrorJacobian(s, *this, data.lineSegments, BinormalAxis, A);
+        calcPathErrorVector(s, *this, data.lineSegments, BinormalAxis, b);
 
-        Matrix& HInvEst = data.lengthHessianInvEst;
+        const Real w = std::max(data.maxBinormalPathError, data.maxNormalPathError);
 
-        /* std::cout << "-->MINIMALLENGTH"; */
-        const Real w = data.getMaxPathError();
+        for (int i = 0; i < n; ++i) {
+            // Determine the row and column of the nonzero element in the Jacobian.
+            int r = n *
+                MatrixWorkspace::c_NumPathErrorConstraints +
+                i;
+            int c = c_GeodesicDOF * (i + 1) - 1;
+            // Write the weight that will penalize changing the curve length.
+            A.set(r, c, w);
+        }
 
-        calcPathErrorJacobian(s, cable, lineSegments, NormalAxis, J);
-        calcLengthGradient(s,cable, lineSegments, g);
-        calcLengthHessian(s, cable, lineSegments, H);
+        data.factor = A;
+        data.factor.solve(b, data.pathCorrection);
+        data.pathCorrection *= -1.;
+
+    }
+
+    // Minimal length algorithm
+    if (algorithm == Algorithm::MinimumLength)
+    {
+        // TODO move this to the workspace struct.
+        const int n = data.lineSegments.size() - 1;
+        const int nC = 2 * n;
+        const int nQ = 4 * n;
+        if (n <= 0) {
+            throw std::runtime_error("no obstacles in contact: cannot compute matrices");
+        }
+
+        // Solve system given by:
+        // | Q   J^T |   | q |   | -g |
+        // | J   0   | * | λ | = | -e |
+        //
+        // H = U * Σ * V
+        // Q = U * Σ * U^T
+
+        // Matrices for computing the lagrange multipliers.
+        Matrix A(nC, nC, NaN);
+        Vector b(nC, NaN);
+        Vector lambda(nC, NaN);
+
+        Vector& q = data.pathCorrection;
+
+        Matrix J(nC, nQ, NaN);
+        Vector e(nC, NaN);
+
+        Matrix H(nQ, nQ, NaN);
+        Vector g(nQ, NaN);
+
+        // Rename to Qinv
+        Matrix HInvEst(nQ, nQ, NaN);
+
+        calcPathErrorJacobian(s, *this, data.lineSegments, NormalAxis, J);
+        calcLengthGradient(s,*this, data.lineSegments, g);
+        calcLengthHessian(s, *this, data.lineSegments, H);
 
         // TODO move to struct.
         FactorSVD svd;
@@ -3350,16 +3396,20 @@ const Vector& CableSpan::Impl::calcSolverStep(
 
         // M = U D U^T
         // M^{-1} = U D^-1 U^T
+        // Add a weight to the singular values to make sure that D is invertible.
+        const Real w = std::max(data.maxBinormalPathError, data.maxNormalPathError);
         for (int r = 0; r < U.nrow(); ++r) {
             for (int c = 0; c < U.ncol(); ++c) {
                 Real elt = 0.;
                 for (int i = 0; i < U.ncol(); ++c) {
+                    // Add a small weight w to the singular values to make sure the inverse exists.
                     elt += U(r, i) * U(i, c) / (sigma(i) + w);
                 }
-                // TODO add weight here?
                 HInvEst(r, c) = elt;
             }
         }
+        std::cout << "Check ~U * HInvEst * U = " << ~U * HInvEst * U << "\n";
+        throw std::runtime_error("stop");
 
         // TODO move to struct.
         FactorQTZ solver;
@@ -3367,12 +3417,12 @@ const Vector& CableSpan::Impl::calcSolverStep(
         // Compute Lagrange multipliers.
         // (J^T M^-1 J) * lambda = c - J M^-1 g = c - J d
         //
-        // K = J^T M^-1 J
-        // m = c - J d
-        //
-        // K lambda = m
+        // Write as: A * lambda = b
         b = e - J * HInvEst * g;
-        solver = J * HInvEst * J.transpose();
+        A = J * HInvEst * J.transpose();
+
+        // Solve for the lagrange multipliers.
+        solver = A;
         solver.solve(b, lambda);
 
         // Compute path corrections.
@@ -3380,11 +3430,28 @@ const Vector& CableSpan::Impl::calcSolverStep(
 
         // Use a damped Newton step.
         q *= 0.5;
+
+        // TODO: using a coordinate transform.
+        /* { */
+        /*     Matrix T; // U * SsqrInv; */
+        /*     Vector Tg = ~T * g; */
+        /*     Matrix JT = J * T; */
+
+        /*     Matrix A = JT * ~JT; */
+        /*     Vector b = JT * Tg - e; */
+
+        /*     FactorQTZ qtz; */
+        /*     qtz = A; */
+        /*     qtz.solve(b, lambda); */
+
+        /*     q = T * (-Tg - ~JT * lambda); */
+        /* } */
     }
 
-    // Compute the maximum allowed step size that we take along the
-    // correction vector.
+    // Clamp the computed correction vector using the curvature of each
+    // surface, such that we remain in an approximate linear region.
     calcClampedPathCorrection(s, *this, data.pathCorrection);
+    return data.pathCorrection;
 }
 
 const CableSpanData::Position& CableSpan::Impl::calcOptimalPath(const State& s) const
