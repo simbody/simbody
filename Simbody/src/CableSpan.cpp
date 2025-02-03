@@ -3273,46 +3273,28 @@ void CableSpan::Impl::calcSolverStep(
                 axes,
                 data.pathErrorJacobian);
 
-        calcPathCorrections(data);
+        // The last elements of the path error vector contain the change in length
+        // of each curve segment, and require it to remain zero. The change in
+        // length is the last element of the NaturalGeodesicCorrection vector. The
+        // Jacobian is therefore zero everywhere, except for one (=1) at the element
+        // of the third NaturalGeodesicCorrection of the corresponding curve
+        // segment. Finally we write a weight instead of a one to obtain a weighted
+        // least squares. As the weight we take the current maximum path error. This
+        // will heavily penalize changing the length when we are far from the
+        // optimal solution, and ramp up convergence as we get closer.
+        for (int i = 0; i < data.nObstaclesInContact; ++i) {
+            // Determine the row and column of the nonzero element in the Jacobian.
+            int r = data.nObstaclesInContact *
+                MatrixWorkspace::c_NumPathErrorConstraints +
+                i;
+            int c = c_GeodesicDOF * (i + 1) - 1;
+            // Write the weight that will penalize changing the curve length.
+            data.pathErrorJacobian.set(r, c, data.maxPathError);
+        }
 
-        /* Vector b(nQ, NaN); */
-        /* Matrix A(nQ, nQ, NaN); */
-        /* std::cout << "A = " << A << "\n"; */
-        /* std::cout << std::endl; */
-        /* throw std::runtime_error("stop"); */
-
-        /* Matrix Jn; */
-        /* std::cout << "nC = " << nC << std::endl; */
-        /* std::cout << "nQ = " << nQ << std::endl; */
-        /* Jn.resize(nC, nQ); */
-        /* Jn.setToZero(); */
-
-        /* Vector e(nC, NaN); */
-
-        /* A.block(nC, 0, nC, nQ) = Jn; */
-        /* b.block(nC, 0, nC, 1) = e; */
-
-        /* calcPathErrorJacobian(s, *this, data.lineSegments, NormalAxis, Jn); */
-        /* calcPathErrorVector(s, *this, data.lineSegments, NormalAxis, e); */
-
-        /* calcPathErrorJacobian(s, *this, data.lineSegments, BinormalAxis, A); */
-        /* calcPathErrorVector(s, *this, data.lineSegments, BinormalAxis, b); */
-
-        /* for (int i = 0; i < n; ++i) { */
-        /*     // Determine the row and column of the nonzero element in the Jacobian. */
-        /*     int r = n * */
-        /*         MatrixWorkspace::c_NumPathErrorConstraints + */
-        /*         i; */
-        /*     int c = c_GeodesicDOF * (i + 1) - 1; */
-        /*     // Write the weight that will penalize changing the curve length. */
-        /*     const Real weight = data.maxPathError; */
-        /*     A.set(r, c, weight); */
-        /* } */
-
-        /* data.factor = A; */
-        /* data.factor.solve(b, data.pathCorrection); */
-        /* data.pathCorrection *= -1.; */
-
+        data.factor = data.pathErrorJacobian;
+        data.factor.solve(data.pathError, data.pathCorrection);
+        data.pathCorrection *= -1.;
     }
 
     // Minimal length algorithm
