@@ -3323,7 +3323,7 @@ void CableSpan::Impl::calcSolverStep(
         Vector& q = data.pathCorrection;
 
         Matrix J(nC, nQ, NaN);
-        Vector e(nC, NaN);
+        Vector e = data.normalPathError;
 
         Matrix H(nQ, nQ, NaN);
         Vector g(nQ, NaN);
@@ -3351,16 +3351,14 @@ void CableSpan::Impl::calcSolverStep(
         for (int r = 0; r < U.nrow(); ++r) {
             for (int c = 0; c < U.ncol(); ++c) {
                 Real elt = 0.;
-                for (int i = 0; i < U.ncol(); ++c) {
+                for (int i = 0; i < U.ncol(); ++i) {
                     // Add a small weight w to the singular values to make sure the inverse exists.
                     const Real weight = data.maxPathError;
-                    elt += U(r, i) * U(i, c) / (sigma(i) + weight);
+                    elt += U(r, i) * U(c, i) / (sigma(i) + weight);
                 }
                 HInvEst(r, c) = elt;
             }
         }
-        std::cout << "Check ~U * HInvEst * U = " << ~U * HInvEst * U << "\n";
-        throw std::runtime_error("stop");
 
         // TODO move to struct.
         FactorQTZ solver;
