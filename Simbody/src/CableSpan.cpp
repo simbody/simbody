@@ -163,12 +163,6 @@ struct MatrixWorkspace {
             pathCorrection[eltIx + 3]};
     }
 
-    // TODO add description
-    Real getMaxPathError() const {
-        return normalPathError.size() == 0 && binormalPathError.size() == 0 ? 0. :
-            std::max(normalPathError.normInf(), binormalPathError.normInf());
-    }
-
     /* All straight line segments in the current path. */
     std::vector<LineSegment> lineSegments;
     /* The path error vector captures the misalignment of the straight line and
@@ -1949,7 +1943,7 @@ private:
 
     const MatrixWorkspace& calcDataInst(const State& state) const;
 
-    const Vector& calcSolverStep(
+    void calcSolverStep(
         const State& s,
         Algorithm algorithm,
         MatrixWorkspace& data) const;
@@ -2627,7 +2621,6 @@ void calcPathErrorVector(
     CoordinateAxis axis,
     Vector& pathError)
 {
-    throw std::runtime_error("NotYetImplemented");
     // Reset path error vector to zero.
     pathError.setToZero();
 
@@ -2663,7 +2656,6 @@ void calcPathErrorJacobian(
     CoordinateAxis axis,
     Matrix& jacobian)
 {
-    throw std::runtime_error("NotYetImplemented");
     // Number of free coordinates for a generic geodesic.
     constexpr int NQ = c_GeodesicDOF;
 
@@ -3193,7 +3185,7 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
     return data;
 }
 
-const Vector& CableSpan::Impl::calcSolverStep(
+void CableSpan::Impl::calcSolverStep(
     const State& s,
     Algorithm algorithm,
     MatrixWorkspace& data) const
@@ -3211,12 +3203,16 @@ const Vector& CableSpan::Impl::calcSolverStep(
         this->calcTerminationPointInGround(s),
         data.lineSegments);
 
+    const int nObstaclesInContact = data.lineSegments.size() - 1;
+    // TODO move to resize()
+    data.normalPathError = Vector(nObstaclesInContact * 2, NaN);
+    data.binormalPathError = Vector(nObstaclesInContact * 2, NaN);
+
+    data.maxPathError = 0.;
+
     // If there is one line segment, there are no obstacles in contact with the
     // cable, and the path error is zero. Otherwise we compute the path errors.
-    if (data.lineSegments.size() >= 1) {
-        // TODO move to resize()
-        data.normalPathError = Vector(data.lineSegments.size() - 1, NaN);
-        data.binormalPathError = Vector(data.lineSegments.size() - 1, NaN);
+    if (data.lineSegments.size() > 1) {
 
         calcPathErrorVector(
             s,
@@ -3229,16 +3225,27 @@ const Vector& CableSpan::Impl::calcSolverStep(
             *this,
             data.lineSegments,
             BinormalAxis,
-            data.normalPathError);
+            data.binormalPathError);
+
+        data.maxPathError = std::max(data.normalPathError.normInf(), data.binormalPathError.normInf());
+
+        /* { */
+        /*     Vector oldPathError(data.lineSegments.size() - 1, NaN); */
+        /*     calcPathErrorVector<1>(*this, s, data.lineSegments, {NormalAxis}, oldPathError); */
+        /*     std::cout << "oldPathError = " << oldPathError << "\n"; */
+        /*     std::cout << "normalPathError = " << data.normalPathError << "\n"; */
+        /*     std::cout << "diff = " << data.normalPathError - oldPathError << "\n"; */
+        /*     std::cout << std::endl; */
+        /* } */
     }
+
+    std::cout << "n = " << nObstaclesInContact << std::endl;
 
     // If the path error is small we have converged to the optimal solution,
     // and there is no need to compute the geodesic corrections.
-    const Real maxPathError = data.getMaxPathError();
-    data.converged = maxPathError <= getParameters().smoothnessTolerance;
+    data.converged = data.maxPathError <= getParameters().smoothnessTolerance;
     if (data.converged) {
-        data.pathCorrection.setToZero();
-        return data.pathCorrection;
+        return;
     }
 
     // SOLVER STEP 2: Compute the NaturalGeodesicCorrections for each CurveSegment that reduces the path errors.
@@ -3254,32 +3261,57 @@ const Vector& CableSpan::Impl::calcSolverStep(
             throw std::runtime_error("no obstacles in contact: cannot compute matrices");
         }
 
-        Matrix A(nC, nC, NaN);
-        Vector b(nC, NaN);
+        std::array<CoordinateAxis, 2> axes {NormalAxis, BinormalAxis};
 
-        Matrix J(nC, nQ, NaN);
-        Vector e(nC, NaN);
+        calcPathErrorVector<2>(*this, s, data.lineSegments, axes, data.pathError);
+        data.maxPathError = data.pathError.normInf();
 
-        A.block(nC, 0, nC, nQ) = J;
-        b.block(nC, 0, nC, 1) = e;
+        calcPathErrorJacobian<2>(
+                *this,
+                s,
+                data.lineSegments,
+                axes,
+                data.pathErrorJacobian);
 
-        calcPathErrorJacobian(s, *this, data.lineSegments, BinormalAxis, A);
-        calcPathErrorVector(s, *this, data.lineSegments, BinormalAxis, b);
+        calcPathCorrections(data);
 
-        for (int i = 0; i < n; ++i) {
-            // Determine the row and column of the nonzero element in the Jacobian.
-            int r = n *
-                MatrixWorkspace::c_NumPathErrorConstraints +
-                i;
-            int c = c_GeodesicDOF * (i + 1) - 1;
-            // Write the weight that will penalize changing the curve length.
-            const Real weight = maxPathError;
-            A.set(r, c, weight);
-        }
+        /* Vector b(nQ, NaN); */
+        /* Matrix A(nQ, nQ, NaN); */
+        /* std::cout << "A = " << A << "\n"; */
+        /* std::cout << std::endl; */
+        /* throw std::runtime_error("stop"); */
 
-        data.factor = A;
-        data.factor.solve(b, data.pathCorrection);
-        data.pathCorrection *= -1.;
+        /* Matrix Jn; */
+        /* std::cout << "nC = " << nC << std::endl; */
+        /* std::cout << "nQ = " << nQ << std::endl; */
+        /* Jn.resize(nC, nQ); */
+        /* Jn.setToZero(); */
+
+        /* Vector e(nC, NaN); */
+
+        /* A.block(nC, 0, nC, nQ) = Jn; */
+        /* b.block(nC, 0, nC, 1) = e; */
+
+        /* calcPathErrorJacobian(s, *this, data.lineSegments, NormalAxis, Jn); */
+        /* calcPathErrorVector(s, *this, data.lineSegments, NormalAxis, e); */
+
+        /* calcPathErrorJacobian(s, *this, data.lineSegments, BinormalAxis, A); */
+        /* calcPathErrorVector(s, *this, data.lineSegments, BinormalAxis, b); */
+
+        /* for (int i = 0; i < n; ++i) { */
+        /*     // Determine the row and column of the nonzero element in the Jacobian. */
+        /*     int r = n * */
+        /*         MatrixWorkspace::c_NumPathErrorConstraints + */
+        /*         i; */
+        /*     int c = c_GeodesicDOF * (i + 1) - 1; */
+        /*     // Write the weight that will penalize changing the curve length. */
+        /*     const Real weight = data.maxPathError; */
+        /*     A.set(r, c, weight); */
+        /* } */
+
+        /* data.factor = A; */
+        /* data.factor.solve(b, data.pathCorrection); */
+        /* data.pathCorrection *= -1.; */
 
     }
 
@@ -3339,7 +3371,7 @@ const Vector& CableSpan::Impl::calcSolverStep(
                 Real elt = 0.;
                 for (int i = 0; i < U.ncol(); ++c) {
                     // Add a small weight w to the singular values to make sure the inverse exists.
-                    const Real weight = maxPathError;
+                    const Real weight = data.maxPathError;
                     elt += U(r, i) * U(i, c) / (sigma(i) + weight);
                 }
                 HInvEst(r, c) = elt;
@@ -3388,7 +3420,6 @@ const Vector& CableSpan::Impl::calcSolverStep(
     // Clamp the computed correction vector using the curvature of each
     // surface, such that we remain in an approximate linear region.
     calcClampedPathCorrection(s, *this, data.pathCorrection);
-    return data.pathCorrection;
 }
 
 const CableSpanData::Position& CableSpan::Impl::calcOptimalPath(const State& s) const
@@ -3402,7 +3433,7 @@ const CableSpanData::Position& CableSpan::Impl::calcOptimalPath(const State& s) 
         dataPos.originPoint_G      = calcOriginPointInGround(s);
         dataPos.terminationPoint_G = calcTerminationPointInGround(s);
 
-        dataPos.smoothness = workspace.getMaxPathError();
+        dataPos.smoothness = workspace.maxPathError;
         dataPos.cableLength =
             calcTotalCableLength(s, *this, workspace.lineSegments);
         dataPos.originTangent_G =
@@ -3431,9 +3462,18 @@ const CableSpanData::Position& CableSpan::Impl::calcOptimalPath(const State& s) 
         MatrixWorkspace& workspace = dataInst.updOrInsert(countActive(s));
 
         // Compute the corrections required to reach the optimal path.
-        const Vector& pathCorrection = calcSolverStep(s, getParameters().algorithm, workspace);
+        calcSolverStep(s, getParameters().algorithm, workspace);
+
+        // Check if we should stop iterating.
+        const bool maxIterationsReached =
+            loopIter >= getParameters().solverMaxIterations - 1;
+        if (workspace.converged || maxIterationsReached) {
+            // Fill in the fields of CableSpanData::Position, and stop.
+            return calcDataPosFromSolverResult(workspace, loopIter);
+        }
 
         // Apply the corrections to each CurveSegment to reduce the path error.
+        const Vector& pathCorrection = workspace.pathCorrection;
         int activeCurveIx = 0; // Index of curve in all that are in contact.
         for (const CurveSegment& curve : m_curveSegments) {
             if (curve.isInContactWithSurface(s)) {
@@ -3451,14 +3491,6 @@ const CableSpanData::Position& CableSpan::Impl::calcOptimalPath(const State& s) 
             // again.
             curve.invalidatePosEntry(s);
         }
-
-        // Check if we should stop iterating.
-        const bool maxIterationsReached =
-            loopIter >= getParameters().solverMaxIterations - 1;
-        if (workspace.converged || maxIterationsReached) {
-            // Fill in the fields of CableSpanData::Position, and stop.
-            return calcDataPosFromSolverResult(workspace, loopIter);
-        }
     }
 
     // TODO use SimTK_THROW
@@ -3467,6 +3499,8 @@ const CableSpanData::Position& CableSpan::Impl::calcOptimalPath(const State& s) 
 
 const CableSpanData::Position& CableSpan::Impl::calcDataPos(const State& s) const
 {
+    return calcOptimalPath(s);
+
     CableSpanData::Position& dataPos = updDataPos(s);
 
     dataPos.originPoint_G      = calcOriginPointInGround(s);
