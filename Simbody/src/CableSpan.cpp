@@ -1763,7 +1763,7 @@ public:
 
         // Optionally draw the jacobifields of the rotational and translational jacobi scalars.
         // TODO move to option.
-        constexpr Real c_JacobiFieldMagnitude = 1e-1;
+        const Real c_JacobiFieldMagnitude = 0.5;
         if (!isNaN(c_JacobiFieldMagnitude))
         {
             constexpr int c_LineThickness = 3;
@@ -1783,7 +1783,7 @@ public:
                         const FrenetFrame& X_GF = X_GS.compose(calcFrenetFrameFromGeodesicState(geometry, q));
 
                         const Vec3 nextRotJacobiFieldPoint_G = X_GF.p() + getBinormal(X_GF) * q.jacobiRot * c_JacobiFieldMagnitude;
-                        const Vec3 nextTransJacobiFieldPoint_G = X_GF.p() + getBinormal(X_GF) * q.jacobiRot * c_JacobiFieldMagnitude;
+                        const Vec3 nextTransJacobiFieldPoint_G = X_GF.p() + getBinormal(X_GF) * q.jacobiTrans * c_JacobiFieldMagnitude;
 
                         // Draw lines from the curve knots in the binormal direction with a length scaled by the jacobi field magnitude.
                         decorations.push_back(
@@ -1792,7 +1792,7 @@ public:
                                 .setLineThickness(0.5 * c_LineThickness));
                         decorations.push_back(
                                 DecorativeLine(X_GF.p(), nextTransJacobiFieldPoint_G)
-                                .setColor(Orange)
+                                .setColor(Green)
                                 .setLineThickness(0.5 * c_LineThickness));
 
                         // Draw lines connecting the end points of the lines drawn above.
@@ -1803,7 +1803,7 @@ public:
                                 .setLineThickness(c_LineThickness));
                             decorations.push_back(
                                 DecorativeLine(prevTransJacobiFieldPoint_G, nextTransJacobiFieldPoint_G)
-                                .setColor(Orange)
+                                .setColor(Green)
                                 .setLineThickness(c_LineThickness));
                         }
 
