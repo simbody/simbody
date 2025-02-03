@@ -2642,7 +2642,7 @@ void calcPathErrorVector(
                 dataPos.X_GP.R().getAxisUnitVec(axis));
         ++lineIx;
         // Compute path error at final contact point.
-        pathError(++pathErrorIx) = -dot(
+        pathError(++pathErrorIx) = dot(
             lines.at(lineIx).direction,
             dataPos.X_GQ.R().getAxisUnitVec(axis));
     }
@@ -2674,6 +2674,7 @@ void calcPathErrorJacobian(
     int col = 0;
 
     Matrix& J = jacobian;
+    J.setToZero();
 
     // Helper for adding a computed block to the Jacobian.
     auto AddBlock = [&](const Vec4& block, int colShift = 0)
@@ -2693,7 +2694,7 @@ void calcPathErrorJacobian(
         }
         const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
 
-        // The path error of which to take the Jacobian is: dot(a_P, l_P)
+        // The path error of which to take the Jacobian is: dot(a_P, e_P)
         {
             const UnitVec3& a = dataPos.X_GP.R().getAxisUnitVec(axis);
             const UnitVec3& e = lines.at(lineIx).direction;
@@ -2725,13 +2726,13 @@ void calcPathErrorJacobian(
         // contact point.
         ++lineIx; // Increment to the next straight line segment.
         {
-            // The path error of which to take the Jacobian is: dot(a_Q, l_Q)
+            // The path error of which to take the Jacobian is: dot(a_Q, e_Q)
             const UnitVec3& a = dataPos.X_GQ.R().getAxisUnitVec(axis);
             const UnitVec3& e = lines.at(lineIx).direction;
             const Real l      = lines.at(lineIx).length;
 
-            const Vec3 dc_dv_Q = (a - e * dot(e, a)) / l;
-            const Vec3 dc_dw_Q = -cross(a, e);
+            const Vec3 dc_dv_Q = -(a - e * dot(e, a)) / l;
+            const Vec3 dc_dw_Q = cross(a, e);
 
             // Write to the block diagonal of J the Jacobian of the path error
             // to the CurveSegment's NaturalGeodesicCorrection.
@@ -2801,7 +2802,6 @@ void calcLengthHessian(
     const std::vector<LineSegment>& lines,
     Matrix& hessian)
 {
-    throw std::runtime_error("NotYetImplemented");
     // Number of free coordinates for a generic geodesic.
     constexpr int NQ = c_GeodesicDOF;
 
