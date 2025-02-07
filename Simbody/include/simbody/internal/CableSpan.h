@@ -35,6 +35,16 @@ This is a unique integer type for quickly identifying specific cables for fast
 lookup purposes. These begin at zero for each CableSubsystem. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanIndex);
 
+/** @enum SimTK::CableSpanAlgorithm
+These are the different solver options for computing the optimal cable path. **/
+enum class CableSpanAlgorithm
+{
+    // TODO description.
+    Scholz2015,
+    // TODO description.
+    MinimumLength,
+};
+
 class MultibodySystem;
 class CableSubsystem;
 class CableSubsystemTestHelper;
@@ -302,6 +312,10 @@ public:
     See CableSpan::getSmoothnessTolerance.
     State must be realized to Stage::Position. **/
     Real getSmoothness(const State& state) const;
+
+    // TODO add description of algorithms here.
+    /** Set the algorithm used to compute the optimal path. **/
+    void setAlgorithm(CableSpanAlgorithm algorithm);
 
     ///@}
 

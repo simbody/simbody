@@ -108,13 +108,6 @@ static const CoordinateAxis TangentAxis  = XAxis;
 static const CoordinateAxis NormalAxis   = YAxis;
 static const CoordinateAxis BinormalAxis = ZAxis;
 
-// TODO add description.
-enum class Algorithm
-{
-    Scholz2015,
-    MinimumLength,
-};
-
 //------------------------------------------------------------------------------
 //  Struct MatrixWorkspace
 //------------------------------------------------------------------------------
@@ -424,8 +417,8 @@ struct CableSpanParameters final : IntegratorTolerances {
     // to a max allowed linear stepsize using the local radius of curvature
     // evaluated at each obstacle.
     Real solverMaxStepSize = 10. / 180. * Pi;
-    // TODO
-    Algorithm algorithm = Algorithm::Scholz2015;
+    // The algorithm used to compute the optimal path.
+    CableSpanAlgorithm algorithm = CableSpanAlgorithm::MinimumLength;
 };
 
 } // namespace
@@ -1952,7 +1945,7 @@ private:
 
     void calcSolverStep(
         const State& s,
-        Algorithm algorithm,
+        CableSpanAlgorithm algorithm,
         MatrixWorkspace& data) const;
 
     const CableSpanData::Position& calcOptimalPath(const State& s) const;
@@ -3196,7 +3189,7 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 
 void CableSpan::Impl::calcSolverStep(
     const State& s,
-    Algorithm algorithm,
+    CableSpanAlgorithm algorithm,
     MatrixWorkspace& data) const
 {
     // SOLVER STEP 1: Compute the path errors. If the path errors are small we
@@ -3260,7 +3253,8 @@ void CableSpan::Impl::calcSolverStep(
     // SOLVER STEP 2: Compute the NaturalGeodesicCorrections for each CurveSegment that reduces the path errors.
 
     // Scholz2015 algorithm.
-    if (algorithm == Algorithm::Scholz2015)
+    // TODO use switch?
+    if (algorithm == CableSpanAlgorithm::Scholz2015)
     {
         const int n = data.lineSegments.size() - 1;
         const int nC = 2 * n;
@@ -3307,7 +3301,7 @@ void CableSpan::Impl::calcSolverStep(
     }
 
     // Minimal length algorithm
-    if (algorithm == Algorithm::MinimumLength)
+    if (algorithm == CableSpanAlgorithm::MinimumLength)
     {
         // TODO move this to the workspace struct.
         const int n = data.lineSegments.size() - 1;
@@ -4379,6 +4373,11 @@ Real CableSpan::getSmoothnessTolerance() const
 void CableSpan::setSmoothnessTolerance(Real tolerance)
 {
     updImpl().updParameters().smoothnessTolerance = tolerance;
+}
+
+void CableSpan::setAlgorithm(CableSpanAlgorithm algorithm)
+{
+    updImpl().updParameters().algorithm = algorithm;
 }
 
 Real CableSpan::calcLength(const State& s) const
