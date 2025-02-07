@@ -1109,10 +1109,23 @@ public:
     // shoot a new geodesic, updating the cache variable.
     void applyGeodesicCorrection(
         const State& state,
-        const NaturalGeodesicCorrection& c) const
+        const NaturalGeodesicCorrection& correction) const
     {
-        // Get the previous geodesic.
+        // Copy the correction vector.
+        NaturalGeodesicCorrection c = correction;
+        // Get the current geodesic data.
         const CurveSegmentData::Instance& dataInst = getDataInst(state);
+
+        // Take the length correction, and add to the current length.
+        const Real dl = c[3]; // Length increment is the last element.
+        const Real l  = dataInst.arcLength;
+        // Clamp the length to be nonnegative.
+        const bool clamped = l + dl < 0.;
+        const Real correctedLength = clamped ? 0. : l + dl;
+        if (clamped) {
+            // Equally distribute the clamping effect over the P and Q frame.
+            c[0] += 0.5 * (l + dl);
+        }
 
         // Frenet frame at initial contact point.
         const FrenetFrame& X_SP = dataInst.X_SP;
@@ -1129,12 +1142,6 @@ public:
 
         const Vec3 w = (kappa * c[0] - tau * c[1]) * b - c[2] * n;
         const Vec3 correctedTangent_S = t + cross(w, t);
-
-        // Take the length correction, and add to the current length.
-        const Real dl = c[3]; // Length increment is the last element.
-        const Real correctedLength = std::max(
-            dataInst.arcLength + dl,
-            0.); // Clamp length to be nonnegative.
 
         // Shoot the new geodesic.
         shootNewGeodesic(
@@ -2999,7 +3006,7 @@ void calcPathCorrections(MatrixWorkspace& data)
 // correction vector. Multiplication of these two gives a rotation vector. The
 // stepsize is then clamped such that the inf-norm of that rotation vector does
 // not exceed the maximum allowed angular stepsize.
-void calcMaxAllowedCorrectionStepSize(
+void calcMaxAllowedCurveCorrectionStepSize(
     const State& s,
     const CurveSegment& curve,
     const NaturalGeodesicCorrection& c,
@@ -3036,6 +3043,33 @@ void calcMaxAllowedCorrectionStepSize(
     }
 }
 
+// Helper for computing the stepsize such that a given path correction vector
+// does not exceed the max allowed angular displacement at the boundary frames
+// of the curve segments.
+void calcClampedPathCorrection(const State& s, const CableSpan::Impl& cable, Vector& pathCorrection)
+{
+    Real stepSize     = 1.;
+    int activeCurveIx = 0; // Index of curve in all that are in contact.
+    for (ObstacleIndex obsIx(0); obsIx < cable.getNumObstacles(); ++obsIx) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(obsIx);
+        if (!curve.isInContactWithSurface(s)) {
+            continue;
+        }
+        // Each curve segment will evaluate if the stepsize is not too large
+        // given the local curvature.
+        calcMaxAllowedCurveCorrectionStepSize(
+                s,
+                curve,
+                MatrixWorkspace::getCurveCorrection(pathCorrection, activeCurveIx),
+                cable.getParameters().solverMaxStepSize,
+                stepSize);
+        ++activeCurveIx;
+    }
+
+    // Apply the maximum stepsize to the corrections.
+    pathCorrection *= stepSize;
+}
+
 // Helper for computing the total cable length.
 // This is the sum of the lengths of all straight line segments, and all curve
 // segments.
@@ -3058,31 +3092,6 @@ Real calcTotalCableLength(
     }
     return totalCableLength;
 };
-
-// Helper for computing the stepsize such that a given path correction vector
-// does not exceed the max allowed angular displacement at the boundary frames
-// of the curve segments.
-void calcClampedPathCorrection(const State& s, const CableSpan::Impl& cable, Vector& pathCorrection)
-{
-    Real stepSize     = 1.;
-    int activeCurveIx = 0; // Index of curve in all that are in contact.
-    for (ObstacleIndex obsIx(0); obsIx < cable.getNumObstacles(); ++obsIx) {
-        const CurveSegment& curve = cable.getObstacleCurveSegment(obsIx);
-        if (curve.isInContactWithSurface(s)) {
-            // Each curve segment will evaluate if the stepsize is
-            // not too large given the local curvature.
-            calcMaxAllowedCorrectionStepSize(
-                    s,
-                    curve,
-                    MatrixWorkspace::getCurveCorrection(pathCorrection, activeCurveIx),
-                    cable.getParameters().solverMaxStepSize,
-                    stepSize);
-            ++activeCurveIx;
-        }
-    }
-    // Apply the maximum stepsize to the corrections.
-    pathCorrection *= stepSize;
-}
 
 } // namespace
 
@@ -3170,7 +3179,7 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
         if (curve.isInContactWithSurface(s)) {
             // Each curve segment will evaluate if the stepsize is not too large
             // given the local curvature.
-            calcMaxAllowedCorrectionStepSize(
+            calcMaxAllowedCurveCorrectionStepSize(
                 s,
                 curve,
                 MatrixWorkspace::getCurveCorrection(data.pathCorrection, activeCurveIx),
