@@ -100,7 +100,7 @@ public:
 Wrap a cable over (in order):
 1. Torus
 2. Ellipsoid
-3. Sphere
+3. Torus
 4. Cylinder
 
 We wrap the cable conveniently over the obstacles such that each curve
@@ -164,15 +164,17 @@ void testSimpleCable()
         ellipsoidBody,
         Transform(Vec3{0.5, 1., 0.}),
         std::shared_ptr<ContactGeometry>(
-            new ContactGeometry::Ellipsoid({1., 1., 0.75})),
-        {1., 1., 0.});
+            new ContactGeometry::Ellipsoid({1., 1., 6.})),
+        {1., 1., 0.5});
 
-    // Add sphere obstacle.
+    // Add another torus obstacle.
     cable.addObstacle(
         matter.Ground(),
-        Transform(Vec3{4., -2., 0.}),
-        std::shared_ptr<ContactGeometry>(new ContactGeometry::Sphere(1.5)),
-        {0., -1., 0.});
+        Transform(
+            Rotation(0.5 * Pi, YAxis),
+            Vec3{4., -2. - 10., 0.}),
+        std::shared_ptr<ContactGeometry>(new ContactGeometry::Torus(10., 1.5)),
+        {0., 1., 0.});
 
     // Add cylinder obstacle.
     cable.addObstacle(
