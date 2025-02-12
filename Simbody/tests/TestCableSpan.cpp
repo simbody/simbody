@@ -879,6 +879,84 @@ void testSolverOptimum() {
     }
 }
 
+/** CableSpan robustness test during path initialization.
+
+In this test the optimal path is far from the initial path. This tests the
+robustness of the algorithm to the initial conditions. **/
+void testRobustInitialPath() {
+    const bool show = false;
+
+    // Create the system.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+
+    // A dummy body.
+    Body::Rigid aBody(MassProperties(1., Vec3(0), Inertia(1)));
+    MobilizedBody::Free aMovingBody(
+        matter.Ground(),
+        Vec3(0.),
+        aBody,
+        Transform());
+
+    // Construct a new cable.
+    CableSpan cable(
+        cables,
+        matter.Ground(),
+        Vec3{-0.1, 0., 0.},
+        matter.Ground(),
+        Vec3{0.1, 0., 0.});
+
+    // Add torus obstacle.
+    cable.addObstacle(
+        matter.Ground(),
+        Transform(
+            Rotation(0.5 * Pi, YAxis),
+            Vec3{0., 4., 0.}),
+        std::shared_ptr<ContactGeometry>(
+            new ContactGeometry::Torus(2., 0.5)),
+        {0., -0.1, 0.});
+
+    // Configure the solver.
+    cable.setCurveSegmentAccuracy(1e-12);
+    cable.setSmoothnessTolerance(1e-8);
+    cable.setSolverMaxIterations(100);
+
+    system.setUseUniformBackground(true); // no ground plane in display
+    std::unique_ptr<Visualizer> viz(show ? new Visualizer(system) : nullptr);
+
+    if (viz) {
+        viz->setShowFrameNumber(true);
+        viz->addDecorationGenerator(new CableDecorator(system, cable));
+    }
+
+    // Initialize the system and state.
+    system.realizeTopology();
+
+    // Try setting the algorithm to Algorithm::Scholz2015 to see how it fails
+    // to initialize the path:
+    // cable.setAlgorithm(CableSpanAlgorithm::Scholz2015);
+
+    State s = system.getDefaultState();
+    system.realize(s, Stage::Report);
+
+    if (viz) {
+        viz->report(s);
+    }
+
+    // Test that the solution was found.
+    SimTK_ASSERT2_ALWAYS(cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+            "Path smoothness (%e) does not meet tolerance (%e)",
+            cable.getSmoothness(s),
+            cable.getSmoothnessTolerance());
+
+    // Test the cable length.
+    const Real expectedLength = 5.6513;
+    SimTK_ASSERT2_ALWAYS(std::abs(cable.calcLength(s) - expectedLength) < 1e-3,
+            "Cable length (%f) does match expected length (%f)",
+            cable.calcLength(s), expectedLength);
+}
+
 int main()
 {
     testSimpleCable();
@@ -886,4 +964,5 @@ int main()
     testAllSurfaceKinds(false); // Test all geodesics and Jacobians.
     testAllSurfaceKinds(true);  // Test length derivative.
     testSolverOptimum();
+    testRobustInitialPath();
 }
