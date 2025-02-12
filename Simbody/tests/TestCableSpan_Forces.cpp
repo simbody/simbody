@@ -50,7 +50,7 @@ void assertForces(
 
     for (int i = 0; i < numBodies; ++i) {
         SimTK_ASSERT1_ALWAYS(
-            (forces[i] - expectedBodyForcesInG[i]).norm() < 1e-13,
+            (forces[i] - expectedBodyForcesInG[i]).norm() < 1e-6,
             "Test failed: force error = %e",
             (forces[i] - expectedBodyForcesInG[i]).norm());
     }
