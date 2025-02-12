@@ -549,14 +549,14 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
             s,
             Vec3(
                 0.1 * sin(angle),
-                2. * sin(angle * 0.7),
-                5. * sin(angle * 1.3)));
+                4. * sin(angle * 0.7),
+                10. * sin(angle * 1.3)));
         cableTerminationBody.setU(
             s,
             Vec3(
                 0.1 * cos(angle),
-                2. * 0.7 * cos(angle * 0.7),
-                5. * 1.3 * cos(angle * 1.3)));
+                4. * 0.7 * cos(angle * 0.7),
+                10. * 1.3 * cos(angle * 1.3)));
 
         // Compute the CableSpan's path.
         system.realize(s, Stage::Report);
