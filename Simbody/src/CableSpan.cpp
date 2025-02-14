@@ -3682,41 +3682,43 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
 
             // Compute the path error vector and Jacobian, before the applied
             // perturbation.
+            std::vector<LineSegment> lineSegments(nActive);
 
-            MatrixWorkspace& data =
-                cable.updDataInst(sCopy).updOrInsert(nActive);
+            Vector pathError(nActive * c_GeodesicDOF, NaN);
+            Matrix pathErrorJacobian(nActive * c_GeodesicDOF, nActive * c_GeodesicDOF, NaN);
+
+            Real length = NaN;
+            Vector lengthGradient(nActive * c_GeodesicDOF, NaN);
+            Matrix lengthHessian(nActive * c_GeodesicDOF, nActive * c_GeodesicDOF, NaN);
 
             calcLineSegments(
                 cable,
                 sCopy,
                 dataPos.originPoint_G,
                 dataPos.terminationPoint_G,
-                data.lineSegments);
+                lineSegments);
 
-            calcPathErrorVector<2>(
-                cable,
-                sCopy,
-                data.lineSegments,
-                axes,
-                data.pathError);
+            calcPathErrorVector<2>(cable, sCopy, lineSegments, {NormalAxis, BinormalAxis}, pathError);
+            calcPathErrorJacobian<2>(cable, sCopy, lineSegments, {NormalAxis, BinormalAxis}, pathErrorJacobian);
 
-            calcPathErrorJacobian<2>(
-                cable,
-                sCopy,
-                data.lineSegments,
-                axes,
-                data.pathErrorJacobian);
+            length = calcTotalCableLength(sCopy, cable, lineSegments);
+            calcLengthGradient(sCopy, cable, lineSegments, lengthGradient);
+            calcLengthHessian(sCopy, cable, lineSegments, lengthHessian);
 
             // Define the perturbation we will use for testing the Jacobian.
-            data.pathCorrection.setTo(0.);
+            Vector pathCorrection(nActive * c_GeodesicDOF, 0.);
             if (i != 0) {
                 perturbation *= -1.;
-                data.pathCorrection.set((i - 1) / 2, perturbation);
+                pathCorrection.set((i - 1) / 2, perturbation);
             }
 
             // Use the Jacobian to predict the perturbed path error vector.
-            Vector predictedPathError =
-                data.pathErrorJacobian * data.pathCorrection + data.pathError;
+            const Vector predictedPathError =
+                pathErrorJacobian * pathCorrection + pathError;
+            const Real predictedLength =
+                ~lengthGradient * pathCorrection + length;
+            const Vector predictedLengthGradient =
+                lengthHessian * pathCorrection + lengthGradient;
 
             // Store the wrapping status before applying the perturbation.
             std::vector<ObstacleWrappingStatus> prevWrappingStatus;
@@ -3732,7 +3734,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 if (curve.isInContactWithSurface(sCopy)) {
                     curve.applyGeodesicCorrection(
                         sCopy,
-                        data.getCurveCorrection(activeCurveIx));
+                        MatrixWorkspace::getCurveCorrection(pathCorrection, activeCurveIx));
                     ++activeCurveIx;
                 }
             }
@@ -3752,13 +3754,14 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 sCopy,
                 dataPos.originPoint_G,
                 dataPos.terminationPoint_G,
-                data.lineSegments);
-            calcPathErrorVector<2>(
-                cable,
-                sCopy,
-                data.lineSegments,
-                axes,
-                data.pathError);
+                lineSegments);
+
+            calcPathErrorVector<2>(cable, sCopy, lineSegments, {NormalAxis, BinormalAxis}, pathError);
+            calcPathErrorJacobian<2>(cable, sCopy, lineSegments, {NormalAxis, BinormalAxis}, pathErrorJacobian);
+
+            length = calcTotalCableLength(sCopy, cable, lineSegments);
+            calcLengthGradient(sCopy, cable, lineSegments, lengthGradient);
+            calcLengthHessian(sCopy, cable, lineSegments, lengthHessian);
 
             // The curve lengths are clipped at zero, which distorts the
             // perturbation test. We simply skip these edge cases.
@@ -3784,38 +3787,93 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 break;
             }
 
-            const Real predictionError =
-                (predictedPathError - data.pathError).normInf();
 
             // Tolerance was given as a percentage, multiply by 0.01 to get the
             // correct scale.
             const Real tolerance =
                 m_perturbationTestParameters.tolerance * 1e-2;
-            bool passedTest =
-                std::abs(predictionError / perturbation) <= tolerance;
-            if (!passedTest) {
-                testReport << "FAILED perturbation test for correction = "
-                           << data.pathCorrection << "\n";
-                testReport << "path error after perturbation:\n";
-                testReport << "    Got        : " << data.pathError << "\n";
-                testReport << "    Predicted  : " << predictedPathError << "\n";
-                testReport << "    Difference : "
-                           << (predictedPathError - data.pathError) /
-                                  perturbation
-                           << "\n";
-                testReport << "    Max diff   : "
-                           << (predictedPathError - data.pathError).normInf() /
-                                  perturbation
-                           << " <= " << tolerance << " = eps\n";
-            } else {
-                testReport << "PASSED perturbation test for correction = "
-                           << data.pathCorrection << "\n";
-                testReport << " ( max diff = "
-                           << (predictedPathError - data.pathError).normInf() /
-                                  perturbation
-                           << " <= " << tolerance << " = eps )\n";
+            // Evaluate the path error jacobian.
+            {
+                const Real predictionError =
+                    (predictedPathError - pathError).normInf();
+                bool passedTest =
+                    std::abs(predictionError / perturbation) <= tolerance;
+                if (!passedTest) {
+                    testReport <<
+                        "FAILED path error Jacobian perturbation test for correction = "
+                        << pathCorrection << "\n";
+                    testReport << "path error after perturbation:\n";
+                    testReport << "    Got        : " << pathError << "\n";
+                    testReport << "    Predicted  : " << predictedPathError << "\n";
+                    testReport << "    Difference : "
+                        << (predictedPathError - pathError) /
+                        perturbation
+                        << "\n";
+                    testReport << "    Max diff   : "
+                        << (predictedPathError - pathError).normInf() /
+                        perturbation
+                        << " <= " << tolerance << " = eps\n";
+                } else {
+                    testReport << "PASSED perturbation test for correction = "
+                        << pathCorrection << "\n";
+                    testReport << " ( max diff = "
+                        << (predictedPathError - pathError).normInf() /
+                        perturbation
+                        << " <= " << tolerance << " = eps )\n";
+                }
+                success = success && passedTest;
             }
-            success = success && passedTest;
+            // Evaluate the length gradient.
+            {
+                const Real predictionError =
+                    std::abs(predictedLength - length);
+                bool passedTest =
+                    std::abs(predictionError / perturbation) <= tolerance;
+                if (!passedTest) {
+                    testReport <<
+                        "FAILED length gradient perturbation test for correction = "
+                        << pathCorrection << "\n";
+                    testReport << "length after perturbation:\n";
+                    testReport << "    Got        : " << length << "\n";
+                    testReport << "    Predicted  : " << predictedLength << "\n";
+                    testReport << "    Difference : " << (predictedLength - length) / perturbation << "\n";
+                    testReport << "    Tolerance  : " << tolerance << "\n";
+                } else {
+                    testReport << "PASSED length perturbation test for correction = "
+                        << pathCorrection << "\n";
+                    testReport << " ( max diff = " << std::abs(predictionError / perturbation)
+                        << " <= " << tolerance << " = eps )\n";
+                }
+                success = success && passedTest;
+            }
+            // Evaluate the length Hessian.
+            {
+                const Real predictionError =
+                    (predictedLengthGradient - lengthGradient).normInf();
+                bool passedTest =
+                    std::abs(predictionError / perturbation) <= tolerance;
+                if (!passedTest) {
+                    testReport <<
+                        "FAILED length Hessian perturbation test for correction = "
+                        << pathCorrection << "\n";
+                    testReport << "length gradient after perturbation:\n";
+                    testReport << "    Got        : " << lengthGradient << "\n";
+                    testReport << "    Predicted  : " << predictedLengthGradient << "\n";
+                    testReport << "    Difference : "
+                        << (predictedLengthGradient - lengthGradient) /
+                        perturbation
+                        << "\n";
+                    testReport << "    Max diff   : "
+                        << std::abs(predictionError / perturbation)
+                        << " <= " << tolerance << " = eps\n";
+                } else {
+                    testReport << "PASSED length Hessian perturbation test for correction = "
+                        << pathCorrection << "\n";
+                    testReport << " ( max diff = " << std::abs(predictionError / perturbation)
+                        << " <= " << tolerance << " = eps )\n";
+                }
+                success = success && passedTest;
+            }
         }
     }
     // Flush all info to the report, in case we throw an exception.
