@@ -2751,7 +2751,8 @@ void calcLengthHessian(
         const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
         const CurveSegmentData::Instance& dataInst = curve.getDataInst(state);
 
-        // The path error of which to take the Jacobian is: dot(a_P, l_P)
+        // This block computes the Hessian of the straight line segment
+        // connected to the initial contact point, i.e. at the P-frame.
         {
             const UnitVec3& e = lines.at(lineIx).direction;
             const Real l      = lines.at(lineIx).length;
@@ -2761,12 +2762,20 @@ void calcLengthHessian(
             const Mat34& v_P = dataPos.v_P;
             const Mat34& w_P = dataPos.w_P;
 
-            const Mat44 vblock = ~v_P * E * v_P;
-            Mat44 wblock       = ~v_P * skewSymMat(e) * w_P;
-            AddBlock(vblock + wblock);
+            // The gradient block is given as: g_i = ~e v_i
+            // We can use the product rule using the derivatives:
+            // de/dq_i = (I - e * ~e) / l * v_i
+            // dv_i/dq_j = w_j % v_i
+            // Where the latter is true because v_i is a unit vector.
+            // The Hessian elements of this block are then given as:
+            // H_ij = ~e dv_i/dq_j + ~v_i de/dq_j
+            // Which can be written compactly as:
+            const Mat44 hblock = ~v_P * E * v_P + ~v_P * skewSymMat(e) * w_P;
+            AddBlock(hblock);
 
-            // Write to the off-diagonal of J the Jacobian of the path
-            // error to the previous CurveSegment's NaturalGeodesicCorrection.
+            // Write to the off-diagonal block of H the Jacobian of the
+            // gradient to the previous CurveSegment's
+            // NaturalGeodesicCorrection.
             const ObstacleIndex prevObsIx =
                 curve.findPrevObstacleInContactWithCable(state);
             if (prevObsIx.isValid()) {
@@ -2778,11 +2787,10 @@ void calcLengthHessian(
             }
         }
 
-        // Compute the Jacobian elements of the path error related to the final
-        // contact point.
+        // This block computes the Hessian of the straight line segment
+        // connected to the final contact point, i.e. at the Q-frame.
         ++lineIx; // Increment to the next straight line segment.
         {
-            // The path error of which to take the Jacobian is: dot(a_Q, l_Q)
             const UnitVec3& e = lines.at(lineIx).direction;
             const Real l      = lines.at(lineIx).length;
 
@@ -2793,29 +2801,45 @@ void calcLengthHessian(
             const Real aDot = dataInst.jacobiDot_Q[0];
             const Real rDot = dataInst.jacobiDot_Q[1];
 
-            // Write to the block diagonal of J the Jacobian of the path
-            // error to the CurveSegment's NaturalGeodesicCorrection.
+            // If we assume the variation of the jaobi fields is zero, then the
+            // columns of v_Q have a constant norm. Then, the Hessian of the
+            // straight line segment at the Q-frame is computed analogously as
+            // done at the P-frame:
+            Mat44 hblock = ~v_Q * E * v_Q - ~v_Q * skewSymMat(e) * w_Q;
 
-            // If we assume the variation of the jaobi fields is zero, the hessian can be computed compactly as:
-            // TODO rename to Hblock
-            Mat44 vblock = ~v_Q * E * v_Q - ~v_Q * skewSymMat(e) * w_Q;
-
-            // When computing the variation of the jacobi fields to the natural geodesic variations we need what is called the jacobi covariance: i.e. the second order variation field. We know these terms for the first and last natural geodesic variation, these are simply aDot, rDot. However for the second and third terms these must be computed numerically, similarly to how the jacobi field is computed see TODO.
-            // Here we assume the effect of these terms to be minimal, and we know that near the optimum these terms will vanish analytically. We therefore estimate the covariance terms as zero. This assumption is verified by the perturbation test done by CableSubsystemTestHelper, which numerically checks that the computed Hessian predicts the variation of the gradient.
-            const Real unknown = 0.;
-            const Vec4 da_dq(aDot, unknown, unknown, aDot);
-            const Vec4 dr_dq(rDot, unknown, unknown, rDot);
-            // All terms related to the covariance are pre-multiplied by this term (e^T * b = dot product of line direction with binormal), which converges to zero near the optimum.
+            // In reality the columns of v_Q do not have a constant norm, using
+            // the product rule we need to add some additional terms.
+            // When computing the variation of the jacobi fields to the natural
+            // geodesic variations we need the jacobi covariance: i.e. the
+            // second order variation field. We know these terms for the first
+            // and last natural geodesic variation, these are simply aDot,
+            // rDot. However for the second and third terms these must be
+            // computed numerically, similarly to how the jacobi field is
+            // computed see TODO.
+            // Here we assume the effect of these terms to be minimal, and near
+            // the optimum these terms will vanish analytically. We therefore
+            // estimate the covariance terms as zero. This assumption is
+            // verified by the perturbation test done by
+            // CableSubsystemTestHelper, which numerically checks that the
+            // computed Hessian predicts the variation of the gradient.
+            const Real unknown = 0.; // The unknown terms we estimate as zero.
+            // Variation of jacobi scalars to each natural geodesic variation:
+            const Vec4 da_dq(aDot, unknown, unknown, aDot); // Translational
+            const Vec4 dr_dq(rDot, unknown, unknown, rDot); // Rotational
+            // All terms related to the covariance are pre-multiplied by this
+            // term (e^T * b = dot product of line direction with binormal),
+            // which converges to zero near the optimum.
             const Real eTb = dot(e, getBinormal(dataPos.X_GQ));
             // Add the effect of the jacobi field covariance to the hessian block.
             for (int qIx = 0; qIx < c_GeodesicDOF; ++qIx) {
-                vblock(1, qIx) += - eTb * da_dq(qIx);
-                vblock(2, qIx) += - eTb * dr_dq(qIx);
+                hblock(1, qIx) += - eTb * da_dq(qIx);
+                hblock(2, qIx) += - eTb * dr_dq(qIx);
             }
-            AddBlock(vblock);
+            AddBlock(hblock);
 
-            // Write to the off-diagonal of J the Jacobian of the path
-            // error to the next CurveSegment's NaturalGeodesicCorrection.
+            // Write to the off-diagonal block of H the Jacobian of the
+            // gradient to the next CurveSegment's
+            // NaturalGeodesicCorrection.
             const ObstacleIndex nextObsIx =
                 curve.findNextObstacleInContactWithCable(state);
             if (nextObsIx.isValid()) {
