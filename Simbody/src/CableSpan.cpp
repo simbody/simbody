@@ -3142,18 +3142,7 @@ void CableSpan::Impl::calcSolverStep(
             data.binormalPathError);
 
         data.maxPathError = std::max(data.normalPathError.normInf(), data.binormalPathError.normInf());
-
-        /* { */
-        /*     Vector oldPathError(data.lineSegments.size() - 1, NaN); */
-        /*     calcPathErrorVector<1>(*this, s, data.lineSegments, {NormalAxis}, oldPathError); */
-        /*     std::cout << "oldPathError = " << oldPathError << "\n"; */
-        /*     std::cout << "normalPathError = " << data.normalPathError << "\n"; */
-        /*     std::cout << "diff = " << data.normalPathError - oldPathError << "\n"; */
-        /*     std::cout << std::endl; */
-        /* } */
     }
-
-    std::cout << "n = " << nObstaclesInContact << std::endl;
 
     // If the path error is small we have converged to the optimal solution,
     // and there is no need to compute the geodesic corrections.
