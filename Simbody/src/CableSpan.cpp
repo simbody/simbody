@@ -128,6 +128,7 @@ struct MatrixWorkspace {
     // dimensions.
     explicit MatrixWorkspace(int problemSize) : nObstaclesInContact(problemSize)
     {
+        // TODO cleanup
         static constexpr int Q = c_GeodesicDOF;
         static constexpr int C = c_NumConstraints;
         const int n            = problemSize;
@@ -357,6 +358,7 @@ struct CurveSegmentData {
         FrenetFrame X_GP;
         // Frenet frame at the final contact point w.r.t. ground.
         FrenetFrame X_GQ;
+        // TODO
         // Variation of position at frame P. Where each column is the variation
         // of the position to each of the natural geodesic variations.
         Mat34 v_P;
@@ -2895,6 +2897,8 @@ void calcPathCorrections(MatrixWorkspace& data)
     data.pathCorrection *= -1.;
 }
 
+//  TODO put in right place
+//  TODO rename to calcCurveCorrectionStepSize
 // Given a correction vector computed from minimizing the cost function,
 // compute the maximum allowed stepsize along that correction vector.
 // The allowed step is computed using the orientation variation and the
@@ -2938,6 +2942,9 @@ void calcMaxAllowedCurveCorrectionStepSize(
     }
 }
 
+//  TODO put in right place
+//  TODO rename to calcPathCorrectionStepSize
+//  TODO take const ref, and return Real
 // Helper for computing the stepsize such that a given path correction vector
 // does not exceed the max allowed angular displacement at the boundary frames
 // of the curve segments.
@@ -2965,6 +2972,7 @@ void calcClampedPathCorrection(const State& s, const CableSpan::Impl& cable, Vec
     pathCorrection *= stepSize;
 }
 
+//  TODO put in right place
 // Helper for computing the total cable length.
 // This is the sum of the lengths of all straight line segments, and all curve
 // segments.
@@ -2994,6 +3002,7 @@ Real calcTotalCableLength(
 //                      CableSpan::Impl Cache Computation
 //------------------------------------------------------------------------------
 
+// TODO remove function
 const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 {
     CableSpanData::Instance& dataInst = updDataInst(s);
@@ -3089,6 +3098,7 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
     return data;
 }
 
+// TODO description
 void CableSpan::Impl::calcSolverStep(
     const State& s,
     CableSpanAlgorithm algorithm,
