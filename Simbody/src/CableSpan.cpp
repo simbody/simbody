@@ -2575,7 +2575,6 @@ void calcPathErrorJacobian(
     // Helper for adding a computed block to the Jacobian.
     auto AddBlock = [&](const Vec4& block, int colShift = 0)
     {
-        std::cout << "addBlock " << block << "\n";
         for (int ix = 0; ix < 4; ++ix) {
             J(row, col + colShift + ix) += block[ix];
         }
@@ -2723,7 +2722,6 @@ void calcLengthHessian(
     // Helper for adding a computed block to the Jacobian.
     auto AddBlock = [&](const Mat44& block, int colOffset = 0)
     {
-        /* std::cout << "adding block = " << block << "\n"; */
         for (int r = 0; r < 4; ++r) {
             for (int c = 0; c < 4; ++c) {
                 H(row + r, col + colOffset + c) += block(r, c);
@@ -2733,6 +2731,7 @@ void calcLengthHessian(
 
     Mat33 I(1.);
 
+    // Helper for constructing a skew symmetric matrix S(v) from a vector v.
     auto skewSymMat = [](const Vec3& v) -> Mat33
     {
         return {
@@ -2750,8 +2749,7 @@ void calcLengthHessian(
             continue;
         }
         const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
-
-        const bool addRateTerms = true;
+        const CurveSegmentData::Instance& dataInst = curve.getDataInst(state);
 
         // The path error of which to take the Jacobian is: dot(a_P, l_P)
         {
@@ -2762,20 +2760,10 @@ void calcLengthHessian(
 
             const Mat34& v_P = dataPos.v_P;
             const Mat34& w_P = dataPos.w_P;
-            if (addRateTerms) {
-                const Mat44 vblock = ~v_P * E * v_P;
-                Mat44 wblock       = ~v_P * skewSymMat(e) * w_P;
-                // TODO this appears to be the remaining non-symmetric term.
-                /* wblock(0,2) = 0.; // TODO remove dot(e,b) term */
-                /* std::cout << "H_vP = " << vblock << "\n"; */
-                /* std::cout << "H_wP = " << wblock << "\n"; */
-                /* std::cout << "e^T b = " << dot(e, getBinormal(dataPos.X_GP))
-                 */
-                /*           << "\n"; */
-                AddBlock(vblock + wblock);
-            } else {
-                AddBlock(~v_P * E * v_P);
-            }
+
+            const Mat44 vblock = ~v_P * E * v_P;
+            Mat44 wblock       = ~v_P * skewSymMat(e) * w_P;
+            AddBlock(vblock + wblock);
 
             // Write to the off-diagonal of J the Jacobian of the path
             // error to the previous CurveSegment's NaturalGeodesicCorrection.
@@ -2802,35 +2790,29 @@ void calcLengthHessian(
             const Mat34& v_Q = dataPos.v_Q;
             const Mat34& w_Q = dataPos.w_Q;
 
-            if (addRateTerms) {
+            const Real aDot = dataInst.jacobiDot_Q[0];
+            const Real rDot = dataInst.jacobiDot_Q[1];
 
-                // Write to the block diagonal of J the Jacobian of the path
-                // error to the CurveSegment's NaturalGeodesicCorrection.
-                Mat44 vblock = ~v_Q * E * v_Q;
-                Mat44 wblock = -~v_Q * skewSymMat(e) * w_Q;
+            // Write to the block diagonal of J the Jacobian of the path
+            // error to the CurveSegment's NaturalGeodesicCorrection.
 
-                // Derivative of jacobi scalars to ds can be obtained by noting
-                // that the hessian must be symmetric.
-                wblock(1, 0) = wblock(0, 1);
-                wblock(2, 0) = wblock(0, 2);
-                wblock(1, 3) = wblock(3, 1);
-                wblock(2, 3) = wblock(3, 2);
+            // If we assume the variation of the jaobi fields is zero, the hessian can be computed compactly as:
+            // TODO rename to Hblock
+            Mat44 vblock = ~v_Q * E * v_Q - ~v_Q * skewSymMat(e) * w_Q;
 
-                // What is the derivative of jacobi scalars to Beta & Theta?
-                /* const Real offDiag = 0.5 * (wblock(2,1) + wblock(1,2)); */
-                /* wblock(1,2) = offDiag; */
-                /* wblock(2,1) = offDiag; */
-
-                // Make sure Hessian is positive definite.
-                /* wblock(1,1) = std::abs(wblock(1,1)); */
-                /* wblock(2,2) = std::abs(wblock(2,2)); */
-
-                /* std::cout << "H_vQ = " << vblock << "\n"; */
-                /* std::cout << "H_wQ = " << wblock << "\n"; */
-                AddBlock(vblock + wblock);
-            } else {
-                AddBlock(~v_Q * E * v_Q);
+            // When computing the variation of the jacobi fields to the natural geodesic variations we need what is called the jacobi covariance: i.e. the second order variation field. We know these terms for the first and last natural geodesic variation, these are simply aDot, rDot. However for the second and third terms these must be computed numerically, similarly to how the jacobi field is computed see TODO.
+            // Here we assume the effect of these terms to be minimal, and we know that near the optimum these terms will vanish analytically. We therefore estimate the covariance terms as zero. This assumption is verified by the perturbation test done by CableSubsystemTestHelper, which numerically checks that the computed Hessian predicts the variation of the gradient.
+            const Real unknown = 0.;
+            const Vec4 da_dq(aDot, unknown, unknown, aDot);
+            const Vec4 dr_dq(rDot, unknown, unknown, rDot);
+            // All terms related to the covariance are pre-multiplied by this term (e^T * b = dot product of line direction with binormal), which converges to zero near the optimum.
+            const Real eTb = dot(e, getBinormal(dataPos.X_GQ));
+            // Add the effect of the jacobi field covariance to the hessian block.
+            for (int qIx = 0; qIx < c_GeodesicDOF; ++qIx) {
+                vblock(1, qIx) += - eTb * da_dq(qIx);
+                vblock(2, qIx) += - eTb * dr_dq(qIx);
             }
+            AddBlock(vblock);
 
             // Write to the off-diagonal of J the Jacobian of the path
             // error to the next CurveSegment's NaturalGeodesicCorrection.
@@ -2839,8 +2821,8 @@ void calcLengthHessian(
             if (nextObsIx.isValid()) {
                 constexpr int colShift = NQ; // the off-diagonal block.
                 const Mat34& v_P = cable.getObstacleCurveSegment(nextObsIx)
-                                       .getDataPos(state)
-                                       .v_P;
+                    .getDataPos(state)
+                    .v_P;
                 AddBlock(-~v_Q * E * v_P, colShift);
             }
         }
