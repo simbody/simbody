@@ -3271,20 +3271,20 @@ void CableSpan::Impl::calcSolverStep(
         // Q = U * Σ * U^T
 
         // Matrices for computing the lagrange multipliers.
-        Matrix A(nC, nC, NaN);
-        Vector b(nC, NaN);
-        Vector lambda(nC, NaN);
+        Matrix& A = data.A;
+        Vector& b = data.b;
+        Vector& lambda = data.lambda;
 
         Vector& q = data.pathCorrection;
 
-        Matrix J(nC, nQ, NaN);
-        Vector e = data.normalPathError;
+        Matrix& J = data.normalPathErrorJacobian;
+        const Vector& e = data.normalPathError;
 
-        Matrix H(nQ, nQ, NaN);
-        Vector g(nQ, NaN);
+        Matrix& H = data.lengthHessian;
+        Vector& g = data.lengthGradient;
 
         // Rename to Qinv
-        Matrix HInvEst(nQ, nQ, NaN);
+        Matrix& HInvEst = data.lengthHessianInverseEstimate;
 
         cMatDim(J, nC, nQ, "J");
         cVecDim(e, nC, "e");
@@ -3304,18 +3304,17 @@ void CableSpan::Impl::calcSolverStep(
         calcLengthHessian(s, *this, data.lineSegments, H);
 
         // TODO move to struct.
-        FactorSVD svd;
-        Vector sigma(nQ, 0.);
-        Matrix U(nQ, nQ, 0.);
-        Matrix rightVectors(nQ, nQ, 0.);
+        Vector& sigma = data.singularValues;
+        Matrix& U = data.leftSingularValues;
+        Matrix& V = data.rightSingularValues;
 
         cVecDim(sigma, nQ, "sigma");
         cMatDim(U, nQ, nQ, "U");
-        cMatDim(rightVectors, nQ, nQ, "rightVectors");
+        cMatDim(V, nQ, nQ, "V");
 
         // Solve SVD of Hessian estimate.
-        svd = 0.5 * (H + ~H);
-        svd.getSingularValuesAndVectors(sigma, U, rightVectors);
+        data.svd = 0.5 * (H + ~H);
+        data.svd.getSingularValuesAndVectors(sigma, U, V);
 
         // M = U D U^T
         // M^{-1} = U D^-1 U^T
@@ -3332,9 +3331,6 @@ void CableSpan::Impl::calcSolverStep(
             }
         }
 
-        // TODO move to struct.
-        FactorQTZ solver;
-
         // Compute Lagrange multipliers.
         // (J^T M^-1 J) * lambda = c - J M^-1 g = c - J d
         //
@@ -3343,30 +3339,14 @@ void CableSpan::Impl::calcSolverStep(
         A = J * HInvEst * J.transpose();
 
         // Solve for the lagrange multipliers.
-        solver = A;
-        solver.solve(b, lambda);
+        data.factor = A;
+        data.factor.solve(b, lambda);
 
         // Compute path corrections.
         q = HInvEst * (g + J.transpose() * lambda);
 
         // Use a damped Newton step.
         q *= -0.5;
-
-        // TODO: using a coordinate transform.
-        /* { */
-        /*     Matrix T; // U * SsqrInv; */
-        /*     Vector Tg = ~T * g; */
-        /*     Matrix JT = J * T; */
-
-        /*     Matrix A = JT * ~JT; */
-        /*     Vector b = JT * Tg - e; */
-
-        /*     FactorQTZ qtz; */
-        /*     qtz = A; */
-        /*     qtz.solve(b, lambda); */
-
-        /*     q = T * (-Tg - ~JT * lambda); */
-        /* } */
     }
 
     // Clamp the computed correction vector using the curvature of each
