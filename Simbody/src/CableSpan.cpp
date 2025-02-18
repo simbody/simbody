@@ -3136,47 +3136,71 @@ const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
 // TODO description
 void CableSpan::Impl::calcSolverStep(
     const State& s,
-    CableSpanAlgorithm algorithm,
+    CableSpanAlgorithm algorithm, // TODO describe algorithms in class Algorithm
     MatrixWorkspace& data) const
 {
-    // SOLVER STEP 1: Compute the path errors. If the path errors are small we
-    // have computed the optimal path, and there is nothing to do. Otherwise we
-    // proceed with step 2: computing the corrections to reduce the path
-    // errors.
+    // TODO remove checks
+    auto cMatDim = [&](const Matrix& mat, int r, int c, const std::string& s) {
+        SimTK_ASSERT5_ALWAYS(
+                mat.nrow() == r && mat.ncol() == c,
+                "%s dimensions incorrect (%i, %i) neq (%i, %i)",
+                s.c_str(),
+                mat.nrow(), mat.ncol(), r, c);
+    };
+    auto cVecDim = [&](const Vector& vec, int r, const std::string& s) {
+        SimTK_ASSERT3_ALWAYS(
+                vec.nrow() == r,
+                "%s dimensions incorrect (%i, %i) neq (%i, %i)",
+                s.c_str(),
+                vec.nrow(), r);
+    };
 
-    // Compute the straight-line segments of this cable span.
+    // SOLVER STEP 1: Compute the path errors. If the path errors are small the
+    // current path is the optimal path, and there is nothing to do. Otherwise
+    // we proceed with step 2: computing the corrections to reduce the path
+    // errors. See MatrixWorkspace documentation above for a description of the
+    // path errors.
+
+    // The path errors are computed as the misalignment of the straight line
+    // segments with the curve segments.
+    // Start by computing the straight-line segments of this cable span.
     calcLineSegments(
-        *this,
-        s,
-        this->calcOriginPointInGround(s),
-        this->calcTerminationPointInGround(s),
-        data.lineSegments);
-
+            *this,
+            s,
+            this->calcOriginPointInGround(s),
+            this->calcTerminationPointInGround(s),
+            data.lineSegments);
     const int nObstaclesInContact = data.lineSegments.size() - 1;
-    // TODO move to resize()
-    data.normalPathError = Vector(nObstaclesInContact * 2, NaN);
-    data.binormalPathError = Vector(nObstaclesInContact * 2, NaN);
 
-    data.maxPathError = 0.;
+    {
+        // TODO Remove checks.
+        const int n = data.lineSegments.size() - 1;
+        const int nC = 2 * n;
+        const int nQ = 4 * n;
+        cVecDim(data.normalPathError, nC, "Jn");
+        cVecDim(data.binormalPathError, nC, "Jb");
+    }
 
+    data.maxPathError = 0.; // Reset the max path error field.
     // If there is one line segment, there are no obstacles in contact with the
     // cable, and the path error is zero. Otherwise we compute the path errors.
     if (data.lineSegments.size() > 1) {
-
         calcPathErrorVector(
-            s,
-            *this,
-            data.lineSegments,
-            NormalAxis,
-            data.normalPathError);
+                s,
+                *this,
+                data.lineSegments,
+                NormalAxis,
+                data.normalPathError);
         calcPathErrorVector(
-            s,
-            *this,
-            data.lineSegments,
-            BinormalAxis,
-            data.binormalPathError);
+                s,
+                *this,
+                data.lineSegments,
+                BinormalAxis,
+                data.binormalPathError);
 
-        data.maxPathError = std::max(data.normalPathError.normInf(), data.binormalPathError.normInf());
+        data.maxPathError = std::max(
+             data.normalPathError.normInf(),
+                data.binormalPathError.normInf());
     }
 
     // If the path error is small we have converged to the optimal solution,
@@ -3186,33 +3210,30 @@ void CableSpan::Impl::calcSolverStep(
         return;
     }
 
-    // SOLVER STEP 2: Compute the NaturalGeodesicCorrections for each CurveSegment that reduces the path errors.
+    // SOLVER STEP 2: Compute the path correction step that reduces the path errors.
+    SimTK_ASSERT_ALWAYS(
+        nObstaclesInContact > 0,
+        "No obstacles in contact with cable: unable to compute path corrections");
 
-    // Scholz2015 algorithm.
+    // Compute the path corrections as outlined in Scholz2015.
     // TODO use switch?
     if (algorithm == CableSpanAlgorithm::Scholz2015)
     {
-        const int n = data.lineSegments.size() - 1;
-        const int nC = 2 * n;
-        const int nQ = 4 * n;
 
-        if (n <= 0) {
-            throw std::runtime_error("no obstacles in contact: cannot compute matrices");
-        }
+        Vector b(nObstaclesInContact * (c_GeodesicDOF + 1), 0.);
+        Matrix A(nObstaclesInContact * (c_GeodesicDOF + 1), nObstaclesInContact * c_GeodesicDOF, 0.);
+        Vector& q = data.pathCorrection;
 
-        std::array<CoordinateAxis, 2> axes {NormalAxis, BinormalAxis};
-
-        calcPathErrorVector<2>(*this, s, data.lineSegments, axes, data.pathError);
-        data.maxPathError = data.pathError.normInf();
-
+        // Fill the upper block of A and b with the path error jacobian and vector.
+        calcPathErrorVector<2>(*this, s, data.lineSegments, {NormalAxis, BinormalAxis}, b);
         calcPathErrorJacobian<2>(
                 *this,
                 s,
                 data.lineSegments,
-                axes,
-                data.pathErrorJacobian);
+                {NormalAxis, BinormalAxis},
+                A);
 
-        // The last elements of the path error vector contain the change in length
+        // The last elements of the b vector contain the change in length
         // of each curve segment, and require it to remain zero. The change in
         // length is the last element of the NaturalGeodesicCorrection vector. The
         // Jacobian is therefore zero everywhere, except for one (=1) at the element
@@ -3228,36 +3249,22 @@ void CableSpan::Impl::calcSolverStep(
                 i;
             int c = c_GeodesicDOF * (i + 1) - 1;
             // Write the weight that will penalize changing the curve length.
-            data.pathErrorJacobian.set(r, c, data.maxPathError);
+            const Real weight = data.maxPathError;
+            A.set(r, c, weight);
         }
 
-        data.factor = data.pathErrorJacobian;
-        data.factor.solve(data.pathError, data.pathCorrection);
-        data.pathCorrection *= -1.;
+        data.factor = A;
+        data.factor.solve(b, q);
+        q *= -1.;
     }
 
-    // Minimal length algorithm
+    // Compute the path corrections as using the Minimal length algorithm.
     if (algorithm == CableSpanAlgorithm::MinimumLength)
     {
         // TODO move this to the workspace struct.
         const int n = data.lineSegments.size() - 1;
         const int nC = 2 * n;
         const int nQ = 4 * n;
-
-        auto cMatDim = [&](const Matrix& mat, int r, int c, const std::string& s) {
-            SimTK_ASSERT5_ALWAYS(
-                mat.nrow() == r && mat.ncol() == c,
-                "%s dimensions incorrect (%i, %i) neq (%i, %i)",
-                s.c_str(),
-                mat.nrow(), mat.ncol(), r, c);
-        };
-        auto cVecDim = [&](const Vector& vec, int r, const std::string& s) {
-            SimTK_ASSERT3_ALWAYS(
-                vec.nrow() == r,
-                "%s dimensions incorrect (%i, %i) neq (%i, %i)",
-                s.c_str(),
-                vec.nrow(), r);
-        };
 
         if (n <= 0) {
             throw std::runtime_error("no obstacles in contact: cannot compute matrices");
@@ -3280,37 +3287,31 @@ void CableSpan::Impl::calcSolverStep(
         Matrix& J = data.normalPathErrorJacobian;
         const Vector& e = data.normalPathError;
 
-        Matrix& H = data.lengthHessian;
         Vector& g = data.lengthGradient;
-
-        // Rename to Qinv
+        Matrix& H = data.lengthHessian;
         Matrix& HInvEst = data.lengthHessianInverseEstimate;
 
-        cMatDim(J, nC, nQ, "J");
-        cVecDim(e, nC, "e");
-
-        cMatDim(HInvEst, nQ, nQ, "HInvEst");
-        cMatDim(H, nQ, nQ, "H");
-        cVecDim(g, nQ, "g");
-
-        cVecDim(q, nQ, "q");
-
-        cMatDim(A, nC, nC, "A");
-        cVecDim(b, nC, "b");
-        cVecDim(lambda, nC, "lambda");
-
-        calcPathErrorJacobian(s, *this, data.lineSegments, NormalAxis, J);
-        calcLengthGradient(s,*this, data.lineSegments, g);
-        calcLengthHessian(s, *this, data.lineSegments, H);
-
-        // TODO move to struct.
         Vector& sigma = data.singularValues;
         Matrix& U = data.leftSingularValues;
         Matrix& V = data.rightSingularValues;
 
+        // TODO remove checks
+        cMatDim(J, nC, nQ, "J");
+        cVecDim(e, nC, "e");
+        cMatDim(HInvEst, nQ, nQ, "HInvEst");
+        cMatDim(H, nQ, nQ, "H");
+        cVecDim(g, nQ, "g");
+        cVecDim(q, nQ, "q");
+        cMatDim(A, nC, nC, "A");
+        cVecDim(b, nC, "b");
+        cVecDim(lambda, nC, "lambda");
         cVecDim(sigma, nQ, "sigma");
         cMatDim(U, nQ, nQ, "U");
         cMatDim(V, nQ, nQ, "V");
+
+        calcPathErrorJacobian(s, *this, data.lineSegments, NormalAxis, J);
+        calcLengthGradient(s,*this, data.lineSegments, g);
+        calcLengthHessian(s, *this, data.lineSegments, H);
 
         // Solve SVD of Hessian estimate.
         data.svd = 0.5 * (H + ~H);
