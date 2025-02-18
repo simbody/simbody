@@ -3208,6 +3208,22 @@ void CableSpan::Impl::calcSolverStep(
         const int n = data.lineSegments.size() - 1;
         const int nC = 2 * n;
         const int nQ = 4 * n;
+
+        auto cMatDim = [&](const Matrix& mat, int r, int c, const std::string& s) {
+            SimTK_ASSERT5_ALWAYS(
+                mat.nrow() == r && mat.ncol() == c,
+                "%s dimensions incorrect (%i, %i) neq (%i, %i)",
+                s.c_str(),
+                mat.nrow(), mat.ncol(), r, c);
+        };
+        auto cVecDim = [&](const Vector& vec, int r, const std::string& s) {
+            SimTK_ASSERT3_ALWAYS(
+                vec.nrow() == r,
+                "%s dimensions incorrect (%i, %i) neq (%i, %i)",
+                s.c_str(),
+                vec.nrow(), r);
+        };
+
         if (n <= 0) {
             throw std::runtime_error("no obstacles in contact: cannot compute matrices");
         }
@@ -3235,15 +3251,32 @@ void CableSpan::Impl::calcSolverStep(
         // Rename to Qinv
         Matrix HInvEst(nQ, nQ, NaN);
 
+        cMatDim(J, nC, nQ, "J");
+        cVecDim(e, nC, "e");
+
+        cMatDim(HInvEst, nQ, nQ, "HInvEst");
+        cMatDim(H, nQ, nQ, "H");
+        cVecDim(g, nQ, "g");
+
+        cVecDim(q, nQ, "q");
+
+        cMatDim(A, nC, nC, "A");
+        cVecDim(b, nC, "b");
+        cVecDim(lambda, nC, "lambda");
+
         calcPathErrorJacobian(s, *this, data.lineSegments, NormalAxis, J);
         calcLengthGradient(s,*this, data.lineSegments, g);
         calcLengthHessian(s, *this, data.lineSegments, H);
 
         // TODO move to struct.
         FactorSVD svd;
-        Vector sigma;
-        Matrix U;
-        Matrix rightVectors;
+        Vector sigma(nQ, 0.);
+        Matrix U(nQ, nQ, 0.);
+        Matrix rightVectors(nQ, nQ, 0.);
+
+        cVecDim(sigma, nQ, "sigma");
+        cMatDim(U, nQ, nQ, "U");
+        cMatDim(rightVectors, nQ, nQ, "rightVectors");
 
         // Solve SVD of Hessian estimate.
         svd = 0.5 * (H + ~H);
