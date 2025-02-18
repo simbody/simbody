@@ -150,9 +150,9 @@ struct MatrixWorkspace {
         b = Vector(nC, 0.);
         lambda = Vector(nC, 0.);
 
-        g = Vector(nQ, 0.);
-        H = Matrix(nQ, nQ, 0.);
-        HInvEst = Matrix(nQ, nQ, 0.);
+        lengthGradient = Vector(nQ, 0.);
+        lengthHessian = Matrix(nQ, nQ, 0.);
+        lengthHessianInverseEstimate = Matrix(nQ, nQ, 0.);
 
         singularValues = Vector(nQ, 0.);
         leftSingularValues = Matrix(nQ, nQ, 0.);
@@ -231,13 +231,13 @@ struct MatrixWorkspace {
 
     Matrix normalPathErrorJacobian;
 
+    Vector lambda;
     Matrix A;
     Vector b;
-    Vector lambda;
 
-    Vector g;
-    Matrix H;
-    Matrix HInvEst;
+    Vector lengthGradient;
+    Matrix lengthHessian;
+    Matrix lengthHessianInverseEstimate;
 
     FactorSVD svd;
     Vector singularValues;
