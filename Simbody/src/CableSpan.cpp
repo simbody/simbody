@@ -137,6 +137,26 @@ struct MatrixWorkspace {
         pathErrorJacobian = Matrix(C * n, Q * n, 0.);
         pathCorrection    = Vector(Q * n, 0.);
         pathError         = Vector(C * n, 0.);
+
+        const int nC = 2 * n;
+        const int nQ = c_GeodesicDOF * n;
+
+        normalPathError = Vector(nC, 0.);
+        binormalPathError = Vector(nC, 0.);
+
+        normalPathErrorJacobian = Matrix(nC, nQ, 0.);
+
+        A = Matrix(nC, nC, 0.);
+        b = Vector(nC, 0.);
+        lambda = Vector(nC, 0.);
+
+        g = Vector(nQ, 0.);
+        H = Matrix(nQ, nQ, 0.);
+        HInvEst = Matrix(nQ, nQ, 0.);
+
+        singularValues = Vector(nQ, 0.);
+        leftSingularValues = Matrix(nQ, nQ, 0.);
+        rightSingularValues = Matrix(nQ, nQ, 0.);
     }
 
     // Return the NaturalGeodesicCorrection for the curve segment at the
@@ -208,6 +228,21 @@ struct MatrixWorkspace {
     bool converged = false;
     Vector normalPathError;
     Vector binormalPathError;
+
+    Matrix normalPathErrorJacobian;
+
+    Matrix A;
+    Vector b;
+    Vector lambda;
+
+    Vector g;
+    Matrix H;
+    Matrix HInvEst;
+
+    FactorSVD svd;
+    Vector singularValues;
+    Matrix leftSingularValues;
+    Matrix rightSingularValues;
 };
 
 //------------------------------------------------------------------------------
