@@ -2507,10 +2507,9 @@ void calcPathErrorJacobian(
             const UnitVec3& e_P = lines.at(lineIx).direction;
             const Real l_P      = lines.at(lineIx).length;
 
-            // Compute the variation of the constraint dc/dq = dc/dw * dw/dq + dc/dv * dv/dq
+            // Compute the variation of the path error.
             const Vec3 dc_dv_P = (a_P - e_P * dot(e_P, a_P)) / l_P;
             const Vec3 dc_dw_P = cross(a_P, e_P);
-
             // Write to the block diagonal of J the Jacobian of the path error
             // to the CurveSegment's NaturalGeodesicCorrection.
             AddBlock(~dataPos.v_P * dc_dv_P + ~dataPos.w_P * dc_dw_P);
@@ -2524,8 +2523,7 @@ void calcPathErrorJacobian(
 
                 const Vec3 dc_dv_Q = -dc_dv_P;
                 const Mat34& v_Q   = cable.getObstacleCurveSegment(prevObsIx)
-                                       .getDataPos(s)
-                                       .v_Q;
+                                       .getDataPos(s).v_Q;
 
                 AddBlock(~v_Q * dc_dv_Q, colShift);
             }
@@ -2542,9 +2540,9 @@ void calcPathErrorJacobian(
             const UnitVec3& e = lines.at(lineIx).direction;
             const Real l      = lines.at(lineIx).length;
 
+            // Compute the variation of the path error.
             const Vec3 dc_dv_Q = -(a - e * dot(e, a)) / l;
             const Vec3 dc_dw_Q = cross(a, e);
-
             // Write to the block diagonal of J the Jacobian of the path error
             // to the CurveSegment's NaturalGeodesicCorrection.
             AddBlock(~dataPos.v_Q * dc_dv_Q + ~dataPos.w_Q * dc_dw_Q);
@@ -2555,153 +2553,10 @@ void calcPathErrorJacobian(
                 curve.findNextObstacleInContactWithCable(s);
             if (nextObsIx.isValid()) {
                 constexpr int colShift = NQ; // the off-diagonal block.
+
                 const Vec3 dc_dv_P     = -dc_dv_Q;
                 const Mat34& v_P = cable.getObstacleCurveSegment(nextObsIx)
                                        .getDataPos(s)
-                                       .v_P;
-                AddBlock(~v_P * dc_dv_P, colShift);
-            }
-            // Increment to the next path error element.
-            ++row;
-        }
-
-        col += NQ;
-    }
-}
-
-// TODO description.
-void calcPathErrorVector(
-    const State& state,
-    const CableSpan::Impl& cable,
-    const std::vector<LineSegment>& lines,
-    CoordinateAxis axis,
-    Vector& pathError)
-{
-    // Reset path error vector to zero.
-    pathError.setToZero();
-
-    // The element in the path error vector to write to.
-    int pathErrorIx = -1;
-    // Index to a straight line segment.
-    int lineIx = 0;
-
-    for (CableSpanObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
-        // Path errors are only computed for obstacles that make contact.
-        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
-        if (!curve.isInContactWithSurface(state)) {
-            continue;
-        }
-        const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
-        // Compute path error at first contact point.
-        pathError(++pathErrorIx) =
-            dot(lines.at(lineIx).direction,
-                dataPos.X_GP.R().getAxisUnitVec(axis));
-        ++lineIx;
-        // Compute path error at final contact point.
-        pathError(++pathErrorIx) = dot(
-            lines.at(lineIx).direction,
-            dataPos.X_GQ.R().getAxisUnitVec(axis));
-    }
-}
-
-// TODO description.
-void calcPathErrorJacobian(
-    const State& state,
-    const CableSpan::Impl& cable,
-    const std::vector<LineSegment>& lines,
-    CoordinateAxis axis,
-    Matrix& jacobian)
-{
-    // Number of free coordinates for a generic geodesic.
-    constexpr int NQ = c_GeodesicDOF;
-
-    // Sanity check on the matrix dimensions.
-    const int numberOfCurvesInContact = static_cast<int>(lines.size()) - 1;
-    SimTK_ASSERT3(
-        J.ncol() >= numberOfCurvesInContact * NQ + colOffset &&
-            J.nrow() >= numberOfCurvesInContact * 2 + rowOffset,
-        "Jacobian matrix size (%d x %d) does not match number of curves (%d)",
-        J.nrow(),
-        J.ncol(),
-        numberOfCurvesInContact);
-
-    // Current indexes to write the elements of the Jacobian to,
-    int row = 0;
-    int col = 0;
-
-    Matrix& J = jacobian;
-    J.setToZero();
-
-    // Helper for adding a computed block to the Jacobian.
-    auto AddBlock = [&](const Vec4& block, int colShift = 0)
-    {
-        for (int ix = 0; ix < 4; ++ix) {
-            J(row, col + colShift + ix) += block[ix];
-        }
-    };
-
-    // Index to a straight line segment.
-    int lineIx = 0;
-    for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
-        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
-        if (!curve.isInContactWithSurface(state)) {
-            continue;
-        }
-        const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
-
-        // The path error of which to take the Jacobian is: dot(a_P, e_P)
-        {
-            const UnitVec3& a = dataPos.X_GP.R().getAxisUnitVec(axis);
-            const UnitVec3& e = lines.at(lineIx).direction;
-            const Real l      = lines.at(lineIx).length;
-
-            const Vec3 dc_dv_P = (a - e * dot(e, a)) / l;
-            const Vec3 dc_dw_P = cross(a, e);
-
-            AddBlock(~dataPos.v_P * dc_dv_P + ~dataPos.w_P * dc_dw_P);
-
-            // Write to the off-diagonal of J the Jacobian of the path
-            // error to the previous CurveSegment's NaturalGeodesicCorrection.
-            const ObstacleIndex prevObsIx =
-                curve.findPrevObstacleInContactWithCable(state);
-            if (prevObsIx.isValid()) {
-                constexpr int colShift = -NQ; // the off-diagonal block.
-
-                const Vec3 dc_dv_Q = -dc_dv_P;
-                const Mat34& v_Q   = cable.getObstacleCurveSegment(prevObsIx)
-                                       .getDataPos(state)
-                                       .v_Q;
-                AddBlock(~v_Q * dc_dv_Q, colShift);
-            }
-            // Increment to the next path error element.
-            ++row;
-        }
-
-        // Compute the Jacobian elements of the path error related to the final
-        // contact point.
-        ++lineIx; // Increment to the next straight line segment.
-        {
-            // The path error of which to take the Jacobian is: dot(a_Q, e_Q)
-            const UnitVec3& a = dataPos.X_GQ.R().getAxisUnitVec(axis);
-            const UnitVec3& e = lines.at(lineIx).direction;
-            const Real l      = lines.at(lineIx).length;
-
-            const Vec3 dc_dv_Q = -(a - e * dot(e, a)) / l;
-            const Vec3 dc_dw_Q = cross(a, e);
-
-            // Write to the block diagonal of J the Jacobian of the path error
-            // to the CurveSegment's NaturalGeodesicCorrection.
-            AddBlock(~dataPos.v_Q * dc_dv_Q + ~dataPos.w_Q * dc_dw_Q);
-
-            // Write to the off-diagonal of J the Jacobian of the path
-            // error to the next CurveSegment's NaturalGeodesicCorrection.
-            const ObstacleIndex nextObsIx =
-                curve.findNextObstacleInContactWithCable(state);
-            if (nextObsIx.isValid()) {
-                constexpr int colShift = NQ; // the off-diagonal block.
-                const Vec3 dc_dv_P     = -dc_dv_Q;
-                const Mat34& v_P = cable.getObstacleCurveSegment(nextObsIx)
-                                       .getDataPos(state)
                                        .v_P;
                 AddBlock(~v_P * dc_dv_P, colShift);
             }
@@ -3208,17 +3063,17 @@ void CableSpan::Impl::calcSolverStep(
     // If there is one line segment, there are no obstacles in contact with the
     // cable, and the path error is zero. Otherwise we compute the path errors.
     if (data.lineSegments.size() > 1) {
-        calcPathErrorVector(
-                s,
+        calcPathErrorVector<1>(
                 *this,
+                s,
                 data.lineSegments,
-                NormalAxis,
+                {NormalAxis},
                 data.normalPathError);
-        calcPathErrorVector(
-                s,
+        calcPathErrorVector<1>(
                 *this,
+                s,
                 data.lineSegments,
-                BinormalAxis,
+                {BinormalAxis},
                 data.binormalPathError);
 
         data.maxPathError = std::max(
@@ -3332,7 +3187,7 @@ void CableSpan::Impl::calcSolverStep(
         cMatDim(U, nQ, nQ, "U");
         cMatDim(V, nQ, nQ, "V");
 
-        calcPathErrorJacobian(s, *this, data.lineSegments, NormalAxis, J);
+        calcPathErrorJacobian<1>( *this, s, data.lineSegments, {NormalAxis}, J);
         calcLengthGradient(s,*this, data.lineSegments, g);
         calcLengthHessian(s, *this, data.lineSegments, H);
 
