@@ -3165,6 +3165,7 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(const State& s) cons
             workspace.lineSegments.front().direction;
         dataPos.terminationTangent_G =
             workspace.lineSegments.back().direction;
+        dataPos.loopIter = solverLoopCount;
 
         return dataPos;
     };
