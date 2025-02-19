@@ -396,17 +396,35 @@ struct CurveSegmentData {
         FrenetFrame X_GP;
         // Frenet frame at the final contact point w.r.t. ground.
         FrenetFrame X_GQ;
-        // TODO
-        // Variation of position at frame P. Where each column is the variation
-        // of the position to each of the natural geodesic variations.
+        // Variation of the Frenet frame position at frame P. Each column is
+        // the variation of the position to each of the natural geodesic
+        // variations.
+        //
+        // For example, let x_P be the position of the Frenet frame P, and q
+        // the geodesic variation, then:
+        //
+        // dx_P / dq = v_P
         Mat34 v_P;
-        // Variation of rotation at frame P. Where each column is the variation
-        // of the orientation to each of the natural geodesic variations, as a
-        // rotation vector.
+        // Variation of the Frenet frame orientation at frame P. Each column is
+        // the variation of the orientation to each of the natural geodesic
+        // variations, as a rotation vector.
+        //
+        // Note that the columns of v_P and w_P together are simply the spatial
+        // vectors describing the variation of the Frenet frame P.
+        //
+        // For example, let S(x) be the 3x3 skew-symmetric matrix related to
+        // the cross product by x % y = S(x) * y, then
+        //
+        // dt_P / dq = -S(t_P) * w_P
+        // dn_P / dq = -S(n_P) * w_P
+        // db_P / dq = -S(b_P) * w_P
+        //
+        // where t_P, n_P, b_P denote the tangent, normal and binormal
+        // directions.
         Mat34 w_P;
-        // Variation of position at frame Q.
+        // Variation of the Frenet frame position at frame Q.
         Mat34 v_Q;
-        // Variation of rotation at frame Q.
+        // Variation of the Frenet frame orientation at frame Q.
         Mat34 w_Q;
     };
 };
