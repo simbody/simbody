@@ -3321,67 +3321,63 @@ const CableSpanData::Position& CableSpan::Impl::calcOptimalPath(const State& s) 
 
 const CableSpanData::Position& CableSpan::Impl::calcDataPos(const State& s) const
 {
-    return calcOptimalPath(s);
-
+    // Output of this function.
     CableSpanData::Position& dataPos = updDataPos(s);
 
-    dataPos.originPoint_G      = calcOriginPointInGround(s);
-    dataPos.terminationPoint_G = calcTerminationPointInGround(s);
+    // This helper function will extract the useful information from the path
+    // solver output, and write to the cached CableSpanData.
+    auto calcDataPosFromSolverResult = [&](const MatrixWorkspace& workspace, int solverLoopCount) -> const CableSpanData::Position&
+    {
 
-    // Helper for computing the total cable length.
-    auto calcTotalCableLength =
-        [&](const std::vector<LineSegment>& lines) -> Real
-        {
-            Real totalCableLength = 0.;
-            // Add length of each line segment.
-            for (const LineSegment& line : lines) {
-                totalCableLength += line.length;
-            }
-            // Add length of each curve segment.
-            for (const CurveSegment& curve : m_curveSegments) {
-                if (curve.isInContactWithSurface(s)) {
-                    totalCableLength += curve.getDataInst(s).arcLength;
-                }
-            }
-            return totalCableLength;
-        };
+        dataPos.originPoint_G      = calcOriginPointInGround(s);
+        dataPos.terminationPoint_G = calcTerminationPointInGround(s);
+        dataPos.smoothness = workspace.maxPathError;
+        dataPos.cableLength =
+            calcTotalCableLength(s, *this, workspace.lineSegments);
+        dataPos.originTangent_G =
+            workspace.lineSegments.front().direction;
+        dataPos.terminationTangent_G =
+            workspace.lineSegments.back().direction;
 
-    // Computing the CableSpan's path is done iteratively by computing
-    // corrections for the CurveSegments until the pathErrorVector is small
-    // enough.
-    for (dataPos.loopIter = 0;
-            dataPos.loopIter < getParameters().solverMaxIterations;
-            ++dataPos.loopIter) {
-        // Compute all data required for updating the
-        // CableSpanData::Position cache.
-        const MatrixWorkspace& data = calcDataInst(s);
+        return dataPos;
+    };
 
-        // Stop iterating if:
-        // 1. No obstacles in contact with path: Path is straight line.
-        const bool noneInContact = data.nObstaclesInContact == 0;
-        // 2. Converged: No significant correction.
-        const bool converged = data.pathCorrection.normInf() < Eps;
-        // 3. Not converged: Max iterations has been reached.
-        const bool maxIterationsReached =
-            dataPos.loopIter >= getParameters().solverMaxIterations - 1;
-        if (noneInContact || converged || maxIterationsReached) {
-            // Update cache entry and stop solver.
-            dataPos.smoothness  = data.maxPathError;
-            dataPos.cableLength = calcTotalCableLength(data.lineSegments);
-            dataPos.originTangent_G = data.lineSegments.front().direction;
-            dataPos.terminationTangent_G =
-                data.lineSegments.back().direction;
-            break;
+    // Start solver loop:
+    // Essentially this loop calls calcSolverStep each iteration, and stops
+    // when converged or the max iterations was reached.
+    for (int loopIter = 0;
+         loopIter <= getParameters().solverMaxIterations; // Correctly handles zero case.
+         ++loopIter) {
+
+        // Make sure all curve segments are realized to position stage.
+        // This will transform all last computed geodesics to Ground frame, and
+        // will update each curve's WrappingStatus.
+        for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
+            getObstacleCurveSegment(ix).calcDataPos(s);
         }
 
-        // Apply the corrections to each CurveSegment to reduce the path
-        // error.
+        // Grab the matrix workspace used by the solver.
+        MatrixWorkspace& workspace = updDataInst(s).updOrInsert(countActive(s));
+
+        // Compute the path corrections required to reach the optimal path.
+        calcSolverStep(s, getParameters().algorithm, workspace);
+
+        // Check if we should stop iterating.
+        const bool maxIterationsReached =
+            loopIter >= getParameters().solverMaxIterations;
+        if (workspace.converged || maxIterationsReached) {
+            // Fill in the fields of CableSpanData::Position, and stop.
+            return calcDataPosFromSolverResult(workspace, loopIter);
+        }
+
+        // Apply the corrections to each CurveSegment to reduce the path error.
+        const Vector& pathCorrection = workspace.pathCorrection;
         int activeCurveIx = 0; // Index of curve in all that are in contact.
         for (const CurveSegment& curve : m_curveSegments) {
             if (curve.isInContactWithSurface(s)) {
                 curve.applyGeodesicCorrection(
                         s,
-                        MatrixWorkspace::getCurveCorrection(data.pathCorrection, activeCurveIx));
+                        MatrixWorkspace::getCurveCorrection(pathCorrection, activeCurveIx));
                 ++activeCurveIx;
             }
         }
@@ -3395,6 +3391,7 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(const State& s) cons
         }
     }
 
+    SimTK_ASSERT(false, "Internal bug: should not reach this point");
     return dataPos;
 }
 
