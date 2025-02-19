@@ -2568,7 +2568,23 @@ void calcPathErrorJacobian(
     }
 }
 
-// TODO description.
+/* Computes the gradient of the total cable length to the
+NaturalGeodesicCorrections of all CurveSegments.
+
+This function can be derived by viewing the cable as a collection of straight
+line segments connecting curve segments. Each curve segment has 4 degrees of
+freedom: The NaturalGeodesicCorrections. For each curve segment we can thus
+compute the variation of the length of the straight line segment at the initial
+Frenet Frame P, the variation of the length of the curve segment, and the
+variation of the length of the straight line segment at the final Frenet frame
+Q. For one obstacle the gradient is then given as:
+
+g_i = ~e_P * v_P + ~e_Q * v_Q + ~[0, 0, 0, 1]
+
+where P, Q denotes the initial and final frenet frame, e denotes the direction
+of the straight line segment, and v denotes the variation of the Frenet frame
+position, and g_i is the block of the gradient related to that obstacle.
+Stacking of all blocks gives the total gradient. */
 void calcLengthGradient(
     const State& state,
     const CableSpan::Impl& cable,
@@ -2605,7 +2621,11 @@ void calcLengthGradient(
     }
 }
 
-// TODO description.
+/* Computes the Hessian of the total cable length to the
+NaturalGeodesicCorrections of all CurveSegments.
+
+This function can be derived taking the Jacobian of the gradient to the
+NaturalGeodesicCorrections of all curve segments. */
 void calcLengthHessian(
     const State& state,
     const CableSpan::Impl& cable,
@@ -2769,7 +2789,6 @@ void calcLengthHessian(
         col += NQ;
         row += NQ;
     }
-    /* std::cout << "Hessian = " << H << "\n"; */
 }
 
 } // namespace
