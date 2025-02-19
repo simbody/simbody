@@ -3069,14 +3069,12 @@ void CableSpan::Impl::calcSolverStep(
             data.lineSegments);
     const int nObstaclesInContact = data.lineSegments.size() - 1;
 
-    {
-        // TODO Remove checks.
-        const int n = data.lineSegments.size() - 1;
-        const int nC = 2 * n;
-        const int nQ = 4 * n;
-        cVecDim(data.normalPathError, nC, "Jn");
-        cVecDim(data.binormalPathError, nC, "Jb");
-    }
+    // TODO Remove checks.
+    const int n = data.lineSegments.size() - 1;
+    const int nC = 2 * n;
+    const int nQ = 4 * n;
+    cVecDim(data.normalPathError, nC, "Jn");
+    cVecDim(data.binormalPathError, nC, "Jb");
 
     data.maxPathError = 0.; // Reset the max path error field.
     // If there is one line segment, there are no obstacles in contact with the
@@ -3111,140 +3109,134 @@ void CableSpan::Impl::calcSolverStep(
     SimTK_ASSERT_ALWAYS(
         nObstaclesInContact > 0,
         "No obstacles in contact with cable: unable to compute path corrections");
+    // The path corrections can be computed using different algorithms, see CableSpanAlgorithm's documentation for details.
+    switch (algorithm) {
+        // Compute the path corrections as outlined in Scholz2015.
+        case CableSpanAlgorithm::Scholz2015: {
+            Vector b(nObstaclesInContact * (c_GeodesicDOF + 1), 0.);
+            Matrix A(nObstaclesInContact * (c_GeodesicDOF + 1), nObstaclesInContact * c_GeodesicDOF, 0.);
+            Vector& q = data.pathCorrection;
 
-    // Compute the path corrections as outlined in Scholz2015.
-    // TODO use switch?
-    if (algorithm == CableSpanAlgorithm::Scholz2015)
-    {
+            // Fill the upper block of A and b with the path error jacobian and vector.
+            calcPathErrorVector<2>(*this, s, data.lineSegments, {NormalAxis, BinormalAxis}, b);
+            calcPathErrorJacobian<2>(
+                    *this,
+                    s,
+                    data.lineSegments,
+                    {NormalAxis, BinormalAxis},
+                    A);
 
-        Vector b(nObstaclesInContact * (c_GeodesicDOF + 1), 0.);
-        Matrix A(nObstaclesInContact * (c_GeodesicDOF + 1), nObstaclesInContact * c_GeodesicDOF, 0.);
-        Vector& q = data.pathCorrection;
-
-        // Fill the upper block of A and b with the path error jacobian and vector.
-        calcPathErrorVector<2>(*this, s, data.lineSegments, {NormalAxis, BinormalAxis}, b);
-        calcPathErrorJacobian<2>(
-                *this,
-                s,
-                data.lineSegments,
-                {NormalAxis, BinormalAxis},
-                A);
-
-        // The last elements of the b vector contain the change in length
-        // of each curve segment, and require it to remain zero. The change in
-        // length is the last element of the NaturalGeodesicCorrection vector. The
-        // Jacobian is therefore zero everywhere, except for one (=1) at the element
-        // of the third NaturalGeodesicCorrection of the corresponding curve
-        // segment. Finally we write a weight instead of a one to obtain a weighted
-        // least squares. As the weight we take the current maximum path error. This
-        // will heavily penalize changing the length when we are far from the
-        // optimal solution, and ramp up convergence as we get closer.
-        for (int i = 0; i < data.nObstaclesInContact; ++i) {
-            // Determine the row and column of the nonzero element in the Jacobian.
-            int r = data.nObstaclesInContact *
-                MatrixWorkspace::c_NumPathErrorConstraints +
-                i;
-            int c = c_GeodesicDOF * (i + 1) - 1;
-            // Write the weight that will penalize changing the curve length.
-            const Real weight = data.maxPathError;
-            A.set(r, c, weight);
-        }
-
-        data.factor = A;
-        data.factor.solve(b, q);
-        q *= -1.;
-    }
-
-    // Compute the path corrections as using the Minimal length algorithm.
-    if (algorithm == CableSpanAlgorithm::MinimumLength)
-    {
-        // TODO move this to the workspace struct.
-        const int n = data.lineSegments.size() - 1;
-        const int nC = 2 * n;
-        const int nQ = 4 * n;
-
-        if (n <= 0) {
-            throw std::runtime_error("no obstacles in contact: cannot compute matrices");
-        }
-
-        // Solve system given by:
-        // | Q   J^T |   | q |   | -g |
-        // | J   0   | * | λ | = | -e |
-        //
-        // H = U * Σ * V
-        // Q = U * Σ * U^T
-
-        // Matrices for computing the lagrange multipliers.
-        Matrix& A = data.A;
-        Vector& b = data.b;
-        Vector& lambda = data.lambda;
-
-        Vector& q = data.pathCorrection;
-
-        Matrix& J = data.normalPathErrorJacobian;
-        const Vector& e = data.normalPathError;
-
-        Vector& g = data.lengthGradient;
-        Matrix& H = data.lengthHessian;
-        Matrix& HInvEst = data.lengthHessianInverseEstimate;
-
-        Vector& sigma = data.singularValues;
-        Matrix& U = data.leftSingularValues;
-        Matrix& V = data.rightSingularValues;
-
-        // TODO remove checks
-        cMatDim(J, nC, nQ, "J");
-        cVecDim(e, nC, "e");
-        cMatDim(HInvEst, nQ, nQ, "HInvEst");
-        cMatDim(H, nQ, nQ, "H");
-        cVecDim(g, nQ, "g");
-        cVecDim(q, nQ, "q");
-        cMatDim(A, nC, nC, "A");
-        cVecDim(b, nC, "b");
-        cVecDim(lambda, nC, "lambda");
-        cVecDim(sigma, nQ, "sigma");
-        cMatDim(U, nQ, nQ, "U");
-        cMatDim(V, nQ, nQ, "V");
-
-        calcPathErrorJacobian<1>( *this, s, data.lineSegments, {NormalAxis}, J);
-        calcLengthGradient(s,*this, data.lineSegments, g);
-        calcLengthHessian(s, *this, data.lineSegments, H);
-
-        // Solve SVD of Hessian estimate.
-        data.svd = 0.5 * (H + ~H);
-        data.svd.getSingularValuesAndVectors(sigma, U, V);
-
-        // M = U D U^T
-        // M^{-1} = U D^-1 U^T
-        // Add a weight to the singular values to make sure that D is invertible.
-        for (int r = 0; r < U.nrow(); ++r) {
-            for (int c = 0; c < U.ncol(); ++c) {
-                Real elt = 0.;
-                for (int i = 0; i < U.ncol(); ++i) {
-                    // Add a small weight w to the singular values to make sure the inverse exists.
-                    const Real weight = data.maxPathError;
-                    elt += U(r, i) * U(c, i) / (sigma(i) + weight);
-                }
-                HInvEst(r, c) = elt;
+            // The last elements of the b vector contain the change in length
+            // of each curve segment, and require it to remain zero. The change in
+            // length is the last element of the NaturalGeodesicCorrection vector. The
+            // Jacobian is therefore zero everywhere, except for one (=1) at the element
+            // of the third NaturalGeodesicCorrection of the corresponding curve
+            // segment. Finally we write a weight instead of a one to obtain a weighted
+            // least squares. As the weight we take the current maximum path error. This
+            // will heavily penalize changing the length when we are far from the
+            // optimal solution, and ramp up convergence as we get closer.
+            for (int i = 0; i < data.nObstaclesInContact; ++i) {
+                // Determine the row and column of the nonzero element in the Jacobian.
+                int r = data.nObstaclesInContact *
+                    MatrixWorkspace::c_NumPathErrorConstraints +
+                    i;
+                int c = c_GeodesicDOF * (i + 1) - 1;
+                // Write the weight that will penalize changing the curve length.
+                const Real weight = data.maxPathError;
+                A.set(r, c, weight);
             }
+
+            data.factor = A;
+            data.factor.solve(b, q);
+            q *= -1.;
+            break;
         }
+        // Compute the path corrections using the Minimal length algorithm.
+        case CableSpanAlgorithm::MinimumLength: {
+            // This algorithm solves the Lagrangian equations given by:
+            // | Q   J^T |   | q |   | -g |
+            // | J   0   | * | λ | = | -c |
+            // (see CableSpanAlgorithm's documentation).
+            const Vector& e = data.normalPathError; // Was already computed above.
+            Matrix& J = data.normalPathErrorJacobian;
+            Vector& lambda = data.lambda;
+            Vector& q = data.pathCorrection;
+            Vector& g = data.lengthGradient;
+            Matrix& H = data.lengthHessian;
+            Matrix& QInv = data.lengthHessianInverseEstimate;
 
-        // Compute Lagrange multipliers.
-        // (J^T M^-1 J) * lambda = c - J M^-1 g = c - J d
-        //
-        // Write as: A * lambda = b
-        b = e - J * HInvEst * g;
-        A = J * HInvEst * J.transpose();
+            // Matrices required for computing the Lagrangian multipliers.
+            Matrix& A = data.A;
+            Vector& b = data.b;
 
-        // Solve for the lagrange multipliers.
-        data.factor = A;
-        data.factor.solve(b, lambda);
+            // Matrices required for computing QInv from H.
+            Vector& sigma = data.singularValues;
+            Matrix& U = data.leftSingularValues;
+            Matrix& V = data.rightSingularValues;
 
-        // Compute path corrections.
-        q = HInvEst * (g + J.transpose() * lambda);
+            // TODO remove checks
+            cMatDim(J, nC, nQ, "J");
+            cVecDim(e, nC, "e");
+            cMatDim(QInv, nQ, nQ, "QInv");
+            cMatDim(H, nQ, nQ, "H");
+            cVecDim(g, nQ, "g");
+            cVecDim(q, nQ, "q");
+            cMatDim(A, nC, nC, "A");
+            cVecDim(b, nC, "b");
+            cVecDim(lambda, nC, "lambda");
+            cVecDim(sigma, nQ, "sigma");
+            cMatDim(U, nQ, nQ, "U");
+            cMatDim(V, nQ, nQ, "V");
 
-        // Use a damped Newton step.
-        q *= -0.5;
+            // Compute the normal path error jacobian.
+            calcPathErrorJacobian<1>( *this, s, data.lineSegments, {NormalAxis}, J);
+
+            // Compute the gradient and Hessian of the cable length.
+            calcLengthGradient(s,*this, data.lineSegments, g);
+            calcLengthHessian(s, *this, data.lineSegments, H);
+
+            // Solve SVD of the Hessian estimate.
+            data.svd = 0.5 * (H + ~H);
+            data.svd.getSingularValuesAndVectors(sigma, U, V);
+            // Now that we have the svd:
+            // (H + ~H) / 2 = U * Σ * V
+            // we take as the positive definite matrix Q:
+            // Q = U * Σ * ~U
+            // Note that Q has the same eigen vectors as (H + ~H)/2, as well as
+            // the same eigenvalues up to a sign difference.
+            //
+            // Since we need the inverse of Q, we compute it from the decomposition:
+            // Q^-1 = U * Σ^-1 * ~U
+            for (int r = 0; r < U.nrow(); ++r) {
+                for (int c = 0; c < U.ncol(); ++c) {
+                    Real elt = 0.;
+                    for (int i = 0; i < U.ncol(); ++i) {
+                        // Add a small weight w to the singular values to make sure the inverse exists.
+                        const Real weight = data.maxPathError;
+                        elt += U(r, i) * U(c, i) / (sigma(i) + weight);
+                    }
+                    QInv(r, c) = elt;
+                }
+            }
+
+            // Compute the Lagrange multipliers:
+            // (J^T Q^-1 J) * λ = c - J Q^-1 g = c - J d
+            //
+            // Write as: A * λ = b
+            b = e - J * QInv * g;
+            A = J * QInv * J.transpose();
+            // Solve for the lagrange multipliers.
+            data.factor = A;
+            data.factor.solve(b, lambda);
+
+            // Compute path corrections.
+            q = QInv * (g + J.transpose() * lambda);
+
+            // Use a damped Newton step.
+            q *= -0.5;
+        }
+        default:
+            SimTK_ASSERT(false, "Unknown CableSpanAlgorithm kind");
     }
 
     // Clamp the computed correction vector using the curvature of each
