@@ -177,72 +177,75 @@ struct MatrixWorkspace {
             pathCorrection[eltIx + 3]};
     }
 
+    // TODO remove these
+    int nObstaclesInContact = -1;
+    Vector pathError;
+    Matrix pathErrorJacobian;
+
     /* All straight line segments in the current path. */
     std::vector<LineSegment> lineSegments;
-    /* The path error vector captures the misalignment of the straight line and
-    curved segments at the contact points, as well as the penalty for taking a
-    large optimization step. The computation of the path is then done by
-    driving this path error to zero (up to tolerance), such that all segments
-    are smoothly connected, and the optimization step size converges to zero.
-
-    To derive the path errors, consider a single active obstacle (active being
-    those that are in contact with the cable), and define:
-    - Let the subscripts P and Q denote the initial and final contact point on
-      the obstacle respectively.
-    - The direction of the straight line segment connected to the obstacle at
-      the contact points: e_P, e_Q
-    - The direction of the surface normal at contact points: n_P, n_Q
-    - The direction of the geodesic binormal at contact points: b_P, b_Q
-
-    For each active obstacle four path error elements are then computed:
-    1. dot(e_P, n_P)
-    2. dot(e_P, b_P)
-    3. dot(e_Q, n_Q)
-    4. dot(e_Q, b_Q)
-
-    Stacking all four path error elements, of all active obstacles, gives the
-    first elements of the path error vector.
-
-    Additionally, for each active obstacle, one element is added to the path
-    error vector that constrains the length of the geodesic to remain the same.
-    This helps regulate the search for the path in case the Jacobian of the path
-    error loses rank. The value of these elements is simply zero. */
-    Vector pathError;
-    /* The Jacobian of the path error vector to the natural geodesic
-    corrections of all active obstacles. */
-    Matrix pathErrorJacobian;
-    /* The factorization for solving the pathErrorJacobian in least squares
-    sense. */
-    FactorQTZ factor;
     /* The path correction vector contains the NaturalGeodesicCorrection
     vector of each active obstacle stacked as a vector. This vector is
     computed at each solver iteration, and applying these corrections
     attempts to drive the path error vector to zero. */
     Vector pathCorrection;
-    /* The infinity norm of the path error vector. */
-    Real maxPathError = NaN;
-    /* The number of active obstacles. */
-    int nObstaclesInContact = -1;
+    /* The normal path error vector is a measure of the angle error between the
+    straight line segments and the surface normals at their contact points.
 
-    // TODO add description
-    bool converged = false;
+    For each active obstacle two normal path error elements are computed:
+    1. dot(e_P, n_P)
+    2. dot(e_Q, n_Q)
+    where the subscripts P, Q denote the first and final contact frames, e
+    denotes the straight line segment's direction vector, and n denotes the
+    surface normal.
+
+    Stacking all path error elements, of all active obstacles, gives the
+    normal path error vector. */
     Vector normalPathError;
-    Vector binormalPathError;
+    /* The binormal path error vector is defined analogously to the normal path
+    error vector, but measures the angle error against the binormal vector.
 
+    For each active obstacle two normal path error elements are computed:
+    1. dot(e_P, b_P)
+    2. dot(e_Q, b_Q)
+    where b denotes the binormal direction.
+
+    Stacking all path error elements, of all active obstacles, gives the
+    binormal path error vector. */
+    Vector binormalPathError;
+    // TODO is this used?
+    /* The maximum of the normal and binormal path errors. */
+    Real maxPathError = NaN;
+    /* The Jacobian of the normal path error vector to the natural geodesic
+    corrections of all active obstacles. */
     Matrix normalPathErrorJacobian;
 
+    /* The Lagrangian multipliers used to drive the normal path errors to zero. */
     Vector lambda;
+    /* The matrix A required for computing the Lagrangian multipliers λ from
+    A * λ = b */
     Matrix A;
+    /* The vector b required for computing the Lagrangian multipliers λ from
+    A * λ = b */
     Vector b;
+    /* The factorization used to compute the Lagrangian multipliers. */
+    FactorQTZ factor;
 
+    /* The gradient of the total cable length to the natural geodesic corrections of each active curve segment. */
     Vector lengthGradient;
+    /* The Hessian of the total cable length to the natural geodesic corrections of each active curve segment. */
     Matrix lengthHessian;
+    /* The inverse of the estimate of the Hessian used during optimization. */
     Matrix lengthHessianInverseEstimate;
 
+    /* The Singular Value Decomposition of the Hessian of the length. */
     FactorSVD svd;
     Vector singularValues;
     Matrix leftSingularValues;
     Matrix rightSingularValues;
+
+    // TODO add description
+    bool converged = false;
 };
 
 //------------------------------------------------------------------------------

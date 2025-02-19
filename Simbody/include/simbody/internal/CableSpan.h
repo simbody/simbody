@@ -41,7 +41,31 @@ enum class CableSpanAlgorithm
 {
     // TODO description.
     Scholz2015,
-    // TODO description.
+    /** The Minimal length algorithm finds the optimal path by minimizing the total cable length directly, while enforcing the contour constraints.
+
+    The first step is to describe the total cable length using a second order approximation:
+    l(q) = l + ~ g * q + ~q * H * q / 2 + ...
+    where l is the total cable length, q is the vector of natural geodesic corrections (see Scholz2015), g and H are the gradient and Hessian of l to q.
+
+    For the constraints we use the normal path errors described in Scholz2015:
+    c_i(q) = [ ~e_P * n_P, ~e_Q * n_Q ]
+    where c is the vector of constraints, c_i are the two constraint elements associated with the i-th curve segment, e_P is the direction of the straight line segment at the P frame, n_P is normal direction at the P-frame, and similarly for e_Q and n_Q.
+    We then take a first order approximation of these constraints:
+    c(q) = c + J * q + ...
+
+    The optimization problem that is solved is then posed as:
+
+    minimize l(q) subject to c(q) = 0
+
+    This problem is solved by repeatedly solving a Quadratic Program given by:
+    | Q   J^T |   | q |   | -g |
+    | J   0   | * | λ | = | -c |
+    where Q is a symmetric positive definite approximation of H, and λ are the lagrange multipliers.
+
+    The approximation Q is used because H is itself not symmetric positive definite. Q is obtained from H by flipping the sign of any negative eigenvalues of H, to get a positive definite approximation. Consider the following eigen decomposition:
+    (H + ~H)/2 = ~P D P
+    Then Q is given as:
+    Q = ~P abs(D) P. **/
     MinimumLength,
 };
 
