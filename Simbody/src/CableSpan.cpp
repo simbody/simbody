@@ -3035,18 +3035,16 @@ void CableSpan::Impl::calcSolverStep(
             // | Q   J^T |   | q |   | -g |
             // | J   0   | * | λ | = | -c |
             // (see CableSpanAlgorithm's documentation).
-            const Vector& e = data.normalPathError; // Was already computed above.
+            const Vector& e = data.normalPathError; // Computed above.
             Matrix& J = data.normalPathErrorJacobian;
             Vector& lambda = data.lambda;
             Vector& q = data.pathCorrection;
             Vector& g = data.lengthGradient;
             Matrix& H = data.lengthHessian;
             Matrix& QInv = data.lengthHessianInverseEstimate;
-
             // Matrices required for computing the Lagrangian multipliers.
             Matrix& A = data.A;
             Vector& b = data.b;
-
             // Matrices required for computing QInv from H.
             Vector& sigma = data.singularValues;
             Matrix& U = data.leftSingularValues;
@@ -3059,7 +3057,8 @@ void CableSpan::Impl::calcSolverStep(
             calcLengthGradient(s,*this, data.lineSegments, g);
             calcLengthHessian(s, *this, data.lineSegments, H);
 
-            // Solve SVD of the Hessian estimate.
+            // Compute QInv:
+            // First solve SVD of the Hessian estimate.
             data.svd = 0.5 * (H + ~H);
             data.svd.getSingularValuesAndVectors(sigma, U, V);
             // Now that we have the svd:
@@ -3093,7 +3092,7 @@ void CableSpan::Impl::calcSolverStep(
             data.factor = A;
             data.factor.solve(b, lambda);
 
-            // Compute path corrections.
+            // Finally compute the path corrections.
             q = QInv * (g + J.transpose() * lambda);
 
             // Use a damped Newton step.
