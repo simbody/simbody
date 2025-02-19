@@ -1252,6 +1252,7 @@ public:
             dataPos.X_GP = dataPos.X_GS.compose(dataInst.X_SP);
             dataPos.X_GQ = dataPos.X_GS.compose(dataInst.X_SQ);
 
+            // Compute the initial Frenet frame variation.
             {
                 const FrenetFrame& X_GP = dataPos.X_GP;
 
@@ -1270,6 +1271,7 @@ public:
                 dataPos.w_P.col(3) = Vec3(0);
             }
 
+            // Compute the final Frenet frame variation.
             {
                 const FrenetFrame& X_GQ = dataPos.X_GQ;
 
