@@ -2939,27 +2939,10 @@ void CableSpan::Impl::calcSolverStep(
     CableSpanAlgorithm algorithm,
     MatrixWorkspace& data) const
 {
-    // TODO remove checks
-    auto cMatDim = [&](const Matrix& mat, int r, int c, const std::string& s) {
-        SimTK_ASSERT5_ALWAYS(
-                mat.nrow() == r && mat.ncol() == c,
-                "%s dimensions incorrect (%i, %i) neq (%i, %i)",
-                s.c_str(),
-                mat.nrow(), mat.ncol(), r, c);
-    };
-    auto cVecDim = [&](const Vector& vec, int r, const std::string& s) {
-        SimTK_ASSERT3_ALWAYS(
-                vec.nrow() == r,
-                "%s dimensions incorrect (%i, %i) neq (%i, %i)",
-                s.c_str(),
-                vec.nrow(), r);
-    };
-
     // SOLVER STEP 1: Compute the path errors. If the path errors are small the
     // current path is the optimal path, and there is nothing to do. Otherwise
     // we proceed with step 2: computing the corrections to reduce the path
-    // errors. See MatrixWorkspace documentation above for a description of the
-    // path errors.
+    // errors.
 
     // The path errors are computed as the misalignment of the straight line
     // segments with the curve segments.
@@ -2970,14 +2953,6 @@ void CableSpan::Impl::calcSolverStep(
             this->calcOriginPointInGround(s),
             this->calcTerminationPointInGround(s),
             data.lineSegments);
-    const int nObstaclesInContact = data.lineSegments.size() - 1;
-
-    // TODO Remove checks.
-    const int n = data.lineSegments.size() - 1;
-    const int nC = 2 * n;
-    const int nQ = 4 * n;
-    cVecDim(data.normalPathError, nC, "Jn");
-    cVecDim(data.binormalPathError, nC, "Jb");
 
     data.maxPathError = 0.; // Reset the max path error field.
     // If there is one line segment, there are no obstacles in contact with the
@@ -2995,7 +2970,6 @@ void CableSpan::Impl::calcSolverStep(
                 data.lineSegments,
                 {BinormalAxis},
                 data.binormalPathError);
-
         data.maxPathError = std::max(
              data.normalPathError.normInf(),
                 data.binormalPathError.normInf());
@@ -3009,15 +2983,16 @@ void CableSpan::Impl::calcSolverStep(
     }
 
     // SOLVER STEP 2: Compute the path correction step that reduces the path errors.
+    const int numObstaclesInContact = data.lineSegments.size() - 1;
     SimTK_ASSERT_ALWAYS(
-        nObstaclesInContact > 0,
-        "No obstacles in contact with cable: unable to compute path corrections");
+        numObstaclesInContact > 0,
+        "No obstacles in contact with the cable: unable to compute path corrections");
     // The path corrections can be computed using different algorithms, see CableSpanAlgorithm's documentation for details.
     switch (algorithm) {
         // Compute the path corrections as outlined in Scholz2015.
         case CableSpanAlgorithm::Scholz2015: {
-            Vector b(nObstaclesInContact * (c_GeodesicDOF + 1), 0.);
-            Matrix A(nObstaclesInContact * (c_GeodesicDOF + 1), nObstaclesInContact * c_GeodesicDOF, 0.);
+            Vector b(numObstaclesInContact * (c_GeodesicDOF + 1), 0.);
+            Matrix A(numObstaclesInContact * (c_GeodesicDOF + 1), numObstaclesInContact * c_GeodesicDOF, 0.);
             Vector& q = data.pathCorrection;
 
             // Fill the upper block of A and b with the path error jacobian and vector.
@@ -3076,20 +3051,6 @@ void CableSpan::Impl::calcSolverStep(
             Vector& sigma = data.singularValues;
             Matrix& U = data.leftSingularValues;
             Matrix& V = data.rightSingularValues;
-
-            // TODO remove checks
-            cMatDim(J, nC, nQ, "J");
-            cVecDim(e, nC, "e");
-            cMatDim(QInv, nQ, nQ, "QInv");
-            cMatDim(H, nQ, nQ, "H");
-            cVecDim(g, nQ, "g");
-            cVecDim(q, nQ, "q");
-            cMatDim(A, nC, nC, "A");
-            cVecDim(b, nC, "b");
-            cVecDim(lambda, nC, "lambda");
-            cVecDim(sigma, nQ, "sigma");
-            cMatDim(U, nQ, nQ, "U");
-            cMatDim(V, nQ, nQ, "V");
 
             // Compute the normal path error jacobian.
             calcPathErrorJacobian<1>( *this, s, data.lineSegments, {NormalAxis}, J);
