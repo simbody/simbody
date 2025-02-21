@@ -256,9 +256,9 @@ void testCableLengthDotWithSingleObstacle()
     CableSpan cable(
         cables,
         matter.Ground(),
-        Vec3{radius * tan(angle/2.), radius, 0.},
+        Vec3{radius * tan(angle / 2.), radius, 0.},
         matter.Ground(),
-        Vec3{radius * tan(angle/2.), -radius, 0.});
+        Vec3{radius * tan(angle / 2.), -radius, 0.});
 
     // Add sphere obstacle.
     cable.addObstacle(

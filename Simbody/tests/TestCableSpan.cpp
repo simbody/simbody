@@ -170,9 +170,7 @@ void testSimpleCable()
     // Add another torus obstacle.
     cable.addObstacle(
         matter.Ground(),
-        Transform(
-            Rotation(0.5 * Pi, YAxis),
-            Vec3{4., -2. - 10., 0.}),
+        Transform(Rotation(0.5 * Pi, YAxis), Vec3{4., -2. - 10., 0.}),
         std::shared_ptr<ContactGeometry>(new ContactGeometry::Torus(10., 1.5)),
         {0., 1., 0.});
 
@@ -637,10 +635,12 @@ void testTouchdownAndLiftoff()
     // A dummy body.
     Body::Rigid aBody(MassProperties(1., Vec3(0), Inertia(1)));
 
-    // Helper for creating a cable with a single obstacle at a certain offset location.
+    // Helper for creating a cable with a single obstacle at a certain offset
+    // location.
     auto createCable =
         [&](const std::function<ContactGeometry*()>& createSurface,
-            const Transform& X_BS, const Transform& sceneOffset)
+            const Transform& X_BS,
+            const Transform& sceneOffset)
     {
         // Mobilizer for path origin.
         MobilizedBody::Translation cableOriginBody(
@@ -667,8 +667,7 @@ void testTouchdownAndLiftoff()
 
         cable.addObstacle(
             matter.Ground(),
-            sceneOffset.compose(
-            X_BS),
+            sceneOffset.compose(X_BS),
             std::shared_ptr<ContactGeometry>(createSurface()));
     };
 
@@ -726,7 +725,8 @@ void testTouchdownAndLiftoff()
                 .getMobilizedBody(cables.getCable(cableIx).getOriginBodyIndex())
                 .setQToFitTranslation(s, Vec3(0., yCoord, 0.));
             matter
-                .getMobilizedBody(cables.getCable(cableIx).getTerminationBodyIndex())
+                .getMobilizedBody(
+                    cables.getCable(cableIx).getTerminationBodyIndex())
                 .setQToFitTranslation(s, Vec3(0., yCoord, 0.));
         }
 
@@ -764,7 +764,8 @@ different algorithms:
 
 - Algorithm::Scholz2015 will converge to the longest possible path.
 - Algorithm::MinimumLength will converge to the shortest possible path. **/
-void testSolverOptimum() {
+void testSolverOptimum()
+{
     const bool show = false;
 
     // Create the system.
@@ -791,11 +792,12 @@ void testSolverOptimum() {
     CableSpan cable(
         cables,
         matter.Ground(),
-        Vec3{radius * tan(angle/2.), radius, 0.},
+        Vec3{radius * tan(angle / 2.), radius, 0.},
         matter.Ground(),
-        Vec3{radius * tan(angle/2.), -radius, 0.});
+        Vec3{radius * tan(angle / 2.), -radius, 0.});
 
-    // Add sphere obstacle, and choose the initial contact point near the longest possible path.
+    // Add sphere obstacle, and choose the initial contact point near the
+    // longest possible path.
     cable.addObstacle(
         aMovingBody,
         Transform(),
@@ -818,7 +820,8 @@ void testSolverOptimum() {
     // Initialize the system and state.
     system.realizeTopology();
 
-    // Scholz2015 algorithm converges to the longest possible path as the optimal path.
+    // Scholz2015 algorithm converges to the longest possible path as the
+    // optimal path.
     {
         cable.setAlgorithm(CableSpanAlgorithm::Scholz2015);
 
@@ -829,26 +832,34 @@ void testSolverOptimum() {
             viz->report(s);
         }
 
-        SimTK_ASSERT2_ALWAYS(cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
-                "Path smoothness (%e) does not meet tolerance (%e)",
-                cable.getSmoothness(s),
-                cable.getSmoothnessTolerance());
+        SimTK_ASSERT2_ALWAYS(
+            cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+            "Path smoothness (%e) does not meet tolerance (%e)",
+            cable.getSmoothness(s),
+            cable.getSmoothnessTolerance());
 
         const Vec3 expected_p_GP = Vec3(0., 1., 0.);
-        const Vec3 got_p_GP = cable.calcCurveSegmentInitialFrenetFrame(s, CableSpanObstacleIndex(0)).p();
+        const Vec3 got_p_GP      = cable
+                                  .calcCurveSegmentInitialFrenetFrame(
+                                      s,
+                                      CableSpanObstacleIndex(0))
+                                  .p();
 
         const Vec3 expected_p_GQ = Vec3(0., -1., 0.);
-        const Vec3 got_p_GQ = cable.calcCurveSegmentFinalFrenetFrame(s, CableSpanObstacleIndex(0)).p();
+        const Vec3 got_p_GQ =
+            cable.calcCurveSegmentFinalFrenetFrame(s, CableSpanObstacleIndex(0))
+                .p();
 
         SimTK_ASSERT_ALWAYS(
-                (expected_p_GP - got_p_GP).norm() < 1e-6,
-                "Scholz2015 algorithm: Curve segment position at initial contact point incorrect");
+            (expected_p_GP - got_p_GP).norm() < 1e-6,
+            "Scholz2015 algorithm: Curve segment position at initial contact point incorrect");
         SimTK_ASSERT_ALWAYS(
-                (expected_p_GQ - got_p_GQ).norm() < 1e-6,
-                "Scholz2015 algorithm: Curve segment position at final contact point incorrect");
+            (expected_p_GQ - got_p_GQ).norm() < 1e-6,
+            "Scholz2015 algorithm: Curve segment position at final contact point incorrect");
     }
 
-    // MinimumLength algorithm converges to the shortest possible path as the optimal path.
+    // MinimumLength algorithm converges to the shortest possible path as the
+    // optimal path.
     {
         cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
 
@@ -859,23 +870,32 @@ void testSolverOptimum() {
             viz->report(s);
         }
 
-        SimTK_ASSERT2_ALWAYS(cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
-                "Path smoothness (%e) does not meet tolerance (%e)",
-                cable.getSmoothness(s),
-                cable.getSmoothnessTolerance());
+        SimTK_ASSERT2_ALWAYS(
+            cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+            "Path smoothness (%e) does not meet tolerance (%e)",
+            cable.getSmoothness(s),
+            cable.getSmoothnessTolerance());
 
-        const Vec3 expected_p_GP = Vec3(cos(angle) * radius, sin(angle) * radius, 0.);
-        const Vec3 got_p_GP = cable.calcCurveSegmentInitialFrenetFrame(s, CableSpanObstacleIndex(0)).p();
+        const Vec3 expected_p_GP =
+            Vec3(cos(angle) * radius, sin(angle) * radius, 0.);
+        const Vec3 got_p_GP = cable
+                                  .calcCurveSegmentInitialFrenetFrame(
+                                      s,
+                                      CableSpanObstacleIndex(0))
+                                  .p();
 
-        const Vec3 expected_p_GQ = Vec3(cos(angle) * radius, -sin(angle) * radius, 0.);
-        const Vec3 got_p_GQ = cable.calcCurveSegmentFinalFrenetFrame(s, CableSpanObstacleIndex(0)).p();
+        const Vec3 expected_p_GQ =
+            Vec3(cos(angle) * radius, -sin(angle) * radius, 0.);
+        const Vec3 got_p_GQ =
+            cable.calcCurveSegmentFinalFrenetFrame(s, CableSpanObstacleIndex(0))
+                .p();
 
         SimTK_ASSERT_ALWAYS(
-                (expected_p_GP - got_p_GP).norm() < 1e-6,
-                "Scholz2015 algorithm: Curve segment position at initial contact point incorrect");
+            (expected_p_GP - got_p_GP).norm() < 1e-6,
+            "Scholz2015 algorithm: Curve segment position at initial contact point incorrect");
         SimTK_ASSERT_ALWAYS(
-                (expected_p_GQ - got_p_GQ).norm() < 1e-6,
-                "Scholz2015 algorithm: Curve segment position at final contact point incorrect");
+            (expected_p_GQ - got_p_GQ).norm() < 1e-6,
+            "Scholz2015 algorithm: Curve segment position at final contact point incorrect");
     }
 }
 
@@ -883,7 +903,8 @@ void testSolverOptimum() {
 
 In this test the optimal path is far from the initial path. This tests the
 robustness of the algorithm to the initial conditions. **/
-void testRobustInitialPath() {
+void testRobustInitialPath()
+{
     const bool show = false;
 
     // Create the system.
@@ -910,11 +931,8 @@ void testRobustInitialPath() {
     // Add torus obstacle.
     cable.addObstacle(
         matter.Ground(),
-        Transform(
-            Rotation(0.5 * Pi, YAxis),
-            Vec3{0., 4., 0.}),
-        std::shared_ptr<ContactGeometry>(
-            new ContactGeometry::Torus(2., 0.5)),
+        Transform(Rotation(0.5 * Pi, YAxis), Vec3{0., 4., 0.}),
+        std::shared_ptr<ContactGeometry>(new ContactGeometry::Torus(2., 0.5)),
         {0., -0.1, 0.});
 
     // Configure the solver.
@@ -945,16 +963,19 @@ void testRobustInitialPath() {
     }
 
     // Test that the solution was found.
-    SimTK_ASSERT2_ALWAYS(cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
-            "Path smoothness (%e) does not meet tolerance (%e)",
-            cable.getSmoothness(s),
-            cable.getSmoothnessTolerance());
+    SimTK_ASSERT2_ALWAYS(
+        cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+        "Path smoothness (%e) does not meet tolerance (%e)",
+        cable.getSmoothness(s),
+        cable.getSmoothnessTolerance());
 
     // Test the cable length.
     const Real expectedLength = 5.6513;
-    SimTK_ASSERT2_ALWAYS(std::abs(cable.calcLength(s) - expectedLength) < 1e-3,
-            "Cable length (%f) does match expected length (%f)",
-            cable.calcLength(s), expectedLength);
+    SimTK_ASSERT2_ALWAYS(
+        std::abs(cable.calcLength(s) - expectedLength) < 1e-3,
+        "Cable length (%f) does match expected length (%f)",
+        cable.calcLength(s),
+        expectedLength);
 }
 
 int main()

@@ -166,9 +166,9 @@ void testCableForceOnSingleObstacle()
     CableSpan cable(
         cables,
         matter.Ground(),
-        Vec3{radius * tan(angle/2.), radius, 0.},
+        Vec3{radius * tan(angle / 2.), radius, 0.},
         matter.Ground(),
-        Vec3{radius * tan(angle/2.), -radius, 0.});
+        Vec3{radius * tan(angle / 2.), -radius, 0.});
 
     // Add sphere obstacle.
     cable.addObstacle(
@@ -179,7 +179,8 @@ void testCableForceOnSingleObstacle()
 
     Vector_<SpatialVec> forcesExpected(matter.getNumBodies());
     forcesExpected[0] = SpatialVec(Vec3{0.}, Vec3{2. * cos(angle), 0., 0.});
-    forcesExpected[1] = SpatialVec(Vec3{0., 0., 0.}, Vec3{-2. * cos(angle), 0.});
+    forcesExpected[1] =
+        SpatialVec(Vec3{0., 0., 0.}, Vec3{-2. * cos(angle), 0.});
 
     assertForces(system, cable, forcesExpected);
 }
@@ -197,7 +198,7 @@ void testCableForceAndMomentOnSingleObstacle()
 
     const Real radius  = 1.;
     const Real offsetY = 1.;
-    const Real angle = 45. / 180. * Pi;
+    const Real angle   = 45. / 180. * Pi;
 
     MobilizedBody::Free obstacleBody(
         matter.Ground(),
@@ -208,9 +209,9 @@ void testCableForceAndMomentOnSingleObstacle()
     CableSpan cable(
         cables,
         matter.Ground(),
-        Vec3{radius * tan(angle/2.), radius, 0.},
+        Vec3{radius * tan(angle / 2.), radius, 0.},
         matter.Ground(),
-        Vec3{radius * tan(angle/2.), -radius, 0.});
+        Vec3{radius * tan(angle / 2.), -radius, 0.});
 
     cable.addObstacle(
         obstacleBody,
@@ -220,7 +221,9 @@ void testCableForceAndMomentOnSingleObstacle()
 
     Vector_<SpatialVec> forcesExpected(matter.getNumBodies());
     forcesExpected[0] = SpatialVec(Vec3{0.}, Vec3{2. * cos(angle), 0., 0.});
-    forcesExpected[1] = SpatialVec(Vec3{0., 0., 2. * sin(angle)}, Vec3{-2. * cos(angle), 0., 0.});
+    forcesExpected[1] = SpatialVec(
+        Vec3{0., 0., 2. * sin(angle)},
+        Vec3{-2. * cos(angle), 0., 0.});
 
     assertForces(system, cable, forcesExpected);
 }
