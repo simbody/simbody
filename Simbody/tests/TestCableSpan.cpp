@@ -140,7 +140,7 @@ void testSimpleCable()
         cableTerminationBody,
         Vec3{0.});
     cable.setCurveSegmentAccuracy(1e-12);
-    cable.setSmoothnessTolerance(1e-6);
+    cable.setSmoothnessTolerance(1e-7);
 
     // Add initial torus obstacle.
     MobilizedBody::Translation torusBody(
