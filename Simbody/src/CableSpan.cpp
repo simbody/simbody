@@ -1315,66 +1315,6 @@ public:
     //  Generating Geodesic Points For Visualization
     //------------------------------------------------------------------------------
 
-    // TODO unify with other drawing opitons.
-    void calcCurveSegmentKnotPoints(
-        const State& state,
-        const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>& sink) const
-    {
-        if (!isInContactWithSurface(state)) {
-            return;
-        }
-
-        const CurveSegmentData::Instance& dataInst = getDataInst(state);
-        const Transform& X_GS                      = getDataPos(state).X_GS;
-
-        if (getContactGeometry().isAnalyticFormAvailable()) {
-            // NOTE Depending on what is actually desired by the end-user, this
-            // might need revision.
-
-            // For analytic surfaces there is no numerical integrator to give a
-            // natural interspacing of knots. So instead I just assume you
-            // would like some OK granularity. This can be done by interspacing
-            // the knots by a certain "angle" (e.g. 5 degrees is pretty fine),
-            // and using the radius of curvature to convert the angle to a
-            // spatial interspacing of the samples.
-            constexpr Real c_AngularSpacing = 0.087; // ~ 5 degrees
-
-            // To convert the angular spacing to a spatial spacing we need the
-            // curvature. The curvature is generally not constant along a
-            // geodesic, but there are not a lot of analytic surfaces at the
-            // moment (sphere and cylinder?). For these we can just look at the
-            // curvature at the boundary frames to know the curvature along the
-            // entire geodesic.
-            const Real maxCurvature_P = max(abs(dataInst.curvatures_P));
-            const Real maxCurvature_Q = max(abs(dataInst.curvatures_Q));
-            const Real minRadiusOfCurvature =
-                1. / std::max(maxCurvature_P, maxCurvature_Q);
-
-            // Estimate the spatial interspacing from the angular spacing and
-            // the radius of curvature.
-            const Real lengthInterspacing =
-                minRadiusOfCurvature * c_AngularSpacing;
-
-            // Now shoot the geodesic analytically with the desired granularity.
-            const int numberOfKnotPoints =
-                static_cast<int>(dataInst.arcLength / lengthInterspacing);
-            getContactGeometry().shootGeodesicInDirectionAnalytically(
-                dataInst.X_SP.p(),
-                getTangent(dataInst.X_SP),
-                dataInst.arcLength,
-                std::max(numberOfKnotPoints, 2),
-                sink);
-            return;
-        }
-
-        // If the surface did not have an analytic form, we simply forward the
-        // knots from the GeodesicIntegrator.
-        for (const ContactGeometry::GeodesicKnotPoint& q :
-             dataInst.geodesicKnotPoints) {
-            sink(q);
-        }
-    }
-
     void calcDecorativePathPoints(
         const State& state,
         const std::function<void(Vec3 point_G)>& sink) const
@@ -1819,59 +1759,6 @@ public:
             calcDecorativePathPoints(
                 state,
                 pushDecorativeLineBetweenPathPoints);
-        }
-
-        // Optionally draw the jacobifields of the rotational and translational jacobi scalars.
-        // TODO move to option.
-        const Real c_JacobiFieldMagnitude = 0.5;
-        if (!isNaN(c_JacobiFieldMagnitude))
-        {
-            constexpr int c_LineThickness = 3;
-
-            const CableSpanData::Position& dataPos = getDataPos(state);
-
-            for (const CurveSegment& curve : m_curveSegments) {
-                const ContactGeometry& geometry = curve.getContactGeometry();
-                const Transform& X_GS = curve.getDataPos(state).X_GS;
-
-                Vec3 prevRotJacobiFieldPoint_G{NaN};
-                Vec3 prevTransJacobiFieldPoint_G{NaN};
-                bool isFirstCurvePoint = true;
-
-                curve.calcCurveSegmentKnotPoints(state,
-                        [&](const ContactGeometry::GeodesicKnotPoint & q) {
-                        const FrenetFrame& X_GF = X_GS.compose(calcFrenetFrameFromGeodesicState(geometry, q));
-
-                        const Vec3 nextRotJacobiFieldPoint_G = X_GF.p() + getBinormal(X_GF) * q.jacobiRot * c_JacobiFieldMagnitude;
-                        const Vec3 nextTransJacobiFieldPoint_G = X_GF.p() + getBinormal(X_GF) * q.jacobiTrans * c_JacobiFieldMagnitude;
-
-                        // Draw lines from the curve knots in the binormal direction with a length scaled by the jacobi field magnitude.
-                        decorations.push_back(
-                                DecorativeLine(X_GF.p(), nextRotJacobiFieldPoint_G)
-                                .setColor(Orange)
-                                .setLineThickness(0.5 * c_LineThickness));
-                        decorations.push_back(
-                                DecorativeLine(X_GF.p(), nextTransJacobiFieldPoint_G)
-                                .setColor(Green)
-                                .setLineThickness(0.5 * c_LineThickness));
-
-                        // Draw lines connecting the end points of the lines drawn above.
-                        if (!isFirstCurvePoint) {
-                            decorations.push_back(
-                                DecorativeLine(prevRotJacobiFieldPoint_G, nextRotJacobiFieldPoint_G)
-                                .setColor(Orange)
-                                .setLineThickness(c_LineThickness));
-                            decorations.push_back(
-                                DecorativeLine(prevTransJacobiFieldPoint_G, nextTransJacobiFieldPoint_G)
-                                .setColor(Green)
-                                .setLineThickness(c_LineThickness));
-                        }
-
-                        prevRotJacobiFieldPoint_G = nextRotJacobiFieldPoint_G;
-                        prevTransJacobiFieldPoint_G = nextTransJacobiFieldPoint_G;
-                        isFirstCurvePoint = false;
-                        });
-            }
         }
 
         // For any obstacle that is not in contact with the cable, draw the
