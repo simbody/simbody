@@ -200,7 +200,6 @@ struct MatrixWorkspace {
     Stacking all path error elements, of all active obstacles, gives the
     binormal path error vector. */
     Vector binormalPathError;
-    // TODO is this used?
     /* The maximum of the normal and binormal path errors. */
     Real maxPathError = NaN;
     /* The Jacobian of the normal path error vector to the natural geodesic
@@ -231,7 +230,9 @@ struct MatrixWorkspace {
     Matrix leftSingularValues;
     Matrix rightSingularValues;
 
-    // TODO add description
+    /* This flag indicates if the optimizer stopping criterium was met. If so,
+    the pathCorrection vector was not computed, because the optimal path is
+    reached. */
     bool converged = false;
 };
 
