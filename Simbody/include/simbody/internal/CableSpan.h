@@ -40,6 +40,38 @@ These are the different solver options for computing the optimal cable path. **/
 enum class CableSpanAlgorithm
 {
     // TODO description.
+    /** This is the original algorithm as described in Scholz2015.
+
+    The path error vector captures the misalignment of the straight line and
+    curved segments at the contact points, as well as the penalty for taking a
+    large optimization step. The computation of the path is then done by
+    driving this path error to zero (up to tolerance), such that all segments
+    are smoothly connected, and the optimization step size converges to zero.
+
+    To derive the path errors, consider a single active obstacle (active being
+    those that are in contact with the cable), and define:
+    - Let the subscripts P and Q denote the initial and final contact point on
+      the obstacle respectively.
+    - The direction of the straight line segment connected to the obstacle at
+      the contact points: e_P, e_Q
+    - The direction of the surface normal at contact points: n_P, n_Q
+    - The direction of the geodesic binormal at contact points: b_P, b_Q
+
+    For each active obstacle four path error elements are then computed:
+    1. dot(e_P, n_P)
+    2. dot(e_P, b_P)
+    3. dot(e_Q, n_Q)
+    4. dot(e_Q, b_Q)
+
+    Stacking all four path error elements, of all active obstacles, gives the
+    first elements of the path error vector.
+
+    Additionally, for each active obstacle, one element is added to the path
+    error vector that constrains the length of the geodesic to remain the same.
+    This helps regulate the search for the path in case the Jacobian of the path
+    error loses rank. The value of these elements is simply zero.
+
+    The main drawback of this algorithm is that it converges to any cable length optimum. This means that the cable might be of maximum length, minimal length, or at a saddle point. **/
     Scholz2015,
     /** The Minimal length algorithm finds the optimal path by minimizing the total cable length directly, while enforcing the contour constraints.
 
