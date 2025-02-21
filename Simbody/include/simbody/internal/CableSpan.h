@@ -36,68 +36,78 @@ lookup purposes. These begin at zero for each CableSubsystem. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanIndex);
 
 /** @enum SimTK::CableSpanAlgorithm
-These are the different solver options for computing the optimal cable path. **/
+These are the different solver options for computing the optimal path of a
+CableSpan. These options change the cost function and the computed descending
+direction for reaching the optimal path.
+see CableSpan::setAlgorithm **/
 enum class CableSpanAlgorithm
 {
-    // TODO description.
-    /** This is the original algorithm as described in Scholz2015.
+    /** This is the original algorithm as described in:
+
+    Scholz, A., Sherman, M., Stavness, I. et al (2015). A fast multi-obstacle
+    muscle wrapping method using natural geodesic variations. Multibody System
+    Dynamics 36, 195–219.
 
     The path error vector captures the misalignment of the straight line and
-    curved segments at the contact points, as well as the penalty for taking a
-    large optimization step. The computation of the path is then done by
-    driving this path error to zero (up to tolerance), such that all segments
-    are smoothly connected, and the optimization step size converges to zero.
+    curved segments at the contact points. The computation of the path is then
+    done by driving this path error to zero (up to tolerance), such that all
+    segments are smoothly connected, and the optimization step size converges
+    to zero.
 
-    To derive the path errors, consider a single active obstacle (active being
-    those that are in contact with the cable), and define:
-    - Let the subscripts P and Q denote the initial and final contact point on
-      the obstacle respectively.
-    - The direction of the straight line segment connected to the obstacle at
-      the contact points: e_P, e_Q
-    - The direction of the surface normal at contact points: n_P, n_Q
-    - The direction of the geodesic binormal at contact points: b_P, b_Q
-
-    For each active obstacle four path error elements are then computed:
-    1. dot(e_P, n_P)
-    2. dot(e_P, b_P)
-    3. dot(e_Q, n_Q)
-    4. dot(e_Q, b_Q)
-
-    Stacking all four path error elements, of all active obstacles, gives the
-    first elements of the path error vector.
-
-    Additionally, for each active obstacle, one element is added to the path
-    error vector that constrains the length of the geodesic to remain the same.
-    This helps regulate the search for the path in case the Jacobian of the path
-    error loses rank. The value of these elements is simply zero.
-
-    The main drawback of this algorithm is that it converges to any cable length optimum. This means that the cable might be of maximum length, minimal length, or at a saddle point. **/
+    A drawback of this algorithm is that it converges to any cable length
+    optimum. This means that the cable might be of maximum length or minimal
+    length. **/
     Scholz2015,
-    /** The Minimal length algorithm finds the optimal path by minimizing the total cable length directly, while enforcing the contour constraints.
+    /** The Minimal length algorithm finds the optimal path by minimizing the
+    total cable length directly, while enforcing the contour constraints.
 
-    The first step is to describe the total cable length using a second order approximation:
+    The first step is to describe the total cable length using a second order
+    approximation:
+    <pre>
     l(q) = l + ~ g * q + ~q * H * q / 2 + ...
-    where l is the total cable length, q is the vector of natural geodesic corrections (see Scholz2015), g and H are the gradient and Hessian of l to q.
+    <pre>
+    where l is the total cable length, q is the vector of natural geodesic
+    corrections (see Scholz2015 paper), g and H are the gradient and Hessian of
+    l to q.
 
-    For the constraints we use the normal path errors described in Scholz2015:
+    For the constraints we use the normal path errors described in the
+    Scholz2015 paper:
+    <pre>
     c_i(q) = [ ~e_P * n_P, ~e_Q * n_Q ]
-    where c is the vector of constraints, c_i are the two constraint elements associated with the i-th curve segment, e_P is the direction of the straight line segment at the P frame, n_P is normal direction at the P-frame, and similarly for e_Q and n_Q.
-    We then take a first order approximation of these constraints:
+    <pre>
+    where c is the vector of constraints, c_i are the two constraint elements
+    associated with the i-th curve segment, e_P is the direction of the
+    straight line segment at the P frame, n_P is normal direction at the
+    P-frame, and similarly for e_Q and n_Q.
+    Taking the first order approximation of these constraints gives:
+    <pre>
     c(q) = c + J * q + ...
+    <pre>
 
     The optimization problem that is solved is then posed as:
 
     minimize l(q) subject to c(q) = 0
 
     This problem is solved by repeatedly solving a Quadratic Program given by:
+    <pre>
     | Q   J^T |   | q |   | -g |
     | J   0   | * | λ | = | -c |
-    where Q is a symmetric positive definite approximation of H, and λ are the lagrange multipliers.
+    <pre>
+    where Q is a symmetric positive definite approximation of H, and λ are the
+    lagrange multipliers.
 
-    The approximation Q is used because H is itself not symmetric positive definite. Q is obtained from H by flipping the sign of any negative eigenvalues of H, to get a positive definite approximation. Consider the following eigen decomposition:
+    The approximation Q is used because H is itself not symmetric positive
+    definite. Q is obtained from H by flipping the sign of any negative
+    eigenvalues of H, to get a positive definite approximation. Consider the
+    following eigen decomposition:
+    <pre>
     (H + ~H)/2 = ~P D P
+    <pre>
     Then Q is given as:
-    Q = ~P abs(D) P. **/
+    <pre>
+    Q = ~P abs(D) P
+    <pre>
+    **/
     MinimumLength,
 };
 
