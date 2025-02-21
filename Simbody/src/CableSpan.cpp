@@ -2687,44 +2687,13 @@ void calcLengthHessian(
 namespace
 {
 
-// Solve for the geodesic corrections by attempting to set the path error to
-// zero. We call this after having filled in the pathError vector and pathError
-// Jacobian in the MatrixWorkspace. The result is a vector of Corrections for
-// each curve.
-void calcPathCorrections(MatrixWorkspace& data)
-{
-    // The last elements of the path error vector contain the change in length
-    // of each curve segment, and require it to remain zero. The change in
-    // length is the last element of the NaturalGeodesicCorrection vector. The
-    // Jacobian is therefore zero everywhere, except for one (=1) at the element
-    // of the third NaturalGeodesicCorrection of the corresponding curve
-    // segment. Finally we write a weight instead of a one to obtain a weighted
-    // least squares. As the weight we take the current maximum path error. This
-    // will heavily penalize changing the length when we are far from the
-    // optimal solution, and ramp up convergence as we get closer.
-    for (int i = 0; i < data.nObstaclesInContact; ++i) {
-        // Determine the row and column of the nonzero element in the Jacobian.
-        int r = data.nObstaclesInContact *
-                    MatrixWorkspace::c_NumPathErrorConstraints + i;
-        int c = c_GeodesicDOF * (i + 1) - 1;
-        // Write the weight that will penalize changing the curve length.
-        data.pathErrorJacobian.set(r, c, data.maxPathError);
-    }
-
-    data.factor = data.pathErrorJacobian;
-    data.factor.solve(data.pathError, data.pathCorrection);
-    data.pathCorrection *= -1.;
-}
-
-//  TODO put in right place
-//  TODO rename to calcCurveCorrectionStepSize
-// Given a correction vector computed from minimizing the cost function,
-// compute the maximum allowed stepsize along that correction vector.
-// The allowed step is computed using the orientation variation and the
-// correction vector. Multiplication of these two gives a rotation vector. The
-// stepsize is then clamped such that the inf-norm of that rotation vector does
-// not exceed the maximum allowed angular stepsize.
-void calcMaxAllowedCurveCorrectionStepSize(
+/* Given a correction vector computed from minimizing the cost function,
+compute the maximum allowed stepsize along that descending direction. The
+allowed step is computed using the orientation variation and the correction
+vector. Multiplication of these two gives a rotation vector. The stepsize is
+then clamped such that the inf-norm of that rotation vector does not exceed the
+maximum allowed angular stepsize. */
+void calcCurveCorrectionStepSize(
     const State& s,
     const CurveSegment& curve,
     const NaturalGeodesicCorrection& c,
@@ -2761,13 +2730,10 @@ void calcMaxAllowedCurveCorrectionStepSize(
     }
 }
 
-//  TODO put in right place
-//  TODO rename to calcPathCorrectionStepSize
-//  TODO take const ref, and return Real
 // Helper for computing the stepsize such that a given path correction vector
 // does not exceed the max allowed angular displacement at the boundary frames
 // of the curve segments.
-void calcClampedPathCorrection(const State& s, const CableSpan::Impl& cable, Vector& pathCorrection)
+Real calcPathCorrectionStepSize(const State& s, const CableSpan::Impl& cable, const Vector& pathCorrection)
 {
     Real stepSize     = 1.;
     int activeCurveIx = 0; // Index of curve in all that are in contact.
@@ -2778,7 +2744,7 @@ void calcClampedPathCorrection(const State& s, const CableSpan::Impl& cable, Vec
         }
         // Each curve segment will evaluate if the stepsize is not too large
         // given the local curvature.
-        calcMaxAllowedCurveCorrectionStepSize(
+        calcCurveCorrectionStepSize(
                 s,
                 curve,
                 MatrixWorkspace::getCurveCorrection(pathCorrection, activeCurveIx),
@@ -2787,11 +2753,9 @@ void calcClampedPathCorrection(const State& s, const CableSpan::Impl& cable, Vec
         ++activeCurveIx;
     }
 
-    // Apply the maximum stepsize to the corrections.
-    pathCorrection *= stepSize;
+    return stepSize;
 }
 
-//  TODO put in right place
 // Helper for computing the total cable length.
 // This is the sum of the lengths of all straight line segments, and all curve
 // segments.
@@ -2989,9 +2953,9 @@ void CableSpan::Impl::calcSolverStep(
             SimTK_ASSERT(false, "Unknown CableSpanAlgorithm kind");
     }
 
-    // Clamp the computed correction vector using the curvature of each
-    // surface, such that we remain in an approximate linear region.
-    calcClampedPathCorrection(s, *this, data.pathCorrection);
+    // Compute the stepsize along the descending direction.
+    const Real stepSize = calcPathCorrectionStepSize(s, *this, data.pathCorrection);
+    data.pathCorrection *= stepSize;
 }
 
 const CableSpanData::Position& CableSpan::Impl::calcDataPos(const State& s) const
