@@ -64,8 +64,8 @@ enum class CableSpanAlgorithm
     The first step is to describe the total cable length using a second order
     approximation:
     <pre>
-    l(q) = l + ~ g * q + ~q * H * q / 2 + ...
-    <pre>
+    l(q) = l + ~g * q + ~q * H * q / 2 + ...
+    </pre>
     where l is the total cable length, q is the vector of natural geodesic
     corrections (see Scholz2015 paper), g and H are the gradient and Hessian of
     l to q.
@@ -73,8 +73,9 @@ enum class CableSpanAlgorithm
     For the constraints we use the normal path errors described in the
     Scholz2015 paper:
     <pre>
-    c_i(q) = [ ~e_P * n_P, ~e_Q * n_Q ]
-    <pre>
+    c_i(q) = [ ~e_P * n_P ]
+             [ ~e_Q * n_Q ]
+    </pre>
     where c is the vector of constraints, c_i are the two constraint elements
     associated with the i-th curve segment, e_P is the direction of the
     straight line segment at the P frame, n_P is normal direction at the
@@ -82,7 +83,7 @@ enum class CableSpanAlgorithm
     Taking the first order approximation of these constraints gives:
     <pre>
     c(q) = c + J * q + ...
-    <pre>
+    </pre>
 
     The optimization problem that is solved is then posed as:
 
@@ -90,9 +91,9 @@ enum class CableSpanAlgorithm
 
     This problem is solved by repeatedly solving a Quadratic Program given by:
     <pre>
-    | Q   J^T |   | q |   | -g |
-    | J   0   | * | λ | = | -c |
-    <pre>
+    [ Q   J^T ]   [ q ]   [ -g ]
+    [ J   0   ] * [ λ ] = [ -c ]
+    </pre>
     where Q is a symmetric positive definite approximation of H, and λ are the
     lagrange multipliers.
 
@@ -102,11 +103,11 @@ enum class CableSpanAlgorithm
     following eigen decomposition:
     <pre>
     (H + ~H)/2 = ~P D P
-    <pre>
+    </pre>
     Then Q is given as:
     <pre>
     Q = ~P abs(D) P
-    <pre>
+    </pre>
     **/
     MinimumLength,
 };
@@ -379,7 +380,6 @@ public:
     State must be realized to Stage::Position. **/
     Real getSmoothness(const State& state) const;
 
-    // TODO add description of algorithms here.
     /** Set the algorithm used to compute the optimal path. **/
     void setAlgorithm(CableSpanAlgorithm algorithm);
 
