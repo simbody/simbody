@@ -118,28 +118,20 @@ matrices need to be computed. This struct provides the required matrices with
 appropriate dimensions. After computing the path this data is no longer needed
 by the CableSpan. */
 struct MatrixWorkspace {
-    // Number of path error constraints per curve segment.
-    static constexpr int c_NumPathErrorConstraints = 4;
-    // Total number of constraints per curve segment.
-    static constexpr int c_NumConstraints = c_NumPathErrorConstraints + 1;
-
     // Given the number of CurveSegments that are in contact with their
     // respective obstacle's surface, contruct a MatrixWorkspace of correct
     // dimensions.
-    explicit MatrixWorkspace(int problemSize) : nObstaclesInContact(problemSize)
+    explicit MatrixWorkspace(int problemSize)
     {
-        // TODO cleanup
-        static constexpr int Q = c_GeodesicDOF;
-        static constexpr int C = c_NumConstraints;
-        const int n            = problemSize;
+        // Total number of obstacles in contact with cable.
+        const int n = problemSize;
+        // Dimension of the free variable vector: all geodesic corrections.
+        const int nQ = n * c_GeodesicDOF;
+        // Total number of constraints (2 per obstacle).
+        const int nC = n * 2;
 
         lineSegments.resize(n + 1);
-        pathErrorJacobian = Matrix(C * n, Q * n, 0.);
-        pathCorrection    = Vector(Q * n, 0.);
-        pathError         = Vector(C * n, 0.);
-
-        const int nC = 2 * n;
-        const int nQ = c_GeodesicDOF * n;
+        pathCorrection    = Vector(nQ, 0.);
 
         normalPathError = Vector(nC, 0.);
         binormalPathError = Vector(nC, 0.);
@@ -176,11 +168,6 @@ struct MatrixWorkspace {
             pathCorrection[eltIx + 2],
             pathCorrection[eltIx + 3]};
     }
-
-    // TODO remove these
-    int nObstaclesInContact = -1;
-    Vector pathError;
-    Matrix pathErrorJacobian;
 
     /* All straight line segments in the current path. */
     std::vector<LineSegment> lineSegments;
@@ -2842,8 +2829,13 @@ void CableSpan::Impl::calcSolverStep(
     switch (algorithm) {
         // Compute the path corrections as outlined in Scholz2015.
         case CableSpanAlgorithm::Scholz2015: {
-            Vector b(numObstaclesInContact * (c_GeodesicDOF + 1), 0.);
-            Matrix A(numObstaclesInContact * (c_GeodesicDOF + 1), numObstaclesInContact * c_GeodesicDOF, 0.);
+            // Number of path error constraints per curve segment.
+            static constexpr int c_NumPathErrorConstraints = 4;
+            // Total number of constraints per curve segment.
+            static constexpr int c_NumConstraints = c_NumPathErrorConstraints + 1;
+
+            Vector b(numObstaclesInContact * c_NumConstraints, 0.);
+            Matrix A(numObstaclesInContact * c_NumConstraints, numObstaclesInContact * c_GeodesicDOF, 0.);
             Vector& q = data.pathCorrection;
 
             // Fill the upper block of A and b with the path error jacobian and vector.
@@ -2864,11 +2856,9 @@ void CableSpan::Impl::calcSolverStep(
             // least squares. As the weight we take the current maximum path error. This
             // will heavily penalize changing the length when we are far from the
             // optimal solution, and ramp up convergence as we get closer.
-            for (int i = 0; i < data.nObstaclesInContact; ++i) {
+            for (int i = 0; i < numObstaclesInContact; ++i) {
                 // Determine the row and column of the nonzero element in the Jacobian.
-                int r = data.nObstaclesInContact *
-                    MatrixWorkspace::c_NumPathErrorConstraints +
-                    i;
+                int r = numObstaclesInContact * c_NumPathErrorConstraints + i;
                 int c = c_GeodesicDOF * (i + 1) - 1;
                 // Write the weight that will penalize changing the curve length.
                 const Real weight = data.maxPathError;
