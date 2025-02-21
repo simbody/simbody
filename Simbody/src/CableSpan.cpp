@@ -2568,6 +2568,7 @@ void calcLengthHessian(
             const Real l      = lines.at(lineIx).length;
 
             const Mat33 E = (I - e * ~e) / l;
+            const Mat33 S = skewSymMat(e);
 
             const Mat34& v_P = dataPos.v_P;
             const Mat34& w_P = dataPos.w_P;
@@ -2580,7 +2581,7 @@ void calcLengthHessian(
             // The Hessian elements of this block are then given as:
             // H_ij = ~e dv_i/dq_j + ~v_i de/dq_j
             // Which can be written compactly as:
-            const Mat44 hblock = ~v_P * E * v_P + ~v_P * skewSymMat(e) * w_P;
+            const Mat44 hblock = ~v_P * E * v_P + ~v_P * S * w_P;
             AddBlock(hblock);
 
             // Write to the off-diagonal block of H the Jacobian of the
@@ -2604,7 +2605,9 @@ void calcLengthHessian(
             const UnitVec3& e = lines.at(lineIx).direction;
             const Real l      = lines.at(lineIx).length;
 
-            const Mat33 E    = (I - e * ~e) / l;
+            const Mat33 E = (I - e * ~e) / l;
+            const Mat33 S = skewSymMat(e);
+
             const Mat34& v_Q = dataPos.v_Q;
             const Mat34& w_Q = dataPos.w_Q;
 
@@ -2615,7 +2618,7 @@ void calcLengthHessian(
             // columns of v_Q have a constant norm. Then, the Hessian of the
             // straight line segment at the Q-frame is computed analogously as
             // done at the P-frame:
-            Mat44 hblock = ~v_Q * E * v_Q - ~v_Q * skewSymMat(e) * w_Q;
+            Mat44 hblock = ~v_Q * E * v_Q - ~v_Q * S * w_Q;
 
             // In reality the columns of v_Q do not have a constant norm, using
             // the product rule we need to add some additional terms.
@@ -2625,7 +2628,7 @@ void calcLengthHessian(
             // and last natural geodesic variation, these are simply aDot,
             // rDot. However for the second and third terms these must be
             // computed numerically, similarly to how the jacobi field is
-            // computed see TODO.
+            // computed.
             // Here we assume the effect of these terms to be minimal, and near
             // the optimum these terms will vanish analytically. We therefore
             // estimate the covariance terms as zero. This assumption is
