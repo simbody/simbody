@@ -82,7 +82,11 @@ if(${SIMBODY_USE_INSTALL_RPATH})
     set(exbin_dir_to_lib_dir
         "${exbin_dir_to_install_dir}${CMAKE_INSTALL_LIBDIR}")
     if(${SIMBODY_USE_INSTALL_RPATH})
-        set(CMAKE_INSTALL_RPATH "\@executable_path/${exbin_dir_to_lib_dir}")
+        if(APPLE)
+            set(CMAKE_INSTALL_RPATH "@executable_path/${exbin_dir_to_lib_dir}")
+        elseif(UNIX)
+            set(CMAKE_INSTALL_RPATH "\$ORIGIN/${exbin_dir_to_lib_dir}")
+        endif()
     endif()
 endif()
 

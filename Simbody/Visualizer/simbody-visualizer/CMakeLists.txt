@@ -105,9 +105,15 @@ else()
                 "${vis_install_dir}"
                 "${CMAKE_INSTALL_PREFIX}")
         set(vis_dir_to_lib_dir "${vis_dir_to_install_dir}${CMAKE_INSTALL_LIBDIR}")
-        set_target_properties(simbody-visualizer PROPERTIES
-            INSTALL_RPATH "\@executable_path/${vis_dir_to_lib_dir}"
+        if(APPLE)
+            set_target_properties(simbody-visualizer PROPERTIES
+                INSTALL_RPATH "@executable_path/${vis_dir_to_lib_dir}"
             )
+        elseif(UNIX) # implicitly NOT APPLE at this point
+            set_target_properties(simbody-visualizer PROPERTIES
+                INSTALL_RPATH "\$ORIGIN/${vis_dir_to_lib_dir}"
+            )
+        endif()
     endif()
 
     # SIMBODY_VISUALIZER_INSTALL_DIR is set in the root CMakeLists.txt

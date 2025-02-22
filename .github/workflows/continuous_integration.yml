@@ -25,7 +25,7 @@ jobs:
         run: |
           (New-Object System.Net.WebClient).DownloadFile("https://github.com/doxygen/doxygen/releases/download/Release_1_12_0/doxygen-1.12.0.windows.x64.bin.zip", "doxygen.zip")
           7z x $env:GITHUB_WORKSPACE/doxygen.zip -odoxygen
-          echo "DOXYGEN_EXECUTABLE=$env:GITHUB_WORKSPACE\\doxygen\\doxygen.exe" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "$env:GITHUB_WORKSPACE\\doxygen" >> $GITHUB_PATH
 
       - name: Obtain short git commit hash
         id: commithash
@@ -35,7 +35,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S $env:GITHUB_WORKSPACE --preset ci-msvc-windows-release -DDOXYGEN_EXECUTABLE=${{ env.DOXYGEN_EXECUTABLE }} -LAH
+          cmake -S $env:GITHUB_WORKSPACE --preset ci-msvc-windows-release -LAH
 
       - name: Build
         run: |

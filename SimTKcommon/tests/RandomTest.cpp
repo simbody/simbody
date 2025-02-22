@@ -25,8 +25,6 @@
 
 #include <iostream>
 
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
-
 using std::cout;
 using std::endl;
 using std::sqrt;
@@ -39,7 +37,7 @@ using namespace SimTK;
 void verifyDistribution(int expected[], int found[], int bins) {
     for (int i = 0; i < bins; ++i) {
         Real dev = sqrt((Real) expected[i]);
-        ASSERT(found[i] >= expected[i]-4*dev && found[i] <= expected[i]+4*dev)
+        SimTK_TEST(found[i] >= expected[i]-4*dev && found[i] <= expected[i]+4*dev)
     }
 }
 
@@ -54,8 +52,8 @@ void verifyUniformDistribution(Real min, Real max, Real value[], int length) {
         found[i] = 0;
     }
     for (int i = 0; i < length; ++i) {
-        ASSERT(value[i] >= min)
-        ASSERT(value[i] < max)
+        SimTK_TEST(value[i] >= min)
+        SimTK_TEST(value[i] < max)
         int index = (int) ((value[i]-min)*10/(max-min));
         found[index]++;
     }
@@ -75,8 +73,8 @@ void verifyUniformDistribution(int min, int max, int value[], int length) {
         found[i] = 0;
     }
     for (int i = 0; i < length; ++i) {
-        ASSERT(value[i] >= min)
-        ASSERT(value[i] < max)
+        SimTK_TEST(value[i] >= min)
+        SimTK_TEST(value[i] < max)
         found[value[i]-min]++;
     }
     verifyDistribution(expected, found, range);
@@ -115,8 +113,8 @@ void verifyGaussianDistribution(Real mean, Real stddev, Real value[], int length
 
 void testUniform() {
     Random::Uniform rand;
-    ASSERT(rand.getMin() == 0.0)
-    ASSERT(rand.getMax() == 1.0)
+    SimTK_TEST(rand.getMin() == 0.0)
+    SimTK_TEST(rand.getMax() == 1.0)
 
     // Try generating a bunch of random numbers, and make sure they are distributed uniformly between 0 and 1.
     
@@ -131,7 +129,7 @@ void testUniform() {
     
     rand.setSeed(1);
     for (int i = 0; i < 2000; ++i)
-        ASSERT(value[i] == rand.getValue())
+        SimTK_TEST(value[i] == rand.getValue())
     
     // Now try asking for a whole array at a time, and verify that it still gives the same results.
     
@@ -140,21 +138,21 @@ void testUniform() {
     rand.setSeed(1);
     rand.fillArray(value2, 2000);
     for (int i = 0; i < 2000; ++i)
-        ASSERT(value[i] == value2[i])
+        SimTK_TEST(value[i] == value2[i])
     
     // Set the seed to a different value, and verify that the results are different.
     
     rand.setSeed(2);
     rand.fillArray(value2, 2000);
     for (int i = 0; i < 2000; ++i)
-        ASSERT(value[i] != value2[i])
+        SimTK_TEST(value[i] != value2[i])
     
     // Change the range and test the distribution.
     
     rand.setMin(5.0);
     rand.setMax(20.0);
-    ASSERT(rand.getMin() == 5.0)
-    ASSERT(rand.getMax() == 20.0)
+    SimTK_TEST(rand.getMin() == 5.0)
+    SimTK_TEST(rand.getMax() == 20.0)
     rand.fillArray(value2, 2000);
     verifyUniformDistribution(5.0, 20.0, value2, 2000);
     
@@ -173,19 +171,21 @@ void testUniform() {
     rand1.fillArray(value, 2000);
     rand2.fillArray(value2, 2000);
     for (int i = 0; i < 2000; ++i)
-        ASSERT(value[i] != value2[i])
+        SimTK_TEST(value[i] != value2[i])
 
-    // Make sure none of the above operations has overwritten the final array element.
+    // Make sure none of the above operations has overwritten the final array
+    // element. On i386 the 32 bit representation of the non-integer values
+    // might not be exact so test to a tolerance.
     
-    ASSERT(value[2000]  == 123.4)
-    ASSERT(value2[2000] == 567.8)
-    ASSERT(value3[2000] == -99)
+    SimTK_TEST_EQ(value[2000], 123.4)
+    SimTK_TEST_EQ(value2[2000], 567.8)
+    SimTK_TEST(value3[2000] == -99)
 }
 
 void testGaussian() {
     Random::Gaussian rand;
-    ASSERT(rand.getMean() == 0.0)
-    ASSERT(rand.getStdDev() == 1.0)
+    SimTK_TEST(rand.getMean() == 0.0)
+    SimTK_TEST(rand.getStdDev() == 1.0)
     
     // Try generating a bunch of Gaussian random numbers, and check the distribution.
     
@@ -203,21 +203,23 @@ void testGaussian() {
     rand.setSeed(1);
     rand.fillArray(value2, 2000);
     for (int i = 0; i < 2000; ++i)
-        ASSERT(value[i] == value2[i])
+        SimTK_TEST(value[i] == value2[i])
     
     // Change the parameters and test the distribution.
     
     rand.setMean(10.0);
     rand.setStdDev(7.0);
-    ASSERT(rand.getMean() == 10.0)
-    ASSERT(rand.getStdDev() == 7.0)
+    SimTK_TEST(rand.getMean() == 10.0)
+    SimTK_TEST(rand.getStdDev() == 7.0)
     rand.fillArray(value2, 2000);
     verifyGaussianDistribution(10.0, 7.0, value2, 2000);
-    
-    // Make sure none of the above operations has overwritten the final array element.
-    
-    ASSERT(value[2000]  == 123.4)
-    ASSERT(value2[2000] == 567.8)
+
+    // Make sure none of the above operations has overwritten the final array
+    // element. On i386 the 32 bit representation of the non-integer values
+    // might not be exact so test to a tolerance.
+
+    SimTK_TEST_EQ(value[2000], 123.4)
+    SimTK_TEST_EQ(value2[2000], 567.8)
 }
 
 int main() {

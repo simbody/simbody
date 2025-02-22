@@ -1260,7 +1260,7 @@ Inertia calcBodyInertiaAboutAnotherBodyStation
 
 /** Calculate body B's momentum (angular, linear) measured and expressed in 
 Ground, but taken about the body origin Bo. **/
-SpatialVec calcBodyMomentumAboutBodyOriginInGround(const State& state) {
+SpatialVec calcBodyMomentumAboutBodyOriginInGround(const State& state) const {
     const MassProperties M_Bo_G = expressMassPropertiesInGroundFrame(state);
     const SpatialVec&    V_GB   = getBodyVelocity(state);
     return M_Bo_G.toSpatialMat() * V_GB;
