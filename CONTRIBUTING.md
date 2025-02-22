@@ -401,6 +401,7 @@ Charles Schwieters  |               |Provided initial multibody code
 Abhinandan Jain     |               |Underlying spatial algebra formulation
 Isaac Newton        |               |F=ma, calculus, etc.
 Jason Blum          |@jjblum        |Vis bug fix
+Allen Hill          |@halleysfifthinc|CMake build system improvements
 
 Contributor License Agreement
 -----------------------------
