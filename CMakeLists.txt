@@ -272,7 +272,7 @@ endif()
 if(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
         "Debug, RelWithDebInfo (recommended), or Release build"
-        )
+        FORCE)
 endif()
 
 # RPATH
