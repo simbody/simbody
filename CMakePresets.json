@@ -93,7 +93,10 @@
             "name": "default",
             "displayName": "Default build configuration",
             "description": "The right build configuration for most users",
-            "inherits": "base",
+            "inherits": [
+                "base",
+                "relwithdebinfo"
+            ],
             "cacheVariables": {
                 "BUILD_TESTING": false,
                 "CMAKE_COMPILE_WARNING_AS_ERROR": false
@@ -109,7 +112,8 @@
             "description": "The right MSVC build configuration for most users",
             "inherits": [
                 "base",
-                "windows"
+                "windows",
+                "relwithdebinfo"
             ],
             "cacheVariables": {
                 "BUILD_TESTING": false,

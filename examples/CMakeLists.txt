@@ -46,10 +46,6 @@
 # executables will be labeled "Example - TheExampleName" if a file
 # TheExampleName.cpp is found in this directory, or if we build from 
 # a subdirectory called TheExampleName.
-#
-# We check the BUILD_TESTS_AND_EXAMPLES_{SHARED,STATIC} variables to 
-# determine whether to build dynamically linked, statically linked, or both
-# versions of the executable.
 
 # All subdirectory examples must be listed here.  A subdirectory is needed 
 # for any example that consists of more than just one source file and one 
@@ -88,7 +84,7 @@ if(${SIMBODY_USE_INSTALL_RPATH})
     if(${SIMBODY_USE_INSTALL_RPATH})
         if(APPLE)
             set(CMAKE_INSTALL_RPATH "@executable_path/${exbin_dir_to_lib_dir}")
-        elseif(UNIX AND NOT APPLE)
+        elseif(UNIX)
             set(CMAKE_INSTALL_RPATH "\$ORIGIN/${exbin_dir_to_lib_dir}")
         endif()
     endif()
@@ -101,24 +97,9 @@ get_filename_component(ABS_CMAKE_INSTALL_PREFIX
 add_definitions(
     "-DSIMBODY_EXAMPLES_INSTALL_SRC=\"${ABS_CMAKE_INSTALL_PREFIX}/${EXAMPLES_INSTALL_SRC}\"")
 
-# Provide access to all Simbody headers, and to the examples top-level
+# Provide access to top-level examples headers
 # so that #include "shared/Blah.h" will work.
-include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
-                    ${SimTKCOMMON_INCLUDE_DIRECTORIES}
-                    ${SimTKMATH_INCLUDE_DIRECTORIES}
-                    ${SimTKSIMBODY_INCLUDE_DIRECTORIES})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-## Build examples against the unversioned libraries if they are being 
-## built; otherwise against the versioned libraries.
-if(BUILD_UNVERSIONED_LIBRARIES)
-    set(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
-    set(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}_static)
-else()
-    set(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN})
-    set(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN}_static)
-endif()
-
 
 # First build examples that have their own subdirectories and CMakeLists
 # files. 
@@ -140,37 +121,22 @@ foreach(EX_PROG ${EXAMPLES})
         unset(EX_HEADER)
     endif()
 
-    if(BUILD_TESTS_AND_EXAMPLES_SHARED)
-        # Link with shared library
-        add_executable(${EX_NAME} ${EX_PROG} ${EX_HEADER})
-        if(GUI_NAME)
-            add_dependencies(${EX_NAME} ${GUI_NAME})
-        endif()
-        set_target_properties(${EX_NAME}
-        PROPERTIES
-          COMPILE_FLAGS "-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\""
-          PROJECT_LABEL "Example - ${EX_NAME}")
-        target_link_libraries(${EX_NAME} ${EXAMPLES_SHARED_TARGET})
-        # Don't install Debug examples
-        install(TARGETS ${EX_NAME} 
-                DESTINATION ${EXAMPLES_INSTALL_BIN}
-                CONFIGURATIONS Release RelWithDebInfo MinSizeRel)
+    add_executable(${EX_NAME} ${EX_PROG} ${EX_HEADER})
+    if(TARGET simbody-visualizer)
+        add_dependencies(${EX_NAME} simbody-visualizer)
     endif()
+    set_target_properties(${EX_NAME}
+        PROPERTIES
+        COMPILE_FLAGS "-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\""
+        FOLDER "Examples" # Organize target list in IDE
+        PROJECT_LABEL "Example - ${EX_NAME}")
+    target_link_libraries(${EX_NAME} SimTKsimbody)
 
-    if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
-        # Link with static library
-        set(EX_STATIC ${EX_NAME}Static)
-        add_executable(${EX_STATIC} ${EX_PROG} ${EX_HEADER})
-        if(GUI_NAME)
-            add_dependencies(${EX_STATIC} ${GUI_NAME})
-        endif()
-        set_target_properties(${EX_STATIC}
-        PROPERTIES # note that the name is not EX_STATIC
-          COMPILE_FLAGS "-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\""
-          COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
-          PROJECT_LABEL "Example - ${EX_STATIC}")
-        target_link_libraries(${EX_STATIC} ${EXAMPLES_STATIC_TARGET})
-        # Don't install static examples
+    if(SIMBODY_BUILD_SHARED_LIBS) # Don't install static examples
+        install(TARGETS ${EX_NAME} 
+            DESTINATION ${EXAMPLES_INSTALL_BIN}
+            # Don't install Debug examples
+            CONFIGURATIONS Release RelWithDebInfo MinSizeRel)
     endif()
 endforeach()
 

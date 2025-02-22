@@ -28,9 +28,6 @@
 
 project(SimTKcommon VERSION ${Simbody_VERSION})
 
-# SimTKcommon depends on the Platform files but nothing else.
-include_directories(${PLATFORM_INCLUDE_DIRECTORIES})
-
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
 set(SimTKCOMMON_SOURCE_SUBDIRS
@@ -42,64 +39,24 @@ set(SimTKCOMMON_SOURCE_SUBDIRS
 # into the binaries. This also determines the versioned library names
 # in which case all dependencies must use the same version.
 
-# This is the suffix if we're building and depending on versioned libraries.
-set(VN "_${SimTKcommon_VERSION}")
-
 set(SimTKCOMMON_COPYRIGHT_YEARS "2005-10")
 
 # underbar separated list of dotted authors, no spaces or commas
 set(SimTKCOMMON_AUTHORS "Michael.Sherman_Peter.Eastman")
 
-add_compile_definitions(
-    SimTK_SimTKCOMMON_LIBRARY_NAME=${SimTKCOMMON_LIBRARY_NAME}
-    SimTK_SimTKCOMMON_MAJOR_VERSION=${SimTKcommon_VERSION_MAJOR}
-    SimTK_SimTKCOMMON_MINOR_VERSION=${SimTKcommon_VERSION_MINOR}
-    SimTK_SimTKCOMMON_PATCH_VERSION=${SimTKcommon_VERSION_PATCH}
-    SimTK_SimTKCOMMON_COPYRIGHT_YEARS="${SimTKCOMMON_COPYRIGHT_YEARS}"
-    SimTK_SimTKCOMMON_AUTHORS="${SimTKCOMMON_AUTHORS}")
-
-# -DSimTK_SimTKCOMMON_LIBRARY_TYPE has to be defined in the target subdirectories.
-# -DSimTKcommon_EXPORTS defined automatically when Windows DLL build is being done.
-
-set(SHARED_TARGET ${SimTKCOMMON_LIBRARY_NAME})
-set(STATIC_TARGET ${SimTKCOMMON_LIBRARY_NAME}_static)
-set(SHARED_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN})
-set(STATIC_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN}_static)
-
-## Test against the unversioned libraries if they are being build;
-## otherwise against the versioned libraries.
-if(BUILD_UNVERSIONED_LIBRARIES)
-    set(TEST_SHARED_TARGET ${SHARED_TARGET})
-    set(TEST_STATIC_TARGET ${STATIC_TARGET})
-else()
-    set(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
-    set(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
-endif()
-
-
 # These are all the places to search for header files which are
 # to be part of the API.
 set(API_INCLUDE_DIRS) # start empty
-set(SimTKCOMMON_INCLUDE_DIRS) # start empty
+set(SimTKCOMMON_BUILD_INCLUDE_DIRS) # start empty
 foreach(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     list(APPEND API_INCLUDE_DIRS
      ${PROJECT_SOURCE_DIR}/${subdir}/include
      ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon
      ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon/internal)
     # Referencing headers must always be done relative to this level.
-    list(APPEND SimTKCOMMON_INCLUDE_DIRS
-     ${PROJECT_SOURCE_DIR}/${subdir}/include)
+    list(APPEND SimTKCOMMON_BUILD_INCLUDE_DIRS
+        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${subdir}/include>")
 endforeach()
-
-
-# Include the SimTKcommon API include directories now so that SimTKcommon code
-# can use them.
-include_directories(${SimTKCOMMON_INCLUDE_DIRS})
-
-# Pass up the include directories list to the parent so
-# subsequent libraries can use them.
-set(SimTKCOMMON_INCLUDE_DIRECTORIES ${SimTKCOMMON_INCLUDE_DIRS}
-    PARENT_SCOPE)
 
 # We'll need both *relative* path names, starting with their API_INCLUDE_DIRS,
 # and absolute pathnames.
@@ -140,17 +97,95 @@ install(FILES ${CORE_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR})
 install(FILES ${TOP_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/SimTKcommon)
 install(FILES ${INTERNAL_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/SimTKcommon/internal)
 
-file(GLOB SIMTKCOMMON_DOCS doc/*.pdf doc/*.txt doc/*.md)
-install(FILES ${SIMTKCOMMON_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
-
-# These are at the end because we want them processed after
-# all the various variables have been set above.
-
-if(BUILD_STATIC_LIBRARIES)
-    add_subdirectory( staticTarget )
+if( INSTALL_DOCS )
+    file(GLOB SIMTKCOMMON_DOCS doc/*.pdf doc/*.txt doc/*.md)
+    install(FILES ${SIMTKCOMMON_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()
-if(BUILD_DYNAMIC_LIBRARIES)
-    add_subdirectory( sharedTarget )
+
+# set locally-scoped BUILD_SHARED_LIBS to globally cache'd SIMBODY_BUILD_SHARED_LIBS which defaults to
+# BUILD_SHARED_LIBS if defined, or ON otherwise
+set(BUILD_SHARED_LIBS ${SIMBODY_BUILD_SHARED_LIBS})
+
+add_library(SimTKcommon
+    ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES}
+    ${API_ABS_INCLUDE_FILES})
+
+
+target_link_libraries(SimTKcommon PUBLIC ${MATH_LIBS_TO_USE})
+
+target_include_directories(SimTKcommon
+    PUBLIC
+        "$<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>"
+        ${SimTKCOMMON_BUILD_INCLUDE_DIRS}
+    )
+
+set_target_properties(SimTKcommon PROPERTIES
+    PROJECT_LABEL "Code - SimTKcommon"
+    SOVERSION "${SimTKcommon_VERSION_MAJOR}.${SimTKcommon_VERSION_MINOR}"
+    OUTPUT_NAME ${SimTKCOMMON_LIBRARY_NAME}
+    ARCHIVE_OUTPUT_NAME ${SimTKCOMMON_LIBRARY_NAME}${SIMBODY_STATIC_LIBRARIES_POSTFIX})
+
+set(shared_lib "$<BOOL:${BUILD_SHARED_LIBS}>")
+set(static_lib "$<NOT:${shared_lib}>")
+target_compile_definitions(SimTKcommon
+    PUBLIC
+        "$<${static_lib}:SimTK_USE_STATIC_LIBRARIES>"
+    PRIVATE
+        "$<${shared_lib}:SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY>"
+        "$<${static_lib}:SimTK_SimTKCOMMON_BUILDING_STATIC_LIBRARY>"
+        SimTK_SimTKCOMMON_LIBRARY_NAME=${SimTKCOMMON_LIBRARY_NAME}
+        SimTK_SimTKCOMMON_MAJOR_VERSION=${SimTKcommon_VERSION_MAJOR}
+        SimTK_SimTKCOMMON_MINOR_VERSION=${SimTKcommon_VERSION_MINOR}
+        SimTK_SimTKCOMMON_PATCH_VERSION=${SimTKcommon_VERSION_PATCH}
+        SimTK_SimTKCOMMON_COPYRIGHT_YEARS="${SimTKCOMMON_COPYRIGHT_YEARS}"
+        SimTK_SimTKCOMMON_AUTHORS="${SimTKCOMMON_AUTHORS}")
+# -DSimTKcommon_EXPORTS defined automatically when Windows DLL build is being done.
+
+# Setting as PUBLIC means that the cxx_std_11 requirement will be propagated to dependents
+# (maintaining intent of previous behavior, but more universally applied and effective)
+# See https://cmake.org/cmake/help/latest/manual/cmake-compile-features.7.html#language-standard-flags
+# for info re: ordering of the compiler flag(s) for language standards and CMAKE_<LANG>_FLAGS
+target_compile_features(SimTKcommon PUBLIC cxx_std_11)
+
+# Warning 4996 is not propagated to downstream targets
+target_compile_options(SimTKcommon INTERFACE
+    "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/wd4996>")
+
+# "$<TARGET_RUNTIME_DLLS:SimTKcommon>" is empty on non-DLL platforms, and the copy command fails with only 1 argument
+if(BUILD_SHARED_LIBS AND WIN32)
+    # Copy third-party libs (e.g. vendors BLAS/LAPACK) to the build directory; only valid for shared libraries
+    add_custom_command(TARGET SimTKcommon PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:SimTKcommon> $<TARGET_FILE_DIR:SimTKcommon>
+        COMMAND_EXPAND_LISTS
+    )
+endif()
+
+# install library; on Windows .dll's go in bin directory
+install(TARGETS SimTKcommon EXPORT SimbodyTargets
+    PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ GROUP_WRITE GROUP_EXECUTE
+        WORLD_READ WORLD_EXECUTE
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ
+        DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+if(WIN32)
+    # This will only run on Windows, so no need to specify permissions
+    install(IMPORTED_RUNTIME_ARTIFACTS SimTKcommon
+        RUNTIME_DEPENDENCY_SET vendored-dlls
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(RUNTIME_DEPENDENCY_SET vendored-dlls
+        PRE_EXCLUDE_REGEXES "^(api|ext)-ms"
+        POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
+        )
+endif()
+
+if(NOT SIMBODY_BUILD_SHARED_LIBS AND SIMBODY_COVERAGE)
+    add_coverage(SimTKcommon)
 endif()
 
 if( BUILD_TESTING )
