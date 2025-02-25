@@ -2832,7 +2832,7 @@ void CableSpan::Impl::calcSolverStep(
 
     // SOLVER STEP 2: Compute the path correction step that reduces the path
     // errors.
-    const int numObstaclesInContact = data.lineSegments.size() - 1;
+    const int numObstaclesInContact = static_cast<int>(data.lineSegments.size()) - 1;
     SimTK_ASSERT_ALWAYS(
         numObstaclesInContact > 0,
         "No obstacles in contact with the cable: unable to compute path corrections");
