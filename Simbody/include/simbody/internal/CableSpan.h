@@ -46,7 +46,7 @@ enum class CableSpanAlgorithm
 
     Scholz, A., Sherman, M., Stavness, I. et al (2015). A fast multi-obstacle
     muscle wrapping method using natural geodesic variations. Multibody System
-    Dynamics 36, 195–219.
+    Dynamics 36, 195–219, DOI https://doi.org/10.1007/s11044-015-9451-1.
 
     The path error vector captures the misalignment of the straight line and
     curved segments at the contact points. The computation of the path is then
@@ -108,7 +108,9 @@ enum class CableSpanAlgorithm
     <pre>
     Q = ~P abs(D) P
     </pre>
-    **/
+
+    For a comparison between Algorithm::Scholz2015 and this
+    Algorithm::MinimumLength see https://github.com/simbody/simbody/pull/814. **/
     MinimumLength,
 };
 
