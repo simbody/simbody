@@ -35,6 +35,85 @@ This is a unique integer type for quickly identifying specific cables for fast
 lookup purposes. These begin at zero for each CableSubsystem. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanIndex);
 
+/** @enum SimTK::CableSpanAlgorithm
+These are the different solver options for computing the optimal path of a
+CableSpan. These options change the cost function and the computed descending
+direction for reaching the optimal path.
+see CableSpan::setAlgorithm **/
+enum class CableSpanAlgorithm
+{
+    /** This is the original algorithm as described in:
+
+    Scholz, A., Sherman, M., Stavness, I. et al (2015). A fast multi-obstacle
+    muscle wrapping method using natural geodesic variations. Multibody System
+    Dynamics 36, 195–219, DOI https://doi.org/10.1007/s11044-015-9451-1.
+
+    The path error vector captures the misalignment of the straight line and
+    curved segments at the contact points. The computation of the path is then
+    done by driving this path error to zero (up to tolerance), such that all
+    segments are smoothly connected, and the optimization step size converges
+    to zero.
+
+    A drawback of this algorithm is that it converges to any cable length
+    optimum. This means that the cable might be of maximum length or minimal
+    length. **/
+    Scholz2015,
+    /** The Minimal length algorithm finds the optimal path by minimizing the
+    total cable length directly, while enforcing the contour constraints.
+
+    The first step is to describe the total cable length using a second order
+    approximation:
+    <pre>
+    l(q) = l + ~g * q + ~q * H * q / 2 + ...
+    </pre>
+    where l is the total cable length, q is the vector of natural geodesic
+    corrections (see Scholz2015 paper), g and H are the gradient and Hessian of
+    l to q.
+
+    For the constraints we use the normal path errors described in the
+    Scholz2015 paper:
+    <pre>
+    c_i(q) = [ ~e_P * n_P ]
+             [ ~e_Q * n_Q ]
+    </pre>
+    where c is the vector of constraints, c_i are the two constraint elements
+    associated with the i-th curve segment, e_P is the direction of the
+    straight line segment at the P frame, n_P is normal direction at the
+    P-frame, and similarly for e_Q and n_Q.
+    Taking the first order approximation of these constraints gives:
+    <pre>
+    c(q) = c + J * q + ...
+    </pre>
+
+    The optimization problem that is solved is then posed as:
+
+    minimize l(q) subject to c(q) = 0
+
+    This problem is solved by repeatedly solving a Quadratic Program given by:
+    <pre>
+    [ Q   J^T ]   [ q ]   [ -g ]
+    [ J   0   ] * [ λ ] = [ -c ]
+    </pre>
+    where Q is a symmetric positive definite approximation of H, and λ are the
+    lagrange multipliers.
+
+    The approximation Q is used because H is itself not symmetric positive
+    definite. Q is obtained from H by flipping the sign of any negative
+    eigenvalues of H, to get a positive definite approximation. Consider the
+    following eigen decomposition:
+    <pre>
+    (H + ~H)/2 = ~P D P
+    </pre>
+    Then Q is given as:
+    <pre>
+    Q = ~P abs(D) P
+    </pre>
+
+    For a comparison between Algorithm::Scholz2015 and this
+    Algorithm::MinimumLength see https://github.com/simbody/simbody/pull/814. **/
+    MinimumLength,
+};
+
 class MultibodySystem;
 class CableSubsystem;
 class CableSubsystemTestHelper;
@@ -302,6 +381,9 @@ public:
     See CableSpan::getSmoothnessTolerance.
     State must be realized to Stage::Position. **/
     Real getSmoothness(const State& state) const;
+
+    /** Set the algorithm used to compute the optimal path. **/
+    void setAlgorithm(CableSpanAlgorithm algorithm);
 
     ///@}
 
