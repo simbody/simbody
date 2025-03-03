@@ -228,9 +228,10 @@ void testCableLengthDotBetweenTwoBodies()
     }
 }
 
-// Sling shot case: A cable with both attachment points fixed in Ground, along
-// the Y-axis, and a sphere obstacle which is pulled along the X-axis. The
-// velocity of the obstacle should double the lengthening speed of the cable.
+// Sling shot case: A cable with both attachment points fixed in Ground, and a
+// sphere obstacle which is pulled along the X-axis. The obstacle causes the
+// cable to make a 45 degree angle w.r.t. the straight line connecting the
+// attachment points.
 void testCableLengthDotWithSingleObstacle()
 {
     MultibodySystem system;
@@ -240,10 +241,14 @@ void testCableLengthDotWithSingleObstacle()
     // Sphere obstacle radius.
     const Real radius = 1.;
 
+    // The angle the cable makes w.r.t. the straight line connecting the
+    // attachment points.
+    const Real angle = 45. / 180. * Pi;
+
     Body::Rigid aBody(MassProperties(1., Vec3(0), Inertia(1)));
     MobilizedBody::Free aMovingBody(
         matter.Ground(),
-        Vec3(radius, 0., 0.),
+        Vec3(0.),
         aBody,
         Transform());
 
@@ -251,9 +256,9 @@ void testCableLengthDotWithSingleObstacle()
     CableSpan cable(
         cables,
         matter.Ground(),
-        Vec3{0., radius, 0.},
+        Vec3{radius * tan(angle / 2.), radius, 0.},
         matter.Ground(),
-        Vec3{0., -radius, 0.});
+        Vec3{radius * tan(angle / 2.), -radius, 0.});
 
     // Add sphere obstacle.
     cable.addObstacle(
@@ -266,7 +271,10 @@ void testCableLengthDotWithSingleObstacle()
         1., 2., 3.,
         4., 5., 6.,
     };
-    const Real expectedLengthDot = 2. * 4.;
+    // Due to symmetry only the x-component of the obstacle velocity
+    // contributes to the lengthening speed, with the other components
+    // canceling out.
+    const Real expectedLengthDot = 4. * 2. * cos(angle);
 
     assertLengthDot(
         "testCableLengthDotBetweenTwoBodies(Both)",

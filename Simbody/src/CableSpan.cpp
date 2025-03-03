@@ -118,36 +118,48 @@ matrices need to be computed. This struct provides the required matrices with
 appropriate dimensions. After computing the path this data is no longer needed
 by the CableSpan. */
 struct MatrixWorkspace {
-    // Number of path error constraints per curve segment.
-    static constexpr int c_NumPathErrorConstraints = 4;
-    // Total number of constraints per curve segment.
-    static constexpr int c_NumConstraints = c_NumPathErrorConstraints + 1;
-
     // Given the number of CurveSegments that are in contact with their
     // respective obstacle's surface, contruct a MatrixWorkspace of correct
     // dimensions.
-    explicit MatrixWorkspace(int problemSize) : nObstaclesInContact(problemSize)
+    explicit MatrixWorkspace(int problemSize)
     {
-        static constexpr int Q = c_GeodesicDOF;
-        static constexpr int C = c_NumConstraints;
-        const int n            = problemSize;
+        // Total number of obstacles in contact with cable.
+        const int n = problemSize;
+        // Dimension of the free variable vector: all geodesic corrections.
+        const int nQ = n * c_GeodesicDOF;
+        // Total number of constraints (2 per obstacle).
+        const int nC = n * 2;
 
         lineSegments.resize(n + 1);
-        pathErrorJacobian = Matrix(C * n, Q * n, 0.);
-        pathCorrection    = Vector(Q * n, 0.);
-        pathError         = Vector(C * n, 0.);
+        pathCorrection = Vector(nQ, 0.);
+
+        normalPathError   = Vector(nC, 0.);
+        binormalPathError = Vector(nC, 0.);
+
+        normalPathErrorJacobian = Matrix(nC, nQ, 0.);
+
+        A      = Matrix(nC, nC, 0.);
+        b      = Vector(nC, 0.);
+        lambda = Vector(nC, 0.);
+
+        lengthGradient               = Vector(nQ, 0.);
+        lengthHessian                = Matrix(nQ, nQ, 0.);
+        lengthHessianInverseEstimate = Matrix(nQ, nQ, 0.);
+
+        singularValues      = Vector(nQ, 0.);
+        leftSingularValues  = Matrix(nQ, nQ, 0.);
+        rightSingularValues = Matrix(nQ, nQ, 0.);
     }
 
     // Return the NaturalGeodesicCorrection for the curve segment at the
     // "active" curve index, where "active" means counting those that are in
     // contact with the obstacle.
-    NaturalGeodesicCorrection getCurveCorrection(int activeCurveIx) const
+    static NaturalGeodesicCorrection getCurveCorrection(
+        const Vector& pathCorrection,
+        int activeCurveIx)
     {
         SimTK_ASSERT(
-            activeCurveIx < nObstaclesInContact,
-            "Index of curve (counting active only) exceeds number of segments in contact with obstacles");
-        SimTK_ASSERT(
-            pathCorrection.size() == nObstaclesInContact * c_GeodesicDOF,
+            pathCorrection.size() <= (activeCurveIx + 1) * c_GeodesicDOF,
             "Invalid size of pathCorrection vector.");
         const int eltIx = activeCurveIx * c_GeodesicDOF;
         return {
@@ -159,50 +171,72 @@ struct MatrixWorkspace {
 
     /* All straight line segments in the current path. */
     std::vector<LineSegment> lineSegments;
-    /* The path error vector captures the misalignment of the straight line and
-    curved segments at the contact points, as well as the penalty for taking a
-    large optimization step. The computation of the path is then done by
-    driving this path error to zero (up to tolerance), such that all segments
-    are smoothly connected, and the optimization step size converges to zero.
-
-    To derive the path errors, consider a single active obstacle (active being
-    those that are in contact with the cable), and define:
-    - Let the subscripts P and Q denote the initial and final contact point on
-      the obstacle respectively.
-    - The direction of the straight line segment connected to the obstacle at
-      the contact points: e_P, e_Q
-    - The direction of the surface normal at contact points: n_P, n_Q
-    - The direction of the geodesic binormal at contact points: b_P, b_Q
-
-    For each active obstacle four path error elements are then computed:
-    1. dot(e_P, n_P)
-    2. dot(e_P, b_P)
-    3. dot(e_Q, n_Q)
-    4. dot(e_Q, b_Q)
-
-    Stacking all four path error elements, of all active obstacles, gives the
-    first elements of the path error vector.
-
-    Additionally, for each active obstacle, one element is added to the path
-    error vector that constrains the length of the geodesic to remain the same.
-    This helps regulate the search for the path in case the Jacobian of the path
-    error loses rank. The value of these elements is simply zero. */
-    Vector pathError;
-    /* The Jacobian of the path error vector to the natural geodesic
-    corrections of all active obstacles. */
-    Matrix pathErrorJacobian;
-    /* The factorization for solving the pathErrorJacobian in least squares
-    sense. */
-    FactorQTZ factor;
     /* The path correction vector contains the NaturalGeodesicCorrection
     vector of each active obstacle stacked as a vector. This vector is
     computed at each solver iteration, and applying these corrections
     attempts to drive the path error vector to zero. */
     Vector pathCorrection;
-    /* The infinity norm of the path error vector. */
+    /* The normal path error vector is a measure of the angle error between the
+    straight line segments and the surface normals at their contact points.
+
+    For each active obstacle two normal path error elements are computed:
+    1. dot(e_P, n_P)
+    2. dot(e_Q, n_Q)
+    where the subscripts P, Q denote the first and final contact frames, e
+    denotes the straight line segment's direction vector, and n denotes the
+    surface normal.
+
+    Stacking all path error elements, of all active obstacles, gives the
+    normal path error vector. */
+    Vector normalPathError;
+    /* The binormal path error vector is defined analogously to the normal path
+    error vector, but measures the angle error against the binormal vector.
+
+    For each active obstacle two normal path error elements are computed:
+    1. dot(e_P, b_P)
+    2. dot(e_Q, b_Q)
+    where b denotes the binormal direction.
+
+    Stacking all path error elements, of all active obstacles, gives the
+    binormal path error vector. */
+    Vector binormalPathError;
+    /* The maximum of the normal and binormal path errors. */
     Real maxPathError = NaN;
-    /* The number of active obstacles. */
-    int nObstaclesInContact = -1;
+    /* The Jacobian of the normal path error vector to the natural geodesic
+    corrections of all active obstacles. */
+    Matrix normalPathErrorJacobian;
+
+    /* The Lagrangian multipliers used to drive the normal path errors to zero.
+    */
+    Vector lambda;
+    /* The matrix A required for computing the Lagrangian multipliers λ from
+    A * λ = b */
+    Matrix A;
+    /* The vector b required for computing the Lagrangian multipliers λ from
+    A * λ = b */
+    Vector b;
+    /* The factorization used to compute the Lagrangian multipliers. */
+    FactorQTZ factor;
+
+    /* The gradient of the total cable length to the natural geodesic
+    corrections of each active curve segment. */
+    Vector lengthGradient;
+    /* The Hessian of the total cable length to the natural geodesic corrections
+    of each active curve segment. */
+    Matrix lengthHessian;
+    /* The inverse of the estimate of the Hessian used during optimization. */
+    Matrix lengthHessianInverseEstimate;
+
+    /* The Singular Value Decomposition of the Hessian of the length. */
+    FactorSVD svd;
+    Vector singularValues;
+    Matrix leftSingularValues;
+    Matrix rightSingularValues;
+
+    /* This flag indicates if the optimizer stopping criterium was met. If so,
+    the pathCorrection vector was not computed, because the optimal path is
+    reached. */
+    bool converged = false;
 };
 
 //------------------------------------------------------------------------------
@@ -353,6 +387,36 @@ struct CurveSegmentData {
         FrenetFrame X_GP;
         // Frenet frame at the final contact point w.r.t. ground.
         FrenetFrame X_GQ;
+        // Variation of the Frenet frame position at frame P. Each column is
+        // the variation of the position to each of the natural geodesic
+        // variations.
+        //
+        // For example, let x_P be the position of the Frenet frame P, and q
+        // the geodesic variation, then:
+        //
+        // dx_P / dq = v_P
+        Mat34 v_P;
+        // Variation of the Frenet frame orientation at frame P. Each column is
+        // the variation of the orientation to each of the natural geodesic
+        // variations, as a rotation vector.
+        //
+        // Note that the columns of v_P and w_P together are simply the spatial
+        // vectors describing the variation of the Frenet frame P.
+        //
+        // For example, let S(x) be the 3x3 skew-symmetric matrix related to
+        // the cross product by x % y = S(x) * y, then
+        //
+        // dt_P / dq = -S(t_P) * w_P
+        // dn_P / dq = -S(n_P) * w_P
+        // db_P / dq = -S(b_P) * w_P
+        //
+        // where t_P, n_P, b_P denote the tangent, normal and binormal
+        // directions.
+        Mat34 w_P;
+        // Variation of the Frenet frame position at frame Q.
+        Mat34 v_Q;
+        // Variation of the Frenet frame orientation at frame Q.
+        Mat34 w_Q;
     };
 };
 
@@ -402,6 +466,8 @@ struct CableSpanParameters final : IntegratorTolerances {
     // to a max allowed linear stepsize using the local radius of curvature
     // evaluated at each obstacle.
     Real solverMaxStepSize = 10. / 180. * Pi;
+    // The algorithm used to compute the optimal path.
+    CableSpanAlgorithm algorithm = CableSpanAlgorithm::MinimumLength;
 };
 
 } // namespace
@@ -1085,10 +1151,23 @@ public:
     // shoot a new geodesic, updating the cache variable.
     void applyGeodesicCorrection(
         const State& state,
-        const NaturalGeodesicCorrection& c) const
+        const NaturalGeodesicCorrection& correction) const
     {
-        // Get the previous geodesic.
+        // Copy the correction vector.
+        NaturalGeodesicCorrection c = correction;
+        // Get the current geodesic data.
         const CurveSegmentData::Instance& dataInst = getDataInst(state);
+
+        // Take the length correction, and add to the current length.
+        const Real dl = c[3]; // Length increment is the last element.
+        const Real l  = dataInst.arcLength;
+        // Clamp the length to be nonnegative.
+        const bool clamped         = l + dl < 0.;
+        const Real correctedLength = clamped ? 0. : l + dl;
+        if (clamped) {
+            // Equally distribute the clamping effect over the P and Q frame.
+            c[0] += 0.5 * (l + dl);
+        }
 
         // Frenet frame at initial contact point.
         const FrenetFrame& X_SP = dataInst.X_SP;
@@ -1105,12 +1184,6 @@ public:
 
         const Vec3 w = (kappa * c[0] - tau * c[1]) * b - c[2] * n;
         const Vec3 correctedTangent_S = t + cross(w, t);
-
-        // Take the length correction, and add to the current length.
-        const Real dl = c[3]; // Length increment is the last element.
-        const Real correctedLength = std::max(
-            dataInst.arcLength + dl,
-            0.); // Clamp length to be nonnegative.
 
         // Shoot the new geodesic.
         shootNewGeodesic(
@@ -1169,10 +1242,59 @@ public:
             // Store the geodesic's Frenet frames in ground frame.
             dataPos.X_GP = dataPos.X_GS.compose(dataInst.X_SP);
             dataPos.X_GQ = dataPos.X_GS.compose(dataInst.X_SQ);
+
+            // Compute the initial Frenet frame variation.
+            {
+                const FrenetFrame& X_GP = dataPos.X_GP;
+
+                const Real tau = dataInst.torsion_P;
+                const Real kn  = dataInst.curvatures_P[0];
+                const Real kb  = dataInst.curvatures_P[1];
+
+                dataPos.v_P.col(0) = Vec3(getTangent(X_GP));
+                dataPos.v_P.col(1) = Vec3(getBinormal(X_GP));
+                dataPos.v_P.col(2) = Vec3(0.);
+                dataPos.v_P.col(3) = Vec3(0.);
+
+                dataPos.w_P.col(0) = X_GP.R() * Vec3(tau, 0., kn);
+                dataPos.w_P.col(1) = X_GP.R() * Vec3(-kb, 0., -tau);
+                dataPos.w_P.col(2) = X_GP.R() * Vec3(0., -1., 0.);
+                dataPos.w_P.col(3) = Vec3(0);
+            }
+
+            // Compute the final Frenet frame variation.
+            {
+                const FrenetFrame& X_GQ = dataPos.X_GQ;
+
+                const Real tau = dataInst.torsion_Q;
+                const Real kn  = dataInst.curvatures_Q[0];
+                const Real kb  = dataInst.curvatures_Q[1];
+
+                const Real a    = dataInst.jacobi_Q[0];
+                const Real aDot = dataInst.jacobiDot_Q[0];
+
+                const Real r    = dataInst.jacobi_Q[1];
+                const Real rDot = dataInst.jacobiDot_Q[1];
+
+                dataPos.v_Q.col(0) = Vec3(getTangent(X_GQ));
+                dataPos.v_Q.col(1) = a * getBinormal(X_GQ);
+                dataPos.v_Q.col(2) = r * getBinormal(X_GQ);
+                dataPos.v_Q.col(3) = Vec3(getTangent(X_GQ));
+
+                dataPos.w_Q.col(0) = X_GQ.R() * Vec3(tau, 0., kn);
+                dataPos.w_Q.col(1) = X_GQ.R() * Vec3(-a * kb, -aDot, -a * tau);
+                dataPos.w_Q.col(2) = X_GQ.R() * Vec3(-r * kb, -rDot, -r * tau);
+                dataPos.w_Q.col(3) = dataPos.w_Q.col(0);
+            }
         } else {
             // No contact = no geodesic.
             dataPos.X_GP.setToNaN();
             dataPos.X_GQ.setToNaN();
+
+            dataPos.v_P.setToNaN();
+            dataPos.w_P.setToNaN();
+            dataPos.v_Q.setToNaN();
+            dataPos.w_Q.setToNaN();
         }
 
         getSubsystem().markCacheValueRealized(state, m_indexDataPos);
@@ -1757,84 +1879,16 @@ private:
     //  Computing cached data
     //------------------------------------------------------------------------------
 
-    const MatrixWorkspace& calcDataInst(const State& state) const;
+    /* Computes a single correction step for driving the path errors to zero.
+    This correction can be computed using different algorithms. The resulting
+    path corrections, and intermediate results are written to the
+    MatrixWorkspace data output. */
+    void calcSolverStep(
+        const State& s,
+        CableSpanAlgorithm algorithm,
+        MatrixWorkspace& data) const;
 
-    const CableSpanData::Position& calcDataPos(const State& s) const
-    {
-        CableSpanData::Position& dataPos = updDataPos(s);
-
-        dataPos.originPoint_G      = calcOriginPointInGround(s);
-        dataPos.terminationPoint_G = calcTerminationPointInGround(s);
-
-        // Helper for computing the total cable length.
-        auto calcTotalCableLength =
-            [&](const std::vector<LineSegment>& lines) -> Real
-        {
-            Real totalCableLength = 0.;
-            // Add length of each line segment.
-            for (const LineSegment& line : lines) {
-                totalCableLength += line.length;
-            }
-            // Add length of each curve segment.
-            for (const CurveSegment& curve : m_curveSegments) {
-                if (curve.isInContactWithSurface(s)) {
-                    totalCableLength += curve.getDataInst(s).arcLength;
-                }
-            }
-            return totalCableLength;
-        };
-
-        // Computing the CableSpan's path is done iteratively by computing
-        // corrections for the CurveSegments until the pathErrorVector is small
-        // enough.
-        for (dataPos.loopIter = 0;
-             dataPos.loopIter < getParameters().solverMaxIterations;
-             ++dataPos.loopIter) {
-            // Compute all data required for updating the
-            // CableSpanData::Position cache.
-            const MatrixWorkspace& data = calcDataInst(s);
-
-            // Stop iterating if:
-            // 1. No obstacles in contact with path: Path is straight line.
-            const bool noneInContact = data.nObstaclesInContact == 0;
-            // 2. Converged: No significant correction.
-            const bool converged = data.pathCorrection.normInf() < Eps;
-            // 3. Not converged: Max iterations has been reached.
-            const bool maxIterationsReached =
-                dataPos.loopIter >= getParameters().solverMaxIterations - 1;
-            if (noneInContact || converged || maxIterationsReached) {
-                // Update cache entry and stop solver.
-                dataPos.smoothness  = data.maxPathError;
-                dataPos.cableLength = calcTotalCableLength(data.lineSegments);
-                dataPos.originTangent_G = data.lineSegments.front().direction;
-                dataPos.terminationTangent_G =
-                    data.lineSegments.back().direction;
-                break;
-            }
-
-            // Apply the corrections to each CurveSegment to reduce the path
-            // error.
-            int activeCurveIx = 0; // Index of curve in all that are in contact.
-            for (const CurveSegment& curve : m_curveSegments) {
-                if (curve.isInContactWithSurface(s)) {
-                    curve.applyGeodesicCorrection(
-                        s,
-                        data.getCurveCorrection(activeCurveIx));
-                    ++activeCurveIx;
-                }
-            }
-
-            // The applied corrections have changed the path: invalidate each
-            // segment's cache.
-            for (const CurveSegment& curve : m_curveSegments) {
-                // Also invalidate non-active segments: They might touchdown
-                // again.
-                curve.invalidatePosEntry(s);
-            }
-        }
-
-        return dataPos;
-    }
+    const CableSpanData::Position& calcDataPos(const State& s) const;
 
     void calcDataVel(const State& s, CableSpanData::Velocity& dataVel) const
     {
@@ -2273,117 +2327,6 @@ void calcPathErrorVector(
 namespace
 {
 
-/* Given the path error related to the final contact point of the previous
-CurveSegment, compute the Jacobian to the NaturalGeodesicCorrections of the
-current CurveSegment.
-
-See Scholz2015 equation 56: if axis = NormalAxis this computes the third row,
-if axis = BinormalAxis this computes the fourth row. */
-Vec4 calcJacobianOfPrevPathError(
-    const CurveSegment& curve,
-    const State& state,
-    const LineSegment& line,
-    const UnitVec3& axis)
-{
-    const Transform& X_GP = curve.getDataPos(state).X_GP;
-
-    Vec3 dErrDx = axis - line.direction * dot(line.direction, axis);
-    dErrDx      = X_GP.RInv() * (dErrDx / line.length);
-
-    return {dErrDx[0], dErrDx[2], 0., 0.};
-}
-
-/* Given the path error related to the initial contact point of the next
-CurveSegment, compute the Jacobian to the NaturalGeodesicCorrections of the
-current CurveSegment.
-
-See Scholz2015 equation 55: if axis = NormalAxis this computes the first row,
-if axis = BinormalAxis this computes the second row. */
-Vec4 calcJacobianOfNextPathError(
-    const CurveSegment& curve,
-    const State& s,
-    const LineSegment& line,
-    const UnitVec3& axis)
-{
-    const Transform& X_GQ = curve.getDataPos(s).X_GQ;
-
-    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-    const Real a                               = dataInst.jacobi_Q[0];
-    const Real r                               = dataInst.jacobi_Q[1];
-
-    // Partial derivative of path error to contact point position (x_QS),
-    // represented in the Frenet frame.
-    Vec3 dErrDx = axis - line.direction * dot(line.direction, axis);
-    dErrDx      = X_GQ.RInv() * (-dErrDx / line.length);
-
-    return {dErrDx[0], dErrDx[2] * a, dErrDx[2] * r, dErrDx[0]};
-}
-
-/* Given the path error related to the initial contact point of a CurveSegment
-compute the Jacobian to the NaturalGeodesicCorrections.
-
-See Scholz2015 equation 54: if axis = NormalAxis this computes the first row,
-if axis = BinormalAxis this computes the second row. */
-Vec4 calcJacobianOfPathErrorAtP(
-    const CurveSegment& curve,
-    const State& s,
-    const LineSegment& line,
-    const UnitVec3& axis)
-{
-    const Transform& X_GP = curve.getDataPos(s).X_GP;
-
-    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-
-    const Real tau = dataInst.torsion_P;
-    const Real kt  = dataInst.curvatures_P[0];
-    const Real kb  = dataInst.curvatures_P[1];
-
-    const Vec3 y = X_GP.RInv() * cross(axis, line.direction);
-
-    const Real v0 = dot(y, Vec3{tau, 0., kt});
-    const Real v1 = dot(y, Vec3{-kb, 0., -tau});
-    const Real v2 = -y[1];
-
-    return Vec4{v0, v1, v2, 0.} +
-           calcJacobianOfPrevPathError(curve, s, line, axis);
-}
-
-/* Given the path error related to the final contact point of a CurveSegment
-compute the Jacobian to the NaturalGeodesicCorrections.
-
-See Scholz2015 equation 54: if axis = NormalAxis this computes the third row,
-if axis = BinormalAxis this computes the fourth row. */
-Vec4 calcJacobianOfPathErrorAtQ(
-    const CurveSegment& curve,
-    const State& s,
-    const LineSegment& line,
-    const UnitVec3& axis)
-{
-    const Transform& X_GQ = curve.getDataPos(s).X_GQ;
-
-    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
-
-    const Real tau = dataInst.torsion_Q;
-    const Real kt  = dataInst.curvatures_Q[0];
-    const Real kb  = dataInst.curvatures_Q[1];
-
-    const Real a = dataInst.jacobi_Q[0];
-    const Real r = dataInst.jacobi_Q[1];
-
-    const Real aDot = dataInst.jacobiDot_Q[0];
-    const Real rDot = dataInst.jacobiDot_Q[1];
-
-    const Vec3 y = X_GQ.RInv() * cross(axis, line.direction);
-
-    const Real v0 = dot(y, Vec3{tau, 0., kt});
-    const Real v1 = dot(y, Vec3{-a * kb, -aDot, -a * tau});
-    const Real v2 = dot(y, Vec3{-r * kb, -rDot, -r * tau});
-    const Real v3 = dot(y, Vec3{tau, 0., kt});
-
-    return Vec4{v0, v1, v2, v3} +
-           calcJacobianOfNextPathError(curve, s, line, axis);
-}
-
 /* Computes the Jacobian of the path error vector to the
 NaturalGeodesicCorrections of all CurveSegments.
 
@@ -2437,13 +2380,17 @@ void calcPathErrorJacobian(
         // Compute the Jacobian elements of the path error related to the
         // initial contact point.
         for (CoordinateAxis axis : axes) {
-            // The path error of which to take the Jacobian is: dot(a_P, l_P)
-            const UnitVec3 a_P     = dataPos.X_GP.R().getAxisUnitVec(axis);
-            const LineSegment& l_P = lines.at(lineIx);
+            // The path error of which to take the Jacobian is: dot(a_P, e_P)
+            const UnitVec3& a_P = dataPos.X_GP.R().getAxisUnitVec(axis);
+            const UnitVec3& e_P = lines.at(lineIx).direction;
+            const Real l_P      = lines.at(lineIx).length;
 
+            // Compute the variation of the path error.
+            const Vec3 dc_dv_P = (a_P - e_P * dot(e_P, a_P)) / l_P;
+            const Vec3 dc_dw_P = cross(a_P, e_P);
             // Write to the block diagonal of J the Jacobian of the path error
             // to the CurveSegment's NaturalGeodesicCorrection.
-            AddBlock(calcJacobianOfPathErrorAtP(curve, s, l_P, a_P));
+            AddBlock(~dataPos.v_P * dc_dv_P + ~dataPos.w_P * dc_dw_P);
 
             // Write to the off-diagonal of J the Jacobian of the path
             // error to the previous CurveSegment's NaturalGeodesicCorrection.
@@ -2451,13 +2398,12 @@ void calcPathErrorJacobian(
                 curve.findPrevObstacleInContactWithCable(s);
             if (prevObsIx.isValid()) {
                 constexpr int colShift = -NQ; // the off-diagonal block.
-                AddBlock(
-                    calcJacobianOfNextPathError(
-                        cable.getObstacleCurveSegment(prevObsIx),
-                        s,
-                        l_P,
-                        a_P),
-                    colShift);
+
+                const Vec3 dc_dv_Q = -dc_dv_P;
+                const Mat34& v_Q =
+                    cable.getObstacleCurveSegment(prevObsIx).getDataPos(s).v_Q;
+
+                AddBlock(~v_Q * dc_dv_Q, colShift);
             }
             // Increment to the next path error element.
             ++row;
@@ -2467,13 +2413,17 @@ void calcPathErrorJacobian(
         // contact point.
         ++lineIx; // Increment to the next straight line segment.
         for (CoordinateAxis axis : axes) {
-            // The path error of which to take the Jacobian is: dot(a_Q, l_Q)
-            const UnitVec3 a_Q     = dataPos.X_GQ.R().getAxisUnitVec(axis);
-            const LineSegment& l_Q = lines.at(lineIx);
+            // The path error of which to take the Jacobian is: dot(a_Q, e_Q)
+            const UnitVec3& a = dataPos.X_GQ.R().getAxisUnitVec(axis);
+            const UnitVec3& e = lines.at(lineIx).direction;
+            const Real l      = lines.at(lineIx).length;
 
+            // Compute the variation of the path error.
+            const Vec3 dc_dv_Q = -(a - e * dot(e, a)) / l;
+            const Vec3 dc_dw_Q = cross(a, e);
             // Write to the block diagonal of J the Jacobian of the path error
             // to the CurveSegment's NaturalGeodesicCorrection.
-            AddBlock(calcJacobianOfPathErrorAtQ(curve, s, l_Q, a_Q));
+            AddBlock(~dataPos.v_Q * dc_dv_Q + ~dataPos.w_Q * dc_dw_Q);
 
             // Write to the off-diagonal of J the Jacobian of the path
             // error to the next CurveSegment's NaturalGeodesicCorrection.
@@ -2481,19 +2431,244 @@ void calcPathErrorJacobian(
                 curve.findNextObstacleInContactWithCable(s);
             if (nextObsIx.isValid()) {
                 constexpr int colShift = NQ; // the off-diagonal block.
-                AddBlock(
-                    calcJacobianOfPrevPathError(
-                        cable.getObstacleCurveSegment(nextObsIx),
-                        s,
-                        l_Q,
-                        a_Q),
-                    colShift);
+
+                const Vec3 dc_dv_P = -dc_dv_Q;
+                const Mat34& v_P =
+                    cable.getObstacleCurveSegment(nextObsIx).getDataPos(s).v_P;
+                AddBlock(~v_P * dc_dv_P, colShift);
             }
             // Increment to the next path error element.
             ++row;
         }
 
         col += NQ;
+    }
+}
+
+/* Computes the gradient of the total cable length to the
+NaturalGeodesicCorrections of all CurveSegments.
+
+This function can be derived by viewing the cable as a collection of straight
+line segments connecting curve segments. Each curve segment has 4 degrees of
+freedom: The NaturalGeodesicCorrections. For each curve segment we can thus
+compute the variation of the length of the straight line segment at the initial
+Frenet Frame P, the variation of the length of the curve segment, and the
+variation of the length of the straight line segment at the final Frenet frame
+Q. For one obstacle the gradient is then given as:
+
+g_i = ~e_P * v_P + ~e_Q * v_Q + ~[0, 0, 0, 1]
+
+where P, Q denotes the initial and final frenet frame, e denotes the direction
+of the straight line segment, and v denotes the variation of the Frenet frame
+position, and g_i is the block of the gradient related to that obstacle.
+Stacking of all blocks gives the total gradient. */
+void calcLengthGradient(
+    const State& state,
+    const CableSpan::Impl& cable,
+    const std::vector<LineSegment>& lines,
+    Vector& gradient)
+{
+    // Reset path error vector to zero.
+    gradient.setToZero();
+
+    // The row element in the path error vector to write to.
+    int row = -1;
+    // Index to a straight line segment.
+    int lineIx = 0;
+
+    for (CableSpanObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        // Only consider obstacles that make contact.
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(state)) {
+            continue;
+        }
+        const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
+
+        // Grab the straight line segment's directions.
+        const UnitVec3& e_P = lines.at(lineIx).direction;
+        const UnitVec3& e_Q = lines.at(lineIx + 1).direction;
+
+        // Compute variation of the total length to the natural geodesic
+        // variations of the current CurveSegment.
+        Vec4 gradientBlock = ~dataPos.v_P * e_P - ~dataPos.v_Q * e_Q;
+        for (int i = 0; i < 4; ++i) {
+            gradient(++row) = gradientBlock(i) + (i == 3 ? 1. : 0.);
+        }
+        ++lineIx;
+    }
+}
+
+/* Computes the Hessian of the total cable length to the
+NaturalGeodesicCorrections of all CurveSegments.
+
+This function can be derived taking the Jacobian of the gradient to the
+NaturalGeodesicCorrections of all curve segments. */
+void calcLengthHessian(
+    const State& state,
+    const CableSpan::Impl& cable,
+    const std::vector<LineSegment>& lines,
+    Matrix& hessian)
+{
+    // Number of free coordinates for a generic geodesic.
+    constexpr int NQ = c_GeodesicDOF;
+
+    // Reset the values in the Jacobian.
+    Matrix& H = hessian;
+    H.setToZero();
+
+    // Sanity check on the matrix dimensions.
+    const int numberOfCurvesInContact = static_cast<int>(lines.size()) - 1;
+    SimTK_ASSERT3(
+        J.ncol() == numberOfCurvesInContact * NQ &&
+            J.nrow() ==
+                numberOfCurvesInContact * MatrixWorkspace::c_NumConstraints,
+        "Jacobian matrix size (%d x %d) does not match number of curves (%d)",
+        J.nrow(),
+        J.ncol(),
+        numberOfCurvesInContact);
+
+    // Current indexes to write the elements of the Jacobian to,
+    int row = 0;
+    int col = 0;
+
+    // Helper for adding a computed block to the Jacobian.
+    auto AddBlock = [&](const Mat44& block, int colOffset = 0)
+    {
+        for (int r = 0; r < 4; ++r) {
+            for (int c = 0; c < 4; ++c) {
+                H(row + r, col + colOffset + c) += block(r, c);
+            }
+        }
+    };
+
+    Mat33 I(1.);
+
+    // Helper for constructing a skew symmetric matrix S(v) from a vector v.
+    auto skewSymMat = [](const Vec3& v) -> Mat33
+    {
+        return {
+            0., -v(2), v(1),
+            v(2), 0., -v(0),
+            -v(1), v(0), 0.,
+        };
+    };
+
+    // Index to a straight line segment.
+    int lineIx = 0;
+    for (ObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(state)) {
+            continue;
+        }
+        const CurveSegmentData::Position& dataPos  = curve.getDataPos(state);
+        const CurveSegmentData::Instance& dataInst = curve.getDataInst(state);
+
+        // This block computes the Hessian of the straight line segment
+        // connected to the initial contact point, i.e. at the P-frame.
+        {
+            const UnitVec3& e = lines.at(lineIx).direction;
+            const Real l      = lines.at(lineIx).length;
+
+            const Mat33 E = (I - e * ~e) / l;
+            const Mat33 S = skewSymMat(e);
+
+            const Mat34& v_P = dataPos.v_P;
+            const Mat34& w_P = dataPos.w_P;
+
+            // The gradient block is given as: g_i = ~e v_i
+            // We can use the product rule using the derivatives:
+            // de/dq_i = (I - e * ~e) / l * v_i
+            // dv_i/dq_j = w_j % v_i
+            // Where the latter is true because v_i is a unit vector.
+            // The Hessian elements of this block are then given as:
+            // H_ij = ~e dv_i/dq_j + ~v_i de/dq_j
+            // Which can be written compactly as:
+            const Mat44 hblock = ~v_P * E * v_P + ~v_P * S * w_P;
+            AddBlock(hblock);
+
+            // Write to the off-diagonal block of H the Jacobian of the
+            // gradient to the previous CurveSegment's
+            // NaturalGeodesicCorrection.
+            const ObstacleIndex prevObsIx =
+                curve.findPrevObstacleInContactWithCable(state);
+            if (prevObsIx.isValid()) {
+                constexpr int colShift = -NQ; // the off-diagonal block.
+                const Mat34& v_Q = cable.getObstacleCurveSegment(prevObsIx)
+                                       .getDataPos(state)
+                                       .v_Q;
+                AddBlock(-~v_P * E * v_Q, colShift);
+            }
+        }
+
+        // This block computes the Hessian of the straight line segment
+        // connected to the final contact point, i.e. at the Q-frame.
+        ++lineIx; // Increment to the next straight line segment.
+        {
+            const UnitVec3& e = lines.at(lineIx).direction;
+            const Real l      = lines.at(lineIx).length;
+
+            const Mat33 E = (I - e * ~e) / l;
+            const Mat33 S = skewSymMat(e);
+
+            const Mat34& v_Q = dataPos.v_Q;
+            const Mat34& w_Q = dataPos.w_Q;
+
+            const Real aDot = dataInst.jacobiDot_Q[0];
+            const Real rDot = dataInst.jacobiDot_Q[1];
+
+            // If we assume the variation of the jacobi fields is zero, then the
+            // columns of v_Q have a constant norm. Then, the Hessian of the
+            // straight line segment at the Q-frame is computed analogously as
+            // done at the P-frame:
+            Mat44 hblock = ~v_Q * E * v_Q - ~v_Q * S * w_Q;
+
+            // In reality the columns of v_Q do not have a constant norm, using
+            // the product rule we need to add some additional terms.
+            // When computing the variation of the jacobi fields to the natural
+            // geodesic variations we need the jacobi covariance: i.e. the
+            // second order variation field. We know these terms for the first
+            // and last natural geodesic variation, these are simply aDot,
+            // rDot. However for the second and third terms these must be
+            // computed numerically, similarly to how the jacobi field is
+            // computed.
+            // Here we assume the effect of these terms to be minimal, and near
+            // the optimum these terms will vanish analytically. We therefore
+            // estimate the covariance terms as zero. This assumption is
+            // verified by the perturbation test done by
+            // CableSubsystemTestHelper, which numerically checks that the
+            // computed Hessian predicts the variation of the gradient.
+            const Real unknown = 0.; // The unknown terms we estimate as zero.
+            // Variation of jacobi scalars to each natural geodesic variation:
+            const Vec4 da_dq(aDot, unknown, unknown, aDot); // Translational
+            const Vec4 dr_dq(rDot, unknown, unknown, rDot); // Rotational
+            // All terms related to the covariance are pre-multiplied by this
+            // term (e^T * b = dot product of line direction with binormal),
+            // which converges to zero near the optimum.
+            const Real eTb = dot(e, getBinormal(dataPos.X_GQ));
+            // Add the effect of the jacobi field covariance to the hessian
+            // block.
+            for (int qIx = 0; qIx < c_GeodesicDOF; ++qIx) {
+                hblock(1, qIx) += -eTb * da_dq(qIx);
+                hblock(2, qIx) += -eTb * dr_dq(qIx);
+            }
+            AddBlock(hblock);
+
+            // Write to the off-diagonal block of H the Jacobian of the
+            // gradient to the next CurveSegment's
+            // NaturalGeodesicCorrection.
+            const ObstacleIndex nextObsIx =
+                curve.findNextObstacleInContactWithCable(state);
+            if (nextObsIx.isValid()) {
+                constexpr int colShift = NQ; // the off-diagonal block.
+                const Mat34& v_P = cable.getObstacleCurveSegment(nextObsIx)
+                                       .getDataPos(state)
+                                       .v_P;
+                AddBlock(-~v_Q * E * v_P, colShift);
+            }
+        }
+
+        col += NQ;
+        row += NQ;
     }
 }
 
@@ -2506,91 +2681,100 @@ void calcPathErrorJacobian(
 namespace
 {
 
-// Solve for the geodesic corrections by attempting to set the path error to
-// zero. We call this after having filled in the pathError vector and pathError
-// Jacobian in the MatrixWorkspace. The result is a vector of Corrections for
-// each curve.
-void calcPathCorrections(MatrixWorkspace& data)
-{
-    // The last elements of the path error vector contain the change in length
-    // of each curve segment, and require it to remain zero. The change in
-    // length is the last element of the NaturalGeodesicCorrection vector. The
-    // Jacobian is therefore zero everywhere, except for one (=1) at the element
-    // of the third NaturalGeodesicCorrection of the corresponding curve
-    // segment. Finally we write a weight instead of a one to obtain a weighted
-    // least squares. As the weight we take the current maximum path error. This
-    // will heavily penalize changing the length when we are far from the
-    // optimal solution, and ramp up convergence as we get closer.
-    for (int i = 0; i < data.nObstaclesInContact; ++i) {
-        // Determine the row and column of the nonzero element in the Jacobian.
-        int r = data.nObstaclesInContact *
-                    MatrixWorkspace::c_NumPathErrorConstraints + i;
-        int c = c_GeodesicDOF * (i + 1) - 1;
-        // Write the weight that will penalize changing the curve length.
-        data.pathErrorJacobian.set(r, c, data.maxPathError);
-    }
-
-    data.factor = data.pathErrorJacobian;
-    data.factor.solve(data.pathError, data.pathCorrection);
-    data.pathCorrection *= -1.;
-}
-
-// Given a correction vector computed from minimizing the cost function,
-// compute the maximum allowed stepsize along that correction vector.
-// The allowed step is computed by approximating the surface locally as
-// a circle in each direction, and limiting the radial displacement on that
-// circle.
-void calcMaxAllowedCorrectionStepSize(
-    const CurveSegment& curve,
+/* Given a correction vector computed from minimizing the cost function,
+compute the maximum allowed stepsize along that descending direction. The
+allowed step is computed using the orientation variation and the correction
+vector. Multiplication of these two gives a rotation vector. The stepsize is
+then clamped such that the inf-norm of that rotation vector does not exceed the
+maximum allowed angular stepsize. */
+void calcCurveCorrectionStepSize(
     const State& s,
+    const CurveSegment& curve,
     const NaturalGeodesicCorrection& c,
-    Real maxAngularStepsize,
+    Real allowedAngularDisplacement,
     Real& maxAllowedStepSize)
 {
-    // Helper to update the maximum allowed stepsize such that the linear
-    // displacement does not violate the max allowed step size.
-    auto UpdateMaxStepSize = [&](Real maxDisplacementEstimate, Real curvature)
+    const CurveSegmentData::Position& dataPos = curve.getDataPos(s);
+
+    // Helper for computing the maximum angular displacement estimate given the
+    // orientation variation at the boundary frame w.
+    auto CalcAbsAngularDisplacementEst = [&](const Mat34& w) -> Real
     {
-        // Use the local curvature to convert the allowed angular step size to
-        // a linear step size.
-        const Real maxAllowedDisplacement = maxAngularStepsize / curvature;
-        const Real allowedStepSize =
-            std::abs(maxAllowedDisplacement / maxDisplacementEstimate);
-        maxAllowedStepSize = std::min(maxAllowedStepSize, allowedStepSize);
+        Real maxAngularDisplacement = 0;
+        for (int i = 0; i < w.ncol(); ++i) {
+            const Real wAbsMax = max(w.col(i).abs());
+            maxAngularDisplacement =
+                std::max(maxAngularDisplacement, wAbsMax * c(i));
+        }
+        return maxAngularDisplacement;
     };
 
-    const CurveSegmentData::Instance& dataInst = curve.getDataInst(s);
+    // Compute the max angular displacement estimate given the angular
+    // displacement at the initial and final boundary frame.
+    const Real maxAngularDisplacement = std::max(
+        CalcAbsAngularDisplacementEst(dataPos.w_P),
+        CalcAbsAngularDisplacementEst(dataPos.w_Q));
 
-    // Clamp tangential displacement at the initial contact point.
-    {
-        const Real dxEst = c[0];
-        const Real k     = dataInst.curvatures_P[0];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp binormal displacement at the initial contact point.
-    {
-        const Real dxEst = c[1];
-        const Real k     = dataInst.curvatures_P[1];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp tangential displacement at the final contact point.
-    {
-        const Real dxEst = std::abs(c[0]) + std::abs(c[3]);
-        const Real k     = dataInst.curvatures_Q[0];
-        UpdateMaxStepSize(dxEst, k);
-    }
-
-    // Clamp binormal displacement at the final contact point.
-    {
-        const Real a     = dataInst.jacobi_Q[0];
-        const Real r     = dataInst.jacobi_Q[1];
-        const Real dxEst = std::abs(c[1] * a) + std::abs(c[2] * r);
-        const Real k     = dataInst.curvatures_Q[1];
-        UpdateMaxStepSize(dxEst, k);
+    // If the estimated angular displacement exceeds the allowed angular
+    // displacement, then, limit the stepsize.
+    if (maxAngularDisplacement > allowedAngularDisplacement) {
+        const Real allowedStepSize =
+            std::abs(allowedAngularDisplacement / maxAngularDisplacement);
+        maxAllowedStepSize = std::min(maxAllowedStepSize, allowedStepSize);
     }
 }
+
+// Helper for computing the stepsize such that a given path correction vector
+// does not exceed the max allowed angular displacement at the boundary frames
+// of the curve segments.
+Real calcPathCorrectionStepSize(
+    const State& s,
+    const CableSpan::Impl& cable,
+    const Vector& pathCorrection)
+{
+    Real stepSize     = 1.;
+    int activeCurveIx = 0; // Index of curve in all that are in contact.
+    for (ObstacleIndex obsIx(0); obsIx < cable.getNumObstacles(); ++obsIx) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(obsIx);
+        if (!curve.isInContactWithSurface(s)) {
+            continue;
+        }
+        // Each curve segment will evaluate if the stepsize is not too large
+        // given the local curvature.
+        calcCurveCorrectionStepSize(
+            s,
+            curve,
+            MatrixWorkspace::getCurveCorrection(pathCorrection, activeCurveIx),
+            cable.getParameters().solverMaxStepSize,
+            stepSize);
+        ++activeCurveIx;
+    }
+
+    return stepSize;
+}
+
+// Helper for computing the total cable length.
+// This is the sum of the lengths of all straight line segments, and all curve
+// segments.
+Real calcTotalCableLength(
+    const State& s,
+    const CableSpan::Impl& cable,
+    const std::vector<LineSegment>& lineSegments)
+{
+    Real totalCableLength = 0.;
+    // Add length of each line segment.
+    for (const LineSegment& line : lineSegments) {
+        totalCableLength += line.length;
+    }
+    // Add length of each curve segment.
+    for (ObstacleIndex obsIx(0); obsIx < cable.getNumObstacles(); ++obsIx) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(obsIx);
+        if (curve.isInContactWithSurface(s)) {
+            totalCableLength += curve.getDataInst(s).arcLength;
+        }
+    }
+    return totalCableLength;
+};
 
 } // namespace
 
@@ -2598,99 +2782,275 @@ void calcMaxAllowedCorrectionStepSize(
 //                      CableSpan::Impl Cache Computation
 //------------------------------------------------------------------------------
 
-const MatrixWorkspace& CableSpan::Impl::calcDataInst(const State& s) const
+void CableSpan::Impl::calcSolverStep(
+    const State& s,
+    CableSpanAlgorithm algorithm,
+    MatrixWorkspace& data) const
 {
-    CableSpanData::Instance& dataInst = updDataInst(s);
+    // SOLVER STEP 1: Compute the path errors. If the path errors are small the
+    // current path is the optimal path, and there is nothing to do. Otherwise
+    // we proceed with step 2: computing the corrections to reduce the path
+    // errors.
 
-    // Axes considered when computing the path error.
-    const std::array<CoordinateAxis, 2> axes{NormalAxis, BinormalAxis};
-
-    // Make sure all curve segments are realized to position stage.
-    // This will transform all last computed geodesics to Ground frame, and
-    // will update each curve's WrappingStatus.
-    for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
-        getObstacleCurveSegment(ix).calcDataPos(s);
-    }
-
-    // Now that the WrappingStatus of all curve segments is known: Count
-    // the number of obstacles in contact with the path.
-    const int nActive = countActive(s);
-
-    // If some obstacles are in contact with the cable the path error needs
-    // to be checked. If the path error is small, i.e. there are no "kinks"
-    // anywhere, the current path is OK. If the path error is too large,
-    // corrections need to be computed for each curve segment in order to
-    // drive the path error to zero.
-
-    // Grab the shared data cache for helping with computing the path
-    // corrections. This data is only used as an intermediate variable, and
-    // will be discarded after each iteration. Note that the number active
-    // segments determines the sizes of the matrices involved.
-    MatrixWorkspace& data = updDataInst(s).updOrInsert(nActive);
-
-    // Reset before computing new values.
-    data.maxPathError = 0.;
-
-    // Compute the straight-line segments of this cable span.
+    // The path errors are computed as the misalignment of the straight line
+    // segments with the curve segments.
+    // Start by computing the straight-line segments of this cable span.
     calcLineSegments(
         *this,
         s,
-        calcOriginPointInGround(s),
-        calcTerminationPointInGround(s),
+        this->calcOriginPointInGround(s),
+        this->calcTerminationPointInGround(s),
         data.lineSegments);
 
-    // If the path contains no curved segments it is a straight line.
-    if (nActive == 0) {
-        return data;
+    data.maxPathError = 0.; // Reset the max path error field.
+    // If there is one line segment, there are no obstacles in contact with the
+    // cable, and the path error is zero. Otherwise we compute the path errors.
+    if (data.lineSegments.size() > 1) {
+        calcPathErrorVector<1>(
+            *this,
+            s,
+            data.lineSegments,
+            {NormalAxis},
+            data.normalPathError);
+        calcPathErrorVector<1>(
+            *this,
+            s,
+            data.lineSegments,
+            {BinormalAxis},
+            data.binormalPathError);
+        data.maxPathError = std::max(
+            data.normalPathError.normInf(),
+            data.binormalPathError.normInf());
     }
 
-    // Evaluate the current path error as the misalignment of the straight
-    // line segments with the curve segment's tangent vectors at the
-    // contact points.
-    calcPathErrorVector<2>(*this, s, data.lineSegments, axes, data.pathError);
-    data.maxPathError = data.pathError.normInf();
-
-    // Only proceed with computing the Jacobian and geodesic corrections if the
-    // path error is large.
-    if (data.maxPathError < getParameters().smoothnessTolerance) {
-        data.pathCorrection *= 0.;
-        return data;
+    // If the path error is small we have converged to the optimal solution,
+    // and there is no need to compute the geodesic corrections.
+    data.converged = data.maxPathError <= getParameters().smoothnessTolerance;
+    if (data.converged) {
+        return;
     }
 
-    // Evaluate the path error Jacobian to the natural geodesic corrections
-    // of each curve segment.
-    calcPathErrorJacobian<2>(
-        *this,
-        s,
-        data.lineSegments,
-        axes,
-        data.pathErrorJacobian);
+    // SOLVER STEP 2: Compute the path correction step that reduces the path
+    // errors.
+    const int numObstaclesInContact = static_cast<int>(data.lineSegments.size()) - 1;
+    SimTK_ASSERT_ALWAYS(
+        numObstaclesInContact > 0,
+        "No obstacles in contact with the cable: unable to compute path corrections");
+    // The path corrections can be computed using different algorithms, see
+    // CableSpanAlgorithm's documentation for details.
+    switch (algorithm) {
+    // Compute the path corrections as outlined in Scholz2015.
+    case CableSpanAlgorithm::Scholz2015: {
+        // Number of path error constraints per curve segment.
+        static constexpr int c_NumPathErrorConstraints = 4;
+        // Total number of constraints per curve segment.
+        static constexpr int c_NumConstraints = c_NumPathErrorConstraints + 1;
 
-    // Compute the geodesic corrections for each curve segment: This gives
-    // us a correction vector in a direction that reduces the path error.
-    calcPathCorrections(data);
+        Vector b(numObstaclesInContact * c_NumConstraints, 0.);
+        Matrix A(
+            numObstaclesInContact * c_NumConstraints,
+            numObstaclesInContact * c_GeodesicDOF,
+            0.);
+        Vector& q = data.pathCorrection;
 
-    // Compute the maximum allowed step size that we take along the
-    // correction vector.
-    Real stepSize     = 1.;
-    int activeCurveIx = 0; // Index of curve in all that are in contact.
-    for (const CurveSegment& curve : m_curveSegments) {
-        if (curve.isInContactWithSurface(s)) {
-            // Each curve segment will evaluate if the stepsize is not too large
-            // given the local curvature.
-            calcMaxAllowedCorrectionStepSize(
-                curve,
-                s,
-                data.getCurveCorrection(activeCurveIx),
-                getParameters().solverMaxStepSize,
-                stepSize);
-            ++activeCurveIx;
+        // Fill the upper block of A and b with the path error jacobian and
+        // vector.
+        calcPathErrorVector<2>(
+            *this,
+            s,
+            data.lineSegments,
+            {NormalAxis, BinormalAxis},
+            b);
+        calcPathErrorJacobian<2>(
+            *this,
+            s,
+            data.lineSegments,
+            {NormalAxis, BinormalAxis},
+            A);
+
+        // The last elements of the b vector contain the change in length
+        // of each curve segment, and require it to remain zero. The change in
+        // length is the last element of the NaturalGeodesicCorrection vector.
+        // The Jacobian is therefore zero everywhere, except for one (=1) at the
+        // element of the third NaturalGeodesicCorrection of the corresponding
+        // curve segment. Finally we write a weight instead of a one to obtain a
+        // weighted least squares. As the weight we take the current maximum
+        // path error. This will heavily penalize changing the length when we
+        // are far from the optimal solution, and ramp up convergence as we get
+        // closer.
+        for (int i = 0; i < numObstaclesInContact; ++i) {
+            // Determine the row and column of the nonzero element in the
+            // Jacobian.
+            int r = numObstaclesInContact * c_NumPathErrorConstraints + i;
+            int c = c_GeodesicDOF * (i + 1) - 1;
+            // Write the weight that will penalize changing the curve length.
+            const Real weight = data.maxPathError;
+            A.set(r, c, weight);
+        }
+
+        data.factor = A;
+        data.factor.solve(b, q);
+        q *= -1.;
+        break;
+    }
+    // Compute the path corrections using the Minimal length algorithm.
+    case CableSpanAlgorithm::MinimumLength: {
+        // This algorithm solves the Lagrangian equations given by:
+        // | Q   J^T |   | q |   | -g |
+        // | J   0   | * | λ | = | -c |
+        // (see CableSpanAlgorithm's documentation).
+        const Vector& e = data.normalPathError; // Computed above.
+        Matrix& J       = data.normalPathErrorJacobian;
+        Vector& lambda  = data.lambda;
+        Vector& q       = data.pathCorrection;
+        Vector& g       = data.lengthGradient;
+        Matrix& H       = data.lengthHessian;
+        Matrix& QInv    = data.lengthHessianInverseEstimate;
+        // Matrices required for computing the Lagrangian multipliers.
+        Matrix& A = data.A;
+        Vector& b = data.b;
+        // Matrices required for computing QInv from H.
+        Vector& sigma = data.singularValues;
+        Matrix& U     = data.leftSingularValues;
+        Matrix& V     = data.rightSingularValues;
+
+        // Compute the normal path error jacobian.
+        calcPathErrorJacobian<1>(*this, s, data.lineSegments, {NormalAxis}, J);
+
+        // Compute the gradient and Hessian of the cable length.
+        calcLengthGradient(s, *this, data.lineSegments, g);
+        calcLengthHessian(s, *this, data.lineSegments, H);
+
+        // Compute QInv:
+        // First solve SVD of the Hessian estimate.
+        data.svd = 0.5 * (H + ~H);
+        data.svd.getSingularValuesAndVectors(sigma, U, V);
+        // Now that we have the svd:
+        // (H + ~H) / 2 = U * Σ * V
+        // we take as the positive definite matrix Q:
+        // Q = U * Σ * ~U
+        // Note that Q has the same eigen vectors as (H + ~H)/2, as well as
+        // the same eigenvalues up to a sign difference.
+        //
+        // Since we need the inverse of Q, we compute it from the decomposition:
+        // Q^-1 = U * Σ^-1 * ~U
+        for (int r = 0; r < U.nrow(); ++r) {
+            for (int c = 0; c < U.ncol(); ++c) {
+                Real elt = 0.;
+                for (int i = 0; i < U.ncol(); ++i) {
+                    // Add a small weight w to the singular values to make sure
+                    // the inverse exists.
+                    const Real weight = data.maxPathError;
+                    elt += U(r, i) * U(c, i) / (sigma(i) + weight);
+                }
+                QInv(r, c) = elt;
+            }
+        }
+
+        // Compute the Lagrange multipliers:
+        // (J^T Q^-1 J) * λ = c - J Q^-1 g = c - J d
+        //
+        // Write as: A * λ = b
+        b = e - J * QInv * g;
+        A = J * QInv * J.transpose();
+        // Solve for the lagrange multipliers.
+        data.factor = A;
+        data.factor.solve(b, lambda);
+
+        // Finally compute the path corrections.
+        q = QInv * (g + J.transpose() * lambda);
+
+        // Use a damped Newton step.
+        q *= -0.5;
+    }
+    default:
+        SimTK_ASSERT(false, "Unknown CableSpanAlgorithm kind");
+    }
+
+    // Compute the stepsize along the descending direction.
+    const Real stepSize =
+        calcPathCorrectionStepSize(s, *this, data.pathCorrection);
+    data.pathCorrection *= stepSize;
+}
+
+const CableSpanData::Position& CableSpan::Impl::calcDataPos(
+    const State& s) const
+{
+    // Output of this function.
+    CableSpanData::Position& dataPos = updDataPos(s);
+
+    // This helper function will extract the useful information from the path
+    // solver output, and write to the cached CableSpanData.
+    auto calcDataPosFromSolverResult =
+        [&](const MatrixWorkspace& workspace,
+            int solverLoopCount) -> const CableSpanData::Position&
+    {
+        dataPos.originPoint_G      = calcOriginPointInGround(s);
+        dataPos.terminationPoint_G = calcTerminationPointInGround(s);
+        dataPos.smoothness         = workspace.maxPathError;
+        dataPos.cableLength =
+            calcTotalCableLength(s, *this, workspace.lineSegments);
+        dataPos.originTangent_G      = workspace.lineSegments.front().direction;
+        dataPos.terminationTangent_G = workspace.lineSegments.back().direction;
+        dataPos.loopIter             = solverLoopCount;
+
+        return dataPos;
+    };
+
+    // Start solver loop:
+    // Essentially this loop calls calcSolverStep each iteration, and stops
+    // when converged or the max iterations was reached.
+    for (int loopIter = 0;
+         loopIter <=
+         getParameters().solverMaxIterations; // Correctly handles zero case.
+         ++loopIter) {
+
+        // Make sure all curve segments are realized to position stage.
+        // This will transform all last computed geodesics to Ground frame, and
+        // will update each curve's WrappingStatus.
+        for (ObstacleIndex ix(0); ix < getNumObstacles(); ++ix) {
+            getObstacleCurveSegment(ix).calcDataPos(s);
+        }
+
+        // Grab the matrix workspace used by the solver.
+        MatrixWorkspace& workspace = updDataInst(s).updOrInsert(countActive(s));
+
+        // Compute the path corrections required to reach the optimal path.
+        calcSolverStep(s, getParameters().algorithm, workspace);
+
+        // Check if we should stop iterating.
+        const bool maxIterationsReached =
+            loopIter >= getParameters().solverMaxIterations;
+        if (workspace.converged || maxIterationsReached) {
+            // Fill in the fields of CableSpanData::Position, and stop.
+            return calcDataPosFromSolverResult(workspace, loopIter);
+        }
+
+        // Apply the corrections to each CurveSegment to reduce the path error.
+        const Vector& pathCorrection = workspace.pathCorrection;
+        int activeCurveIx = 0; // Index of curve in all that are in contact.
+        for (const CurveSegment& curve : m_curveSegments) {
+            if (curve.isInContactWithSurface(s)) {
+                curve.applyGeodesicCorrection(
+                    s,
+                    MatrixWorkspace::getCurveCorrection(
+                        pathCorrection,
+                        activeCurveIx));
+                ++activeCurveIx;
+            }
+        }
+
+        // The applied corrections have changed the path: invalidate each
+        // segment's cache.
+        for (const CurveSegment& curve : m_curveSegments) {
+            // Also invalidate non-active segments: They might touchdown
+            // again.
+            curve.invalidatePosEntry(s);
         }
     }
-    // Apply the maximum stepsize to the corrections.
-    data.pathCorrection *= stepSize;
 
-    return data;
+    SimTK_ASSERT(false, "Internal bug: should not reach this point");
+    return dataPos;
 }
 
 //==============================================================================
@@ -2816,41 +3176,59 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
 
             // Compute the path error vector and Jacobian, before the applied
             // perturbation.
+            std::vector<LineSegment> lineSegments(nActive);
 
-            MatrixWorkspace& data =
-                cable.updDataInst(sCopy).updOrInsert(nActive);
+            Vector pathError(nActive * c_GeodesicDOF, NaN);
+            Matrix pathErrorJacobian(
+                nActive * c_GeodesicDOF,
+                nActive * c_GeodesicDOF,
+                NaN);
+
+            Real length = NaN;
+            Vector lengthGradient(nActive * c_GeodesicDOF, NaN);
+            Matrix lengthHessian(
+                nActive * c_GeodesicDOF,
+                nActive * c_GeodesicDOF,
+                NaN);
 
             calcLineSegments(
                 cable,
                 sCopy,
                 dataPos.originPoint_G,
                 dataPos.terminationPoint_G,
-                data.lineSegments);
+                lineSegments);
 
             calcPathErrorVector<2>(
                 cable,
                 sCopy,
-                data.lineSegments,
-                axes,
-                data.pathError);
-
+                lineSegments,
+                {NormalAxis, BinormalAxis},
+                pathError);
             calcPathErrorJacobian<2>(
                 cable,
                 sCopy,
-                data.lineSegments,
-                axes,
-                data.pathErrorJacobian);
+                lineSegments,
+                {NormalAxis, BinormalAxis},
+                pathErrorJacobian);
+
+            length = calcTotalCableLength(sCopy, cable, lineSegments);
+            calcLengthGradient(sCopy, cable, lineSegments, lengthGradient);
+            calcLengthHessian(sCopy, cable, lineSegments, lengthHessian);
 
             // Define the perturbation we will use for testing the Jacobian.
-            data.pathCorrection.setTo(0.);
+            Vector pathCorrection(nActive * c_GeodesicDOF, 0.);
             if (i != 0) {
                 perturbation *= -1.;
-                data.pathCorrection.set((i - 1) / 2, perturbation);
+                pathCorrection.set((i - 1) / 2, perturbation);
             }
 
             // Use the Jacobian to predict the perturbed path error vector.
-            Vector predictedPathError =
-                data.pathErrorJacobian * data.pathCorrection + data.pathError;
+            const Vector predictedPathError =
+                pathErrorJacobian * pathCorrection + pathError;
+            const Real predictedLength =
+                ~lengthGradient * pathCorrection + length;
+            const Vector predictedLengthGradient =
+                lengthHessian * pathCorrection + lengthGradient;
 
             // Store the wrapping status before applying the perturbation.
             std::vector<ObstacleWrappingStatus> prevWrappingStatus;
@@ -2866,7 +3244,9 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 if (curve.isInContactWithSurface(sCopy)) {
                     curve.applyGeodesicCorrection(
                         sCopy,
-                        data.getCurveCorrection(activeCurveIx));
+                        MatrixWorkspace::getCurveCorrection(
+                            pathCorrection,
+                            activeCurveIx));
                     ++activeCurveIx;
                 }
             }
@@ -2886,19 +3266,29 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 sCopy,
                 dataPos.originPoint_G,
                 dataPos.terminationPoint_G,
-                data.lineSegments);
+                lineSegments);
+
             calcPathErrorVector<2>(
                 cable,
                 sCopy,
-                data.lineSegments,
-                axes,
-                data.pathError);
+                lineSegments,
+                {NormalAxis, BinormalAxis},
+                pathError);
+            calcPathErrorJacobian<2>(
+                cable,
+                sCopy,
+                lineSegments,
+                {NormalAxis, BinormalAxis},
+                pathErrorJacobian);
+
+            length = calcTotalCableLength(sCopy, cable, lineSegments);
+            calcLengthGradient(sCopy, cable, lineSegments, lengthGradient);
+            calcLengthHessian(sCopy, cable, lineSegments, lengthHessian);
 
             // The curve lengths are clipped at zero, which distorts the
             // perturbation test. We simply skip these edge cases.
             if (anyCurveSegmentHasZeroLength(sCopy, cable)) {
-                testReport << "Cable has zero-length curve segments after "
-                              "perturbation:";
+                testReport << "Cable has zero-length curve segments after perturbation:";
                 testReport << "Skipping perturbation test\n";
                 continue;
             }
@@ -2918,38 +3308,96 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 break;
             }
 
-            const Real predictionError =
-                (predictedPathError - data.pathError).normInf();
-
             // Tolerance was given as a percentage, multiply by 0.01 to get the
             // correct scale.
             const Real tolerance =
                 m_perturbationTestParameters.tolerance * 1e-2;
-            bool passedTest =
-                std::abs(predictionError / perturbation) <= tolerance;
-            if (!passedTest) {
-                testReport << "FAILED perturbation test for correction = "
-                           << data.pathCorrection << "\n";
-                testReport << "path error after perturbation:\n";
-                testReport << "    Got        : " << data.pathError << "\n";
-                testReport << "    Predicted  : " << predictedPathError << "\n";
-                testReport << "    Difference : "
-                           << (predictedPathError - data.pathError) /
-                                  perturbation
-                           << "\n";
-                testReport << "    Max diff   : "
-                           << (predictedPathError - data.pathError).normInf() /
-                                  perturbation
-                           << " <= " << tolerance << " = eps\n";
-            } else {
-                testReport << "PASSED perturbation test for correction = "
-                           << data.pathCorrection << "\n";
-                testReport << " ( max diff = "
-                           << (predictedPathError - data.pathError).normInf() /
-                                  perturbation
-                           << " <= " << tolerance << " = eps )\n";
+            // Evaluate the path error jacobian.
+            {
+                const Real predictionError =
+                    (predictedPathError - pathError).normInf();
+                bool passedTest =
+                    std::abs(predictionError / perturbation) <= tolerance;
+                if (!passedTest) {
+                    testReport << "FAILED path error Jacobian perturbation test for correction = "
+                               << pathCorrection << "\n";
+                    testReport << "path error after perturbation:\n";
+                    testReport << "    Got        : " << pathError << "\n";
+                    testReport << "    Predicted  : " << predictedPathError
+                               << "\n";
+                    testReport
+                        << "    Difference : "
+                        << (predictedPathError - pathError) / perturbation
+                        << "\n";
+                    testReport << "    Max diff   : "
+                               << (predictedPathError - pathError).normInf() /
+                                      perturbation
+                               << " <= " << tolerance << " = eps\n";
+                } else {
+                    testReport << "PASSED perturbation test for correction = "
+                               << pathCorrection << "\n";
+                    testReport << " ( max diff = "
+                               << (predictedPathError - pathError).normInf() /
+                                      perturbation
+                               << " <= " << tolerance << " = eps )\n";
+                }
+                success = success && passedTest;
             }
-            success = success && passedTest;
+            // Evaluate the length gradient.
+            {
+                const Real predictionError = std::abs(predictedLength - length);
+                bool passedTest =
+                    std::abs(predictionError / perturbation) <= tolerance;
+                if (!passedTest) {
+                    testReport << "FAILED length gradient perturbation test for correction = "
+                               << pathCorrection << "\n";
+                    testReport << "length after perturbation:\n";
+                    testReport << "    Got        : " << length << "\n";
+                    testReport << "    Predicted  : " << predictedLength
+                               << "\n";
+                    testReport << "    Difference : "
+                               << (predictedLength - length) / perturbation
+                               << "\n";
+                    testReport << "    Tolerance  : " << tolerance << "\n";
+                } else {
+                    testReport
+                        << "PASSED length perturbation test for correction = "
+                        << pathCorrection << "\n";
+                    testReport << " ( max diff = "
+                               << std::abs(predictionError / perturbation)
+                               << " <= " << tolerance << " = eps )\n";
+                }
+                success = success && passedTest;
+            }
+            // Evaluate the length Hessian.
+            {
+                const Real predictionError =
+                    (predictedLengthGradient - lengthGradient).normInf();
+                bool passedTest =
+                    std::abs(predictionError / perturbation) <= tolerance;
+                if (!passedTest) {
+                    testReport << "FAILED length Hessian perturbation test for correction = "
+                               << pathCorrection << "\n";
+                    testReport << "length gradient after perturbation:\n";
+                    testReport << "    Got        : " << lengthGradient << "\n";
+                    testReport << "    Predicted  : " << predictedLengthGradient
+                               << "\n";
+                    testReport << "    Difference : "
+                               << (predictedLengthGradient - lengthGradient) /
+                                      perturbation
+                               << "\n";
+                    testReport << "    Max diff   : "
+                               << std::abs(predictionError / perturbation)
+                               << " <= " << tolerance << " = eps\n";
+                } else {
+                    testReport << "PASSED length Hessian perturbation test for correction = "
+                               << pathCorrection << "\n";
+                    testReport << " ( max diff = "
+                               << std::abs(predictionError / perturbation)
+                               << " <= " << tolerance << " = eps )\n";
+                }
+                success = success && passedTest;
+            }
         }
     }
     // Flush all info to the report, in case we throw an exception.
@@ -3041,16 +3489,13 @@ void calcResampledGeodesicPoints(
         "Resampling of geodesic failed: Provided geodesic is empty.");
     SimTK_ASSERT(
         geodesic.front().arcLength == 0.,
-        "Resampling of geodesic failed: First frame must be at arcLength = "
-        "zero");
+        "Resampling of geodesic failed: First frame must be at arcLength = zero");
     SimTK_ASSERT(
         geodesic.back().arcLength >= 0.,
-        "Resampling of geodesic failed: Last frame must be at arcLength >= "
-        "zero");
+        "Resampling of geodesic failed: Last frame must be at arcLength >= zero");
     SimTK_ASSERT1(
         numSamples >= 2,
-        "Resampling of geodesic failed: Minimum number of samples for "
-        "resampling is 2 (got %i)",
+        "Resampling of geodesic failed: Minimum number of samples for resampling is 2 (got %i)",
         numSamples);
 
     // If there is but one sample (arcLength = 0), write that sample.
@@ -3507,6 +3952,11 @@ Real CableSpan::getSmoothnessTolerance() const
 void CableSpan::setSmoothnessTolerance(Real tolerance)
 {
     updImpl().updParameters().smoothnessTolerance = tolerance;
+}
+
+void CableSpan::setAlgorithm(CableSpanAlgorithm algorithm)
+{
+    updImpl().updParameters().algorithm = algorithm;
 }
 
 Real CableSpan::calcLength(const State& s) const
