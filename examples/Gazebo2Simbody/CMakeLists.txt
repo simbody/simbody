@@ -12,35 +12,21 @@ set(all_source_files ${source_files} ${shared_source_files})
 
 add_definitions("-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\"")
 
-if(BUILD_TESTS_AND_EXAMPLES_SHARED)
-    # Link with shared library
-    add_executable(${EX_NAME} ${all_source_files} ${all_header_files})
-    if(GUI_NAME)
-        add_dependencies(${EX_NAME} ${GUI_NAME})
-    endif()
-    set_target_properties(${EX_NAME}
-                          PROPERTIES
-                          PROJECT_LABEL "Example - ${EX_NAME}")
-    target_link_libraries(${EX_NAME} ${EXAMPLES_SHARED_TARGET})
-    # Don't install Debug examples
-    install(TARGETS ${EX_NAME} 
-            DESTINATION ${EXAMPLES_INSTALL_BIN}
-            CONFIGURATIONS Release RelWithDebInfo MinSizeRel)
+add_executable(${EX_NAME} ${all_source_files} ${all_header_files})
+if(TARGET simbody-visualizer)
+    add_dependencies(${EX_NAME} simbody-visualizer)
 endif()
+set_target_properties(${EX_NAME}
+    PROPERTIES
+    FOLDER "Examples" # Organize target list in IDE
+    PROJECT_LABEL "Example - ${EX_NAME}")
+target_link_libraries(${EX_NAME} SimTKsimbody)
 
-if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
-    # Link with static library
-    set(ex_static ${EX_NAME}Static)
-    add_executable(${ex_static} ${all_source_files} ${all_header_files})
-    if(GUI_NAME)
-        add_dependencies(${ex_static} ${GUI_NAME})
-    endif()
-    set_target_properties(${ex_static}
-                          PROPERTIES
-                          COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
-                          PROJECT_LABEL "Example - ${ex_static}")
-    target_link_libraries(${ex_static} ${EXAMPLES_STATIC_TARGET})
-    # Don't install static examples
+if(SIMBODY_BUILD_SHARED_LIBS) # Don't install static examples
+    install(TARGETS ${EX_NAME}
+        DESTINATION ${EXAMPLES_INSTALL_BIN}
+        # Don't install Debug examples
+        CONFIGURATIONS Release RelWithDebInfo MinSizeRel)
 endif()
 
 # Copy models to the binary directory that will 
