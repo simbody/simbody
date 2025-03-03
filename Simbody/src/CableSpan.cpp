@@ -2616,7 +2616,7 @@ void calcLengthHessian(
             const Real aDot = dataInst.jacobiDot_Q[0];
             const Real rDot = dataInst.jacobiDot_Q[1];
 
-            // If we assume the variation of the jaobi fields is zero, then the
+            // If we assume the variation of the jacobi fields is zero, then the
             // columns of v_Q have a constant norm. Then, the Hessian of the
             // straight line segment at the Q-frame is computed analogously as
             // done at the P-frame:
