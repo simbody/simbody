@@ -635,7 +635,7 @@ struct Segment {
 
 // With compiler support for <=> operator these four methods below don't
 // need to be manually defined. (from gcc 10, clang 10 & msvc 19.22)
-#if 0
+#if !defined(__cpp_lib_three_way_comparison) && !defined SWIG_PYTHON
 // These next four methods supply the missing relational operators for any
 // types L and R where L==R and L<R have been defined. This is like the
 // operators in the std::rel_ops namespace, except that those require both
