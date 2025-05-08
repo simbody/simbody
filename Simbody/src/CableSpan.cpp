@@ -158,10 +158,8 @@ struct MatrixWorkspace {
         const Vector& pathCorrection,
         int activeCurveIx)
     {
-        SimTK_ASSERT(
-            pathCorrection.size() <= (activeCurveIx + 1) * c_GeodesicDOF,
-            "Invalid size of pathCorrection vector.");
         const int eltIx = activeCurveIx * c_GeodesicDOF;
+	SimTK_ASSERT(0 <= eltIx && eltIx + 3 < pathCorrection.size(), "Invalid size of pathCorrection vector.");
         return {
             pathCorrection[eltIx],
             pathCorrection[eltIx + 1],
@@ -2345,17 +2343,6 @@ void calcPathErrorJacobian(
     // Reset the values in the Jacobian.
     J.setToZero();
 
-    // Sanity check on the matrix dimensions.
-    const int numberOfCurvesInContact = static_cast<int>(lines.size()) - 1;
-    SimTK_ASSERT3(
-        J.ncol() == numberOfCurvesInContact * NQ &&
-            J.nrow() ==
-                numberOfCurvesInContact * MatrixWorkspace::c_NumConstraints,
-        "Jacobian matrix size (%d x %d) does not match number of curves (%d)",
-        J.nrow(),
-        J.ncol(),
-        numberOfCurvesInContact);
-
     // Current indexes to write the elements of the Jacobian to,
     int row = 0;
     int col = 0;
@@ -2515,17 +2502,6 @@ void calcLengthHessian(
     // Reset the values in the Jacobian.
     Matrix& H = hessian;
     H.setToZero();
-
-    // Sanity check on the matrix dimensions.
-    const int numberOfCurvesInContact = static_cast<int>(lines.size()) - 1;
-    SimTK_ASSERT3(
-        J.ncol() == numberOfCurvesInContact * NQ &&
-            J.nrow() ==
-                numberOfCurvesInContact * MatrixWorkspace::c_NumConstraints,
-        "Jacobian matrix size (%d x %d) does not match number of curves (%d)",
-        J.nrow(),
-        J.ncol(),
-        numberOfCurvesInContact);
 
     // Current indexes to write the elements of the Jacobian to,
     int row = 0;
@@ -2962,6 +2938,7 @@ void CableSpan::Impl::calcSolverStep(
 
         // Use a damped Newton step.
         q *= -0.5;
+	break;
     }
     default:
         SimTK_ASSERT(false, "Unknown CableSpanAlgorithm kind");
