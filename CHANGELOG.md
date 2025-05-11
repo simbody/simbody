@@ -1,12 +1,27 @@
 Simbody Changelog and Release Notes
 ===================================
 
-This is not a comprehensive list of changes but rather a hand-curated collection of the more notable ones. For a comprehensive history, see the [Simbody GitHub repo](https://github.com/simbody/simbody). You can use the release dates below to find all the PRs and issues that were included in a particular release. 
+This is not a comprehensive list of changes but rather a hand-curated collection
+of the more notable ones. For a comprehensive history, see the
+[Simbody GitHub repo](https://github.com/simbody/simbody). You can use the release dates below to find all the
+PRs and issues that were included in a particular release.
 
-**Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
-
-3.8 (in development)
+3.9 (in development)
 --------------------
+
+
+3.8 (May 2025)
+--------------------
+* Added CableSpan as a superior replacement for CablePath. (PRs #791 and #814)
+* Many improvements/modernization of the CMake build system. (PR #801)
+* Minor changes for C++20 compatibility.
+* Added calcForceContributionsSum() to GeneralForceSubsystem. (PR #788)
+* Added methods for dealing with the position and velocity (PV) subset of
+  the full constraint Jacobian G: multiplyByPV(), etc. (PR #783)
+* Improved performance of reading mesh files. (PR #773)
+* Added ExponentialSpringForce, an efficient point-ground contact model.
+  (PRs #720, #734, #746 and others)
+* Many minor improvements and bug fixes, see Simbody GitHub for details.
 
 3.7 (December 2019)
 -------------------
