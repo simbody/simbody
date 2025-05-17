@@ -162,7 +162,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
     2. Clone the github repository into `C:/Simbody-source`. Run the following in a Git Bash / Git Shell, or find a way to run the equivalent commands in a GUI client:
 
             $ git clone https://github.com/simbody/simbody.git C:/Simbody-source
-            $ git checkout Simbody-3.7
+            $ git checkout Simbody-3.8
 
     3. In the last line above, we assumed you want to build a released version.
        Feel free to change the version you want to build.
@@ -296,7 +296,7 @@ There are two ways to get the source code.
     2. Clone the github repository into `~/simbody-source`.
 
             $ git clone https://github.com/simbody/simbody.git ~/simbody-source
-            $ git checkout Simbody-3.7
+            $ git checkout Simbody-3.8
 
     3. In the last line above, we assumed you want to build a released version.
        Feel free to change the version you want to build.
