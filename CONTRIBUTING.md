@@ -397,11 +397,16 @@ Matthew Millard     |@mjhmilla      |Bicubic spline
 Jack Middleton      |               |Numerical methods
 Christopher Bruns   |@cmbruns-hhmi  |Molmodel
 Randy Radmer        |               |Molmodel
+Jason Blum          |@jjblum        |Vis bug fix
+Allen Hill          |@halleysfifthinc|CMake build system improvements
+Pepijn Van den Bos  |@pepbos        |CableSpan feature
+Adam Kewley         |@adamkewley    |CableSpan feature, code review
+Nick Bianco         |@nickbianco    |Jacobian PV methods, calcForces()
+Clay Anderson       |@fcanderson    |Exponential Spring contact
 Charles Schwieters  |               |Provided initial multibody code
 Abhinandan Jain     |               |Underlying spatial algebra formulation
 Isaac Newton        |               |F=ma, calculus, etc.
-Jason Blum          |@jjblum        |Vis bug fix
-Allen Hill          |@halleysfifthinc|CMake build system improvements
+
 
 Contributor License Agreement
 -----------------------------
