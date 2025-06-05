@@ -205,7 +205,7 @@ PeriodicReporter* PeriodicReporter::reporter = 0;
 bool OnceOnlyEventReporter::hasOccurred = false;
 int DiscontinuousReporter::eventCount = 0;
 
-void testIntegrator (Integrator& integ, PendulumSystem& sys, Real accuracy=1e-4) {
+void resetHandlersAndReporters() {
     ZeroVelocityHandler::eventCount = 0;
     ZeroVelocityHandler::lastEventTime = 0.0;
     PeriodicHandler::eventCount = 0;
@@ -215,6 +215,10 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys, Real accuracy=1e-4)
     PeriodicReporter::eventCount = 0;
     OnceOnlyEventReporter::hasOccurred = false;
     DiscontinuousReporter::eventCount = 0;
+}
+
+void testIntegrator (Integrator& integ, PendulumSystem& sys, Real accuracy=1e-4) {
+    resetHandlersAndReporters();
 
     const Real t0=0;
     const Real tFinal = 20.003;
@@ -264,6 +268,20 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys, Real accuracy=1e-4)
     ASSERT(ZeroPositionHandler::eventCount > 10);
     ASSERT(PeriodicReporter::eventCount == (int) (ts.getTime()/PeriodicReporter::reporter->getEventInterval())+1);
     ASSERT(DiscontinuousReporter::eventCount == (int) (ts.getTime()/2.0));
+
+    // Try stepping directly to final time, should report ReachedReportTime.
+    
+    resetHandlersAndReporters();
+    ts.initialize(sys.getDefaultState());
+    auto status = ts.stepTo(tFinal);
+    ASSERT(ts.getTime() == tFinal);
+    ASSERT(status == Integrator::SuccessfulStepStatus::ReachedReportTime);
+
+    // Try stepping to final time again, should now report EndOfSimulation.
+
+    status = ts.stepTo(tFinal);
+    ASSERT(ts.getTime() == tFinal);
+    ASSERT(status == Integrator::SuccessfulStepStatus::EndOfSimulation);
 }
 
 #endif /*SimTK_SIMMATH_INTEGRATOR_TEST_FRAMEWORK_H_*/
