@@ -99,6 +99,10 @@ int MultibodySystem::setContactSubsystem(GeneralContactSubsystem& m) {
     return updRep().setContactSubsystem(m);
 }
 
+int MultibodySystem::setCableSubsystem(CableSubsystem& m) {
+    return updRep().setCableSubsystem(m);
+}
+
 const SimbodyMatterSubsystem&       
 MultibodySystem::getMatterSubsystem() const {
     return getRep().getMatterSubsystem();
@@ -133,6 +137,18 @@ MultibodySystem::updContactSubsystem() {
 }
 bool MultibodySystem::hasContactSubsystem() const {
     return getRep().hasContactSubsystem();
+}
+
+const CableSubsystem&       
+MultibodySystem::getCableSubsystem() const {
+    return getRep().getCableSubsystem();
+}
+CableSubsystem&       
+MultibodySystem::updCableSubsystem() {
+    return updRep().updCableSubsystem();
+}
+bool MultibodySystem::hasCableSubsystem() const {
+    return getRep().hasCableSubsystem();
 }
 
 const Real

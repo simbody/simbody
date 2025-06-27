@@ -185,9 +185,9 @@ void testCableForceOnSingleObstacle()
     assertForces(system, cable, forcesExpected);
 }
 
-// This case is the same as testCableForceAndMomentOnSingleObstacle, except
-// that there is an offset between the obstacle surface frame and obstacle
-// body, to verify the generated torque.
+// This case is the same as testCableForceOnSingleObstacle, except that there is 
+// an offset between the obstacle surface frame and obstacle body, to verify the 
+// generated torque.
 void testCableForceAndMomentOnSingleObstacle()
 {
     MultibodySystem system;
@@ -228,6 +228,84 @@ void testCableForceAndMomentOnSingleObstacle()
     assertForces(system, cable, forcesExpected);
 }
 
+// Similar to testCableForceOnSingleObstacle, but with a via point pulled
+// along the X-axis instead of an obstacle.
+void testCableForceOnSingleViaPoint()
+{
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+
+    // The angle the cable makes w.r.t. the straight line connecting the
+    // attachment points.
+    const Real angle = 45. / 180. * Pi;
+
+    Body::Rigid aBody(MassProperties(1., Vec3(0), Inertia(1)));
+    
+    MobilizedBody::Free viaPointBody(
+        matter.Ground(),
+        Vec3(0.),
+        aBody,
+        Transform());
+
+    // Construct a new cable.
+    CableSpan cable(
+        cables,
+        matter.Ground(),
+        Vec3{0., 1., 0.},
+        matter.Ground(),
+        Vec3{0., -1., 0.});
+
+    // Add via point.
+    cable.addViaPoint(viaPointBody, Vec3(tan(angle), 0., 0.));
+
+    Vector_<SpatialVec> forcesExpected(matter.getNumBodies());
+    forcesExpected[0] = SpatialVec(Vec3{0.}, Vec3{2. * sin(angle), 0., 0.});
+    forcesExpected[1] = SpatialVec(Vec3{0.}, Vec3{-2. * sin(angle), 0., 0.});
+
+    assertForces(system, cable, forcesExpected);
+}
+
+// Similar to testCableForceAndMomentOnSingleObstacle, but with a via point
+// pulled along the X-axis instead of an obstacle.
+void testCableForceAndMomentOnSingleViaPoint()
+{
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+
+    // The angle the cable makes w.r.t. the straight line connecting the
+    // attachment points.
+    const Real angle = 45. / 180. * Pi;
+
+    Body::Rigid aBody(MassProperties(1., Vec3(0), Inertia(1)));
+    const Real offsetY = 1.;
+    MobilizedBody::Free viaPointBody(
+        matter.Ground(),
+        Vec3(0., -offsetY, 0.),
+        aBody,
+        Transform());
+
+    // Construct a new cable.
+    CableSpan cable(
+        cables,
+        matter.Ground(),
+        Vec3{0, 1., 0.},
+        matter.Ground(),
+        Vec3{0, -1., 0.});
+
+    // Add via point.
+    cable.addViaPoint(viaPointBody, Vec3(tan(angle), offsetY, 0.));
+
+    Vector_<SpatialVec> forcesExpected(matter.getNumBodies());
+    forcesExpected[0] = SpatialVec(Vec3{0.}, Vec3{2. * sin(angle), 0., 0.});
+    forcesExpected[1] = SpatialVec(
+        Vec3{0., 0., 2. * sin(angle)},
+        Vec3{-2. * sin(angle), 0., 0.});
+
+    assertForces(system, cable, forcesExpected);
+}
+
 int main()
 {
     testCableForceOnSameBody();
@@ -235,4 +313,6 @@ int main()
     testCableForceAndMomentBetweenTwoBodies();
     testCableForceOnSingleObstacle();
     testCableForceAndMomentOnSingleObstacle();
+    testCableForceOnSingleViaPoint();
+    testCableForceAndMomentOnSingleViaPoint();
 }
