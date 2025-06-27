@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------------
-                Simbody(tm) Test: Cable Over Several Smooth Surfaces
+            Simbody(tm) Test: Cable Over Smooth Surfaces and Via Points
 -------------------------------------------------------------------------------
  Copyright (c) 2024 Authors.
  Authors: Pepijn van den Bos
- Contributors:
+ Contributors: Nicholas Bianco
 
  Licensed under the Apache License, Version 2.0 (the "License"); you may
  not use this file except in compliance with the License. You may obtain a
@@ -21,7 +21,8 @@
 using namespace SimTK;
 
 /**
-This file contains tests for the CableSpan's path over different obstacles.
+This file contains tests for the CableSpan's path over different obstacles and
+via points.
 **/
 
 /* A helper class for drawing interesting things of a CableSpan. */
@@ -87,6 +88,18 @@ public:
                 DecorativePoint(X_GS.shiftFrameStationToBase(x_PS))
                     .setColor(Green));
         }
+
+        for (CableSpanViaPointIndex ix(0); ix < m_cable.getNumViaPoints();
+                ++ix) {
+            // Draw the via point.
+            const Vec3 x_G = m_cable.calcViaPointLocation(state, ix);
+            decorations.push_back(
+                DecorativeSphere(0.1)
+                    .setTransform(x_G)
+                    .setRepresentation(DecorativeGeometry::DrawWireframe)
+                    .setColor(Cyan)
+                    .setOpacity(0.1));
+        }
     }
 
     MultibodySystem* m_mbs;
@@ -95,7 +108,7 @@ public:
     Array_<Transform, CableSpanObstacleIndex> m_obstacleDecorationsOffsets;
 };
 
-/** Simple CableSpon path with known solution.
+/** Simple CableSpan path with known solution.
 
 Wrap a cable over (in order):
 1. Torus
@@ -196,7 +209,7 @@ void testSimpleCable()
 
     // Compute the CableSpan's path.
     system.realize(s, Stage::Report);
-    const Real cableLength = cable.calcLength(s);
+    cable.calcLength(s);
     if (viz) {
         viz->report(s);
     }
@@ -204,6 +217,10 @@ void testSimpleCable()
     SimTK_ASSERT_ALWAYS(
         cable.getNumObstacles() == 4,
         "Invalid number of obstacles");
+
+    SimTK_ASSERT_ALWAYS(
+        cable.getNumViaPoints() == 0,
+        "Invalid number of via points");
 
     SimTK_ASSERT2_ALWAYS(
         cable.getSmoothness(s) <= cable.getSmoothnessTolerance(),
@@ -385,16 +402,156 @@ void testSimpleCable()
     }
 }
 
-/** Test computed cable path over all supported surfaces, testing geodesics,
-Jacobians, and kinematics.
+/** Simple CableSpan comprised of via points with known solution. **/
+void testViaPoints()
+{
+    const bool show = false;
+
+    // Create the system.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+
+    // A dummy body.
+    Body::Rigid aBody(MassProperties(1., Vec3(0), Inertia(1)));
+
+    // Mobilizer for path origin.
+    MobilizedBody::Translation cableOriginBody(
+        matter.Ground(),
+        Vec3(0.),
+        aBody,
+        Transform());
+
+    // Mobilizer for path termination.
+    MobilizedBody::Translation cableTerminationBody(
+        matter.Ground(),
+        Transform(Vec3(-4., 0., 0.)),
+        aBody,
+        Transform());
+
+    // Construct a new cable.
+    CableSpan cable(
+        cables,
+        cableOriginBody,
+        Vec3{0.},
+        cableTerminationBody,
+        Vec3{0.});
+
+    // First via point.
+    MobilizedBody::Translation cableViaPoint1Body(
+        matter.Ground(),
+        Transform(Vec3(0., 1.0, 0.)),
+        aBody,
+        Transform());
+    cable.addViaPoint(cableViaPoint1Body, Vec3{0.});
+
+    // Second via point.
+    MobilizedBody::Translation cableViaPoint2Body(
+        matter.Ground(),
+        Transform(Vec3(0., 1.0, 2.0)),
+        aBody,
+        Transform());
+    cable.addViaPoint(cableViaPoint2Body, Vec3{0.});
+
+    // Third via point.
+    MobilizedBody::Translation cableViaPoint3Body(
+        matter.Ground(),
+        Transform(Vec3(-4.0, 1.0, 2.0)),
+        aBody,
+        Transform());
+    cable.addViaPoint(cableViaPoint3Body, Vec3{0.});
+
+    // Optionally visualize the system.
+    system.setUseUniformBackground(true); // no ground plane in display
+    std::unique_ptr<Visualizer> viz(show ? new Visualizer(system) : nullptr);
+
+    if (viz) {
+        viz->setShowFrameNumber(true);
+        viz->addDecorationGenerator(new CableDecorator(system, cable));
+    }
+
+    // Initialize the system and state.
+    system.realizeTopology();
+    State s = system.getDefaultState();
+
+    // Compute the CableSpan's path.
+    system.realize(s, Stage::Report);
+    cable.calcLength(s);
+    if (viz) {
+        viz->report(s);
+    }
+
+    SimTK_ASSERT_ALWAYS(
+        cable.getNumObstacles() == 0,
+        "Invalid number of obstacles");
+
+    SimTK_ASSERT_ALWAYS(
+        cable.getNumViaPoints() == 3,
+        "Invalid number of via points");
+
+    // With no obstacles, the smoothness should always be zero.
+    SimTK_ASSERT1_ALWAYS(
+        cable.getSmoothness(s) == 0.,
+        "Test failed: Cable smoothness (=%e) must be zero",
+        cable.getSmoothness(s));
+
+    // Sum all straight line segment lengths.
+    const Real lengthTolerance = 1e-5;
+    const Real expectedTotalCableLength = 1. + 2. + 4. + std::sqrt(5.);
+    const Real gotTotalCableLength = cable.calcLength(s);
+    SimTK_ASSERT3_ALWAYS(
+        std::abs(expectedTotalCableLength - gotTotalCableLength) <
+            lengthTolerance,
+        "Expected cable length (=%f) does not match computed cable length (=%f), error = %e",
+        expectedTotalCableLength,
+        gotTotalCableLength,
+        expectedTotalCableLength - gotTotalCableLength);
+
+    // We have no obstacles, so this should pass since all internal tests will
+    // be skipped.
+    CableSubsystemTestHelper().testCurrentPath(s, cables, std::cout);
+
+    Vector_<SpatialVec> expectedBodyForcesInG(6, {{0., 0., 0.}, {0., 0., 0.}});
+    // Ground body.
+    expectedBodyForcesInG[0] = (SpatialVec{{0., 0., 0}, {0., 0., 0.}});
+    // Cable origin body.
+    expectedBodyForcesInG[1] = (SpatialVec{{0., 0., 0.}, {0., 1., 0.}});
+    // Cable termination body.
+    expectedBodyForcesInG[2] = 
+        (SpatialVec{{0., 0., 0.}, {0., 1./std::sqrt(5.), 2./std::sqrt(5.)}});
+    // First via point.
+    expectedBodyForcesInG[3] = (SpatialVec{{0., 0., 0.}, {0., -1., 1.}});
+    // Second via point.
+    expectedBodyForcesInG[4] = (SpatialVec{{0., 0., 0.}, {-1., 0, -1.}});
+    // Third via point.
+    expectedBodyForcesInG[5] = 
+        (SpatialVec{{0., 0., 0.}, {1., -1./std::sqrt(5.), -2./std::sqrt(5.)}});
+
+    const Real tension = Pi;
+    Vector_<SpatialVec> gotBodyForcesInG(6, {{0., 0., 0.}, {0., 0., 0.}});
+    cable.applyBodyForces(s, tension, gotBodyForcesInG);
+
+    for (int i = 0; i < gotBodyForcesInG.size(); ++i) {
+        const Real tolerance = 1e-5;
+        SimTK_ASSERT1_ALWAYS(
+            (expectedBodyForcesInG[i] * tension - gotBodyForcesInG[i]).norm() <
+                tolerance,
+            "Unexpected force applied to body %i",
+            i);
+    }
+}
+
+/** Test computed cable path over all supported surfaces and a via point, 
+testing geodesics, Jacobians, and kinematics.
 
 The cable wraps over (in order):
 1. Torus,
 2. Ellipsoid,
-3. Sphere,
-4. Cylinder,
-5. Bicubic patch,
-6. Torus.
+3. Via point,
+4. Sphere,
+5. Cylinder,
+6. Bicubic patch,
+7. Torus.
 
 The flag assertCableLengthDerivative is used to switch between verifying that
 the computed cable length derivative matches the change in length during
@@ -416,6 +573,13 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
     MobilizedBody::Translation cableOriginBody(
         matter.Ground(),
         Vec3(-8., 0.1, 0.),
+        aBody,
+        Transform());
+
+     // Mobilizer for the path via point.
+    MobilizedBody::Translation cableViaPointBody(
+        matter.Ground(),
+        Transform(Vec3(0., 0.9, 0.5)),
         aBody,
         Transform());
 
@@ -450,6 +614,9 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
         std::shared_ptr<ContactGeometry>(
             new ContactGeometry::Ellipsoid({1.5, 2.6, 1.})),
         {0.0, 0., 1.1});
+
+    // Add the first via point.
+    cable.addViaPoint(cableViaPointBody, Vec3{0.});
 
     // Add sphere obstacle.
     cable.addObstacle(
@@ -557,6 +724,14 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
                 0.1 * cos(angle),
                 4. * 0.7 * cos(angle * 0.7),
                 10. * 1.3 * cos(angle * 1.3)));
+
+        // Move the via point.
+        cableViaPointBody.setQ(
+            s,
+            Vec3(0., 0.5 * cos(angle), 0.));
+        cableViaPointBody.setU(
+            s,
+            Vec3(0., 0.5 * -sin(angle), 0.));
 
         // Compute the CableSpan's path.
         system.realize(s, Stage::Report);
@@ -981,6 +1156,7 @@ void testRobustInitialPath()
 int main()
 {
     testSimpleCable();
+    testViaPoints();
     testTouchdownAndLiftoff();
     testAllSurfaceKinds(false); // Test all geodesics and Jacobians.
     testAllSurfaceKinds(true);  // Test length derivative.

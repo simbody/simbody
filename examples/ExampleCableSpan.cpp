@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------------
-                Simbody(tm) Example: Cable Over Smooth Surfaces
+        Simbody(tm) Example: Cable Over Smooth Surfaces and Via Points
 -------------------------------------------------------------------------------
  Copyright (c) 2024 Authors.
  Authors: Pepijn van den Bos
- Contributors:
+ Contributors: Nicholas Bianco
 
  Licensed under the Apache License, Version 2.0 (the "License"); you may
  not use this file except in compliance with the License. You may obtain a
@@ -16,9 +16,9 @@
  limitations under the License.
  ----------------------------------------------------------------------------*/
 
-/* This example is for experimenting with a CableSpan over obstacle surfaces.
-The cable endpoints are manually repositioned to control the next path
-solving problem. */
+/* This example is for experimenting with a CableSpan over obstacle surfaces and 
+through via points. The via points and cable endpoints are manually repositioned 
+to control the next path solving problem. */
 
 #include "Simbody.h"
 #include "simbody/internal/CableSpan.h"
@@ -147,6 +147,18 @@ public:
             decorations.push_back(DecorativeFrame(0.2).setTransform(
                 m_cable.calcCurveSegmentFinalFrenetFrame(state, ix)));
         }
+
+        for (CableSpanViaPointIndex ix(0); ix < m_cable.getNumViaPoints();
+                ++ix) {
+            // Draw the via point.
+            const Vec3 x_G = m_cable.calcViaPointLocation(state, ix);
+            decorations.push_back(
+                DecorativeSphere(0.1)
+                    .setTransform(x_G)
+                    .setRepresentation(DecorativeGeometry::DrawWireframe)
+                    .setColor(Cyan)
+                    .setOpacity(0.1));
+        }
     }
 
     MultibodySystem* m_mbs;
@@ -181,6 +193,18 @@ int main()
         aBody,
         Transform());
 
+    // Mobilizers for path via points.
+    MobilizedBody::Translation cableViaPointBody1(
+        matter.Ground(),
+        Transform(Vec3(0., 0.9, 0.5)),
+        aBody,
+        Transform());
+    MobilizedBody::Translation cableViaPointBody2(
+        matter.Ground(),
+        Transform(Vec3(15., 0.1, 0.)),
+        aBody,
+        Transform());
+
     // Construct a new cable.
     CableSpan cable(
         cables,
@@ -189,7 +213,7 @@ int main()
         cableTerminationBody,
         Vec3{0.});
 
-    // Add some obstacles to the cable.
+    // Add some obstacles and via points to the cable.
 
     // Add torus obstacle.
     cable.addObstacle(
@@ -209,6 +233,9 @@ int main()
         std::shared_ptr<ContactGeometry>(
             new ContactGeometry::Ellipsoid({1.5, 2.6, 1.})),
         {0.0, 0., 1.1});
+
+    // Add the first via point.
+    cable.addViaPoint(cableViaPointBody1, Vec3{0.});
 
     // Add sphere obstacle.
     cable.addObstacle(
@@ -271,6 +298,9 @@ int main()
             Vec3{0., 0., 1.});
     }
 
+    // Add the second via point.
+    cable.addViaPoint(cableViaPointBody2, Vec3{0.});
+
     // Visaulize the system.
     system.setUseUniformBackground(true); // no ground plane in display
     Visualizer viz(system);
@@ -303,5 +333,15 @@ int main()
         cableOriginBody.setQ(
             s,
             Vec3(sin(angle), 5. * sin(angle * 1.5), 5. * sin(angle * 2.)));
+
+        // Move the first via point.
+        cableViaPointBody1.setQ(
+            s,
+            Vec3(0., 0.5 * cos(angle), 0.));
+
+        // Move the second via point.
+        cableViaPointBody2.setQ(
+            s,
+            Vec3(0., 0., 2. * sin(angle)));
     }
 }

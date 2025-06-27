@@ -36,6 +36,7 @@
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/DecorationSubsystem.h"
 #include "simbody/internal/GeneralContactSubsystem.h"
+#include "simbody/internal/CableSpan.h"
 
 #include "simbody/internal/ForceSubsystemGuts.h"
 #include "SimbodyMatterSubsystemRep.h"
@@ -326,6 +327,11 @@ public:
         contactSub = adoptSubsystem(c);
         return contactSub;
     }
+    SubsystemIndex setCableSubsystem(CableSubsystem& c) {
+        assert(!cableSub.isValid());
+        cableSub = adoptSubsystem(c);
+        return cableSub;
+    }
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const {
         assert(matterSub.isValid());
@@ -343,6 +349,7 @@ public:
     bool hasContactSubsystem() const {return contactSub.isValid();}
     bool hasMatterSubsystem() const {return matterSub.isValid();}
     bool hasGlobalSubsystem() const {return globalSub.isValid();}
+    bool hasCableSubsystem() const {return cableSub.isValid();}
 
     const DecorationSubsystem& getDecorationSubsystem() const {
         assert(decorationSub.isValid());
@@ -352,6 +359,11 @@ public:
     const GeneralContactSubsystem& getContactSubsystem() const {
         assert(contactSub.isValid());
         return GeneralContactSubsystem::downcast(getSubsystem(contactSub));
+    }
+
+    const CableSubsystem& getCableSubsystem() const {
+        assert(cableSub.isValid());
+        return CableSubsystem::downcast(getSubsystem(cableSub));
     }
 
     SimbodyMatterSubsystem& updMatterSubsystem() {
@@ -372,6 +384,10 @@ public:
     GeneralContactSubsystem& updContactSubsystem() {
         assert(contactSub.isValid());
         return GeneralContactSubsystem::updDowncast(updSubsystem(contactSub));
+    }
+    CableSubsystem& updCableSubsystem() {
+        assert(cableSub.isValid());
+        return CableSubsystem::updDowncast(updSubsystem(cableSub));
     }
 
     // Global state cache entries dealing with interaction between forces & 
@@ -504,6 +520,7 @@ private:
     Array_<SubsystemIndex> forceSubs;       // indices of force subsystems
     SubsystemIndex         decorationSub;   // index of DecorationSubsystem if any, else -1
     SubsystemIndex         contactSub;      // index of contact subsystem if any, else -1
+    SubsystemIndex         cableSub;        // index of cable subsystem if any, else -1
 };
 
 
