@@ -34,8 +34,8 @@ if(MINGW)
             "This is probably because of the win32 thread model used."
             "Change to a posix thread model."
             "Also note that exception mechanism is important before downloading another MinGW version"
-            "    For a 32 bit instatallation, use a Posix thread with DWARF (DW2) exception mechanism"
-            "    For a 64 bit instatallation, use a Posix thread with SJLJ exception mechanism")
+            "    For a 32 bit installation, use a Posix thread with DWARF (DW2) exception mechanism"
+            "    For a 64 bit installation, use a Posix thread with SJLJ exception mechanism")
         message(FATAL_ERROR "Your MinGW version does not support std::mutex. -> Change to a posix thread model")
     endif()
     # 2 Check the exception mechanism
