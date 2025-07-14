@@ -16,8 +16,8 @@
  limitations under the License.
  ----------------------------------------------------------------------------*/
 
-/* This example is for experimenting with a CableSpan over obstacle surfaces and 
-through via points. The via points and cable endpoints are manually repositioned 
+/* This example is for experimenting with a CableSpan over obstacle surfaces and
+through via points. The via points and cable endpoints are manually repositioned
 to control the next path solving problem. */
 
 #include "Simbody.h"

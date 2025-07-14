@@ -28,7 +28,7 @@
 using namespace SimTK;
 
 // Define a unique index for cable segments.
-namespace { 
+namespace {
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSegmentIndex);
 }
 
@@ -625,7 +625,7 @@ private:
 };
 
 //==============================================================================
-//                          Struct Curve Segment
+//                               Curve Segment
 //==============================================================================
 /* The CableSpan's path consists of straight line segments between obstacles and
 via points, and curved segments over the obstacles. This struct represents the
@@ -810,23 +810,21 @@ public:
 
     const CableSubsystem& getSubsystem() const
     {
-        if (!m_subsystem) {
-            SimTK_ERRCHK_ALWAYS(
-                m_subsystem,
-                "CurveSegment::getSubsystem()",
-                "CableSpan not yet adopted by any CableSubsystem");
-        }
+        SimTK_ERRCHK_ALWAYS(
+            m_subsystem,
+            "CurveSegment::getSubsystem()",
+            "CableSpan not yet adopted by any CableSubsystem");
+
         return *m_subsystem;
     }
 
     CableSubsystem& updSubsystem()
     {
-        if (!m_subsystem) {
-            SimTK_ERRCHK_ALWAYS(
-                m_subsystem,
-                "CurveSegment::updSubsystem()",
-                "CableSpan not yet adopted by any CableSubsystem");
-        }
+        SimTK_ERRCHK_ALWAYS(
+            m_subsystem,
+            "CurveSegment::updSubsystem()",
+            "CableSpan not yet adopted by any CableSubsystem");
+
         return *m_subsystem;
     }
 
@@ -868,7 +866,7 @@ public:
             getDataInst(state).X_SQ.p());
     }
 
-    bool isInContactWithSurface(const State& state) const 
+    bool isInContactWithSurface(const State& state) const
     {
         const CurveSegmentData::Instance& dataInst = getDataInst(state);
         return dataInst.wrappingStatus ==
@@ -883,11 +881,11 @@ public:
     // contact with the cable.
 
     // Find the first obstacle before this segment that is in contact with the
-    // cable. Returns an invalid index if there is none, e.g., the previous 
+    // cable. Returns an invalid index if there is none, e.g., the previous
     // point in the path is a via point or the path origin.
     ObstacleIndex findPrevObstacleInContactWithCable(const State& state) const;
     // Find the first obstacle after this segment that is in contact with the
-    // cable. Returns an invalid index if there is none, e.g., the next point 
+    // cable. Returns an invalid index if there is none, e.g., the next point
     // in the path is a via point or the path termination.
     ObstacleIndex findNextObstacleInContactWithCable(const State& state) const;
 
@@ -921,7 +919,7 @@ public:
             "CurveSegment::Impl::assertSurfaceBounds",
             "Next point lies inside the surface");
         return nextPoint_S;
-    } 
+    }
 
     //--------------------------------------------------------------------------
     //  Updating CurveSegmentData::Instance Helpers
@@ -1456,7 +1454,7 @@ private:
     ObstacleIndex m_obstacleIndex = ObstacleIndex::Invalid();
 
     // MobilizedBody that the curve segment is attached to.
-    MobilizedBodyIndex m_body;
+    MobilizedBodyIndex m_body = MobilizedBodyIndex::Invalid();
     // Surface to body transform.
     Transform m_X_BS;
 
@@ -1476,7 +1474,7 @@ private:
 };
 
 //==============================================================================
-//                          Struct Via Point
+//                                 Via Point
 //==============================================================================
 /* This struct represents a zero-length cable segment associated with a via
 point in the path. It manages the cached data such as the position of the via
@@ -1495,7 +1493,7 @@ public:
         CableSpanIndex cableIndex,
         ViaPointIndex viaPointIndex,
         MobilizedBodyIndex body,
-        Vec3 station_B) :
+        const Vec3& station_B) :
         m_subsystem(subsystem),
         m_cableIndex(cableIndex),
         m_viaPointIndex(viaPointIndex),
@@ -1514,17 +1512,17 @@ public:
             state,
             Stage::Position,
             Stage::Infinity,
-            new Value<Vec3>());
+            new Value<Vec3>(Vec3(0.)));
         m_indexIncomingDirection = updSubsystem().allocateCacheEntry(
             state,
             Stage::Position,
             Stage::Infinity,
-            new Value<UnitVec3>());
+            new Value<UnitVec3>(UnitVec3(NaN)));
         m_indexOutgoingDirection = updSubsystem().allocateCacheEntry(
             state,
             Stage::Position,
             Stage::Infinity,
-            new Value<UnitVec3>());
+            new Value<UnitVec3>(UnitVec3(NaN)));
     }
 
     void invalidateDirectionCacheEntries(const State& state) const
@@ -1548,7 +1546,7 @@ public:
     }
 
     void setIncomingDirection(
-        const State& state, 
+        const State& state,
         const UnitVec3& direction_G) const
     {
         updIncomingDirection(state) = direction_G;
@@ -1562,7 +1560,7 @@ public:
     }
 
     void setOutgoingDirection(
-        const State& state, 
+        const State& state,
         const UnitVec3& direction_G) const
     {
         updOutgoingDirection(state) = direction_G;
@@ -1593,23 +1591,21 @@ public:
 
     const CableSubsystem& getSubsystem() const
     {
-        if (!m_subsystem) {
-            SimTK_ERRCHK_ALWAYS(
-                m_subsystem,
-                "ViaPoint::getSubsystem()",
-                "CableSpan not yet adopted by any CableSubsystem");
-        }
+        SimTK_ERRCHK_ALWAYS(
+            m_subsystem,
+            "ViaPoint::getSubsystem()",
+            "CableSpan not yet adopted by any CableSubsystem");
+
         return *m_subsystem;
     }
 
     CableSubsystem& updSubsystem()
     {
-        if (!m_subsystem) {
-            SimTK_ERRCHK_ALWAYS(
-                m_subsystem,
-                "ViaPoint::updSubsystem()",
-                "CableSpan not yet adopted by any CableSubsystem");
-        }
+        SimTK_ERRCHK_ALWAYS(
+            m_subsystem,
+            "ViaPoint::updSubsystem()",
+            "CableSpan not yet adopted by any CableSubsystem");
+
         return *m_subsystem;
     }
 
@@ -1636,7 +1632,7 @@ public:
     //--------------------------------------------------------------------------
     // Computing cached data
     //--------------------------------------------------------------------------
-    
+
     const Vec3& calcStation_G(const State& state) const
     {
         Vec3& station_G = updStation_G(state);
@@ -1690,9 +1686,9 @@ private:
     ViaPointIndex m_viaPointIndex = ViaPointIndex::Invalid();
 
     // MobilizedBody that the via point is attached to.
-    MobilizedBodyIndex m_body;
+    MobilizedBodyIndex m_body = MobilizedBodyIndex::Invalid();
     // The position of the via point in the body frame.
-    Vec3 m_station_B;
+    Vec3 m_station_B{NaN};
 
     // Topology cache.
     CacheEntryIndex m_indexStation_G = CacheEntryIndex::Invalid();
@@ -1701,13 +1697,13 @@ private:
 };
 
 //==============================================================================
-//                          Struct Cable Segment
+//                              Cable Segment
 //==============================================================================
 /* This is a helper struct for managing segments of the cable path that are
-separated by via points. It stores an ordered list of the obstacle indexes 
+separated by via points. It stores an ordered list of the obstacle indexes
 associated with this segment and indexes to the initial and final via points, if
-they exist. An invalid initial via point index indicates that the segemnt begins
-with the cable origin point. Similarly, an invalid final via point index 
+they exist. An invalid initial via point index indicates that the segment begins
+with the cable origin point. Similarly, an invalid final via point index
 indicates that the segment ends with the cable termination point. **/
 class CableSegment {
 public:
@@ -1724,23 +1720,21 @@ public:
 
     const CableSubsystem& getSubsystem() const
     {
-        if (!m_subsystem) {
-            SimTK_ERRCHK_ALWAYS(
-                m_subsystem,
-                "CableSegment::getSubsystem()",
-                "CableSpan not yet adopted by any CableSubsystem");
-        }
+        SimTK_ERRCHK_ALWAYS(
+            m_subsystem,
+            "CableSegment::getSubsystem()",
+            "CableSpan not yet adopted by any CableSubsystem");
+
         return *m_subsystem;
     }
 
     CableSubsystem& updSubsystem()
     {
-        if (!m_subsystem) {
-            SimTK_ERRCHK_ALWAYS(
-                m_subsystem,
-                "CableSegment::updSubsystem()",
-                "CableSpan not yet adopted by any CableSubsystem");
-        }
+        SimTK_ERRCHK_ALWAYS(
+            m_subsystem,
+            "CableSegment::updSubsystem()",
+            "CableSpan not yet adopted by any CableSubsystem");
+
         return *m_subsystem;
     }
 
@@ -1796,7 +1790,7 @@ private:
     CableSpanIndex m_cableIndex = CableSpanIndex::Invalid();
     // The index of this CableSegment in the CableSpan.
     CableSegmentIndex m_index = CableSegmentIndex::Invalid();
-    
+
     // The indexes to the wrap obstacles belonging to this segment.
     Array_<ObstacleIndex> m_obstacleIndexes;
 
@@ -1953,27 +1947,27 @@ public:
 
     const CurveSegment& getObstacleCurveSegment(ObstacleIndex ix) const
     {
-        return m_curveSegments[ix];
+        return m_curveSegments.at(ix);
     }
 
     CurveSegment& updObstacleCurveSegment(ObstacleIndex ix)
     {
-        return m_curveSegments[ix];
+        return m_curveSegments.at(ix);
     }
 
     const ViaPoint& getViaPoint(ViaPointIndex ix) const
     {
-        return m_viaPoints[ix];
+        return m_viaPoints.at(ix);
     }
 
     ViaPoint& updViaPoint(ViaPointIndex ix)
     {
-        return m_viaPoints[ix];
+        return m_viaPoints.at(ix);
     }
 
     const CableSegment& getCableSegment(CableSegmentIndex ix) const
     {
-        return m_cableSegments[ix];
+        return m_cableSegments.at(ix);
     }
 
     CableSpanParameters& updParameters()
@@ -2043,20 +2037,20 @@ public:
     // Helper functions: CableSegment initial and final points.
     //--------------------------------------------------------------------------
 
-    Vec3 calcInitialCableSegmentPointInGround(const State& s, 
+    Vec3 calcInitialCableSegmentPointInGround(const State& s,
         const CableSegment& cableSegment) const
     {
-        if (cableSegment.getInitialViaPointIndex().isValid()) { 
+        if (cableSegment.getInitialViaPointIndex().isValid()) {
             return getViaPoint(cableSegment.getInitialViaPointIndex())
                                 .getStation_G(s);
         }
         return calcOriginPointInGround(s);
     }
 
-    Vec3 calcFinalCableSegmentPointInGround(const State& s, 
+    Vec3 calcFinalCableSegmentPointInGround(const State& s,
         const CableSegment& cableSegment) const
     {
-        if (cableSegment.getFinalViaPointIndex().isValid()) {   
+        if (cableSegment.getFinalViaPointIndex().isValid()) {
             return getViaPoint(cableSegment.getFinalViaPointIndex())
                                 .getStation_G(s);
         }
@@ -2067,7 +2061,7 @@ public:
     // Helper functions: ViaPoint direction cache entries.
     //--------------------------------------------------------------------------
 
-    void invalidateViaPointDirectionCacheEntries(const State& s, 
+    void invalidateViaPointDirectionCacheEntries(const State& s,
         const CableSegment& cableSegment) const
     {
         if (cableSegment.getInitialViaPointIndex().isValid()) {
@@ -2092,6 +2086,11 @@ public:
     {
         invalidateTopology();
 
+        SimTK_ASSERT(
+            !m_cableSegments.empty(),
+            "No cable segments found. An initial cable segment should have "
+            "been added by the CableSpan constructor.");
+
         ObstacleIndex obstacleIx(m_curveSegments.size());
 
         m_curveSegments.push_back(CurveSegment(
@@ -2111,10 +2110,15 @@ public:
     }
 
     ViaPointIndex addViaPoint(
-        MobilizedBodyIndex viaPointBody, 
+        MobilizedBodyIndex viaPointBody,
         const Vec3& station_B)
     {
         invalidateTopology();
+
+        SimTK_ASSERT(
+            !m_cableSegments.empty(),
+            "No cable segments found. An initial cable segment should have "
+            "been added by the CableSpan constructor.");
 
         ViaPointIndex viaPointIx(m_viaPoints.size());
 
@@ -2122,7 +2126,7 @@ public:
             m_subsystem,
             getIndex(),
             viaPointIx,
-            viaPointBody, 
+            viaPointBody,
             station_B));
 
         // Mark the end of the last CableSegment with this ViaPoint.
@@ -2468,14 +2472,14 @@ private:
                     const MobilizedBody& mobod = curve.getMobilizedBody();
                     const CurveSegmentData::Position& curveDataPos =
                         curve.getDataPos(s);
-    
+
                     // Ending point and velocity of straight line segment.
                     const Vec3 x_GP = curveDataPos.X_GP.p();
                     const Vec3 v_GP = CalcPointVelocityInGround(mobod, x_GP);
-    
+
                     // Compute the lengthening.
                     lengthDot += dot(UnitVec3(x_GP - x_GQ), v_GP - v_GQ);
-    
+
                     // Set the next straight line starting point and velocity.
                     x_GQ = curveDataPos.X_GQ.p();
                     v_GQ = CalcPointVelocityInGround(mobod, x_GQ);
@@ -2568,13 +2572,22 @@ ObstacleIndex CurveSegment::findPrevObstacleInContactWithCable(
     const CableSpan::Impl& cable = getCable();
     const CableSegment& cableSegment = cable.getCableSegment(
         getCableSegmentIndex());
+    const Array_<ObstacleIndex, ObstacleIndex>& obstacleIndexes =
+        cableSegment.getObstacleIndexes();
+
+    // If there are no obstacles in this cable segment, there can't be any
+    // previous obstacles in contact.
+    if (obstacleIndexes.empty()) {
+        return ObstacleIndex::Invalid();
+    }
 
     // Find the first obstacle that makes contact before this curve segment
     // in the current cable segment.
-    for (ObstacleIndex ix(m_obstacleIndex); 
-            ix > cableSegment.getObstacleIndexes().front(); --ix) {
+    for (ObstacleIndex ix(m_obstacleIndex);
+            ix > obstacleIndexes.front(); --ix) {
         ObstacleIndex prevIx(ix - 1);
-        const CurveSegment& curveSegment = cable.getObstacleCurveSegment(prevIx);
+        const CurveSegment& curveSegment =
+            cable.getObstacleCurveSegment(prevIx);
         if (curveSegment.isInContactWithSurface(state)) {
             return prevIx;
         }
@@ -2590,11 +2603,19 @@ ObstacleIndex CurveSegment::findNextObstacleInContactWithCable(
     const CableSpan::Impl& cable = getCable();
     const CableSegment& cableSegment = cable.getCableSegment(
         getCableSegmentIndex());
-    
+    const Array_<ObstacleIndex, ObstacleIndex>& obstacleIndexes =
+        cableSegment.getObstacleIndexes();
+
+    // If there are no obstacles in this cable segment, there can't be any
+    // next obstacles in contact.
+    if (obstacleIndexes.empty()) {
+        return ObstacleIndex::Invalid();
+    }
+
     // Find the first active obstacle after this curve segment in the current
     // cable segment.
-    for (ObstacleIndex ix(m_obstacleIndex + 1); 
-            ix < cableSegment.getObstacleIndexes().back()+1; ++ix) {
+    for (ObstacleIndex ix(m_obstacleIndex + 1);
+            ix < obstacleIndexes.back()+1; ++ix) {
         const CurveSegment& curveSegment = cable.getObstacleCurveSegment(ix);
         if (curveSegment.isInContactWithSurface(state)) {
             return ix;
@@ -2610,15 +2631,20 @@ Vec3 CurveSegment::findPrevPathPoint_G(const State& state) const
     const CableSpan::Impl& cable = getCable();
     const CableSegment& cableSegment = cable.getCableSegment(
         getCableSegmentIndex());
-    
+    const Array_<ObstacleIndex, ObstacleIndex>& obstacleIndexes =
+        cableSegment.getObstacleIndexes();
+
     // Check if there is a curve segment preceding this curve segment in the
     // current cable segment.
-    for (ObstacleIndex ix(m_obstacleIndex); 
-            ix > cableSegment.getObstacleIndexes().front(); --ix) {
-        ObstacleIndex prevIx(ix - 1);
-        const CurveSegment& curveSegment = cable.getObstacleCurveSegment(prevIx);
-        if (curveSegment.isInContactWithSurface(state)) {
-            return curveSegment.calcFinalContactPoint_G(state);
+    if (!obstacleIndexes.empty()) {
+        for (ObstacleIndex ix(m_obstacleIndex);
+                ix > obstacleIndexes.front(); --ix) {
+            ObstacleIndex prevIx(ix - 1);
+            const CurveSegment& curveSegment =
+                cable.getObstacleCurveSegment(prevIx);
+            if (curveSegment.isInContactWithSurface(state)) {
+                return curveSegment.calcFinalContactPoint_G(state);
+            }
         }
     }
 
@@ -2642,14 +2668,18 @@ Vec3 CurveSegment::findNextPathPoint_G(const State& state) const
     const CableSpan::Impl& cable = getCable();
     const CableSegment& cableSegment = cable.getCableSegment(
         getCableSegmentIndex());
+    const Array_<ObstacleIndex, ObstacleIndex>& obstacleIndexes =
+        cableSegment.getObstacleIndexes();
 
-    // Check if there is a curve segment following this curve segment in the 
+    // Check if there is a curve segment following this curve segment in the
     // current cable segment.
-    for (ObstacleIndex ix(m_obstacleIndex + 1); 
-            ix < cableSegment.getObstacleIndexes().back()+1; ++ix) {
-        const CurveSegment& curveSegment = cable.getObstacleCurveSegment(ix);
-        if (curveSegment.isInContactWithSurface(state)) {
-            return curveSegment.calcInitialContactPoint_G(state);
+    if (!obstacleIndexes.empty()) {
+        for (ObstacleIndex ix(m_obstacleIndex + 1);
+                ix < obstacleIndexes.back()+1; ++ix) {
+            const CurveSegment& curveSegment = cable.getObstacleCurveSegment(ix);
+            if (curveSegment.isInContactWithSurface(state)) {
+                return curveSegment.calcInitialContactPoint_G(state);
+            }
         }
     }
 
@@ -2710,7 +2740,7 @@ void calcUnitForceExertedByViaPoint(
     const UnitVec3& outgoingDirection_G = viaPoint.getOutgoingDirection(s);
 
     // The via point moment arm in ground.
-    const Vec3& r_G = viaPoint.getStation_G(s) - x_GB;
+    const Vec3 r_G = viaPoint.getStation_G(s) - x_GB;
 
     // The incoming direction is along the negative force direction, while the
     // outgoing direction is along the force direction:
@@ -2894,7 +2924,7 @@ void calcLineSegments(
     }
 
     // Compute the last line segment.
-    lines.emplace_back(prevPathPoint, 
+    lines.emplace_back(prevPathPoint,
         cable.calcFinalCableSegmentPointInGround(s, cableSegment));
 }
 
@@ -3419,7 +3449,7 @@ void CableSpan::Impl::calcSolverStep(
         data.lineSegments);
 
     data.maxPathError = 0.; // Reset the max path error field.
-    // Only compute the path errors if there are obstacles in contact with the 
+    // Only compute the path errors if there are obstacles in contact with the
     // cable.
     if (data.numObstaclesInContact > 0) {
         calcPathErrorVector<1>(
@@ -3530,7 +3560,7 @@ void CableSpan::Impl::calcSolverStep(
         Matrix& V     = data.rightSingularValues;
 
         // Compute the normal path error jacobian.
-        calcPathErrorJacobian<1>(cableSegment, s, data.lineSegments, 
+        calcPathErrorJacobian<1>(cableSegment, s, data.lineSegments,
             {NormalAxis}, J);
 
         // Compute the gradient and Hessian of the cable length.
@@ -3604,26 +3634,27 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
     // This helper function will extract the useful information from the path
     // solver output, and write to the cached CableSpanData.
     auto updDataPosFromSolverResult =
-        [&](const State& s, const CableSegment& cableSegment,
+        [&](const State& s,
+            const CableSegment& cableSegment,
             const MatrixWorkspace& workspace,
             int solverLoopCount)
     {
         dataPos.cableLength += calcCableSegmentLength(
             s, cableSegment, workspace.lineSegments);
-        dataPos.smoothness = std::max(workspace.maxPathError, 
+        dataPos.smoothness = std::max(workspace.maxPathError,
             dataPos.smoothness);
         dataPos.loopIter += solverLoopCount;
 
         // An invalid initial via point index indicates that the segment begins
         // with the cable origin point.
-        ViaPointIndex initialViaPointIndex = 
+        ViaPointIndex initialViaPointIndex =
             cableSegment.getInitialViaPointIndex();
         if (initialViaPointIndex.isValid()) {
             const ViaPoint& viaPoint = getViaPoint(initialViaPointIndex);
-            viaPoint.setOutgoingDirection(s, 
+            viaPoint.setOutgoingDirection(s,
                 workspace.lineSegments.front().direction);
         } else {
-            dataPos.originTangent_G = 
+            dataPos.originTangent_G =
                 workspace.lineSegments.front().direction;
         }
 
@@ -3632,10 +3663,10 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
         ViaPointIndex finalViaPointIndex = cableSegment.getFinalViaPointIndex();
         if (finalViaPointIndex.isValid()) {
             const ViaPoint& viaPoint = getViaPoint(finalViaPointIndex);
-            viaPoint.setIncomingDirection(s, 
+            viaPoint.setIncomingDirection(s,
                 workspace.lineSegments.back().direction);
         } else {
-            dataPos.terminationTangent_G = 
+            dataPos.terminationTangent_G =
                 workspace.lineSegments.back().direction;
         }
     };
@@ -3651,7 +3682,7 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
     // with each.
     for (CableSegmentIndex cix(0); cix < getNumCableSegments(); ++cix) {
         const CableSegment& cableSegment = getCableSegment(cix);
-        Array_<ObstacleIndex> obstacleIndexes = 
+        const Array_<ObstacleIndex>& obstacleIndexes =
             cableSegment.getObstacleIndexes();
 
         // Start the solver loop for the sub-problem associated with this
@@ -3666,16 +3697,15 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
             // This will transform all last computed geodesics to Ground frame,
             // and will update each curve's WrappingStatus.
             for (ObstacleIndex ix : obstacleIndexes) {
-                const CurveSegment& curveSegment = getObstacleCurveSegment(ix);
-                curveSegment.calcDataPos(s);
-            } 
-            
+                getObstacleCurveSegment(ix).calcDataPos(s);
+            }
+
             // Grab the matrix workspace used by the solver.
             MatrixWorkspace& workspace = updDataInst(s).updOrInsert(
                 countActive(s, cableSegment));
 
             // Compute the path corrections required to reach the optimal path.
-            calcSolverStep(s, cableSegment, getParameters().algorithm, 
+            calcSolverStep(s, cableSegment, getParameters().algorithm,
                 workspace);
 
             // Check if we should stop iterating on this sub-problem.
@@ -3686,7 +3716,7 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
                 break;
             }
 
-            // Apply the corrections to each CurveSegment to reduce the path 
+            // Apply the corrections to each CurveSegment to reduce the path
             // error.
             const Vector& pathCorrection = workspace.pathCorrection;
             int activeCurveIx = 0; // Index of curve in all that are in contact.
@@ -3705,10 +3735,9 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
             // The applied corrections have changed the path: invalidate each
             // curve segment's cache for this cable segment.
             for (ObstacleIndex ix : obstacleIndexes) {
-                const CurveSegment& curve = getObstacleCurveSegment(ix);
                 // Also invalidate non-active segments: They might touchdown
                 // again.
-                curve.invalidatePosEntry(s);
+                getObstacleCurveSegment(ix).invalidatePosEntry(s);
             }
             // The path corrections only invalidate the direction cache entries,
             // not the station cache entry.
@@ -3799,7 +3828,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
 
         // Run the perturbation test for each cable segment.
         for (CableSegmentIndex ix(0); ix < cable.getNumCableSegments(); ++ix) {
-            testReport << "Testing CableSegment " << ix + 1 << " of " 
+            testReport << "Testing CableSegment " << ix + 1 << " of "
                        << cable.getNumCableSegments() << "\n";
 
             // Get the cable segment.
@@ -3818,13 +3847,13 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 continue;
             }
 
-            // Apply a small perturbation to each of the curve segments in the 
-            // form of a geodesic correction. There are 4 DOF for each geodesic, 
-            // and just to be sure we apply a negative and positive perturbation 
+            // Apply a small perturbation to each of the curve segments in the
+            // form of a geodesic correction. There are 4 DOF for each geodesic,
+            // and just to be sure we apply a negative and positive perturbation
             // along each DOF of each geodesic.
             Real perturbation = m_perturbationTestParameters.perturbation;
             for (int i = 0; i < c_GeodesicDOF * 2 * nActive + 1; ++i) {
-                // We do not want to mess with the actual state, so we make a 
+                // We do not want to mess with the actual state, so we make a
                 // copy.
                 const State sCopy = state;
                 cableSegment.getSubsystem().getMultibodySystem().realize(
@@ -3832,23 +3861,23 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
 
                 // Trigger realizing position level cache, resetting the
                 // configuration.
-                const CableSpanData::Position& dataPos = 
+                const CableSpanData::Position& dataPos =
                     cableSegment.getCable().getDataPos(sCopy);
 
-                // The wrapping status of each obstacle is reset after copying 
-                // the state. The matrix sizes are no longer compatible if this 
-                // results in a change in wrapping status (if we are touching 
-                // down during this realization for example). We can only test 
-                // the Jacobian if the wrapping status of all obstacles remains 
+                // The wrapping status of each obstacle is reset after copying
+                // the state. The matrix sizes are no longer compatible if this
+                // results in a change in wrapping status (if we are touching
+                // down during this realization for example). We can only test
+                // the Jacobian if the wrapping status of all obstacles remains
                 // the same.
                 if (cable.countActive(sCopy, cableSegment) != nActive) {
-                    testReport << 
+                    testReport <<
                         "Cable wrapping status changed after cloning the state: "
                         "Skipping perturbation test\n";
                     break;
                 }
 
-                // Compute the path error vector and Jacobian, before the 
+                // Compute the path error vector and Jacobian, before the
                 // applied perturbation.
                 std::vector<LineSegment> lineSegments(nActive + 1);
 
@@ -3883,11 +3912,11 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                     {NormalAxis, BinormalAxis},
                     pathErrorJacobian);
 
-                length = calcCableSegmentLength(sCopy, cableSegment, 
+                length = calcCableSegmentLength(sCopy, cableSegment,
                     lineSegments);
-                calcLengthGradient(sCopy, cableSegment, lineSegments, 
+                calcLengthGradient(sCopy, cableSegment, lineSegments,
                     lengthGradient);
-                calcLengthHessian(sCopy, cableSegment, lineSegments, 
+                calcLengthHessian(sCopy, cableSegment, lineSegments,
                     lengthHessian);
 
                 // Define the perturbation we will use for testing the Jacobian.
@@ -3908,7 +3937,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 // Store the wrapping status before applying the perturbation.
                 std::vector<ObstacleWrappingStatus> prevWrappingStatus;
                 for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
-                    const CurveSegment& curve = 
+                    const CurveSegment& curve =
                         cable.getObstacleCurveSegment(ix);
                     prevWrappingStatus.push_back(
                         curve.getDataInst(sCopy).wrappingStatus);
@@ -3917,7 +3946,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 // Apply the perturbation.
                 int activeCurveIx = 0; // Index of curves that are in contact.
                 for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
-                    const CurveSegment& curve = 
+                    const CurveSegment& curve =
                         cable.getObstacleCurveSegment(ix);
                     if (curve.isInContactWithSurface(sCopy)) {
                         curve.applyGeodesicCorrection(
@@ -3930,15 +3959,15 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 }
 
                 for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
-                    const CurveSegment& curve = 
+                    const CurveSegment& curve =
                         cable.getObstacleCurveSegment(ix);
                     curve.invalidatePosEntry(sCopy);
                 }
-                cable.invalidateViaPointDirectionCacheEntries(sCopy, 
+                cable.invalidateViaPointDirectionCacheEntries(sCopy,
                     cableSegment);
 
                 for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
-                    const CurveSegment& curve = 
+                    const CurveSegment& curve =
                         cable.getObstacleCurveSegment(ix);
                     curve.calcDataPos(sCopy);
                 }
@@ -3963,11 +3992,11 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                     {NormalAxis, BinormalAxis},
                     pathErrorJacobian);
 
-                length = calcCableSegmentLength(sCopy, cableSegment, 
+                length = calcCableSegmentLength(sCopy, cableSegment,
                     lineSegments);
-                calcLengthGradient(sCopy, cableSegment, lineSegments, 
+                calcLengthGradient(sCopy, cableSegment, lineSegments,
                     lengthGradient);
-                calcLengthHessian(sCopy, cableSegment, lineSegments, 
+                calcLengthHessian(sCopy, cableSegment, lineSegments,
                     lengthHessian);
 
                 // The curve lengths are clipped at zero, which distorts the
@@ -3980,12 +4009,12 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
 
                 // We can only use the path error Jacobian if the small
                 // perturbation did not trigger any liftoff or touchdown on any
-                // obstacles. If any CurveSegment's WrappingStatus has changed, 
+                // obstacles. If any CurveSegment's WrappingStatus has changed,
                 // we will not continue with the test. Since the perturbation is
                 // small, this is unlikely to happen often.
                 std::vector<ObstacleWrappingStatus> nextWrappingStatus;
                 for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
-                    const CurveSegment& curve = 
+                    const CurveSegment& curve =
                         cable.getObstacleCurveSegment(ix);
                     nextWrappingStatus.push_back(
                         curve.getDataInst(sCopy).wrappingStatus);
@@ -4029,7 +4058,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 }
                 // Evaluate the length gradient.
                 {
-                    const Real predictionError = 
+                    const Real predictionError =
                         std::abs(predictedLength - length);
                     bool passedTest =
                         std::abs(predictionError / perturbation) <= tolerance;
@@ -4063,9 +4092,9 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                         testReport << "FAILED length Hessian perturbation test for correction = "
                                    << pathCorrection << "\n";
                         testReport << "length gradient after perturbation:\n";
-                        testReport << "    Got        : " 
+                        testReport << "    Got        : "
                                    << lengthGradient << "\n";
-                        testReport << "    Predicted  : " 
+                        testReport << "    Predicted  : "
                                    << predictedLengthGradient << "\n";
                         testReport << "    Difference : "
                                    << predictionError / perturbation
@@ -4083,7 +4112,7 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                     success = success && passedTest;
                 }
             }
-        }        
+        }
     }
 
     // Flush all info to the report, in case we throw an exception.
@@ -4619,7 +4648,7 @@ int CableSpan::getNumObstacles() const
 }
 
 ViaPointIndex CableSpan::addViaPoint(
-    MobilizedBodyIndex viaPointBody, 
+    MobilizedBodyIndex viaPointBody,
     const Vec3& station_B)
 {
     return updImpl().addViaPoint(viaPointBody, station_B);
@@ -4688,7 +4717,7 @@ void CableSpan::setObstacleContactPointHint(
 const MobilizedBodyIndex& CableSpan::getViaPointMobilizedBodyIndex(
     ViaPointIndex ix) const
 {
-    return getImpl().getViaPoint(ix).getMobilizedBodyIndex();   
+    return getImpl().getViaPoint(ix).getMobilizedBodyIndex();
 }
 
 void CableSpan::setViaPointMobilizedBodyIndex(

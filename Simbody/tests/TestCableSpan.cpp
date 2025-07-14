@@ -517,14 +517,14 @@ void testViaPoints()
     // Cable origin body.
     expectedBodyForcesInG[1] = (SpatialVec{{0., 0., 0.}, {0., 1., 0.}});
     // Cable termination body.
-    expectedBodyForcesInG[2] = 
+    expectedBodyForcesInG[2] =
         (SpatialVec{{0., 0., 0.}, {0., 1./std::sqrt(5.), 2./std::sqrt(5.)}});
     // First via point.
     expectedBodyForcesInG[3] = (SpatialVec{{0., 0., 0.}, {0., -1., 1.}});
     // Second via point.
     expectedBodyForcesInG[4] = (SpatialVec{{0., 0., 0.}, {-1., 0, -1.}});
     // Third via point.
-    expectedBodyForcesInG[5] = 
+    expectedBodyForcesInG[5] =
         (SpatialVec{{0., 0., 0.}, {1., -1./std::sqrt(5.), -2./std::sqrt(5.)}});
 
     const Real tension = Pi;
@@ -541,7 +541,7 @@ void testViaPoints()
     }
 }
 
-/** Test computed cable path over all supported surfaces and a via point, 
+/** Test computed cable path over all supported surfaces and a via point,
 testing geodesics, Jacobians, and kinematics.
 
 The cable wraps over (in order):
