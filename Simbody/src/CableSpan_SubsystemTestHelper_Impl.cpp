@@ -598,10 +598,10 @@ CableSubsystemTestHelper& CableSubsystemTestHelper::operator=(
 }
 
 CableSubsystemTestHelper::CableSubsystemTestHelper(
-    CableSubsystemTestHelper&& source) noexcept = default;
+    CableSubsystemTestHelper&&) noexcept = default;
 
 CableSubsystemTestHelper& CableSubsystemTestHelper::operator=(
-    CableSubsystemTestHelper&& source) noexcept = default;
+    CableSubsystemTestHelper&&) noexcept = default;
 
 void CableSubsystemTestHelper::testCurrentPath(
     const State& state,

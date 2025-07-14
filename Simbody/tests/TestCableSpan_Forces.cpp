@@ -185,8 +185,8 @@ void testCableForceOnSingleObstacle()
     assertForces(system, cable, forcesExpected);
 }
 
-// This case is the same as testCableForceOnSingleObstacle, except that there is 
-// an offset between the obstacle surface frame and obstacle body, to verify the 
+// This case is the same as testCableForceOnSingleObstacle, except that there is
+// an offset between the obstacle surface frame and obstacle body, to verify the
 // generated torque.
 void testCableForceAndMomentOnSingleObstacle()
 {
@@ -240,8 +240,8 @@ void testCableForceOnSingleViaPoint()
     // attachment points.
     const Real angle = 45. / 180. * Pi;
 
-    Body::Rigid aBody(MassProperties(1., Vec3(0), Inertia(1)));
-    
+    Body::Rigid aBody(MassProperties(1., Vec3(0.), Inertia(1.)));
+
     MobilizedBody::Free viaPointBody(
         matter.Ground(),
         Vec3(0.),

@@ -139,11 +139,11 @@ bool MultibodySystem::hasContactSubsystem() const {
     return getRep().hasContactSubsystem();
 }
 
-const CableSubsystem&       
+const CableSubsystem&
 MultibodySystem::getCableSubsystem() const {
     return getRep().getCableSubsystem();
 }
-CableSubsystem&       
+CableSubsystem&
 MultibodySystem::updCableSubsystem() {
     return updRep().updCableSubsystem();
 }
