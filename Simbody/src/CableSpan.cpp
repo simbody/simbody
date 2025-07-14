@@ -1508,21 +1508,23 @@ public:
     // Allocate the cache entries.
     void realizeTopology(State& state)
     {
+        const Vec3 initVec3{0.};
+        const UnitVec3 initUnitVec3; // internally initializes to all-NaN.
         m_indexStation_G = updSubsystem().allocateCacheEntry(
             state,
             Stage::Position,
             Stage::Infinity,
-            new Value<Vec3>(Vec3(0.)));
+            new Value<Vec3>(initVec3));
         m_indexIncomingDirection = updSubsystem().allocateCacheEntry(
             state,
             Stage::Position,
             Stage::Infinity,
-            new Value<UnitVec3>(UnitVec3(NaN)));
+            new Value<UnitVec3>(initUnitVec3));
         m_indexOutgoingDirection = updSubsystem().allocateCacheEntry(
             state,
             Stage::Position,
             Stage::Infinity,
-            new Value<UnitVec3>(UnitVec3(NaN)));
+            new Value<UnitVec3>(initUnitVec3));
     }
 
     void invalidateDirectionCacheEntries(const State& state) const
