@@ -270,7 +270,7 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys, Real accuracy=1e-4)
     ASSERT(DiscontinuousReporter::eventCount == (int) (ts.getTime()/2.0));
 
     // Try stepping directly to final time, should report ReachedReportTime.
-    
+
     resetHandlersAndReporters();
     ts.initialize(sys.getDefaultState());
     auto status = ts.stepTo(tFinal);

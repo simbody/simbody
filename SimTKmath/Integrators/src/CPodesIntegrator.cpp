@@ -309,9 +309,9 @@ stepTo(Real reportTime, Real scheduledEventTime) {
     const Real finalTime = (userFinalTime == -1.0 ? Infinity : userFinalTime);
     if (getStepCommunicationStatus() == StepHasBeenReturnedNoEvent) {
         // Using getAdvancedTime() will trigger the end of a simulation too
-        // early if the advanced state time is greater than any remaining 
-        // scheduled events (which can happen if CPodes steps beyond tMax). 
-        // Instead, use the time from getState(), which returns the interpolated 
+        // early if the advanced state time is greater than any remaining
+        // scheduled events (which can happen if CPodes steps beyond tMax).
+        // Instead, use the time from getState(), which returns the interpolated
         // state if it was set in a previous step.
         if (getState().getTime() >= finalTime) {
             setUseInterpolatedState(false);
@@ -320,7 +320,7 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             return Integrator::EndOfSimulation;
         }
     }
-    
+
     // If this is the start of a continuous interval, return immediately so
     // the current state will be seen as part of the trajectory.
     if (startOfContinuousInterval) {
