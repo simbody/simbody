@@ -597,6 +597,12 @@ CableSubsystemTestHelper& CableSubsystemTestHelper::operator=(
     return *this = CableSubsystemTestHelper(source);
 }
 
+CableSubsystemTestHelper::CableSubsystemTestHelper(
+    CableSubsystemTestHelper&&) noexcept = default;
+
+CableSubsystemTestHelper& CableSubsystemTestHelper::operator=(
+    CableSubsystemTestHelper&&) noexcept = default;
+
 void CableSubsystemTestHelper::testCurrentPath(
     const State& state,
     const CableSubsystem& subsystem,

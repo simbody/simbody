@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------------
-                Simbody(tm) Test: Cable Forces
+                Simbody(tm) Test: Cable Lengthening Speed
 -------------------------------------------------------------------------------
  Copyright (c) 2024 Authors.
  Authors: Pepijn van den Bos
- Contributors:
+ Contributors: Nicholas Bianco
 
  Licensed under the Apache License, Version 2.0 (the "License"); you may
  not use this file except in compliance with the License. You may obtain a
@@ -21,7 +21,7 @@
 using namespace SimTK;
 
 /**
-This file contains simple tests for checking computed forces and moments.
+This file contains simple tests for checking computed path lengthening speeds.
 **/
 
 // Helper function for the force assertion.
@@ -277,7 +277,54 @@ void testCableLengthDotWithSingleObstacle()
     const Real expectedLengthDot = 4. * 2. * cos(angle);
 
     assertLengthDot(
-        "testCableLengthDotBetweenTwoBodies(Both)",
+        "testCableLengthDotWithSingleObstacle",
+        system,
+        cable,
+        [&](State& s) { aMovingBody.setU(s, u); },
+        expectedLengthDot);
+}
+
+// Similar to testCableLengthDotWithSingleObstacle, but with a via point pulled
+// along the X-axis instead of an obstacle.
+void testCableLengthDotWithSingleViaPoint()
+{
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+
+    // The angle the cable makes w.r.t. the straight line connecting the
+    // attachment points.
+    const Real angle = 45. / 180. * Pi;
+
+    Body::Rigid aBody(MassProperties(1., Vec3(0), Inertia(1)));
+    MobilizedBody::Free aMovingBody(
+        matter.Ground(),
+        Vec3(0.),
+        aBody,
+        Transform());
+
+    // Construct a new cable.
+    CableSpan cable(
+        cables,
+        matter.Ground(),
+        Vec3{0, 1., 0.},
+        matter.Ground(),
+        Vec3{0, -1., 0.});
+
+    // Add via point.
+    cable.addViaPoint(aMovingBody, Vec3(tan(angle), 0., 0.));
+
+    const Vec6 u{
+        1., 2., 3.,
+        4., 5., 6.,
+    };
+    // Due to symmetry only the x-component of the via point velocity
+    // contributes to the lengthening speed, with the other components
+    // canceling out.
+    const Real expectedLengthDot = 4. * 2. * sin(angle);
+
+    assertLengthDot(
+        "testCableLengthDotWithSingleViaPoint",
         system,
         cable,
         [&](State& s) { aMovingBody.setU(s, u); },
@@ -290,4 +337,5 @@ int main()
     testCableLengthDotOnSameBodyWitObstacles();
     testCableLengthDotBetweenTwoBodies();
     testCableLengthDotWithSingleObstacle();
+    testCableLengthDotWithSingleViaPoint();
 }
