@@ -138,6 +138,52 @@ public:
         return *this;
     }
 
+    /// Overload of the `*` operator for quaternion multiplication.
+    /// Performs the Hamilton product of two quaternions: `lhs * rhs`.
+    /// This is equivalent to calling `lhs.multiply(rhs)`.
+    ///
+    /// Quaternion multiplication is not commutative; that is,
+    /// `lhs * rhs` generally does not equal `rhs * lhs`.
+    ///
+    /// Both quaternions should be unit quaternions if they are being
+    /// used to represent rotations. The result is not automatically
+    /// normalized.
+    ///
+    /// @param lhs The quaternion on the left-hand side.
+    /// @param rhs The quaternion on the right-hand side.
+    /// @return The product of the two quaternions.
+    friend Quaternion_<P> operator*(const Quaternion_<P>& lhs, const Quaternion_<P>& rhs) {
+        return lhs.multiply(rhs);
+    }
+
+    /// Perform quaternion multiplication
+    //  by calculating the Hamilton product of this quaternion with another.
+    ///
+    /// Quaternion multiplication is not commutative; in general,
+    /// `a * b != b * a`. The returned quaternion represents the
+    /// composition of the two input rotations.
+    ///
+    /// This function assumes both quaternions are in the form:
+    /// (w, x, y, z), and does not renormalize the result. If you're using
+    /// unit quaternions to represent rotations, consider normalizing
+    /// afterward if numerical precision is a concern.
+    ///
+    /// @param q2 The quaternion to multiply on the right side.
+    /// @return The result of quaternion multiplication: (*this) * q2.
+    Quaternion_<P> multiply(const Quaternion_& q2) const {
+        const Quaternion_& q1 = *this;
+        const double w1 = q1[0], x1 = q1[1], y1 = q1[2], z1 = q1[3];
+        const double w2 = q2[0], x2 = q2[1], y2 = q2[2], z2 = q2[3];
+
+        // Compute the Hamilton product 
+        const double w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2;
+        const double x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2;
+        const double y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2;
+        const double z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2;
+
+        return Quaternion_<P>(w, x, y, z);
+    }
+
     /// Return a normalized copy of this quaternion; but do you really need to
     /// do this? Quaternions should be kept normalized at all times. One of
     /// the advantages of using them is that you don't have to check if they
