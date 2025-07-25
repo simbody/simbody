@@ -152,12 +152,13 @@ public:
     /// @param lhs The quaternion on the left-hand side.
     /// @param rhs The quaternion on the right-hand side.
     /// @return The product of the two quaternions.
-    friend Quaternion_<P> operator*(const Quaternion_<P>& lhs, const Quaternion_<P>& rhs) {
+    friend Quaternion_<P> operator*(const Quaternion_<P>& lhs,
+                                    const Quaternion_<P>& rhs) {
         return lhs.multiply(rhs);
     }
 
-    /// Perform quaternion multiplication
-    //  by calculating the Hamilton product of this quaternion with another.
+    /// Perform quaternion multiplication by calculating the Hamilton product
+    /// of this quaternion with another.
     ///
     /// Quaternion multiplication is not commutative; in general,
     /// `a * b != b * a`. The returned quaternion represents the

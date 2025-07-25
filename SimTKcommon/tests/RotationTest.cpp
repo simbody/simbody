@@ -256,7 +256,7 @@ bool  doRequiredTasks( ) {
     SimTK_TEST_EQ(unnorm.norm(), Real(1));
 
     // Test Quaternion Multiplication 
-    const Quaternion_<double> q(0.7071, 0.7071, 0, 0); // 90 deg rotation around x-axis
+    const Quaternion_<double> q(0.7071, 0.7071, 0, 0); // 90° rotation around x
     const Quaternion_<double> identity(1, 0, 0, 0);
 
     // Test identity multiplication
@@ -265,6 +265,10 @@ bool  doRequiredTasks( ) {
 
     // Test identity multiplication in the other order
     result = identity.multiply(q);
+    SimTK_TEST_EQ_TOL(result, q, 1e-15);
+
+    // Test * operator overload
+    result = q * identity;
     SimTK_TEST_EQ_TOL(result, q, 1e-15);
 
     // Test the multiplication actually works.
@@ -276,9 +280,14 @@ bool  doRequiredTasks( ) {
     result = q1.multiply(q2);
     SimTK_TEST_EQ_TOL(result, expected, 1e-15);
 
-    // Test * operator overload
-    result = q * identity;
-    SimTK_TEST_EQ_TOL(result, q, 1e-15);
+    // Test with arbitrary values
+    const Quaternion_<double> qa(0.3, -0.5, 0.7, 0.2);
+    const Quaternion_<double> qb(-0.6, 0.1, -0.3, 0.7);
+
+    // Calculated with Matlab quatmultiply
+    const Quaternion_<double> expectedqaqb(-0.06, 0.88, -0.14, 0.17);
+    result = qa * qb;
+    SimTK_TEST_EQ_TOL(result, expectedqaqb, 1e-15);
 
     // Test construction of nearby orthogonal rotation matrix from a generic Mat33.
     Rotation nearbyRotation( testRotation.asMat33() );
