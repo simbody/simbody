@@ -271,6 +271,10 @@ bool  doRequiredTasks( ) {
     result = q * identity;
     SimTK_TEST_EQ_TOL(result, q, 1e-15);
 
+    // Test identity * identity = identity
+    result = identity * identity;
+    SimTK_TEST_EQ_TOL(result, identity, 1e-15);
+
     // Test the multiplication actually works.
     // Same example as Matlab quatmultiply docs
     const Quaternion_<double> q1(1, 0, 1, 0);
