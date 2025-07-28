@@ -583,6 +583,10 @@ private:
 
     int realizeSubsystemTopologyImpl(State& state) const override;
 
+    int realizeSubsystemPositionImpl(const State& state) const override;
+
+    int realizeSubsystemVelocityImpl(const State& state) const override;
+
     int calcDecorativeGeometryAndAppendImpl(
         const State& state,
         Stage stage,
@@ -686,10 +690,34 @@ public:
             subsystem.getDiscreteVarUpdateValue(state, m_indexDataInst));
     }
 
+    CurveSegmentData::Instance& updDataInst(const State& state) const
+    {
+        return Value<CurveSegmentData::Instance>::updDowncast(
+            getSubsystem().updDiscreteVarUpdateValue(state, m_indexDataInst));
+    }
+
+    const CurveSegmentData::Instance& getPrevDataInst(const State& state) const
+    {
+        return Value<CurveSegmentData::Instance>::downcast(
+            getSubsystem().getDiscreteVariable(state, m_indexDataInst));
+    }
+
+    CurveSegmentData::Instance& updPrevDataInst(State& state) const
+    {
+        return Value<CurveSegmentData::Instance>::updDowncast(
+            getSubsystem().updDiscreteVariable(state, m_indexDataInst));
+    }
+
     const CurveSegmentData::Position& getDataPos(const State& state) const
     {
         return Value<CurveSegmentData::Position>::downcast(
             getSubsystem().getCacheEntry(state, m_indexDataPos));
+    }
+
+    CurveSegmentData::Position& updDataPos(const State& state) const
+    {
+        return Value<CurveSegmentData::Position>::updDowncast(
+            getSubsystem().updCacheEntry(state, m_indexDataPos));
     }
 
     //------------------------------------------------------------------------------
@@ -1380,34 +1408,6 @@ public:
         const std::function<void(Vec3 point_G)>& sink) const;
 
 private:
-    //------------------------------------------------------------------------------
-    // Private Cache Access.
-    //------------------------------------------------------------------------------
-
-    CurveSegmentData::Instance& updDataInst(const State& state) const
-    {
-        return Value<CurveSegmentData::Instance>::updDowncast(
-            getSubsystem().updDiscreteVarUpdateValue(state, m_indexDataInst));
-    }
-
-    const CurveSegmentData::Instance& getPrevDataInst(const State& state) const
-    {
-        return Value<CurveSegmentData::Instance>::downcast(
-            getSubsystem().getDiscreteVariable(state, m_indexDataInst));
-    }
-
-    CurveSegmentData::Instance& updPrevDataInst(State& state) const
-    {
-        return Value<CurveSegmentData::Instance>::updDowncast(
-            getSubsystem().updDiscreteVariable(state, m_indexDataInst));
-    }
-
-    CurveSegmentData::Position& updDataPos(const State& state) const
-    {
-        return Value<CurveSegmentData::Position>::updDowncast(
-            getSubsystem().updCacheEntry(state, m_indexDataPos));
-    }
-
     //------------------------------------------------------------------------------
     // Data
     //------------------------------------------------------------------------------
@@ -2248,7 +2248,7 @@ void calcLineSegments(
         if (!curve.isInContactWithSurface(s)) {
             continue;
         }
-        const CurveSegmentData::Position& dataPos = curve.getDataPos(s);
+        CurveSegmentData::Position& dataPos = curve.updDataPos(s);
 
         // Compute the line segment from the previous point to the
         // first curve contact point.
@@ -2302,7 +2302,7 @@ void calcPathErrorVector(
         if (!curve.isInContactWithSurface(s)) {
             continue;
         }
-        const CurveSegmentData::Position& dataPos = curve.getDataPos(s);
+        CurveSegmentData::Position& dataPos = curve.updDataPos(s);
         // Compute path error at first contact point.
         for (CoordinateAxis axis : axes) {
             pathError(++pathErrorIx) =
@@ -2362,7 +2362,7 @@ void calcPathErrorJacobian(
         if (!curve.isInContactWithSurface(s)) {
             continue;
         }
-        const CurveSegmentData::Position& dataPos = curve.getDataPos(s);
+        CurveSegmentData::Position& dataPos = curve.updDataPos(s);
 
         // Compute the Jacobian elements of the path error related to the
         // initial contact point.
@@ -2388,7 +2388,7 @@ void calcPathErrorJacobian(
 
                 const Vec3 dc_dv_Q = -dc_dv_P;
                 const Mat34& v_Q =
-                    cable.getObstacleCurveSegment(prevObsIx).getDataPos(s).v_Q;
+                    cable.getObstacleCurveSegment(prevObsIx).updDataPos(s).v_Q;
 
                 AddBlock(~v_Q * dc_dv_Q, colShift);
             }
@@ -2421,7 +2421,7 @@ void calcPathErrorJacobian(
 
                 const Vec3 dc_dv_P = -dc_dv_Q;
                 const Mat34& v_P =
-                    cable.getObstacleCurveSegment(nextObsIx).getDataPos(s).v_P;
+                    cable.getObstacleCurveSegment(nextObsIx).updDataPos(s).v_P;
                 AddBlock(~v_P * dc_dv_P, colShift);
             }
             // Increment to the next path error element.
@@ -2469,7 +2469,7 @@ void calcLengthGradient(
         if (!curve.isInContactWithSurface(state)) {
             continue;
         }
-        const CurveSegmentData::Position& dataPos = curve.getDataPos(state);
+        CurveSegmentData::Position& dataPos = curve.updDataPos(state);
 
         // Grab the straight line segment's directions.
         const UnitVec3& e_P = lines.at(lineIx).direction;
@@ -2536,7 +2536,7 @@ void calcLengthHessian(
         if (!curve.isInContactWithSurface(state)) {
             continue;
         }
-        const CurveSegmentData::Position& dataPos  = curve.getDataPos(state);
+        CurveSegmentData::Position& dataPos  = curve.updDataPos(state);
         const CurveSegmentData::Instance& dataInst = curve.getDataInst(state);
 
         // This block computes the Hessian of the straight line segment
@@ -2570,7 +2570,7 @@ void calcLengthHessian(
             if (prevObsIx.isValid()) {
                 constexpr int colShift = -NQ; // the off-diagonal block.
                 const Mat34& v_Q = cable.getObstacleCurveSegment(prevObsIx)
-                                       .getDataPos(state)
+                                       .updDataPos(state)
                                        .v_Q;
                 AddBlock(-~v_P * E * v_Q, colShift);
             }
@@ -2637,7 +2637,7 @@ void calcLengthHessian(
             if (nextObsIx.isValid()) {
                 constexpr int colShift = NQ; // the off-diagonal block.
                 const Mat34& v_P = cable.getObstacleCurveSegment(nextObsIx)
-                                       .getDataPos(state)
+                                       .updDataPos(state)
                                        .v_P;
                 AddBlock(-~v_Q * E * v_P, colShift);
             }
@@ -2670,7 +2670,7 @@ void calcCurveCorrectionStepSize(
     Real allowedAngularDisplacement,
     Real& maxAllowedStepSize)
 {
-    const CurveSegmentData::Position& dataPos = curve.getDataPos(s);
+    CurveSegmentData::Position& dataPos = curve.updDataPos(s);
 
     // Helper for computing the maximum angular displacement estimate given the
     // orientation variation at the boundary frame w.
@@ -3619,8 +3619,26 @@ int CableSubsystem::Impl::realizeSubsystemTopologyImpl(State& state) const
         new Value<CableSpanData::Instance>());
 
     for (CableSpanIndex ix(0); ix < cables.size(); ++ix) {
-        CableSpan& path = mutableThis->updCable(ix);
-        path.updImpl().realizeTopology(state, indexDataInst);
+        CableSpan& cable = mutableThis->updCable(ix);
+        cable.updImpl().realizeTopology(state, indexDataInst);
+    }
+
+    return 0;
+}
+
+int CableSubsystem::Impl::realizeSubsystemPositionImpl(const State& state) const
+{
+    for (CableSpanIndex ix(0); ix < cables.size(); ++ix) {
+        getCable(ix).getImpl().realizePosition(state);
+    }
+
+    return 0;
+}
+
+int CableSubsystem::Impl::realizeSubsystemVelocityImpl(const State& state) const
+{
+    for (CableSpanIndex ix(0); ix < cables.size(); ++ix) {
+        getCable(ix).getImpl().realizeVelocity(state);
     }
 
     return 0;
