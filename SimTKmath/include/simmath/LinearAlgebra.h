@@ -119,7 +119,7 @@ class SimTK_SIMMATH_EXPORT FactorLLT: public Factor {
     /// solves multiple  right hand sides 
     template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const;
 
-    /// returns the inverse of a matrix using an LU factorization
+    /// returns the inverse of a matrix using an LLT (Cholesky) factorization
     template < class ELT > void inverse(  Matrix_<ELT>& m ) const;
 
     /// returns the lower triangle of an LLT factorization 
