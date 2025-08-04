@@ -8,6 +8,7 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* Add LLT (Cholesky) factorization
 * Add quaternion multiplication (Hamilton product) 
 
 
