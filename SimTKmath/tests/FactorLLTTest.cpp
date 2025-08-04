@@ -65,7 +65,29 @@ Real Adata[9] = {
 
 Real Bdata[3] = {1, 2, 3};
 
-Real Xdata[3] =  {244, -42, -1};
+// Checked with matlab
+/*
+format long g
+
+A = [  4,  12, -16;
+      12,  37, -43;
+     -16, -43,  98 ];
+
+b = [1; 2; 3];
+
+% Perform Cholesky factorization and solve
+R = chol(A); 
+disp(R') % For L
+norm(R'*R - A)
+x = R\(R'\b)  
+*/
+
+Real Ldata[9] = {
+    2, 0, 0,
+    6, 1, 0,
+    -8, 5, 3
+};
+Real Xdata[3] = { 28.5833333333333, -7.66666666666667,  1.33333333333333 };
 
 int main () {
     try {
@@ -82,11 +104,17 @@ int main () {
         cout << " Real SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
         ASSERT((x-x_right).norm() < 10*SignificantReal);
 
-        // Reconstruct A from L * L^T and check accuracy
         Matrix L;
         LLT.getL(L);
-        Matrix A_reconstructed = L * ~L;
 
+        // Check that L is correct
+        Matrix L_expected(3, 3, Ldata);
+        Real L_error = (L - L_expected).norm();
+        cout << " L matrix errnorm: " << L_error << endl;
+        ASSERT(L_error < 10 * SignificantReal);
+
+        // Reconstruct A from L * L^T and check accuracy
+        Matrix A_reconstructed = L * ~L;
         Real errNorm = (A_reconstructed - A).norm();
         cout << " Reconstructed A = L * L^T errnorm=" << errNorm << endl;
         ASSERT(errNorm < 10 * SignificantReal);

@@ -128,7 +128,6 @@ private:
    int mn;        // min(m,n)
    int singularIndex;
 
-   TypedWorkSpace<int>  pivots;
    TypedWorkSpace<T>    lu;
 }; // class FactorLLTRep
 } // namespace SimTK

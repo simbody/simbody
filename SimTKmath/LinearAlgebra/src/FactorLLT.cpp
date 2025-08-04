@@ -49,11 +49,20 @@ FactorLLTRepBase* FactorLLTDefault::clone() const {
 ///////////
 // FactorLLT //
 ///////////
-FactorLLT::~FactorLLT() { delete rep; }
-FactorLLT::FactorLLT(): rep(new FactorLLTDefault()) {}
-FactorLLT::FactorLLT(const FactorLLT& c): rep(c.rep->clone()) {}
-FactorLLT& FactorLLT::operator=(const FactorLLT& rhs) {
+FactorLLT::~FactorLLT() {
     delete rep;
+}
+// default constructor
+FactorLLT::FactorLLT() {
+    rep = new FactorLLTDefault();
+}
+
+// copy constructor
+FactorLLT::FactorLLT( const FactorLLT& c ) {
+    rep = c.rep->clone();
+}
+// copy assignment operator
+FactorLLT& FactorLLT::operator=(const FactorLLT& rhs) {
     rep = rhs.rep->clone();
     return *this;
 }
@@ -101,8 +110,7 @@ FactorLLTRep<T>::FactorLLTRep( const Matrix_<ELT>& mat )
       : nRow( mat.nrow() ),
         nCol( mat.ncol() ),
         mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
-        singularIndex(0),
-        pivots(mat.ncol()),             
+        singularIndex(0),          
         lu( mat.nrow()*mat.ncol() )
 { 
     FactorLLTRep<T>::factor( mat );
@@ -112,8 +120,7 @@ FactorLLTRep<T>::FactorLLTRep()
       : nRow(0),
         nCol(0),
         mn(0),
-        singularIndex(0),
-        pivots(0),             
+        singularIndex(0),        
         lu(0)
 {
 }
@@ -140,17 +147,7 @@ void FactorLLTRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) const {
         b.size(), nRow );
 
     x.copyAssign(b);
-/*  TODO after 1.0
-    if( structure == MatrixStructures::Symmetric ) {
-        if( condition == MatrixConditions::PositiveDefinite ) {
-            LapackInterface::potrs<T>( 'L', nCol, 1, lu.data,  &x(0) );
-        } else {
-            LapackInterface::sytrs<T>( 'L', nCol, 1, lu.data, pivots.data, &x(0) );
-        }
-    } else {
-*/
-        LapackInterface::getrs<T>( 'N', nCol, 1, lu.data, pivots.data, &x(0) );
-//    }
+    LapackInterface::potrs<T>( 'L', nCol, 1, lu.data, &x(0) );
 
     return;
 }
@@ -162,21 +159,7 @@ void FactorLLTRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
         b.nrow(), nRow );
 
     x.copyAssign(b);
-
-/* TODO after 1.0
-    if( structure == MatrixStructures::Symmetric ) {
-        const char uplo = 'L';
-        if( condition == MatrixConditions::PositiveDefinite ) {
-            LapackInterface::potrs<T>( uplo, nCol, b.ncol(), lu.data,  &x(0,0) );
-        } else {
-            LapackInterface::sytrs<T>( uplo, nCol, b.ncol(), lu.data, pivots.data, &x(0,0) );
-        }
-    } else {
-*/
-        const char trans = 'N';
-        LapackInterface::getrs<T>( trans, nCol, b.ncol(), lu.data, pivots.data, &x(0,0) );
-//    }
-
+    LapackInterface::potrs<T>( 'L', nCol, b.ncol(), lu.data, &x(0,0) );
     return;
 }
 template <class T> 
