@@ -301,47 +301,43 @@ int main()
     // Add the second via point.
     cable.addViaPoint(cableViaPointBody2, Vec3{0.});
 
-    // Visaulize the system.
+    // Add prescribed motion constraints.
+    Constraint::PrescribedMotion(matter, 
+                                 new Function::Sinusoid(1.0, Pi, 0.0),
+                                 cableOriginBody, MobilizerQIndex(0));
+    Constraint::PrescribedMotion(matter, 
+                                 new Function::Sinusoid(5.0, 1.5 * Pi, 0.0),
+                                 cableOriginBody, MobilizerQIndex(1));
+    Constraint::PrescribedMotion(matter, 
+                                 new Function::Sinusoid(5.0, 2.0 * Pi, 0.0),
+                                 cableOriginBody, MobilizerQIndex(2));
+    Constraint::PrescribedMotion(matter, 
+                                 new Function::Sinusoid(0.5, 1.5 * Pi, 0.5*Pi),
+                                 cableViaPointBody1, MobilizerQIndex(1));
+    Constraint::PrescribedMotion(matter, 
+                                 new Function::Sinusoid(2.0, Pi, 0.0),
+                                 cableViaPointBody2, MobilizerQIndex(2));
+
+    // Visualize the system.
     system.setUseUniformBackground(true); // no ground plane in display
     Visualizer viz(system);
+    viz.setShowFrameNumber(true);
     viz.addDecorationGenerator(new CableDecorator(system, cable));
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.1*1./30));
     ShowStuff showStuff(cables, 1e-3);
 
-    // Initialize the system and s.
+    // Initialize the system and state.
     system.realizeTopology();
     State s = system.getDefaultState();
     system.realize(s, Stage::Position);
 
-    system.realize(s, Stage::Report);
-    viz.report(s);
-    showStuff.handleEvent(s);
-
-    std::cout << "Hit ENTER ..., or q\n";
-    const char ch = getchar();
-    if (ch == 'Q' || ch == 'q') {
-        return 0;
-    }
-
-    Real angle = 0.;
-    while (true) {
-        system.realize(s, Stage::Position);
-        cable.calcLength(s);
-        viz.report(s);
-
-        // Move the cable origin.
-        angle += 0.01;
-        cableOriginBody.setQ(
-            s,
-            Vec3(sin(angle), 5. * sin(angle * 1.5), 5. * sin(angle * 2.)));
-
-        // Move the first via point.
-        cableViaPointBody1.setQ(
-            s,
-            Vec3(0., 0.5 * cos(angle), 0.));
-
-        // Move the second via point.
-        cableViaPointBody2.setQ(
-            s,
-            Vec3(0., 0., 2. * sin(angle)));
-    }
+    // Simulate the system.
+    RungeKuttaMersonIntegrator integ(system);
+    // We need an upper limit on the step size, otherwise the large step sizes
+    // taken by the integrator will cause the cable to pass through the wrapping
+    // obstacles.
+    integ.setMaximumStepSize(1e-2);
+    TimeStepper ts(system, integ);
+    ts.initialize(s);
+    ts.stepTo(5.0);
 }
