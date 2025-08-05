@@ -138,11 +138,11 @@ bool MultibodySystem::hasContactSubsystem() const {
     return getRep().hasContactSubsystem();
 }
 
-const CableSubsystem&       
+const CableSubsystem&
 MultibodySystem::getCableSubsystem() const {
     return getRep().getCableSubsystem();
 }
-CableSubsystem&       
+CableSubsystem&
 MultibodySystem::updCableSubsystem() {
     return updRep().updCableSubsystem();
 }
@@ -239,7 +239,7 @@ int MultibodySystemRep::realizeInstanceImpl(const State& s) const {
 
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemInstance(s);
-    
+
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemInstance(s);
 

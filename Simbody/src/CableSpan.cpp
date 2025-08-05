@@ -1443,6 +1443,7 @@ public:
         int numSamples,
         const std::function<void(Vec3 point_G)>& sink) const;
 
+private:
     //--------------------------------------------------------------------------
     // Data
     //--------------------------------------------------------------------------
@@ -3180,7 +3181,6 @@ void calcLengthHessian(
                 const Mat34& v_Q = cable.getObstacleCurveSegment(prevObsIx)
                                        .updDataPos(state)
                                        .v_Q;
-
                 AddBlock(-~v_P * E * v_Q, colShift);
             }
         }
@@ -3248,7 +3248,6 @@ void calcLengthHessian(
                 const Mat34& v_P = cable.getObstacleCurveSegment(nextObsIx)
                                        .updDataPos(state)
                                        .v_P;
-
                 AddBlock(-~v_Q * E * v_P, colShift);
             }
         }
