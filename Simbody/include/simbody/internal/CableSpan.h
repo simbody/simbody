@@ -6,7 +6,7 @@
 -------------------------------------------------------------------------------
  Copyright (c) 2024 Authors.
  Authors: Pepijn van den Bos
- Contributors:
+ Contributors: Nicholas Bianco
 
  Licensed under the Apache License, Version 2.0 (the "License"); you may
  not use this file except in compliance with the License. You may obtain a
@@ -26,9 +26,14 @@ namespace SimTK
 {
 
 /** @class SimTK::CableSpanObstacleIndex
-This is a unique integer type for identifying obstacles comprising a particular
+This is a unique integer type for identifying obstacles within a particular
 CableSpan. These begin at zero for each CableSpan. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanObstacleIndex);
+
+/** @class SimTK::CableSpanViaPointIndex
+This is a unique integer type for identifying via points within a particular
+CableSpan. These begin at zero for each CableSpan. **/
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanViaPointIndex);
 
 /** @class SimTK::CableSpanIndex
 This is a unique integer type for quickly identifying specific cables for fast
@@ -120,17 +125,18 @@ class CableSubsystemTestHelper;
 
 //==============================================================================
 /** This class represents the path of a frictionless cable from an origin point
-fixed to a body, over geometric obstacles fixed to other bodies, to a final
-termination point.
+fixed to a body, over geometric obstacles and through via points fixed to other 
+bodies, to a final termination point.
 
 The CableSpan's path can be seen as consisting of straight line segments and
 curved line segments: A curved segment over each obstacle, and straight segments
-connecting them to each other and to the end points. Each curved segment is
-computed as a geodesic to give (in some sense) a shortest path over the surface.
-During a simulation the cable can slide freely over the obstacle surfaces. It
-can lose contact with a surface and miss that obstacle in a straight line.
-Similarly the cable can touchdown on the obstacle if the surface obstructs the
-straight line segment again.
+connecting them to each other and to via points and the end points. Each curved 
+segment is computed as a geodesic to give (in some sense) a shortest path over 
+the surface. During a simulation the cable can slide freely over the obstacle 
+surfaces. It can lose contact with a surface and miss that obstacle in a 
+straight line. Similarly the cable can touchdown on the obstacle if the surface 
+obstructs the straight line segment again. The cable will always slide freely 
+through any via points present in the path.
 
 The path is computed as an optimization problem using the previous optimal path
 as the warm start. This is done by computing natural geodesic corrections for
@@ -156,6 +162,13 @@ added to a cable, then, the cable can wrap over the first, then the second, and
 then the third. If the first obstacle spatially collides with the path twice it
 will not actually wrap over it twice. Use CablePath if this is not the desired
 behavior.
+
+When via points are present in the cable, the cable is internally divided into 
+cable segments separated by the via points. Obstacles separated by via points 
+have no interaction when geodesic corrections are applied during optimization,
+and therefore the path for each cable segment is solved independently. This 
+approach is advantageous since cable segments with different sets of wrap 
+obstacles may require a different number of optimization iterations to converge.
 
 Note that a CableSpan is a geometric object, not a force or constraint element.
 That is, a CableSpan alone will not influence the behavior of a simulation.
@@ -232,6 +245,20 @@ public:
     /** Get the number of obstacles added to the path. **/
     int getNumObstacles() const;
 
+    /** Add a via point that the cable's path must pass through.
+    @param viaPointBody The body that the via point is rigidly attached to.
+    @param station_B The via point's station in body fixed coordinates.
+    @return The index of the added via point in this cable. **/
+    CableSpanViaPointIndex addViaPoint(
+        MobilizedBodyIndex viaPointBody, 
+        const Vec3& station_B);
+
+    /** Get the number of via points added to the path. **/
+    int getNumViaPoints() const;
+
+    /** Get the cable's index in the CableSubsystem. **/
+    CableSpanIndex getIndex() const;
+
     ///@}
 
     /** @name End points configuration */
@@ -259,13 +286,36 @@ public:
     /** Set the cable's origin point defined in body fixed coordinates. **/
     void setOriginStation(const Vec3& originStation);
 
-    /** Get the cable's termination point defined in body fixed coordinates.
-    **/
+    /** Get the cable's termination point defined in body fixed coordinates. **/
     Vec3 getTerminationStation() const;
 
-    /** Set the cable's termination point defined in body fixed coordinates.
-    **/
+    /** Set the cable's termination point defined in body fixed coordinates. **/
     void setTerminationStation(const Vec3& terminationStation);
+
+    ///@}
+
+    /** @name End point computations */
+    ///@{
+
+    /** Calculate the unit force exerted by the cable at the cable origin (in
+    ground frame). The force can be obtained by multiplying the result by the
+    cable tension. State must be realized to Stage::Position.
+    @param state State of the system.
+    @param[out] unitForce_G The resulting unit spatial force in ground frame. 
+    **/
+    void calcOriginUnitForce(
+        const State& state,
+        SpatialVec& unitForce_G) const;
+
+    /** Calculate the unit force exerted by the cable at the cable termination
+    (in ground frame). The force can be obtained by multiplying the result by
+    the cable tension. State must be realized to Stage::Position.
+    @param state State of the system.
+    @param[out] unitForce_G The resulting unit spatial force in ground frame. 
+    **/
+    void calcTerminationUnitForce(
+        const State& state,
+        SpatialVec& unitForce_G) const;
 
     ///@}
 
@@ -335,6 +385,38 @@ public:
 
     ///@}
 
+    /** @name Via point configuration */
+    ///@{
+
+    /** Get the index of the mobilized body that the via point is attached to.
+    @param ix The index of the via point in this CableSpan.
+    @return The index of the mobilized body that the via point is attached to. 
+    **/
+    const MobilizedBodyIndex& getViaPointMobilizedBodyIndex(
+        CableSpanViaPointIndex ix) const;
+
+    /** Set the index of the mobilized body that the via point is attached to.
+    @param ix The index of the via point in this CableSpan.
+    @param body The index of the mobilized body that the via point is attached
+    to. **/
+    void setViaPointMobilizedBodyIndex(
+        CableSpanViaPointIndex ix,
+        MobilizedBodyIndex body);
+
+    /** Get the station of the via point in body fixed coordinates.
+    @param ix The index of the via point in this CableSpan.
+    @return The station of the via point in body fixed coordinates. **/
+    Vec3 getViaPointStation(CableSpanViaPointIndex ix) const;
+
+    /** Set the station of the via point in body fixed coordinates.
+    @param ix The index of the via point in this CableSpan.
+    @param station_B The station of the via point in body fixed coordinates. **/
+    void setViaPointStation(
+        CableSpanViaPointIndex ix,
+        const Vec3& station_B); 
+
+    ///@}
+
     /** @name Solver configuration */
     ///@{
 
@@ -359,7 +441,9 @@ public:
     void setSolverMaxIterations(int maxIterations);
 
     /** Number of solver iterations used to compute the current cable's path.
-    State must be realized to Stage::Position.
+    State must be realized to Stage::Position. If via points are present in the
+    cable, the sum of the iterations used to compute the path for each cable
+    segment is returned.
     @param state System State.
     @return Number of solver iterations used. **/
     int getNumSolverIterations(const State& state) const;
@@ -378,6 +462,8 @@ public:
     void setSmoothnessTolerance(Real tolerance);
 
     /** The smoothness of the current cable's path.
+    If via points are present in the cable, the maximum smoothness error across
+    all cable segments is returned.
     See CableSpan::getSmoothnessTolerance.
     State must be realized to Stage::Position. **/
     Real getSmoothness(const State& state) const;
@@ -504,6 +590,41 @@ public:
         int numSamples,
         const std::function<void(Vec3 point_G)>& sink) const;
 
+    /** Calculate the unit force exerted by the cable at the specified obstacle
+    (in ground frame). The force can be obtained by multiplying the result by
+    the cable tension. State must be realized to Stage::Position.
+    @param state State of the system.
+    @param ix The index of the obstacle in this CableSpan.
+    @param[out] unitForce_G The resulting unit spatial force in ground frame. **/
+    void calcCurveSegmentUnitForce(
+        const State& state,
+        CableSpanObstacleIndex ix,
+        SpatialVec& unitForce_G) const;
+
+
+    /** @name Via point computations */
+    ///@{
+
+    /** Compute the location of a via point in the ground frame.
+    State must be realized to Stage::Position.
+    @param state State of the system.
+    @param ix The index of the via point in this CableSpan.
+    @return The location of the via point in the ground frame. **/
+    Vec3 calcViaPointLocation(
+        const State& state, 
+        CableSpanViaPointIndex ix) const;
+
+    /** Calculate the unit force exerted by the cable at the specified via point
+    (in ground frame). The force can be obtained by multiplying the result by
+    the cable tension. State must be realized to Stage::Position.
+    @param state State of the system.
+    @param ix The index of the via point in this CableSpan.
+    @param[out] unitForce_G The resulting unit spatial force in ground frame. **/
+    void calcViaPointUnitForce(
+        const State& state,
+        CableSpanViaPointIndex ix,
+        SpatialVec& unitForce_G) const;
+
     ///@}
 
     /** @cond **/ // Hide from Doxygen.
@@ -607,9 +728,8 @@ public:
     ~CableSubsystemTestHelper() noexcept;
     CableSubsystemTestHelper(const CableSubsystemTestHelper&);
     CableSubsystemTestHelper& operator=(const CableSubsystemTestHelper&);
-    CableSubsystemTestHelper(CableSubsystemTestHelper&&) noexcept = default;
-    CableSubsystemTestHelper& operator=(CableSubsystemTestHelper&&) noexcept =
-        default;
+    CableSubsystemTestHelper(CableSubsystemTestHelper&&) noexcept;
+    CableSubsystemTestHelper& operator=(CableSubsystemTestHelper&&) noexcept;
 
     /** Test the paths of all CableSpan registered in a CableSubsystem.
     State must be realized to Stage::Position.

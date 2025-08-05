@@ -98,6 +98,9 @@ int MultibodySystem::setDecorationSubsystem(DecorationSubsystem& m) {
 int MultibodySystem::setContactSubsystem(GeneralContactSubsystem& m) {
     return updRep().setContactSubsystem(m);
 }
+int MultibodySystem::setCableSubsystem(CableSubsystem& m) {
+    return updRep().setCableSubsystem(m);
+}
 
 const SimbodyMatterSubsystem&       
 MultibodySystem::getMatterSubsystem() const {
@@ -133,6 +136,18 @@ MultibodySystem::updContactSubsystem() {
 }
 bool MultibodySystem::hasContactSubsystem() const {
     return getRep().hasContactSubsystem();
+}
+
+const CableSubsystem&
+MultibodySystem::getCableSubsystem() const {
+    return getRep().getCableSubsystem();
+}
+CableSubsystem&
+MultibodySystem::updCableSubsystem() {
+    return updRep().updCableSubsystem();
+}
+bool MultibodySystem::hasCableSubsystem() const {
+    return getRep().hasCableSubsystem();
 }
 
 const Real
@@ -184,6 +199,10 @@ int MultibodySystemRep::realizeTopologyImpl(State& s) const {
     // we don't know sizes until Model stage.
     getMatterSubsystem().getRep().realizeSubsystemTopology(s);
     getGlobalSubsystem().getRep().realizeSubsystemTopology(s);
+
+    if (hasCableSubsystem())
+        getCableSubsystem().getSubsystemGuts().realizeSubsystemTopology(s);
+
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemTopology(s);
 
@@ -199,6 +218,10 @@ int MultibodySystemRep::realizeModelImpl(State& s) const {
     // Stage::Model dimensions of the Matter subsystem.
     getMatterSubsystem().getRep().realizeSubsystemModel(s);
     getGlobalSubsystem().getRep().realizeSubsystemModel(s);
+
+    if (hasCableSubsystem())
+        getCableSubsystem().getSubsystemGuts().realizeSubsystemModel(s);
+
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemModel(s);
 
@@ -210,6 +233,10 @@ int MultibodySystemRep::realizeModelImpl(State& s) const {
 int MultibodySystemRep::realizeInstanceImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemInstance(s);
     getMatterSubsystem().getRep().realizeSubsystemInstance(s);
+
+    if (hasCableSubsystem())
+        getCableSubsystem().getSubsystemGuts().realizeSubsystemInstance(s);
+
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemInstance(s);
 
@@ -221,6 +248,10 @@ int MultibodySystemRep::realizeInstanceImpl(const State& s) const {
 int MultibodySystemRep::realizeTimeImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemTime(s);
     getMatterSubsystem().getRep().realizeSubsystemTime(s);
+
+    if (hasCableSubsystem())
+        getCableSubsystem().getSubsystemGuts().realizeSubsystemTime(s);
+
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemTime(s);
 
@@ -232,6 +263,10 @@ int MultibodySystemRep::realizeTimeImpl(const State& s) const {
 int MultibodySystemRep::realizePositionImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemPosition(s);
     getMatterSubsystem().getRep().realizeSubsystemPosition(s);
+
+    if (hasCableSubsystem())
+        getCableSubsystem().getSubsystemGuts().realizeSubsystemPosition(s);
+
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemPosition(s);
 
@@ -243,6 +278,10 @@ int MultibodySystemRep::realizePositionImpl(const State& s) const {
 int MultibodySystemRep::realizeVelocityImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemVelocity(s);
     getMatterSubsystem().getRep().realizeSubsystemVelocity(s);
+
+    if (hasCableSubsystem())
+        getCableSubsystem().getSubsystemGuts().realizeSubsystemVelocity(s);
+
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemVelocity(s);
 
@@ -258,6 +297,9 @@ int MultibodySystemRep::realizeDynamicsImpl(const State& s) const {
 
     // This realizes the matter subsystem's dynamic operators; not yet accelerations.
     getMatterSubsystem().getRep().realizeSubsystemDynamics(s);
+
+    if (hasCableSubsystem())
+        getCableSubsystem().getSubsystemGuts().realizeSubsystemDynamics(s);
 
     // Now do forces in case any of them need dynamics-stage operators.
     for (int i=0; i < (int)forceSubs.size(); ++i)
@@ -275,6 +317,9 @@ int MultibodySystemRep::realizeAccelerationImpl(const State& s) const {
     // can depend only on force calculations at Dynamics stage.
     getMatterSubsystem().getRep().realizeSubsystemAcceleration(s);
 
+    if (hasCableSubsystem())
+        getCableSubsystem().getSubsystemGuts().realizeSubsystemAcceleration(s);
+
     // Force elements' realizeAcceleration() methods might depend on 
     // accelerations or multipliers we just calculated. For example, a friction
     // force might record normal forces to use as an initial guess in the
@@ -291,6 +336,10 @@ int MultibodySystemRep::realizeReportImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemReport(s);
 
     getMatterSubsystem().getRep().realizeSubsystemReport(s);
+
+    if (hasCableSubsystem())
+        getCableSubsystem().getSubsystemGuts().realizeSubsystemReport(s);
+
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemReport(s);
 
