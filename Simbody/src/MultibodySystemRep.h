@@ -328,7 +328,9 @@ public:
         return contactSub;
     }
     SubsystemIndex setCableSubsystem(CableSubsystem& c) {
-        assert(!cableSub.isValid());
+        SimTK_ASSERT(!cableSub.isValid(),
+            "MultibodySystemRep::setCableSubsystem(): CableSubsystem is "
+            "invalid.");
         cableSub = adoptSubsystem(c);
         return cableSub;
     }

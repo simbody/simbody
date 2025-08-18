@@ -125,17 +125,17 @@ class CableSubsystemTestHelper;
 
 //==============================================================================
 /** This class represents the path of a frictionless cable from an origin point
-fixed to a body, over geometric obstacles and through via points fixed to other 
+fixed to a body, over geometric obstacles and through via points fixed to other
 bodies, to a final termination point.
 
 The CableSpan's path can be seen as consisting of straight line segments and
 curved line segments: A curved segment over each obstacle, and straight segments
-connecting them to each other and to via points and the end points. Each curved 
-segment is computed as a geodesic to give (in some sense) a shortest path over 
-the surface. During a simulation the cable can slide freely over the obstacle 
-surfaces. It can lose contact with a surface and miss that obstacle in a 
-straight line. Similarly the cable can touchdown on the obstacle if the surface 
-obstructs the straight line segment again. The cable will always slide freely 
+connecting them to each other and to via points and the end points. Each curved
+segment is computed as a geodesic to give (in some sense) a shortest path over
+the surface. During a simulation the cable can slide freely over the obstacle
+surfaces. It can lose contact with a surface and miss that obstacle in a
+straight line. Similarly the cable can touchdown on the obstacle if the surface
+obstructs the straight line segment again. The cable will always slide freely
 through any via points present in the path.
 
 The path is computed as an optimization problem using the previous optimal path
@@ -163,11 +163,11 @@ then the third. If the first obstacle spatially collides with the path twice it
 will not actually wrap over it twice. Use CablePath if this is not the desired
 behavior.
 
-When via points are present in the cable, the cable is internally divided into 
-cable segments separated by the via points. Obstacles separated by via points 
+When via points are present in the cable, the cable is internally divided into
+cable segments separated by the via points. Obstacles separated by via points
 have no interaction when geodesic corrections are applied during optimization,
-and therefore the path for each cable segment is solved independently. This 
-approach is advantageous since cable segments with different sets of wrap 
+and therefore the path for each cable segment is solved independently. This
+approach is advantageous since cable segments with different sets of wrap
 obstacles may require a different number of optimization iterations to converge.
 
 Note that a CableSpan is a geometric object, not a force or constraint element.
@@ -250,7 +250,7 @@ public:
     @param station_B The via point's station in body fixed coordinates.
     @return The index of the added via point in this cable. **/
     CableSpanViaPointIndex addViaPoint(
-        MobilizedBodyIndex viaPointBody, 
+        MobilizedBodyIndex viaPointBody,
         const Vec3& station_B);
 
     /** Get the number of via points added to the path. **/
@@ -301,7 +301,7 @@ public:
     ground frame). The force can be obtained by multiplying the result by the
     cable tension. State must be realized to Stage::Position.
     @param state State of the system.
-    @param[out] unitForce_G The resulting unit spatial force in ground frame. 
+    @param[out] unitForce_G The resulting unit spatial force in ground frame.
     **/
     void calcOriginUnitForce(
         const State& state,
@@ -311,7 +311,7 @@ public:
     (in ground frame). The force can be obtained by multiplying the result by
     the cable tension. State must be realized to Stage::Position.
     @param state State of the system.
-    @param[out] unitForce_G The resulting unit spatial force in ground frame. 
+    @param[out] unitForce_G The resulting unit spatial force in ground frame.
     **/
     void calcTerminationUnitForce(
         const State& state,
@@ -390,7 +390,7 @@ public:
 
     /** Get the index of the mobilized body that the via point is attached to.
     @param ix The index of the via point in this CableSpan.
-    @return The index of the mobilized body that the via point is attached to. 
+    @return The index of the mobilized body that the via point is attached to.
     **/
     const MobilizedBodyIndex& getViaPointMobilizedBodyIndex(
         CableSpanViaPointIndex ix) const;
@@ -413,7 +413,7 @@ public:
     @param station_B The station of the via point in body fixed coordinates. **/
     void setViaPointStation(
         CableSpanViaPointIndex ix,
-        const Vec3& station_B); 
+        const Vec3& station_B);
 
     ///@}
 
@@ -611,7 +611,7 @@ public:
     @param ix The index of the via point in this CableSpan.
     @return The location of the via point in the ground frame. **/
     Vec3 calcViaPointLocation(
-        const State& state, 
+        const State& state,
         CableSpanViaPointIndex ix) const;
 
     /** Calculate the unit force exerted by the cable at the specified via point

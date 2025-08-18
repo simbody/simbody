@@ -309,9 +309,11 @@ struct CableSpanData {
         // Tangent vector to the cable at the termination point, in the ground
         // frame.
         UnitVec3 terminationTangent_G{NaN, NaN, NaN};
-        // Tangent vectors incoming to the via points, in the ground frame.
+        // Tangent vectors to the cable segments incoming to (i.e., immediately
+        // prior to) each via point in the path, in the ground frame.
         Array_<UnitVec3, ViaPointIndex> viaPointInTangents_G;
-        // Tangent vectors outgoing from the via points, in the ground frame.
+        // Tangent vectors to the cable segments outgoing from (i.e.,
+        // immediately following) each via point in the path, in the ground frame.
         Array_<UnitVec3, ViaPointIndex> viaPointOutTangents_G;
         // The total cable length.
         Real cableLength = NaN;
@@ -1647,12 +1649,12 @@ private:
 //==============================================================================
 //                              Cable Segment
 //==============================================================================
-/* This is a helper struct for managing segments of the cable path that are
+/* This is a helper class for managing segments of the cable path that are
 separated by via points. It stores an ordered list of the obstacle indexes
 associated with this segment and indexes to the initial and final via points, if
 they exist. An invalid initial via point index indicates that the segment begins
 with the cable origin point. Similarly, an invalid final via point index
-indicates that the segment ends with the cable termination point. **/
+indicates that the segment ends with the cable termination point. */
 class CableSegment {
 public:
     CableSegment() = default;
@@ -1742,7 +1744,8 @@ private:
     // The indexes to the wrap obstacles belonging to this segment.
     Array_<ObstacleIndex> m_obstacleIndexes;
 
-    // The indexes to the initial and final via points belonging to this segment.
+    // The indexes to the initial and final via points belonging to this
+    // segment.
     ViaPointIndex m_initialViaPointIndex = ViaPointIndex::Invalid();
     ViaPointIndex m_finalViaPointIndex = ViaPointIndex::Invalid();
 
@@ -2552,7 +2555,7 @@ ObstacleIndex CurveSegment::findNextObstacleInContactWithCable(
     // Find the first active obstacle after this curve segment in the current
     // cable segment.
     for (ObstacleIndex ix(m_obstacleIndex + 1);
-            ix < obstacleIndexes.back()+1; ++ix) {
+            ix <= obstacleIndexes.back(); ++ix) {
         const CurveSegment& curveSegment = cable.getObstacleCurveSegment(ix);
         if (curveSegment.isInContactWithSurface(state)) {
             return ix;
@@ -2612,7 +2615,7 @@ Vec3 CurveSegment::findNextPathPoint_G(const State& state) const
     // current cable segment.
     if (!obstacleIndexes.empty()) {
         for (ObstacleIndex ix(m_obstacleIndex + 1);
-                ix < obstacleIndexes.back()+1; ++ix) {
+                ix <= obstacleIndexes.back(); ++ix) {
             const CurveSegment& curveSegment = cable.getObstacleCurveSegment(ix);
             if (curveSegment.isInContactWithSurface(state)) {
                 return curveSegment.calcInitialContactPoint_G(state);

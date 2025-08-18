@@ -224,7 +224,8 @@ void testSimpleCable()
 
     SimTK_ASSERT2_ALWAYS(
         cable.getSmoothness(s) <= cable.getSmoothnessTolerance(),
-        "Test failed: Cable smoothness (=%e) must be smaller than set tolerance (=%e)",
+        "Test failed: Cable smoothness (=%e) must be smaller than set "
+        "tolerance (=%e)",
         cable.getSmoothness(s),
         cable.getSmoothnessTolerance());
 
@@ -251,7 +252,8 @@ void testSimpleCable()
 
         SimTK_ASSERT4_ALWAYS(
             std::abs(gotLength - expectedLength) < lengthTolerance,
-            "%s curve segment length (=%f) does not match expected length (=%f), with error %e",
+            "%s curve segment length (=%f) does not match expected length "
+            "(=%f), with error %e",
             obsNames.at(obsIx).c_str(),
             gotLength,
             expectedLength,
@@ -272,7 +274,8 @@ void testSimpleCable()
     SimTK_ASSERT3_ALWAYS(
         std::abs(expectedTotalCableLength - gotTotalCableLength) <
             lengthTolerance,
-        "Expected cable length (=%f) does not match computed cable length (=%f), error = %e",
+        "Expected cable length (=%f) does not match computed cable length "
+        "(=%f), error = %e",
         expectedTotalCableLength,
         gotTotalCableLength,
         expectedTotalCableLength - gotTotalCableLength);
@@ -297,7 +300,8 @@ void testSimpleCable()
         SimTK_ASSERT1_ALWAYS(
             (expected_X_GP.R().asMat33() - got_X_GP.R().asMat33()).norm() <
                 frenetFrameTolerance,
-            "%s curve segment frame orientation at initial contact point incorrect",
+            "%s curve segment frame orientation at initial contact point "
+            "incorrect",
             obsNames.at(obsIx).c_str());
 
         SimTK_ASSERT1_ALWAYS(
@@ -307,7 +311,8 @@ void testSimpleCable()
         SimTK_ASSERT1_ALWAYS(
             (expected_X_GQ.R().asMat33() - got_X_GQ.R().asMat33()).norm() <
                 frenetFrameTolerance,
-            "%s curve segment frame orientation at final contact point incorrect",
+            "%s curve segment frame orientation at final contact point "
+            "incorrect",
             obsNames.at(obsIx).c_str());
     };
 
@@ -502,7 +507,8 @@ void testViaPoints()
     SimTK_ASSERT3_ALWAYS(
         std::abs(expectedTotalCableLength - gotTotalCableLength) <
             lengthTolerance,
-        "Expected cable length (=%f) does not match computed cable length (=%f), error = %e",
+        "Expected cable length (=%f) does not match computed cable length "
+        "(=%f), error = %e",
         expectedTotalCableLength,
         gotTotalCableLength,
         expectedTotalCableLength - gotTotalCableLength);
@@ -770,14 +776,16 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
                 .norm();
         SimTK_ASSERT2_ALWAYS(
             cableLength > distanceBetweenEndPoints,
-            "Test failed: Cable length (=%f) smaller than distance between end points (=%f)",
+            "Test failed: Cable length (=%f) smaller than distance between end "
+            "points (=%f)",
             cableLength,
             distanceBetweenEndPoints);
 
         // Make sure that we acutally solved the path up to tolerance.
         SimTK_ASSERT2_ALWAYS(
             cable.getSmoothness(s) <= cable.getSmoothnessTolerance(),
-            "Test failed: Cable smoothness (=%e) must be smaller than set tolerance (=%e)",
+            "Test failed: Cable smoothness (=%e) must be smaller than set "
+            "tolerance (=%e)",
             cable.getSmoothness(s),
             cable.getSmoothnessTolerance());
 
@@ -919,7 +927,8 @@ void testTouchdownAndLiftoff()
             const bool expectedContactStatus = yCoord < 0.;
             SimTK_ASSERT4_ALWAYS(
                 gotContactStatus == expectedContactStatus,
-                "Cable %i expected contact status (=%i) does not match computed contact status (=%i) at yCoord = %f",
+                "Cable %i expected contact status (=%i) does not match "
+                "computed contact status (=%i) at yCoord = %f",
                 cableIx,
                 expectedContactStatus,
                 gotContactStatus,
@@ -1027,10 +1036,12 @@ void testSolverOptimum()
 
         SimTK_ASSERT_ALWAYS(
             (expected_p_GP - got_p_GP).norm() < 1e-6,
-            "Scholz2015 algorithm: Curve segment position at initial contact point incorrect");
+            "Scholz2015 algorithm: Curve segment position at initial contact "
+            "point incorrect");
         SimTK_ASSERT_ALWAYS(
             (expected_p_GQ - got_p_GQ).norm() < 1e-6,
-            "Scholz2015 algorithm: Curve segment position at final contact point incorrect");
+            "Scholz2015 algorithm: Curve segment position at final contact "
+            "point incorrect");
     }
 
     // MinimumLength algorithm converges to the shortest possible path as the
@@ -1067,10 +1078,12 @@ void testSolverOptimum()
 
         SimTK_ASSERT_ALWAYS(
             (expected_p_GP - got_p_GP).norm() < 1e-6,
-            "Scholz2015 algorithm: Curve segment position at initial contact point incorrect");
+            "Scholz2015 algorithm: Curve segment position at initial contact "
+            "point incorrect");
         SimTK_ASSERT_ALWAYS(
             (expected_p_GQ - got_p_GQ).norm() < 1e-6,
-            "Scholz2015 algorithm: Curve segment position at final contact point incorrect");
+            "Scholz2015 algorithm: Curve segment position at final contact "
+            "point incorrect");
     }
 }
 
