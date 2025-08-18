@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------------
-                Simbody(tm) Example: Cable Over Smooth Surfaces
+        Simbody(tm) Example: Cable Over Smooth Surfaces and Via Points
 -------------------------------------------------------------------------------
  Copyright (c) 2024 Authors.
  Authors: Pepijn van den Bos
- Contributors:
+ Contributors: Nicholas Bianco
 
  Licensed under the Apache License, Version 2.0 (the "License"); you may
  not use this file except in compliance with the License. You may obtain a
@@ -16,9 +16,9 @@
  limitations under the License.
  ----------------------------------------------------------------------------*/
 
-/* This example is for experimenting with a CableSpan over obstacle surfaces.
-The cable endpoints are manually repositioned to control the next path
-solving problem. */
+/* This example is for experimenting with a CableSpan over obstacle surfaces and
+through via points. The via points and cable endpoints are manually repositioned
+to control the next path solving problem. */
 
 #include "Simbody.h"
 #include "simbody/internal/CableSpan.h"
@@ -147,6 +147,18 @@ public:
             decorations.push_back(DecorativeFrame(0.2).setTransform(
                 m_cable.calcCurveSegmentFinalFrenetFrame(state, ix)));
         }
+
+        for (CableSpanViaPointIndex ix(0); ix < m_cable.getNumViaPoints();
+                ++ix) {
+            // Draw the via point.
+            const Vec3 x_G = m_cable.calcViaPointLocation(state, ix);
+            decorations.push_back(
+                DecorativeSphere(0.1)
+                    .setTransform(x_G)
+                    .setRepresentation(DecorativeGeometry::DrawWireframe)
+                    .setColor(Cyan)
+                    .setOpacity(0.1));
+        }
     }
 
     MultibodySystem* m_mbs;
@@ -181,6 +193,18 @@ int main()
         aBody,
         Transform());
 
+    // Mobilizers for path via points.
+    MobilizedBody::Translation cableViaPointBody1(
+        matter.Ground(),
+        Transform(Vec3(0., 0.9, 0.5)),
+        aBody,
+        Transform());
+    MobilizedBody::Translation cableViaPointBody2(
+        matter.Ground(),
+        Transform(Vec3(15., 0.1, 0.)),
+        aBody,
+        Transform());
+
     // Construct a new cable.
     CableSpan cable(
         cables,
@@ -189,7 +213,7 @@ int main()
         cableTerminationBody,
         Vec3{0.});
 
-    // Add some obstacles to the cable.
+    // Add some obstacles and via points to the cable.
 
     // Add torus obstacle.
     cable.addObstacle(
@@ -209,6 +233,9 @@ int main()
         std::shared_ptr<ContactGeometry>(
             new ContactGeometry::Ellipsoid({1.5, 2.6, 1.})),
         {0.0, 0., 1.1});
+
+    // Add the first via point.
+    cable.addViaPoint(cableViaPointBody1, Vec3{0.});
 
     // Add sphere obstacle.
     cable.addObstacle(
@@ -271,37 +298,46 @@ int main()
             Vec3{0., 0., 1.});
     }
 
-    // Visaulize the system.
+    // Add the second via point.
+    cable.addViaPoint(cableViaPointBody2, Vec3{0.});
+
+    // Add prescribed motion constraints.
+    Constraint::PrescribedMotion(matter, 
+                                 new Function::Sinusoid(1.0, Pi, 0.0),
+                                 cableOriginBody, MobilizerQIndex(0));
+    Constraint::PrescribedMotion(matter, 
+                                 new Function::Sinusoid(5.0, 1.5 * Pi, 0.0),
+                                 cableOriginBody, MobilizerQIndex(1));
+    Constraint::PrescribedMotion(matter, 
+                                 new Function::Sinusoid(5.0, 2.0 * Pi, 0.0),
+                                 cableOriginBody, MobilizerQIndex(2));
+    Constraint::PrescribedMotion(matter, 
+                                 new Function::Sinusoid(0.5, 1.5 * Pi, 0.5*Pi),
+                                 cableViaPointBody1, MobilizerQIndex(1));
+    Constraint::PrescribedMotion(matter, 
+                                 new Function::Sinusoid(2.0, Pi, 0.0),
+                                 cableViaPointBody2, MobilizerQIndex(2));
+
+    // Visualize the system.
     system.setUseUniformBackground(true); // no ground plane in display
     Visualizer viz(system);
+    viz.setShowFrameNumber(true);
     viz.addDecorationGenerator(new CableDecorator(system, cable));
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.1*1./30));
     ShowStuff showStuff(cables, 1e-3);
 
-    // Initialize the system and s.
+    // Initialize the system and state.
     system.realizeTopology();
     State s = system.getDefaultState();
     system.realize(s, Stage::Position);
 
-    system.realize(s, Stage::Report);
-    viz.report(s);
-    showStuff.handleEvent(s);
-
-    std::cout << "Hit ENTER ..., or q\n";
-    const char ch = getchar();
-    if (ch == 'Q' || ch == 'q') {
-        return 0;
-    }
-
-    Real angle = 0.;
-    while (true) {
-        system.realize(s, Stage::Position);
-        cable.calcLength(s);
-        viz.report(s);
-
-        // Move the cable origin.
-        angle += 0.01;
-        cableOriginBody.setQ(
-            s,
-            Vec3(sin(angle), 5. * sin(angle * 1.5), 5. * sin(angle * 2.)));
-    }
+    // Simulate the system.
+    RungeKuttaMersonIntegrator integ(system);
+    // We need an upper limit on the step size, otherwise the large step sizes
+    // taken by the integrator will cause the cable to pass through the wrapping
+    // obstacles.
+    integ.setMaximumStepSize(1e-2);
+    TimeStepper ts(system, integ);
+    ts.initialize(s);
+    ts.stepTo(5.0);
 }
