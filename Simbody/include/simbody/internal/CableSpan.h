@@ -600,7 +600,8 @@ public:
         const State& state,
         CableSpanObstacleIndex ix,
         SpatialVec& unitForce_G) const;
-
+    
+    ///@}
 
     /** @name Via point computations */
     ///@{
