@@ -601,6 +601,7 @@ public:
         CableSpanObstacleIndex ix,
         SpatialVec& unitForce_G) const;
 
+    ///@}
 
     /** @name Via point computations */
     ///@{
