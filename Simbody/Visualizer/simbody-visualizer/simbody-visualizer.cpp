@@ -1570,7 +1570,8 @@ static void redrawDisplay() {
     renderScene(&screenText);
 
     {
-        std::unique_lock<std::mutex> lock(sceneMutex); //------- LOCK SCENE -------
+        //------- LOCK SCENE --------
+        std::unique_lock<std::mutex> lock(sceneMutex);
         // Draw menus.
         // ------------------------------------------------------------
         glDisable(GL_BLEND);
@@ -1595,7 +1596,7 @@ static void redrawDisplay() {
         int slidery = viewHeight-35;
         for (int i = 0; i < (int) sliders.size(); i++)
             slidery = sliders[i].draw(slidery);
-    } /// ------------- UNLOCK SCENE ------------------
+    } // ------------- UNLOCK SCENE ------------------
 
     // Draw the "heads-up" display.
     // ------------------------------------------------------------
