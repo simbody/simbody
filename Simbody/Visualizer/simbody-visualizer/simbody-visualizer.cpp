@@ -1569,29 +1569,34 @@ static void redrawDisplay() {
     std::vector<string> screenText;
     renderScene(&screenText);
 
-    // Draw menus.
-    // ------------------------------------------------------------
-    glDisable(GL_BLEND);
-    glDepthMask(GL_TRUE);
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0, viewWidth, 0, viewHeight);
-    glScalef(1, -1, 1);
-    glTranslatef(0, GLfloat(-viewHeight), 0);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
-    int menux = 10;
-    for (int i = 0; i < (int) menus.size(); i++)
-        menux += menus[i].draw(menux, viewHeight-10);
+    {
+        //------- LOCK SCENE --------
+        std::unique_lock<std::mutex> lock(sceneMutex);
+        // Draw menus.
+        // ------------------------------------------------------------
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        gluOrtho2D(0, viewWidth, 0, viewHeight);
+        glScalef(1, -1, 1);
+        glTranslatef(0, GLfloat(-viewHeight), 0);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+        int menux = 10;
+        for (int i = 0; i < (int) menus.size(); i++) {
+            menux += menus[i].draw(menux, viewHeight-10);
+        }
 
-    // Draw sliders.
-    // ------------------------------------------------------------
-    int slidery = viewHeight-35;
-    for (int i = 0; i < (int) sliders.size(); i++)
-        slidery = sliders[i].draw(slidery);
+        // Draw sliders.
+        // ------------------------------------------------------------
+        int slidery = viewHeight-35;
+        for (int i = 0; i < (int) sliders.size(); i++)
+            slidery = sliders[i].draw(slidery);
+    } // ------------- UNLOCK SCENE ------------------
 
     // Draw the "heads-up" display.
     // ------------------------------------------------------------
