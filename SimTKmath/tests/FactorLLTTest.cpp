@@ -22,9 +22,9 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This is a test program which uses the FactorLLT  class to do an LLT 
- * factorization on a system of linear equations and then use the 
- * factored LLT matrix to solve for a particular right hand side 
+ * This is a test program which uses the FactorLLT  class to do an LLT
+ * factorization on a system of linear equations and then use the
+ * factored LLT matrix to solve for a particular right hand side
  */
 
 /*
@@ -47,21 +47,21 @@ So that A = L * L^T
 
 */
 
-#include "SimTKmath.h"
-
 #include <iostream>
-using std::cout; using std::endl;
 
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
+#include "SimTKmath.h"
+using std::cout;
+using std::endl;
+
+#define ASSERT(cond)                                   \
+    {                                                  \
+        SimTK_ASSERT_ALWAYS(cond, "Assertion failed"); \
+    }
 
 using namespace SimTK;
 
 //  3x3 symmetric positive definite matrix
-Real Adata[9] = {
-    4,  12, -16,
-    12,  37, -43,
-    -16, -43,  98
-};
+Real Adata[9] = {4, 12, -16, 12, 37, -43, -16, -43, 98};
 
 Real Bdata[3] = {1, 2, 3};
 
@@ -76,22 +76,17 @@ A = [  4,  12, -16;
 b = [1; 2; 3];
 
 % Perform Cholesky factorization and solve
-R = chol(A); 
+R = chol(A);
 disp(R') % For L
 norm(R'*R - A)
-x = R\(R'\b)  
+x = R\(R'\b)
 */
 
-Real Ldata[9] = {
-    2, 0, 0,
-    6, 1, 0,
-    -8, 5, 3
-};
-Real Xdata[3] = { 28.5833333333333, -7.66666666666667,  1.33333333333333 };
+Real Ldata[9] = {2, 0, 0, 6, 1, 0, -8, 5, 3};
+Real Xdata[3] = {28.5833333333333, -7.66666666666667, 1.33333333333333};
 
-int main () {
+int main() {
     try {
-
         Matrix A(3, 3, Adata);
 
         Vector b(3, Bdata);
@@ -101,8 +96,9 @@ int main () {
         // Perform LLT factorization and solve
         FactorLLT LLT(A);
         LLT.solve(b, x);
-        cout << " Real SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
-        ASSERT((x-x_right).norm() < 10*SignificantReal);
+        cout << " Real SOLUTION: " << x << "  errnorm=" << (x - x_right).norm()
+             << endl;
+        ASSERT((x - x_right).norm() < 10 * SignificantReal);
 
         Matrix L;
         LLT.getL(L);
@@ -126,5 +122,3 @@ int main () {
 
     return 0;
 }
-
-

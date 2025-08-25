@@ -21,34 +21,31 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
- /**@file
+/**@file
  *
  * Solves LLT (Cholesky) factorization of real symmetric positive-definite
  * matrices
  */
 
-#include "SimTKcommon.h"
-#include "LapackInterface.h"
-#include "LapackConvert.h"
-#include "simmath/internal/common.h"
-#include "simmath/LinearAlgebra.h"
-#include "LapackInterface.h"
 #include "FactorLLTRep.h"
+#include "LapackConvert.h"
+#include "LapackInterface.h"
+#include "SimTKcommon.h"
 #include "WorkSpace.h"
+#include "simmath/LinearAlgebra.h"
+#include "simmath/internal/common.h"
 
 namespace SimTK {
 
-///////////////
 // FactorLLTDefault
-///////////////
-FactorLLTDefault::FactorLLTDefault() { isFactored = false; }
+FactorLLTDefault::FactorLLTDefault() {
+    isFactored = false;
+}
 FactorLLTRepBase* FactorLLTDefault::clone() const {
     return new FactorLLTDefault(*this);
 }
 
-///////////
-// FactorLLT //
-///////////
+// FactorLLT
 FactorLLT::~FactorLLT() {
     delete rep;
 }
@@ -58,7 +55,7 @@ FactorLLT::FactorLLT() {
 }
 
 // copy constructor
-FactorLLT::FactorLLT( const FactorLLT& c ) {
+FactorLLT::FactorLLT(const FactorLLT& c) {
     rep = c.rep->clone();
 }
 // copy assignment operator
@@ -68,220 +65,258 @@ FactorLLT& FactorLLT::operator=(const FactorLLT& rhs) {
 }
 
 template <typename ELT>
-void FactorLLT::inverse( Matrix_<ELT>& inverse ) const {
-    rep->inverse( inverse );
+void FactorLLT::inverse(Matrix_<ELT>& inverse) const {
+    rep->inverse(inverse);
 }
 
-
-template < class ELT >
-FactorLLT::FactorLLT( const Matrix_<ELT>& m ) {
+template <class ELT>
+FactorLLT::FactorLLT(const Matrix_<ELT>& m) {
     rep = new FactorLLTRep<typename CNT<ELT>::StdNumber>(m);
 }
 
-template < class ELT >
-void FactorLLT::factor( const Matrix_<ELT>& m ) {
+template <class ELT>
+void FactorLLT::factor(const Matrix_<ELT>& m) {
     delete rep;
     rep = new FactorLLTRep<typename CNT<ELT>::StdNumber>(m);
 }
 
-template < typename ELT >
-void FactorLLT::solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const {
-    rep->solve( b, x );
+template <typename ELT>
+void FactorLLT::solve(const Vector_<ELT>& b, Vector_<ELT>& x) const {
+    rep->solve(b, x);
     return;
 }
-template < class ELT >
-void FactorLLT::solve(  const Matrix_<ELT>& b, Matrix_<ELT>& x ) const {
-    rep->solve(  b, x );
+template <class ELT>
+void FactorLLT::solve(const Matrix_<ELT>& b, Matrix_<ELT>& x) const {
+    rep->solve(b, x);
     return;
 }
-template < class ELT >
-void FactorLLT::getL( Matrix_<ELT>& m) const {
-    rep->getL( m );
+template <class ELT>
+void FactorLLT::getL(Matrix_<ELT>& m) const {
+    rep->getL(m);
     return;
 }
 
-//////////////////
-// FactorLLTRep 
-//////////////////
+// FactorLLTRep
 
-template <typename T >
-    template < typename ELT >
-FactorLLTRep<T>::FactorLLTRep( const Matrix_<ELT>& mat ) 
-      : nRow( mat.nrow() ),
-        nCol( mat.ncol() ),
-        mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
-        singularIndex(0),          
-        lu( mat.nrow()*mat.ncol() )
-{ 
-    FactorLLTRep<T>::factor( mat );
+template <typename T>
+template <typename ELT>
+FactorLLTRep<T>::FactorLLTRep(const Matrix_<ELT>& mat)
+    : nRow(mat.nrow()),
+      nCol(mat.ncol()),
+      mn((mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol()),
+      singularIndex(0),
+      l(mat.nrow() * mat.ncol()) {
+    FactorLLTRep<T>::factor(mat);
 }
-template <typename T >
-FactorLLTRep<T>::FactorLLTRep() 
-      : nRow(0),
-        nCol(0),
-        mn(0),
-        singularIndex(0),        
-        lu(0)
-{
-}
-template <typename T >
+template <typename T>
+FactorLLTRep<T>::FactorLLTRep()
+    : nRow(0), nCol(0), mn(0), singularIndex(0), l(0) {}
+template <typename T>
 FactorLLTRep<T>::~FactorLLTRep() {}
- 
-template <typename T >
+
+template <typename T>
 FactorLLTRepBase* FactorLLTRep<T>::clone() const {
-   return( new FactorLLTRep<T>(*this) );
+    return (new FactorLLTRep<T>(*this));
 }
-template < class T >
-void FactorLLTRep<T>::inverse(  Matrix_<T>& inverse ) const {
-    Matrix_<T> iden(mn,mn);
-    iden.resize(mn,mn);
+template <class T>
+void FactorLLTRep<T>::inverse(Matrix_<T>& inverse) const {
+    Matrix_<T> iden(mn, mn);
+    iden.resize(mn, mn);
     iden = 1.0;
-    solve( iden, inverse );
+    solve(iden, inverse);
 }
 
-template < class T >
-void FactorLLTRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) const {
-
-    SimTK_APIARGCHECK2_ALWAYS(b.size()==nRow,"FactorLLT","solve",
-       "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n",
-        b.size(), nRow );
+template <class T>
+void FactorLLTRep<T>::solve(const Vector_<T>& b, Vector_<T>& x) const {
+    SimTK_APIARGCHECK2_ALWAYS(b.size() == nRow, "FactorLLT", "solve",
+                              "number of rows in right hand side=%d does not "
+                              "match number of rows in original matrix=%d \n",
+                              b.size(), nRow);
 
     x.copyAssign(b);
-    LapackInterface::potrs<T>( 'L', nCol, 1, lu.data, &x(0) );
+    LapackInterface::potrs<T>('L', nCol, 1, l.data, &x(0));
 
     return;
 }
-template <typename T >
-void FactorLLTRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
-
-    SimTK_APIARGCHECK2_ALWAYS(b.nrow()==nRow,"FactorLLT","solve",
-       "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n",
-        b.nrow(), nRow );
+template <typename T>
+void FactorLLTRep<T>::solve(const Matrix_<T>& b, Matrix_<T>& x) const {
+    SimTK_APIARGCHECK2_ALWAYS(b.nrow() == nRow, "FactorLLT", "solve",
+                              "number of rows in right hand side=%d does not "
+                              "match number of rows in original matrix=%d \n",
+                              b.nrow(), nRow);
 
     x.copyAssign(b);
-    LapackInterface::potrs<T>( 'L', nCol, b.ncol(), lu.data, &x(0,0) );
+    LapackInterface::potrs<T>('L', nCol, b.ncol(), l.data, &x(0, 0));
     return;
 }
-template <class T> 
-    template<typename ELT>
-void FactorLLTRep<T>::factor(const Matrix_<ELT>&mat )  {
+template <class T>
+template <typename ELT>
+void FactorLLTRep<T>::factor(const Matrix_<ELT>& mat) {
+    SimTK_APIARGCHECK2_ALWAYS(
+        mat.nelt() > 0, "FactorLLT", "factor",
+        "Can't factor a matrix that has a zero dimension -- got %d X %d.",
+        (int)mat.nrow(), (int)mat.ncol());
 
-    SimTK_APIARGCHECK2_ALWAYS(mat.nelt() > 0,"FactorLLT","factor",
-       "Can't factor a matrix that has a zero dimension -- got %d X %d.",
-       (int)mat.nrow(), (int)mat.ncol());
-    
     // initialize the matrix we pass to LAPACK
-    // converts (negated,conjugated etc.) to LAPACK format 
-    LapackConvert::convertMatrixToLapack( lu.data, mat );
-
+    // converts (negated,conjugated etc.) to LAPACK format
+    LapackConvert::convertMatrixToLapack(l.data, mat);
 
     int lda = nRow;
     int info;
 
-    LapackInterface::potrf<T>('L', nCol, lu.data, lda, info);
-    if( info > 0 ) 
-        singularIndex = info; // matrix is singular info = i when U(i,i) is exactly zero
-    else 
+    LapackInterface::potrf<T>('L', nCol, l.data, lda, info);
+    if (info > 0)
+        singularIndex =
+            info;  // matrix is singular info = i when U(i,i) is exactly zero
+    else
         singularIndex = 0;
-
 }
 
-template <typename T >
-void FactorLLTRep<T>::getL( Matrix_<T>& m) const {
-    int i,j;
-      
-    m.resize( nRow, nCol ); 
+template <typename T>
+void FactorLLTRep<T>::getL(Matrix_<T>& m) const {
+    int i, j;
+
+    m.resize(nRow, nCol);
 
     for (int i = 0; i < nRow; ++i) {
         for (int j = 0; j <= i; ++j) {
-            m(i,j) = lu.data[j*nRow + i]; // lower-triangle 
+            m(i, j) = l.data[j * nRow + i];  // lower-triangle
         }
-        for (int j = i+1; j < nCol; ++j) {
-            m(i,j) = 0; // upper-triangle is zero
+        for (int j = i + 1; j < nCol; ++j) {
+            m(i, j) = 0;  // upper-triangle is zero
         }
     }
 }
 
-
-/////////////
 // Explicit instantiations
-/////////////
 
-// instantiate
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<double>& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<float>& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<std::complex<float> >& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<std::complex<double> >& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<conjugate<float> >& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<conjugate<double> >& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<negator< double> >& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<negator< float> >& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<negator< std::complex<float> > >& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<negator< std::complex<double> > >& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<negator< conjugate<float> > >& m );
-template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT( const Matrix_<negator< conjugate<double> > >& m );
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(const Matrix_<double>& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(const Matrix_<float>& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(
+    const Matrix_<std::complex<float> >& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(
+    const Matrix_<std::complex<double> >& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(
+    const Matrix_<conjugate<float> >& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(
+    const Matrix_<conjugate<double> >& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(
+    const Matrix_<negator<double> >& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(
+    const Matrix_<negator<float> >& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(
+    const Matrix_<negator<std::complex<float> > >& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(
+    const Matrix_<negator<std::complex<double> > >& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(
+    const Matrix_<negator<conjugate<float> > >& m);
+template SimTK_SIMMATH_EXPORT FactorLLT::FactorLLT(
+    const Matrix_<negator<conjugate<double> > >& m);
 
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<double>& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<float>& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<std::complex<float> >& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<std::complex<double> >& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<conjugate<float> >& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<conjugate<double> >& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<negator< double> >& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<negator< float> >& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<negator< std::complex<float> > >& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<negator< std::complex<double> > >& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<negator< conjugate<float> > >& m );
-template SimTK_SIMMATH_EXPORT void FactorLLT::factor( const Matrix_<negator< conjugate<double> > >& m );
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(const Matrix_<double>& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(const Matrix_<float>& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(
+    const Matrix_<std::complex<float> >& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(
+    const Matrix_<std::complex<double> >& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(
+    const Matrix_<conjugate<float> >& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(
+    const Matrix_<conjugate<double> >& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(
+    const Matrix_<negator<double> >& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(
+    const Matrix_<negator<float> >& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(
+    const Matrix_<negator<std::complex<float> > >& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(
+    const Matrix_<negator<std::complex<double> > >& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(
+    const Matrix_<negator<conjugate<float> > >& m);
+template SimTK_SIMMATH_EXPORT void FactorLLT::factor(
+    const Matrix_<negator<conjugate<double> > >& m);
 
 template class FactorLLTRep<double>;
-template FactorLLTRep<double>::FactorLLTRep( const Matrix_<double>& m);
-template FactorLLTRep<double>::FactorLLTRep( const Matrix_<negator<double> >& m);
-template void FactorLLTRep<double>::factor( const Matrix_<double>& m);
-template void FactorLLTRep<double>::factor( const Matrix_<negator<double> >& m);
+template FactorLLTRep<double>::FactorLLTRep(const Matrix_<double>& m);
+template FactorLLTRep<double>::FactorLLTRep(const Matrix_<negator<double> >& m);
+template void FactorLLTRep<double>::factor(const Matrix_<double>& m);
+template void FactorLLTRep<double>::factor(const Matrix_<negator<double> >& m);
 
 template class FactorLLTRep<float>;
-template FactorLLTRep<float>::FactorLLTRep( const Matrix_<float>& m);
-template FactorLLTRep<float>::FactorLLTRep( const Matrix_<negator<float> >& m);
-template void FactorLLTRep<float>::factor( const Matrix_<float>& m);
-template void FactorLLTRep<float>::factor( const Matrix_<negator<float> >& m);
+template FactorLLTRep<float>::FactorLLTRep(const Matrix_<float>& m);
+template FactorLLTRep<float>::FactorLLTRep(const Matrix_<negator<float> >& m);
+template void FactorLLTRep<float>::factor(const Matrix_<float>& m);
+template void FactorLLTRep<float>::factor(const Matrix_<negator<float> >& m);
 
 template class FactorLLTRep<std::complex<double> >;
-template FactorLLTRep<std::complex<double> >::FactorLLTRep( const Matrix_<std::complex<double> >& m);
-template FactorLLTRep<std::complex<double> >::FactorLLTRep( const Matrix_<negator<std::complex<double> > >& m);
-template FactorLLTRep<std::complex<double> >::FactorLLTRep( const Matrix_<conjugate<double> >& m);
-template FactorLLTRep<std::complex<double> >::FactorLLTRep( const Matrix_<negator<conjugate<double> > >& m);
-template void FactorLLTRep<std::complex<double> >::factor( const Matrix_<std::complex<double> >& m);
-template void FactorLLTRep<std::complex<double> >::factor( const Matrix_<negator<std::complex<double> > >& m);
-template void FactorLLTRep<std::complex<double> >::factor( const Matrix_<conjugate<double> >& m);
-template void FactorLLTRep<std::complex<double> >::factor( const Matrix_<negator<conjugate<double> > >& m);
+template FactorLLTRep<std::complex<double> >::FactorLLTRep(
+    const Matrix_<std::complex<double> >& m);
+template FactorLLTRep<std::complex<double> >::FactorLLTRep(
+    const Matrix_<negator<std::complex<double> > >& m);
+template FactorLLTRep<std::complex<double> >::FactorLLTRep(
+    const Matrix_<conjugate<double> >& m);
+template FactorLLTRep<std::complex<double> >::FactorLLTRep(
+    const Matrix_<negator<conjugate<double> > >& m);
+template void FactorLLTRep<std::complex<double> >::factor(
+    const Matrix_<std::complex<double> >& m);
+template void FactorLLTRep<std::complex<double> >::factor(
+    const Matrix_<negator<std::complex<double> > >& m);
+template void FactorLLTRep<std::complex<double> >::factor(
+    const Matrix_<conjugate<double> >& m);
+template void FactorLLTRep<std::complex<double> >::factor(
+    const Matrix_<negator<conjugate<double> > >& m);
 
 template class FactorLLTRep<std::complex<float> >;
-template FactorLLTRep<std::complex<float> >::FactorLLTRep( const Matrix_<std::complex<float> >& m);
-template FactorLLTRep<std::complex<float> >::FactorLLTRep( const Matrix_<negator<std::complex<float> > >& m);
-template FactorLLTRep<std::complex<float> >::FactorLLTRep( const Matrix_<conjugate<float> >& m);
-template FactorLLTRep<std::complex<float> >::FactorLLTRep( const Matrix_<negator<conjugate<float> > >& m);
-template void FactorLLTRep<std::complex<float> >::factor( const Matrix_<std::complex<float> >& m);
-template void FactorLLTRep<std::complex<float> >::factor( const Matrix_<negator<std::complex<float> > >& m);
-template void FactorLLTRep<std::complex<float> >::factor( const Matrix_<conjugate<float> >& m);
-template void FactorLLTRep<std::complex<float> >::factor( const Matrix_<negator<conjugate<float> > >& m);
+template FactorLLTRep<std::complex<float> >::FactorLLTRep(
+    const Matrix_<std::complex<float> >& m);
+template FactorLLTRep<std::complex<float> >::FactorLLTRep(
+    const Matrix_<negator<std::complex<float> > >& m);
+template FactorLLTRep<std::complex<float> >::FactorLLTRep(
+    const Matrix_<conjugate<float> >& m);
+template FactorLLTRep<std::complex<float> >::FactorLLTRep(
+    const Matrix_<negator<conjugate<float> > >& m);
+template void FactorLLTRep<std::complex<float> >::factor(
+    const Matrix_<std::complex<float> >& m);
+template void FactorLLTRep<std::complex<float> >::factor(
+    const Matrix_<negator<std::complex<float> > >& m);
+template void FactorLLTRep<std::complex<float> >::factor(
+    const Matrix_<conjugate<float> >& m);
+template void FactorLLTRep<std::complex<float> >::factor(
+    const Matrix_<negator<conjugate<float> > >& m);
 
-template SimTK_SIMMATH_EXPORT void FactorLLT::getL<float>(Matrix_<float>&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::getL<double>(Matrix_<double>&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::getL<std::complex<float> >(Matrix_<std::complex<float> >&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::getL<std::complex<double> >(Matrix_<std::complex<double> >&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::solve<float>(const Vector_<float>&, Vector_<float>&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::solve<double>(const Vector_<double>&, Vector_<double>&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::solve<std::complex<float> >(const Vector_<std::complex<float> >&, Vector_<std::complex<float> >&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::solve<std::complex<double> >(const Vector_<std::complex<double> >&, Vector_<std::complex<double> >&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::solve<float>(const Matrix_<float>&, Matrix_<float>&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::solve<double>(const Matrix_<double>&, Matrix_<double>&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::solve<std::complex<float> >(const Matrix_<std::complex<float> >&, Matrix_<std::complex<float> >&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::solve<std::complex<double> >(const Matrix_<std::complex<double> >&, Matrix_<std::complex<double> >&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::inverse<float>(Matrix_<float>&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::inverse<double>(Matrix_<double>&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::inverse<std::complex<float> >(Matrix_<std::complex<float> >&) const;
-template SimTK_SIMMATH_EXPORT void FactorLLT::inverse<std::complex<double> >(Matrix_<std::complex<double> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::getL<float>(
+    Matrix_<float>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::getL<double>(
+    Matrix_<double>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::getL<std::complex<float> >(
+    Matrix_<std::complex<float> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::getL<std::complex<double> >(
+    Matrix_<std::complex<double> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::solve<float>(
+    const Vector_<float>&, Vector_<float>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::solve<double>(
+    const Vector_<double>&, Vector_<double>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::solve<std::complex<float> >(
+    const Vector_<std::complex<float> >&, Vector_<std::complex<float> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::solve<std::complex<double> >(
+    const Vector_<std::complex<double> >&,
+    Vector_<std::complex<double> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::solve<float>(
+    const Matrix_<float>&, Matrix_<float>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::solve<double>(
+    const Matrix_<double>&, Matrix_<double>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::solve<std::complex<float> >(
+    const Matrix_<std::complex<float> >&, Matrix_<std::complex<float> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::solve<std::complex<double> >(
+    const Matrix_<std::complex<double> >&,
+    Matrix_<std::complex<double> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::inverse<float>(
+    Matrix_<float>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::inverse<double>(
+    Matrix_<double>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::inverse<std::complex<float> >(
+    Matrix_<std::complex<float> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLLT::inverse<std::complex<double> >(
+    Matrix_<std::complex<double> >&) const;
 
-
-} // namespace SimTK
+}  // namespace SimTK
