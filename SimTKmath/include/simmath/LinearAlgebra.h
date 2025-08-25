@@ -99,6 +99,41 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
 
 }; // class FactorLU
 
+/**
+ * Class for performing LLT (Cholesky) matrix factorizations
+ */
+class SimTK_SIMMATH_EXPORT FactorLLT : public Factor {
+   public:
+    ~FactorLLT();
+
+    FactorLLT();
+    FactorLLT(const FactorLLT& c);
+    FactorLLT& operator=(const FactorLLT& rhs);
+
+    template <class ELT>
+    FactorLLT(const Matrix_<ELT>& m);
+    /// factors a matrix
+    template <class ELT>
+    void factor(const Matrix_<ELT>& m);
+    /// solves a single right hand side
+    template <class ELT>
+    void solve(const Vector_<ELT>& b, Vector_<ELT>& x) const;
+    /// solves multiple  right hand sides
+    template <class ELT>
+    void solve(const Matrix_<ELT>& b, Matrix_<ELT>& x) const;
+
+    /// returns the inverse of a matrix using an LLT (Cholesky) factorization
+    template <class ELT>
+    void inverse(Matrix_<ELT>& m) const;
+
+    /// returns the lower triangle of an LLT factorization
+    template <class ELT>
+    void getL(Matrix_<ELT>& l) const;
+
+   protected:
+    class FactorLLTRepBase* rep;
+
+};  // class FactorLLT
 
 class FactorQTZRepBase;
 /**
