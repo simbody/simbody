@@ -31,15 +31,16 @@
 #include <iterator>
 #include <iostream>
 
-namespace SimTK {
-
 // These are declared but never defined; all TinyXML code is hidden.
-class TiXmlNode;
-class TiXmlElement;
-class TiXmlAttribute;
-class TiXmlText;
-class TiXmlComment;
-class TiXmlUnknown;
+namespace tinyxml2 {
+    class XMLNode;
+    class XMLElement;
+    class XMLAttribute;
+    class XMLText;
+    class XMLComment;
+    class XMLUnknown;
+}
+namespace SimTK {
 
 /** This namespace contains Xml::Document and all the related XML classes. **/
 namespace Xml {
@@ -611,21 +612,21 @@ bool operator!=(const Attribute& attr) const {return tiAttr!=attr.tiAttr;}
 friend class attribute_iterator;
 friend class Element;
 
-explicit Attribute(TiXmlAttribute* attr) {tiAttr=attr;}
-const TiXmlAttribute& getTiAttr() const {assert(tiAttr);return *tiAttr;}
-TiXmlAttribute&       updTiAttr()       {assert(tiAttr);return *tiAttr;}
+explicit Attribute(tinyxml2::XMLAttribute* attr) {tiAttr=attr;}
+const tinyxml2::XMLAttribute& getTiAttr() const {assert(tiAttr);return *tiAttr;}
+tinyxml2::XMLAttribute&       updTiAttr()       {assert(tiAttr);return *tiAttr;}
 
 // Careful; this does not clear the handle before replacing the pointer
 // so should not be used if this could be the owner handle of an attribute
 // that hasn't ever been added to a document. It is intended for use by
 // iterators, whose contained Attributes can never be owners.
-void                  setTiAttrPtr(TiXmlAttribute* attr) {tiAttr=attr;}
-const TiXmlAttribute* getTiAttrPtr() const {return tiAttr;}
-TiXmlAttribute*       updTiAttrPtr()       {return tiAttr;}
+void                  setTiAttrPtr(tinyxml2::XMLAttribute* attr) {tiAttr=attr;}
+const tinyxml2::XMLAttribute* getTiAttrPtr() const {return tiAttr;}
+tinyxml2::XMLAttribute*       updTiAttrPtr()       {return tiAttr;}
 
 Attribute& unconst() const {return *const_cast<Attribute*>(this);}
 
-TiXmlAttribute* tiAttr; // this is the lone data member
+tinyxml2::XMLAttribute* tiAttr; // this is the lone data member
 };
 
 /** Output a textual representation of the given Xml::Attribute to an
@@ -711,7 +712,7 @@ bool operator!=(const attribute_iterator& other) const
                                   private:
 friend class Element;
 
-explicit attribute_iterator(TiXmlAttribute* ap) : attr(ap) {}
+explicit attribute_iterator(tinyxml2::XMLAttribute* ap) : attr(ap) {}
 
 Attribute       attr;   // the lone data member
 };
@@ -859,17 +860,17 @@ bool operator!=(const Node& other) const {return other.tiNode!=tiNode;}
 //------------------------------------------------------------------------------
                                  protected:
 /** @cond **/ // don't let Doxygen see these
-explicit Node(TiXmlNode* tiNode) : tiNode(tiNode) {}
+explicit Node(tinyxml2::XMLNode* tiNode) : tiNode(tiNode) {}
 
-const TiXmlNode& getTiNode() const {assert(tiNode);return *tiNode;}
-TiXmlNode&       updTiNode()       {assert(tiNode);return *tiNode;}
+const tinyxml2::XMLNode& getTiNode() const {assert(tiNode);return *tiNode;}
+tinyxml2::XMLNode&       updTiNode()       {assert(tiNode);return *tiNode;}
 
 // Careful: these "Ptr" methods provide raw access to the contained
 // pointer without any cleanup or error checking. In particular,
 // setTiNodePtr() does not attempt to delete the current contents.
-void setTiNodePtr(TiXmlNode* node) {tiNode=node;}
-const TiXmlNode* getTiNodePtr() const {return tiNode;}
-TiXmlNode*       updTiNodePtr()       {return tiNode;}
+void setTiNodePtr(tinyxml2::XMLNode* node) {tiNode=node;}
+const tinyxml2::XMLNode* getTiNodePtr() const {return tiNode;}
+tinyxml2::XMLNode*       updTiNodePtr()       {return tiNode;}
 /** @endcond **/
 
 //------------------------------------------------------------------------------
@@ -883,7 +884,7 @@ friend class Element;
 
 Node& unconst() const {return *const_cast<Node*>(this);}
 
-TiXmlNode*      tiNode; // the lone data member
+tinyxml2::XMLNode*      tiNode; // the lone data member
 };
 
 /** Output a "pretty printed" textual representation of the given XML
@@ -945,9 +946,9 @@ bool operator!=(const node_iterator& other) const {return other.node!=node;}
 
 //------------------------------------------------------------------------------
                                  protected:
-explicit node_iterator(TiXmlNode* tiNode, NodeType allowed=AnyNodes)
+explicit node_iterator(tinyxml2::XMLNode* tiNode, NodeType allowed=AnyNodes)
 :   node(tiNode), allowed(allowed) {}
-void reassign(TiXmlNode* tiNode)
+void reassign(tinyxml2::XMLNode* tiNode)
 {   node.setTiNodePtr(tiNode); }
 
 //------------------------------------------------------------------------------
@@ -1007,10 +1008,10 @@ bool operator!=(const element_iterator& other) const
                                    private:
 friend class Element;
 
-explicit element_iterator(TiXmlElement* tiElt, const String& tag="")
-:   node_iterator((TiXmlNode*)tiElt, ElementNode), tag(tag) {}
-void reassign(TiXmlElement* tiElt)
-{   upcast().reassign((TiXmlNode*)tiElt); }
+explicit element_iterator(tinyxml2::XMLElement* tiElt, const String& tag="")
+:   node_iterator((tinyxml2::XMLNode*)tiElt, ElementNode), tag(tag) {}
+void reassign(tinyxml2::XMLElement* tiElt)
+{   upcast().reassign((tinyxml2::XMLNode*)tiElt); }
 
 const node_iterator& upcast() const
 {   return *static_cast<const node_iterator*>(this); }
@@ -1441,23 +1442,23 @@ static Element& getAs(Node& node);
 friend class Node;
 friend class element_iterator;
 
-explicit Element(TiXmlElement* tiElt)
-:   Node(reinterpret_cast<TiXmlNode*>(tiElt)) {}
+explicit Element(tinyxml2::XMLElement* tiElt)
+:   Node(reinterpret_cast<tinyxml2::XMLNode*>(tiElt)) {}
 
-TiXmlElement& updTiElement()
-{   return reinterpret_cast<TiXmlElement&>(updTiNode()); }
-const TiXmlElement& getTiElement() const
-{   return reinterpret_cast<const TiXmlElement&>(getTiNode()); }
+tinyxml2::XMLElement& updTiElement()
+{   return reinterpret_cast<tinyxml2::XMLElement&>(updTiNode()); }
+const tinyxml2::XMLElement& getTiElement() const
+{   return reinterpret_cast<const tinyxml2::XMLElement&>(getTiNode()); }
 
 // Careful: these "Ptr" methods provide raw access to the contained
 // pointer without any cleanup or error checking. In particular,
 // setTiElementPtr() does not attempt to delete the current contents.
-const TiXmlElement* getTiElementPtr() const
-{   return reinterpret_cast<const TiXmlElement*>(getTiNodePtr()); }
-TiXmlElement*       updTiElementPtr()
-{   return reinterpret_cast<TiXmlElement*>(updTiNodePtr()); }
-void                setTiElementPtr(TiXmlElement* elt)
-{   setTiNodePtr(reinterpret_cast<TiXmlNode*>(elt)); }
+const tinyxml2::XMLElement* getTiElementPtr() const
+{   return reinterpret_cast<const tinyxml2::XMLElement*>(getTiNodePtr()); }
+tinyxml2::XMLElement*       updTiElementPtr()
+{   return reinterpret_cast<tinyxml2::XMLElement*>(updTiNodePtr()); }
+void                setTiElementPtr(tinyxml2::XMLElement* elt)
+{   setTiNodePtr(reinterpret_cast<tinyxml2::XMLNode*>(elt)); }
 
 Element& unconst() const {return *const_cast<Element*>(this);}
 
@@ -1501,10 +1502,11 @@ Text clone() const;
 
 /** Obtain a const reference to the String holding the value of this Text
 **/
-const String& getText() const;
+const SimTK::String getText() const;
 /** Obtain a writable reference to the String holding the value of this Text
 node; this can be used to alter the value. **/
-String& updText();
+void setText(const SimTK::String& newText);
+
 
 /**@name              Conversion to Text from Node
 If you have a handle to a Node, such as would be returned by a node_iterator,
@@ -1524,8 +1526,8 @@ static Text& getAs(Node& node);
                                    private:
 // no data members; see Node
 
-explicit Text(TiXmlText* tiText)
-:   Node(reinterpret_cast<TiXmlNode*>(tiText)) {}
+explicit Text(tinyxml2::XMLText* tiText)
+:   Node(reinterpret_cast<tinyxml2::XMLNode*>(tiText)) {}
 };
 
 
@@ -1569,8 +1571,8 @@ static Comment& getAs(Node& node);
                                    private:
 // no data members; see Node
 
-explicit Comment(TiXmlComment* tiComment)
-:   Node(reinterpret_cast<TiXmlNode*>(tiComment)) {}
+explicit Comment(tinyxml2::XMLComment* tiComment)
+:   Node(reinterpret_cast<tinyxml2::XMLNode*>(tiComment)) {}
 };
 
 
@@ -1629,8 +1631,8 @@ static Unknown& getAs(Node& node);
                                    private:
 // no data members; see Node
 
-explicit Unknown(TiXmlUnknown* tiUnknown)
-:   Node(reinterpret_cast<TiXmlNode*>(tiUnknown)) {}
+explicit Unknown(tinyxml2::XMLUnknown* tiUnknown)
+:   Node(reinterpret_cast<tinyxml2::XMLNode*>(tiUnknown)) {}
 };
 
 } // end of namespace Xml

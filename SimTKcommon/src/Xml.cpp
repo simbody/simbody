@@ -26,20 +26,24 @@
 #include "SimTKcommon/internal/Plugin.h"
 #include "SimTKcommon/internal/Xml.h"
 
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 using namespace SimTK;
 
 // Handy helper for weeding out unwanted nodes.
-static bool nodeTypeIsAllowed(Xml::NodeType       allowed,
-                              TiXmlNode::NodeType found) {
-    switch(found) {
-    case TiXmlNode::ELEMENT: return (allowed & Xml::ElementNode)!=0;
-    case TiXmlNode::TEXT:    return (allowed & Xml::TextNode)   !=0;
-    case TiXmlNode::COMMENT: return (allowed & Xml::CommentNode)!=0;
-    case TiXmlNode::UNKNOWN: return (allowed & Xml::UnknownNode)!=0;
-    default: return false;
-    }
+static bool nodeTypeIsAllowed(Xml::NodeType allowed, tinyxml2::XMLNode* found) {
+    if (!found) return false;
+
+    if (found->ToElement())
+        return (allowed & Xml::ElementNode) != 0;
+    else if (found->ToText())
+        return (allowed & Xml::TextNode) != 0;
+    else if (found->ToComment())
+        return (allowed & Xml::CommentNode) != 0;
+    else if (found->ToUnknown())
+        return (allowed & Xml::UnknownNode) != 0;
+
+    return false;
 }
 
 // This is an Xml namespace-scope free function.
@@ -95,7 +99,7 @@ public:
     }
 
     void setIndentString(const String& indent)
-    {   m_tixml.SetIndentString(indent); }
+    {   m_tixml.setIndentString(indent); }
     const String& getIndentString() const
     {   return m_tixml.GetIndentString(); }
 
@@ -124,7 +128,7 @@ public:
     }
 
     void writeToString(String& xmlDocument, bool compact) const {
-        TiXmlPrinter printer(xmlDocument);
+        tinyxml2::XMLPrinter printer(xmlDocument);
         if (compact) printer.SetStreamPrinting();
         else printer.SetIndent(m_tixml.GetIndentChars());
         m_tixml.Accept( &printer );
@@ -136,21 +140,21 @@ public:
     // is no top-level text and only one top-level element and that is the 
     // "root" element whose tag name is the document type.
     void canonicalizeDocument() {
-        TiXmlDeclaration* decl = addDeclarationIfNeeded();
-        TiXmlElement*     root = addRootElementIfNeeded();
+        tinyxml2::XMLDeclaration* decl = addDeclarationIfNeeded();
+        tinyxml2::XMLElement*     root = addRootElementIfNeeded();
 
         m_rootElement.setTiNodePtr(root);
     }
 
-    const TiXmlDeclaration& getTiXmlDeclaration() const {
-        const TiXmlNode* decl = m_tixml.FirstChild();
-        assert(decl && decl->Type()==TiXmlNode::DECLARATION);
+    const ::tinyxml2::XMLDeclaration& gettinyxml2::XMLDeclaration() const {
+        const tinyxml2::XMLNode* decl = m_tixml.FirstChild();
+        assert(decl && decl->Type()==tinyxml2::XMLNode::DECLARATION);
         return *decl->ToDeclaration();
     }
 
-    TiXmlDeclaration& updTiXmlDeclaration() {
-        TiXmlNode* decl = m_tixml.FirstChild();
-        assert(decl && decl->Type()==TiXmlNode::DECLARATION);
+    tinyxml2::XMLDeclaration& updtinyxml2::XMLDeclaration() {
+        tinyxml2::XMLNode* decl = m_tixml.FirstChild();
+        assert(decl && decl->Type()==tinyxml2::XMLNode::DECLARATION);
         return *decl->ToDeclaration();
     }
 
@@ -164,19 +168,19 @@ public:
     // If not, we'll create a default one and put it first. Either way we
     // return a pointer to the declaration which will now be the first
     // node in the Xml document.
-    TiXmlDeclaration* addDeclarationIfNeeded() {
-        TiXmlNode* child=m_tixml.FirstChild();
-        if (child && child->Type() == TiXmlNode::DECLARATION)
+    ::tinyxml2::XMLDeclaration* addDeclarationIfNeeded() {
+        tinyxml2::XMLNode* child=m_tixml.FirstChild();
+        if (child && child->Type() == tinyxml2::XMLNode::DECLARATION)
             return child->ToDeclaration(); // the easy and most common case
 
         // Otherwise hunt for the declaration.
         for (; child; child=child->NextSibling())
-            if (child->Type() == TiXmlNode::DECLARATION)
+            if (child->Type() == tinyxml2::XMLNode::DECLARATION)
                 break;
 
         if (child)
             m_tixml.DisconnectChild(child); // it's in the wrong place
-        else child = new TiXmlDeclaration("1.0", "UTF-8", "");
+        else child = new tinyxml2::XMLDeclaration("1.0", "UTF-8", "");
 
         // Insert new node as the first in the document.
         m_tixml.LinkBeginChild(child);
@@ -189,12 +193,12 @@ public:
     // surround top-level comments and unknowns if they occur between the text
     // and elements. A pointer to the root element (whether original or added) 
     // is returned.
-    TiXmlElement* addRootElementIfNeeded() {
+    tinyxml2::XMLElement* addRootElementIfNeeded() {
         // Find the first element or text node, and remember the node that
         // preceded it since that's where we may be inserting the new root
         // element.
-        TiXmlNode* nodeBeforeFirst = 0;
-        TiXmlNode* firstEltOrText = m_tixml.FirstChild();
+        tinyxml2::XMLNode* nodeBeforeFirst = 0;
+        tinyxml2::XMLNode* firstEltOrText = m_tixml.FirstChild();
         while (  firstEltOrText && 
                !(firstEltOrText->ToElement()||firstEltOrText->ToText()))
         {   nodeBeforeFirst = firstEltOrText;
@@ -203,7 +207,7 @@ public:
         if (!firstEltOrText) {
             // No top level element or text node. We'll just append an empty
             // _Root element to the end of whatever's there.
-            TiXmlElement* root = new TiXmlElement("_Root");
+            tinyxml2::XMLElement* root = new tinyxml2::XMLElement("_Root");
             m_tixml.LinkEndChild(root);
             return root;
         }
@@ -212,7 +216,7 @@ public:
         // first one is pointed to by firstEltOrText, and the node just before 
         // that (if any) is pointed to by nodeBeforeFirst. Now find the last 
         // top-level element or text node.
-        TiXmlNode* lastEltOrText = m_tixml.LastChild();
+        tinyxml2::XMLNode* lastEltOrText = m_tixml.LastChild();
         while (  lastEltOrText && 
                !(lastEltOrText->ToElement()||lastEltOrText->ToText()))
             lastEltOrText = lastEltOrText->PreviousSibling();
@@ -228,12 +232,12 @@ public:
         // Now we know there is top-level text or more than one top-level
         // element so we are going to have to surround everything between
         // first and last with a new root element.
-        TiXmlElement* root = new TiXmlElement("_Root");
+        tinyxml2::XMLElement* root = new tinyxml2::XMLElement("_Root");
 
-        TiXmlNode* nextToMove = firstEltOrText;
+        tinyxml2::XMLNode* nextToMove = firstEltOrText;
         while(true) {
             assert(nextToMove); // can't happen!
-            TiXmlNode* moveMe = nextToMove;
+            tinyxml2::XMLNode* moveMe = nextToMove;
             nextToMove = moveMe->NextSibling();
             root->LinkEndChild(m_tixml.DisconnectChild(moveMe));
             // Did we just move the last element or text node?
@@ -248,10 +252,10 @@ public:
         return root;
     }
 
-    // The Tiny XML "document" is a TiXmlNode representing the entire XML 
+    // The Tiny XML "document" is a tinyxml2::XMLNode representing the entire XML 
     // object. We instead represent the document as an object of class Xml 
     // which is not itself a Node.
-    TiXmlDocument   m_tixml;
+    ::tinyxml2::XMLDocument   m_tixml;
 
     // This references the root element withing the TinyXml document. It
     // is filled in when the document is initially canonicalized.
@@ -322,9 +326,9 @@ const String& Xml::Document::getIndentString() const
 {   return getImpl().getIndentString(); }
 
 /*static*/void Xml::Document::setXmlCondenseWhiteSpace(bool shouldCondense)
-{   TiXmlBase::SetCondenseWhiteSpace(shouldCondense); }
+{   tinyxml2::XMLBase::SetCondenseWhiteSpace(shouldCondense); }
 /*static*/bool Xml::Document::isXmlWhiteSpaceCondensed()
-{   return TiXmlBase::IsWhiteSpaceCondensed(); }
+{   return tinyxml2::XMLBase::IsWhiteSpaceCondensed(); }
 
 Xml::Element Xml::Document::getRootElement() 
 {   assert(getImpl().m_rootElement.isValid());
@@ -424,31 +428,31 @@ removeTopLevelNode(const Xml::node_iterator& removeThis) {
         " can be removed at the topmost document level.",
         removeThis->getNodeTypeAsString().c_str());
 
-    TiXmlNode* p = updImpl().m_tixml.DisconnectChild(removeThis->updTiNodePtr());
+    tinyxml2::XMLNode* p = updImpl().m_tixml.DisconnectChild(removeThis->updTiNodePtr());
     return Node(p);
 }
 
 
 String Xml::Document::getXmlVersion() const 
-{   return getImpl().getTiXmlDeclaration().Version(); }
+{   return getImpl().gettinyxml2::XMLDeclaration().Version(); }
 String Xml::Document::getXmlEncoding() const 
-{   return getImpl().getTiXmlDeclaration().Encoding(); }
+{   return getImpl().gettinyxml2::XMLDeclaration().Encoding(); }
 bool Xml::Document::getXmlIsStandalone() const 
-{   return String::toLower(getImpl().getTiXmlDeclaration().Standalone())!="no"; }
+{   return String::toLower(getImpl().gettinyxml2::XMLDeclaration().Standalone())!="no"; }
 
 void Xml::Document::setXmlVersion(const String& version)
-{   updImpl().updTiXmlDeclaration().SetVersion(version.c_str()); }
+{   updImpl().updtinyxml2::XMLDeclaration().SetVersion(version.c_str()); }
 void Xml::Document::setXmlEncoding(const String& encoding)
-{   updImpl().updTiXmlDeclaration().SetEncoding(encoding.c_str()); }
+{   updImpl().updtinyxml2::XMLDeclaration().SetEncoding(encoding.c_str()); }
 // For the standalone case we set the string to "" rather than "yes" so that
 // the standalone attribute won't appear in the output declaration.
 void Xml::Document::setXmlIsStandalone(bool isStandalone)
-{   updImpl().updTiXmlDeclaration().SetStandalone(isStandalone ? "" : "no"); }
+{   updImpl().updtinyxml2::XMLDeclaration().SetStandalone(isStandalone ? "" : "no"); }
 
 
     // XML node_begin()
 Xml::node_iterator Xml::Document::node_begin(NodeType allowed) {
-    TiXmlNode* first = updImpl().m_tixml.FirstChild();
+    tinyxml2::XMLNode* first = updImpl().m_tixml.FirstChild();
     while (first && !nodeTypeIsAllowed(allowed, first->Type()))
         first = first->NextSibling();
     return node_iterator(first, allowed);
@@ -464,7 +468,7 @@ Xml::node_iterator Xml::Document::node_end() const
 //                              XML ATTRIBUTE
 //------------------------------------------------------------------------------
 Xml::Attribute::Attribute(const String& name, const String& value) 
-:   tiAttr(new TiXmlAttribute(name,value)) {}
+:   tiAttr(new tinyxml2::XMLAttribute(name,value)) {}
 
 void Xml::Attribute::clear() {
     tiAttr = 0;
@@ -480,7 +484,7 @@ void Xml::Attribute::clearOrphan() {
 }
 
 // Note that the criteria for orphanhood is that the referenced 
-// TiXmlAttr is not in a document. 
+// tinyxml2::XMLAttr is not in a document. 
 bool Xml::Attribute::isOrphan() const
 {   if (!isValid()) return false; // empty handle not considered an orphan
     return tiAttr->GetDocument() == 0; }
@@ -518,7 +522,7 @@ void Xml::Attribute::writeToString(String& out) const {
 //------------------------------------------------------------------------------
 Xml::attribute_iterator& Xml::attribute_iterator::
 operator++() {
-    TiXmlAttribute* next = attr.updTiAttr().Next();
+    tinyxml2::XMLAttribute* next = attr.updTiAttr().Next();
     attr.setTiAttrPtr(next);
     return *this;
 }
@@ -526,14 +530,14 @@ operator++() {
 Xml::attribute_iterator Xml::attribute_iterator::
 operator++(int) {
     Attribute save(attr);
-    TiXmlAttribute* next = attr.updTiAttr().Next();
+    tinyxml2::XMLAttribute* next = attr.updTiAttr().Next();
     attr.setTiAttrPtr(next);
     return attribute_iterator(save);
 }
 
 Xml::attribute_iterator& Xml::attribute_iterator::
 operator--() {
-    TiXmlAttribute* prev = attr.updTiAttr().Previous();
+    tinyxml2::XMLAttribute* prev = attr.updTiAttr().Previous();
     attr.setTiAttrPtr(prev);
     return *this;
 }
@@ -541,7 +545,7 @@ operator--() {
 Xml::attribute_iterator Xml::attribute_iterator::
 operator--(int) {
     Attribute save(attr);
-    TiXmlAttribute* prev = attr.updTiAttr().Previous();
+    tinyxml2::XMLAttribute* prev = attr.updTiAttr().Previous();
     attr.setTiAttrPtr(prev);
     return attribute_iterator(save);
 }
@@ -552,7 +556,7 @@ operator--(int) {
 //                                 XML NODE
 //------------------------------------------------------------------------------                  
 Xml::Node Xml::Node::clone() const {
-    TiXmlNode* newNode = 0;
+    tinyxml2::XMLNode* newNode = 0;
     if (tiNode) newNode = tiNode->Clone();
     return Node(newNode);
 }
@@ -578,10 +582,10 @@ void Xml::Node::clearOrphan() {
 Xml::NodeType Xml::Node::getNodeType() const {
     if (!isValid()) return NoNode;
     switch(getTiNode().Type()) {
-    case TiXmlNode::COMMENT: return CommentNode;
-    case TiXmlNode::UNKNOWN: return UnknownNode;
-    case TiXmlNode::TEXT:    return TextNode;
-    case TiXmlNode::ELEMENT: return ElementNode;
+    case tinyxml2::XMLNode::COMMENT: return CommentNode;
+    case tinyxml2::XMLNode::UNKNOWN: return UnknownNode;
+    case tinyxml2::XMLNode::TEXT:    return TextNode;
+    case tinyxml2::XMLNode::ELEMENT: return ElementNode;
     default: SimTK_ASSERT1_ALWAYS(false,
         "Xml::Node::getNodeType(): can't convert TinyXML node type %s to any"
         " SimTK::Xml node type.", getTiNode().TypeName());
@@ -602,13 +606,13 @@ const String& Xml::Node::getNodeText() const {
 
 bool Xml::Node::isTopLevelNode() const 
 {   if (!isValid()) return false;
-    const TiXmlNode& n = getTiNode();
+    const tinyxml2::XMLNode& n = getTiNode();
     return n.Parent() && n.Parent() == n.GetDocument(); }
 
-// Note that the criteria for orphanhood is that the *TiXmlNode* has no
+// Note that the criteria for orphanhood is that the *tinyxml2::XMLNode* has no
 // parent. In SimTK::Xml, none of the top-level nodes are considered to have
 // a parent since the Xml document is not a node there, while in TinyXML
-// the TiXmlDocument is a TiXmlNode, so even top-level nodes have a parent.
+// the tinyxml2::XMLDocument is a tinyxml2::XMLNode, so even top-level nodes have a parent.
 bool Xml::Node::isOrphan() const
 {   if (!isValid()) return false; // empty handle not considered an orphan
     return getTiNode().Parent() == 0; }
@@ -619,14 +623,14 @@ writeToString(String& out, bool compact) const {
         out = "<!-- EMPTY NODE -->";
         return;
     }
-    TiXmlPrinter printer(out);
+    tinyxml2::XMLPrinter printer(out);
     if (compact) printer.SetStreamPrinting();
     getTiNode().Accept( &printer );
 }
 
 bool Xml::Node::hasParentElement() const 
 {   if (!isValid()) return false;
-    const TiXmlNode* parent = getTiNode().Parent();
+    const tinyxml2::XMLNode* parent = getTiNode().Parent();
     return parent && parent->ToElement(); }
 
 Xml::Element Xml::Node::getParentElement() {
@@ -643,7 +647,7 @@ Xml::Element Xml::Node::getParentElement() {
 //------------------------------------------------------------------------------
 Xml::node_iterator& Xml::node_iterator::
 operator++() {
-    TiXmlNode* next = node.updTiNode().NextSibling();
+    tinyxml2::XMLNode* next = node.updTiNode().NextSibling();
     while (next && !nodeTypeIsAllowed(allowed, next->Type()))
         next = next->NextSibling();
     node = Node(next);
@@ -653,7 +657,7 @@ operator++() {
 Xml::node_iterator Xml::node_iterator::
 operator++(int) {
     Node save(node);
-    TiXmlNode* next = node.updTiNode().NextSibling();
+    tinyxml2::XMLNode* next = node.updTiNode().NextSibling();
     while (next && !nodeTypeIsAllowed(allowed, next->Type()))
         next = next->NextSibling();
     node = Node(next);
@@ -662,7 +666,7 @@ operator++(int) {
 
 Xml::node_iterator& Xml::node_iterator::
 operator--() {
-    TiXmlNode* prev = node.updTiNode().PreviousSibling();
+    tinyxml2::XMLNode* prev = node.updTiNode().PreviousSibling();
     while (prev && !nodeTypeIsAllowed(allowed, prev->Type()))
         prev = prev->PreviousSibling();
     node = Node(prev);
@@ -672,7 +676,7 @@ operator--() {
 Xml::node_iterator Xml::node_iterator::
 operator--(int) {
     Node save(node);
-    TiXmlNode* prev = node.updTiNode().PreviousSibling();
+    tinyxml2::XMLNode* prev = node.updTiNode().PreviousSibling();
     while (prev && !nodeTypeIsAllowed(allowed, prev->Type()))
         prev = prev->PreviousSibling();
     node = Node(prev);
@@ -687,20 +691,20 @@ operator--(int) {
 
 // Handy helper for weeding out unwanted nodes and elements.
 static bool elementIsAllowed(const String& tag,
-                             const TiXmlElement* elt) {
+                             const tinyxml2::XMLElement* elt) {
     if (elt==0) return false;
     return tag.empty() || elt->ValueStr() == tag;
 }
 
 Xml::Element::Element(const String& tag, const String& value) 
-:   Node(new TiXmlElement(tag)) {
+:   Node(new tinyxml2::XMLElement(tag)) {
     if (value.empty()) return;
     // We need to add a Text node.
-    updTiElement().LinkEndChild(new TiXmlText(value));
+    updTiElement().LinkEndChild(new tinyxml2::XMLText(value));
 }
 
 Xml::Element Xml::Element::clone() const {
-    TiXmlElement* newElt = 0;
+    tinyxml2::XMLElement* newElt = 0;
     if (getTiElementPtr()) newElt = getTiElementPtr()->Clone()->ToElement();
     return Element(newElt);
 }
@@ -735,7 +739,7 @@ String& Xml::Element::updValue() {
     if (text != node_end()) return Text::getAs(*text).updText();
 
     // We need to add a Text node.
-    TiXmlText* textp = new TiXmlText("");
+    tinyxml2::XMLText* textp = new tinyxml2::XMLText("");
     updTiElement().LinkEndChild(textp);
     return textp->UpdValueStr();
 }
@@ -747,7 +751,7 @@ void Xml::Element::setValue(const String& value) {
         "Element <%s> is not a value element.", getElementTag().c_str());
 
     node_iterator text = node_begin(TextNode);
-    if (text == node_end()) updTiNode().LinkEndChild(new TiXmlText(value));
+    if (text == node_end()) updTiNode().LinkEndChild(new tinyxml2::XMLText(value));
     else                    text->updTiNode().SetValue(value);
 }
 
@@ -840,7 +844,7 @@ void Xml::Element::insertNodeBefore(const node_iterator& beforeThis, Node node) 
         "The supplied node_iterator referred to a node that was not a"
         "child node of this Element <%s>.", tag);
 
-    TiXmlNode* p = beforeThis->updTiNodePtr();
+    tinyxml2::XMLNode* p = beforeThis->updTiNodePtr();
     updTiNode().LinkBeforeChild(p, node.updTiNodePtr());
 }
 
@@ -864,8 +868,8 @@ void Xml::Element::insertNodeAfter(const node_iterator& afterThis, Node node) {
         "The supplied node_iterator referred to a node that was not a"
         "child node of this Element <%s>.", tag);
 
-    TiXmlNode* p = afterThis->updTiNodePtr();
-    updTiNode().LinkAfterChild(p, node.updTiNodePtr());
+    tinyxml2::XMLNode* p = afterThis->updTiNodePtr();
+    updTiNode().LinkEndChild(p, node.updTiNodePtr());
 }
 
 void Xml::Element::eraseNode(const Xml::node_iterator& deleteThis) {
@@ -893,13 +897,13 @@ Xml::Node Xml::Element::removeNode(const Xml::node_iterator& removeThis) {
                         && removeThis->getParentElement()==*this, method,
         "The node_iterator did not refer to a child of this Element.");
 
-    TiXmlNode* p = updTiElement().DisconnectChild(removeThis->updTiNodePtr());
+    tinyxml2::XMLNode* p = updTiElement().DisconnectChild(removeThis->updTiNodePtr());
     return Xml::Node(p);
 }
 
     // Element node_begin()
 Xml::node_iterator Xml::Element::node_begin(NodeType allowed) {
-    TiXmlNode* first = updTiNode().FirstChild();
+    tinyxml2::XMLNode* first = updTiNode().FirstChild();
     while (first && !nodeTypeIsAllowed(allowed, first->Type()))
         first = first->NextSibling();
     return node_iterator(first, allowed);
@@ -912,7 +916,7 @@ Xml::node_iterator Xml::Element::node_end() const
     // Element begin()
 Xml::element_iterator Xml::Element::
 element_begin(const String& tag) {
-    TiXmlElement* first = updTiNode().FirstChildElement();
+    tinyxml2::XMLElement* first = updTiNode().FirstChildElement();
     while (first && !elementIsAllowed(tag, first))
         first = first->NextSiblingElement();
     return element_iterator(first, tag);
@@ -923,11 +927,11 @@ Xml::element_iterator Xml::Element::element_end() const
 {   return element_iterator(0);}
 
     // Attribute begin()
-Xml::attribute_iterator Xml::Element::
-attribute_begin() {
-    TiXmlAttribute* first = updTiElement().FirstAttribute();
+Xml::attribute_iterator Xml::Element::attribute_begin() {
+    const tinyxml2::XMLAttribute* first = getTiElement().FirstAttribute();
     return attribute_iterator(first);
 }
+
 
     // Attribute end()
 Xml::attribute_iterator Xml::Element::
@@ -941,7 +945,7 @@ attribute_end() const
 //------------------------------------------------------------------------------
 Xml::element_iterator& Xml::element_iterator::
 operator++() {
-    TiXmlElement* next = (*this)->updTiElement().NextSiblingElement();
+    tinyxml2::XMLElement* next = (*this)->updTiElement().NextSiblingElement();
     while (next && !elementIsAllowed(tag,next))
         next = next->NextSiblingElement();
     reassign(next);
@@ -951,7 +955,7 @@ operator++() {
 Xml::element_iterator Xml::element_iterator::
 operator++(int) {
     Element save(*(*this));
-    TiXmlElement* next = (*this)->updTiElement().NextSiblingElement();
+    tinyxml2::XMLElement* next = (*this)->updTiElement().NextSiblingElement();
     while (next && !elementIsAllowed(tag,next))
         next = next->NextSiblingElement();
     reassign(next);
@@ -960,7 +964,7 @@ operator++(int) {
 
 Xml::element_iterator& Xml::element_iterator::
 operator--() {
-    TiXmlElement* prev = (*this)->updTiElement().PreviousSiblingElement();
+    tinyxml2::XMLElement* prev = (*this)->updTiElement().PreviousSiblingElement();
     while (prev && !elementIsAllowed(tag,prev))
         prev = prev->PreviousSiblingElement();
     reassign(prev);
@@ -970,7 +974,7 @@ operator--() {
 Xml::element_iterator Xml::element_iterator::
 operator--(int) {
     Element save(*(*this));
-    TiXmlElement* prev = (*this)->updTiElement().PreviousSiblingElement();
+    tinyxml2::XMLElement* prev = (*this)->updTiElement().PreviousSiblingElement();
     while (prev && !elementIsAllowed(tag,prev))
         prev = prev->PreviousSiblingElement();
     reassign(prev);
@@ -983,19 +987,23 @@ operator--(int) {
 //------------------------------------------------------------------------------
 //                             XML TEXT NODE
 //------------------------------------------------------------------------------
-Xml::Text::Text(const String& text) : Node(new TiXmlText(text)) {}
+Xml::Text::Text(const String& text) : Node(new tinyxml2::XMLDocument(text)) {}
 
 
 Xml::Text Xml::Text::clone() const {
-    TiXmlText* newText = 0;
-    if (getTiNodePtr()) newText = getTiNodePtr()->Clone()->ToText();
-    return Xml::Text(newText);
+    tinyxml2::XMLDocument* newText = 0;
+    if (getTiNodePtr()) getTiNodePtr()->ShallowClone(newText)->ToText();
+    return newText->ToText();
 }
 
-const String& Xml::Text::getText() const
-{   return getTiNode().ValueStr(); }
-String& Xml::Text::updText()
-{   return updTiNode().UpdValueStr(); }
+const SimTK::String Xml::Text::getText() const {
+    return SimTK::String(getTiNode().Value());
+}
+
+void Xml::Text::setText(const SimTK::String& newText) {
+    updTiNode().SetValue(newText.c_str());
+}
+
 
 /*static*/ bool Xml::Text::isA(const Xml::Node& node) 
 {   if (!node.isValid()) return false;
@@ -1018,13 +1026,23 @@ String& Xml::Text::updText()
 //------------------------------------------------------------------------------
 //                           XML COMMENT NODE
 //------------------------------------------------------------------------------
-Xml::Comment::Comment(const String& text) : Node(new TiXmlComment(text)) {}
+Xml::Comment::Comment(const String& text) : Node(new tinyxml2::XMLDocument(text)) {}
 
 Xml::Comment Xml::Comment::clone() const {
-    TiXmlComment* newComment = 0;
-    if (getTiNodePtr()) newComment = getTiNodePtr()->Clone()->ToComment();
+    ::tinyxml2::XMLComment* newComment = nullptr;
+
+    if (getTiNodePtr()) {
+        const ::tinyxml2::XMLComment* oldComment = getTiNodePtr()->ToComment();
+        ::tinyxml2::XMLDocument* doc = const_cast<::tinyxml2::XMLDocument*>(
+            getTiNodePtr()->GetDocument());
+
+        if (oldComment && doc)
+            newComment = oldComment->ShallowClone(doc)->ToComment();
+    }
+
     return Xml::Comment(newComment);
 }
+
 
 /*static*/ bool Xml::Comment::isA(const Xml::Node& node) 
 {   if (!node.isValid()) return false;
@@ -1047,14 +1065,24 @@ Xml::Comment Xml::Comment::clone() const {
 //------------------------------------------------------------------------------
 //                           XML UNKNOWN NODE
 //------------------------------------------------------------------------------
-Xml::Unknown::Unknown(const String& contents) : Node(new TiXmlUnknown()) 
+Xml::Unknown::Unknown(const String& contents) : Node(new tinyxml2::XMLDocument()) 
 {   updTiNode().SetValue(contents); }
 
 Xml::Unknown Xml::Unknown::clone() const {
-    TiXmlUnknown* newUnknown = 0;
-    if (getTiNodePtr()) newUnknown = getTiNodePtr()->Clone()->ToUnknown();
+    ::tinyxml2::XMLUnknown* newUnknown = nullptr;
+
+    if (getTiNodePtr()) {
+        const ::tinyxml2::XMLUnknown* oldUnknown = getTiNodePtr()->ToUnknown();
+        ::tinyxml2::XMLDocument* doc = const_cast<::tinyxml2::XMLDocument*>(
+            getTiNodePtr()->GetDocument());  // Remove const to call ShallowClone()
+
+        if (oldUnknown && doc)
+            newUnknown = oldUnknown->ShallowClone(doc)->ToUnknown();
+    }
+
     return Xml::Unknown(newUnknown);
 }
+
 
 /*static*/ bool Xml::Unknown::isA(const Xml::Node& node) 
 {   if (!node.isValid()) return false;
