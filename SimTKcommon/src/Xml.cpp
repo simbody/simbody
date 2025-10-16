@@ -392,8 +392,8 @@ void Xml::Document::insertTopLevelNodeAfter(const Xml::node_iterator& afterThis,
     SimTK_ERRCHK_ALWAYS(afterThis->isTopLevelNode(), method,
                         "The node_iterator did not refer to a top-level Node.");
 
-    // updImpl().m_tixml.LinkAfterChild(afterThis->updTiNodePtr(),
-    //                                  insertThis.updTiNodePtr());
+    updImpl().m_tixml.InsertAfterChild(afterThis->updTiNodePtr(),
+                                     insertThis.updTiNodePtr());
 }
 
 void Xml::Document::insertTopLevelNodeBefore(
@@ -421,8 +421,8 @@ void Xml::Document::insertTopLevelNodeBefore(
     SimTK_ERRCHK_ALWAYS(beforeThis->isTopLevelNode(), method,
                         "The node_iterator did not refer to a top-level Node.");
 
-    // updImpl().m_tixml.LinkBeforeChild(beforeThis->updTiNodePtr(),
-    //                                   insertThis.updTiNodePtr());
+    updImpl().m_tixml.InsertAfterChild(beforeThis->updTiNodePtr(),
+                                      insertThis.updTiNodePtr());
 }
 
 void Xml::Document::eraseTopLevelNode(const Xml::node_iterator& deleteThis) {
@@ -441,7 +441,7 @@ void Xml::Document::eraseTopLevelNode(const Xml::node_iterator& deleteThis) {
         " can be erased at the topmost document level.",
         deleteThis->getNodeTypeAsString().c_str());
 
-    // updImpl().m_tixml.RemoveChild(deleteThis->updTiNodePtr());
+    updImpl().m_tixml.DeleteChild(deleteThis->updTiNodePtr());
 }
 
 Xml::Node Xml::Document::removeTopLevelNode(
@@ -461,17 +461,15 @@ Xml::Node Xml::Document::removeTopLevelNode(
         " can be removed at the topmost document level.",
         removeThis->getNodeTypeAsString().c_str());
 
-    // tinyxml2::XMLNode* p =
-    //     updImpl().m_tixml.DisconnectChild(removeThis->updTiNodePtr());
-    // return Node(p);
-    return Node();
+    updImpl().m_tixml.DeleteChild(removeThis->updTiNodePtr());
+    return Node(*removeThis);
 }
 
 String Xml::Document::getXmlVersion() const {
-    // return getImpl().gettinyxml2::XMLDeclaration().Version();
+    return getImpl().m_tixml.ToDeclaration()->Value();
 }
 String Xml::Document::getXmlEncoding() const {
-    // return getImpl().gettinyxml2::XMLDeclaration().Encoding();
+    return getImpl().m_tixml.ToDeclaration()->Value();
 }
 bool Xml::Document::getXmlIsStandalone() const {
     // return String::toLower(
@@ -495,9 +493,9 @@ void Xml::Document::setXmlIsStandalone(bool isStandalone) {
 // XML node_begin()
 Xml::node_iterator Xml::Document::node_begin(NodeType allowed) {
     tinyxml2::XMLNode* first = updImpl().m_tixml.FirstChild();
-    // while (first && !nodeTypeIsAllowed(allowed, first->Type()))
-    //     first = first->NextSibling();
-    // return node_iterator(first, allowed);
+    while (first && !nodeTypeIsAllowed(allowed, first))
+        first = first->NextSibling();
+    return node_iterator(first, allowed);
 }
 
 // XML node_end()
@@ -508,8 +506,7 @@ Xml::node_iterator Xml::Document::node_end() const {
 //------------------------------------------------------------------------------
 //                              XML ATTRIBUTE
 //------------------------------------------------------------------------------
-// Xml::Attribute::Attribute(const String& name, const String& value)
-//     : tiAttr(new tinyxml2::XMLAttribute(name, value)) {}
+Xml::Attribute::Attribute(const String& name, const String& value) {}
 
 void Xml::Attribute::clear() {
     tiAttr = 0;
@@ -536,16 +533,12 @@ bool Xml::Attribute::isOrphan() const {
 const String& Xml::Attribute::getName() const {
     SimTK_ERRCHK_ALWAYS(isValid(), "Xml::Attribute::getName()",
                         "The attribute handle was empty.");
-    // return getTiAttr().NameStr();
-    String string = nullptr;
-    return string;
+    return getTiAttr().Name();
 }
 const String& Xml::Attribute::getValue() const {
     SimTK_ERRCHK_ALWAYS(isValid(), "Xml::Attribute::getValue()",
                         "The attribute handle was empty.");
-    // return getTiAttr().ValueStr();
-    String string = nullptr;
-    return string;
+    return getTiAttr().Value();
 }
 
 Xml::Attribute& Xml::Attribute::setName(const String& name) {
@@ -623,22 +616,22 @@ void Xml::Node::clearOrphan() {
 
 Xml::NodeType Xml::Node::getNodeType() const {
     if (!isValid()) return NoNode;
-    // switch (getTiNode().Type()) {
-    //     case tinyxml2::XMLNode::COMMENT:
-    //         return CommentNode;
-    //     case tinyxml2::XMLNode::UNKNOWN:
-    //         return UnknownNode;
-    //     case tinyxml2::XMLNode::TEXT:
-    //         return TextNode;
-    //     case tinyxml2::XMLNode::ELEMENT:
-    //         return ElementNode;
-    //     default:
-    //         SimTK_ASSERT1_ALWAYS(false,
-    //                              "Xml::Node::getNodeType(): can't convert "
-    //                              "TinyXML node type %s to any"
-    //                              " SimTK::Xml node type.",
-    //                              getTiNode().TypeName());
-    // }
+    if (getTiNode().ToComment()) {
+        return CommentNode;
+    } else if (getTiNode().ToUnknown()) {
+        return UnknownNode;
+    } else if (getTiNode().ToText()) {
+        return TextNode;
+    } else if (getTiNode().ToElement()) {
+        return ElementNode;
+    } else {
+        SimTK_ASSERT1_ALWAYS(false,
+                            "Xml::Node::getNodeType(): can't convert "
+                            "TinyXML node type '%s' to any "
+                            "SimTK::Xml node type.",
+                            getTiNode().Value());
+    }
+
     return NoNode;
 }
 
@@ -651,9 +644,7 @@ const String& Xml::Node::getNodeText() const {
     SimTK_ERRCHK_ALWAYS(isValid(), "Xml::Node::getText()",
                         "Can't get text from an empty Node handle.");
 
-    // return getTiNode().ValueStr();
-    String string = nullptr;
-    return string;
+    return getTiNode().Value();
 }
 
 bool Xml::Node::isTopLevelNode() const {
@@ -677,9 +668,10 @@ void Xml::Node::writeToString(String& out, bool compact) const {
         out = "<!-- EMPTY NODE -->";
         return;
     }
-    // tinyxml2::XMLPrinter printer(out);
+    tinyxml2::XMLPrinter printer;
     // if (compact) printer.SetStreamPrinting();
-    // getTiNode().Accept(&printer);
+    getTiNode().Accept(&printer);
+    out = printer.CStr();
 }
 
 bool Xml::Node::hasParentElement() const {
