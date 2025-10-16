@@ -25,9 +25,7 @@
 
 #include <cstddef>
 
-#include "SimTKcommon/internal/Plugin.h"
 #include "SimTKcommon/internal/String.h"
-#include "SimTKcommon/internal/common.h"
 #include "tinyxml2.h"
 
 using namespace SimTK;
