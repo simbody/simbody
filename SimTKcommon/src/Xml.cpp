@@ -116,7 +116,7 @@ class Xml::Document::Impl {
         m_tixml.SetValue(pathname);
         auto status = m_tixml.LoadFile(pathname);
         SimTK_ERRCHK2_ALWAYS(
-            status == tinyxml2::XMLError::XML_SUCCESS, "Xml::readFromFile()",
+            status != tinyxml2::XMLError::XML_SUCCESS, "Xml::readFromFile()",
             "Failed to load the Xml file '%s' with error '%s'.",
             pathname.c_str(), m_tixml.ErrorStr());
     }
@@ -126,7 +126,7 @@ class Xml::Document::Impl {
         m_tixml.DeepCopy(&tempDoc);
         auto status = tempDoc.SaveFile(pathname.c_str());
         SimTK_ERRCHK2_ALWAYS(
-            status == tinyxml2::XMLError::XML_SUCCESS, "Xml::writeToFile()",
+            status != tinyxml2::XMLError::XML_SUCCESS, "Xml::writeToFile()",
             "Failed to write to the Xml file '%s' with error '%s'.",
             pathname.c_str(), m_tixml.ErrorStr());
     }
@@ -134,7 +134,7 @@ class Xml::Document::Impl {
     void readFromString(const char* xmlDocument) {
         clear();
         auto status = m_tixml.Parse(xmlDocument);
-        SimTK_ERRCHK1_ALWAYS(status == tinyxml2::XMLError::XML_SUCCESS, "Xml::readFromString()",
+        SimTK_ERRCHK1_ALWAYS(status != tinyxml2::XMLError::XML_SUCCESS, "Xml::readFromString()",
                              "Failed to parse the Xml string with error '%s'.", m_tixml.ErrorStr());
     }
 
