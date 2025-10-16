@@ -95,10 +95,10 @@ class Xml::Document::Impl {
     // get our root element pointing correctly into the copy rather than
     // at the source's root element.
     Impl* clone() const {
-        Impl* newImpl = new Impl();
+        // Impl* newImpl = new Impl();
         // newImpl->m_tixml = m_tixml;
         // root element isn't set yet
-        return newImpl;
+        return nullptr;
     }
 
     void clear() {
@@ -116,36 +116,39 @@ class Xml::Document::Impl {
     void readFromFile(const String& pathname) {
         clear();
         m_tixml.SetValue(pathname);
-        // bool loadOK = m_tixml.LoadFile();
-        // SimTK_ERRCHK2_ALWAYS(
-        //     loadOK, "Xml::readFromFile()",
-        //     "Failed to load the Xml file '%s' with error '%s'.",
-        //     pathname.c_str(), m_tixml.ErrorMsg().c_str());
+        auto status = m_tixml.LoadFile(pathname);
+        SimTK_ERRCHK2_ALWAYS(
+            status == tinyxml2::XMLError::XML_SUCCESS, "Xml::readFromFile()",
+            "Failed to load the Xml file '%s' with error '%s'.",
+            pathname.c_str(), m_tixml.ErrorStr());
     }
 
     void writeToFile(const String& pathname) const {
-        // bool saveOK = m_tixml.SaveFile(pathname);
-        // SimTK_ERRCHK2_ALWAYS(
-        //     saveOK, "Xml::writeToFile()",
-        //     "Failed to write to the Xml file '%s' with error '%s'.",
-        //     pathname.c_str(), m_tixml.ErrorMsg().c_str());
+        tinyxml2::XMLDocument tempDoc;
+        m_tixml.DeepCopy(&tempDoc);
+        auto status = tempDoc.SaveFile(pathname.c_str());
+        SimTK_ERRCHK2_ALWAYS(
+            status == tinyxml2::XMLError::XML_SUCCESS, "Xml::writeToFile()",
+            "Failed to write to the Xml file '%s' with error '%s'.",
+            pathname.c_str(), m_tixml.ErrorStr());
     }
 
     void readFromString(const char* xmlDocument) {
-        // clear();
-        // m_tixml.Parse(xmlDocument);
-        // SimTK_ERRCHK1_ALWAYS(!m_tixml.Error(), "Xml::readFromString()",
-        //                      "Failed to parse the Xml string with error
-        //                      '%s'.", m_tixml.ErrorMsg().c_str());
+        clear();
+        auto status = m_tixml.Parse(xmlDocument);
+        SimTK_ERRCHK1_ALWAYS(status == tinyxml2::XMLError::XML_SUCCESS, "Xml::readFromString()",
+                             "Failed to parse the Xml string with error '%s'.", m_tixml.ErrorStr());
     }
 
     void writeToString(String& xmlDocument, bool compact) const {
-        // tinyxml2::XMLPrinter printer(xmlDocument);
+        tinyxml2::XMLPrinter printer;
+
         // if (compact)
         //     printer.SetStreamPrinting();
         // else
         //     printer.SetIndent(m_tixml.GetIndentChars());
-        // m_tixml.Accept(&printer);
+        m_tixml.Print(&printer);
+        xmlDocument = printer.CStr();
     }
 
     // Call this during construction and after a new Xml document has been
