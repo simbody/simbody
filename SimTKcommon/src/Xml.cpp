@@ -183,22 +183,22 @@ class Xml::Document::Impl {
     // return a pointer to the declaration which will now be the first
     // node in the Xml document.
     ::tinyxml2::XMLDeclaration* addDeclarationIfNeeded() {
-        tinyxml2::XMLNode* child = m_tixml.FirstChild();
-        if (child && child->ToDeclaration())
-            return child->ToDeclaration();  // the easy and most common case
+        // tinyxml2::XMLNode* child = m_tixml.FirstChild();
+        // if (child && child->ToDeclaration())
+        //     return child->ToDeclaration();  // the easy and most common case
 
-        // Otherwise hunt for the declaration.
-        for (; child; child = child->NextSibling())
-            if (child->ToDeclaration()) break;
+        // // Otherwise hunt for the declaration.
+        // for (; child; child = child->NextSibling())
+        //     if (child->ToDeclaration()) break;
 
         // if (child)
         //     m_tixml.DeleteChild(child);  // it's in the wrong place
         // else
-        //     child = new tinyxml2::XMLDeclaration("1.0", "UTF-8", "");
+        tinyxml2::XMLNode* child = m_tixml.NewDeclaration();
 
         // Insert new node as the first in the document.
         m_tixml.InsertFirstChild(child);
-        return child->ToDeclaration();
+        return m_tixml.FirstChild()->ToDeclaration();
     }
 
     // If the supplied Xml document has zero or more than one top-level element,
@@ -222,9 +222,9 @@ class Xml::Document::Impl {
         if (!firstEltOrText) {
             // No top level element or text node. We'll just append an empty
             // _Root element to the end of whatever's there.
-            // tinyxml2::XMLElement* root = new tinyxml2::XMLElement("_Root");
-            // m_tixml.LinkEndChild(root);
-            // return root;
+            auto root = m_tixml.NewElement("_Root");
+            m_tixml.LinkEndChild(root);
+            return root;
         }
 
         // There is at least one element or text node at the top level; the
@@ -250,21 +250,26 @@ class Xml::Document::Impl {
         tinyxml2::XMLElement* root = m_tixml.NewElement("_Root");
 
         tinyxml2::XMLNode* nextToMove = firstEltOrText;
-        // while (true) {
-        //     assert(nextToMove);  // can't happen!
-        //     tinyxml2::XMLNode* moveMe = nextToMove;
-        //     nextToMove = moveMe->NextSibling();
-        //     root->LinkEndChild(m_tixml.Child(moveMe));
-        //     // Did we just move the last element or text node?
-        //     if (moveMe == lastEltOrText) break;
-        // }
+
+        while (nextToMove != nullptr) {
+            // Move to the next node
+            tinyxml2::XMLNode* moveMe = nextToMove;
+            nextToMove = moveMe->NextSibling();
+
+            // Link the current node (moveMe) to the new parent (root)
+            root->LinkEndChild(moveMe);
+
+            // If we reached the last element or text node, break
+            if (moveMe == lastEltOrText) break;
+        }
+
 
         // Now link the new root element right where we found the first
         // element or text node.
-        // if (nodeBeforeFirst)
+        if (nodeBeforeFirst)
         m_tixml.LinkEndChild(nodeBeforeFirst);
-        // else
-            // m_tixml.LinkEndChild(root);
+        else
+            m_tixml.LinkEndChild(root);
 
         return root;
     }
@@ -737,12 +742,12 @@ static bool elementIsAllowed(const String& tag,
     return false;
 }
 
-// Xml::Element::Element(const String& tag, const String& value)
-//     : Node(new tinyxml2::XMLElement(tag)) {
-//     if (value.empty()) return;
-//     // We need to add a Text node.
-//     updTiElement().LinkEndChild(new tinyxml2::XMLText(value));
-// }
+Xml::Element::Element(const String& tag, const String& value)
+    : Node() {
+    if (value.empty()) return;
+    // We need to add a Text node.
+    // updTiElement().LinkEndChild(new tinyxml2::XMLText(value));
+}
 
 Xml::Element Xml::Element::clone() const {
     tinyxml2::XMLElement* newElt = 0;
@@ -978,8 +983,8 @@ Xml::Node Xml::Element::removeNode(const Xml::node_iterator& removeThis) {
 // Element node_begin()
 Xml::node_iterator Xml::Element::node_begin(NodeType allowed) {
     tinyxml2::XMLNode* first = updTiNode().FirstChild();
-    // while (first && !nodeTypeIsAllowed(allowed, first->Type()))
-    //     first = first->NextSibling();
+    while (first && !nodeTypeIsAllowed(allowed, first))
+        first = first->NextSibling();
     return node_iterator(first, allowed);
 }
 
