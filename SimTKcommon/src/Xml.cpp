@@ -161,17 +161,17 @@ class Xml::Document::Impl {
         m_rootElement.setTiNodePtr(root);
     }
 
-    // const ::tinyxml2::XMLDeclaration& tinyxml2::XMLDeclaration() const {
-    //     const tinyxml2::XMLNode* decl = m_tixml.FirstChild();
-    //     assert(decl && decl->Type() == tinyxml2::XMLNode::DECLARATION);
-    //     return *decl->ToDeclaration();
-    // }
+    const ::tinyxml2::XMLDeclaration& XMLDeclaration() const {
+        const tinyxml2::XMLNode* decl = m_tixml.FirstChild();
+        assert(decl && decl->Type() == tinyxml2::XMLNode::DECLARATION);
+        return *decl->ToDeclaration();
+    }
 
-    // tinyxml2::XMLDeclaration& updtinyxml2::XMLDeclaration() {
-    //     tinyxml2::XMLNode* decl = m_tixml.FirstChild();
-    //     assert(decl && decl->Type() == tinyxml2::XMLNode::DECLARATION);
-    //     return *decl->ToDeclaration();
-    // }
+    tinyxml2::XMLDeclaration& XMLDeclaration() {
+        tinyxml2::XMLNode* decl = m_tixml.FirstChild();
+        assert(decl && decl->Type() == tinyxml2::XMLNode::DECLARATION);
+        return *decl->ToDeclaration();
+    }
 
     // The first thing in every Xml file should be the Declaration, that is,
     // the line that looks something like
@@ -184,21 +184,21 @@ class Xml::Document::Impl {
     // node in the Xml document.
     ::tinyxml2::XMLDeclaration* addDeclarationIfNeeded() {
         tinyxml2::XMLNode* child = m_tixml.FirstChild();
-        // if (child && child->Type() == tinyxml2::XMLNode::DECLARATION)
-        //     return child->ToDeclaration();  // the easy and most common case
+        if (child && child->ToDeclaration())
+            return child->ToDeclaration();  // the easy and most common case
 
-        // // Otherwise hunt for the declaration.
-        // for (; child; child = child->NextSibling())
-        //     if (child->Type() == tinyxml2::XMLNode::DECLARATION) break;
+        // Otherwise hunt for the declaration.
+        for (; child; child = child->NextSibling())
+            if (child->ToDeclaration()) break;
 
         // if (child)
-        //     m_tixml.DisconnectChild(child);  // it's in the wrong place
+        //     m_tixml.DeleteChild(child);  // it's in the wrong place
         // else
         //     child = new tinyxml2::XMLDeclaration("1.0", "UTF-8", "");
 
-        // // Insert new node as the first in the document.
-        // m_tixml.LinkBeginChild(child);
-        // return child->ToDeclaration();
+        // Insert new node as the first in the document.
+        m_tixml.InsertFirstChild(child);
+        return child->ToDeclaration();
     }
 
     // If the supplied Xml document has zero or more than one top-level element,
@@ -247,14 +247,14 @@ class Xml::Document::Impl {
         // Now we know there is top-level text or more than one top-level
         // element so we are going to have to surround everything between
         // first and last with a new root element.
-        // tinyxml2::XMLElement* root = new tinyxml2::XMLElement("_Root");
+        tinyxml2::XMLElement* root = m_tixml.NewElement("_Root");
 
-        // tinyxml2::XMLNode* nextToMove = firstEltOrText;
+        tinyxml2::XMLNode* nextToMove = firstEltOrText;
         // while (true) {
         //     assert(nextToMove);  // can't happen!
         //     tinyxml2::XMLNode* moveMe = nextToMove;
         //     nextToMove = moveMe->NextSibling();
-        //     root->LinkEndChild(m_tixml.DisconnectChild(moveMe));
+        //     root->LinkEndChild(m_tixml.Child(moveMe));
         //     // Did we just move the last element or text node?
         //     if (moveMe == lastEltOrText) break;
         // }
@@ -262,12 +262,11 @@ class Xml::Document::Impl {
         // Now link the new root element right where we found the first
         // element or text node.
         // if (nodeBeforeFirst)
-        //     m_tixml.LinkAfterChild(nodeBeforeFirst, root);
+        m_tixml.LinkEndChild(nodeBeforeFirst);
         // else
-        //     m_tixml.LinkBeginChild(root);
+            // m_tixml.LinkEndChild(root);
 
-        // return root;
-        return nullptr;
+        return root;
     }
 
     // The Tiny XML "document" is a tinyxml2::XMLNode representing the entire
