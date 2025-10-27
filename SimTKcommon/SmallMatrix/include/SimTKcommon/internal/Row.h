@@ -160,7 +160,7 @@ public:
         NRows               = 1,
         NCols               = N,
         NPackedElements     = N,
-        NActualElements     = (N * STRIDE) - (STRIDE - 1),  // no trailing gap
+        NActualElements     = (N-1)*STRIDE + 1,  // no trailing gap
         NActualScalars      = CNT<E>::NActualScalars * NActualElements,
         RowSpacing          = NActualElements,
         ColSpacing          = STRIDE,
