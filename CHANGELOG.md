@@ -10,6 +10,9 @@ PRs and issues that were included in a particular release.
 --------------------
 * Add LLT (Cholesky) factorization
 * Add quaternion multiplication (Hamilton product) 
+* Required C++ level was increased from C++11 to C++17
+* Fixed an out-of-bounds warning/error emitted by overloads of SimTK::Mat accessing
+  out-of-bounds rows
 
 
 3.8 (May 2025)

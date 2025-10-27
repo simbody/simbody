@@ -30,6 +30,9 @@
 
 #include "SimTKcommon/internal/common.h"
 
+#include <tuple>
+#include <type_traits>
+
 namespace SimTK {
 
 /** @brief This class represents a small matrix whose size is known at compile 
@@ -376,71 +379,21 @@ public:
     explicit Mat(int i) 
       { new (this) Mat(E(Precision(i))); }
 
-    // A bevy of constructors from individual exact-match elements IN ROW ORDER.
-    Mat(const E& e0,const E& e1)
-      {assert(M*N==2);d[rIx(0)]=e0;d[rIx(1)]=e1;}
-    Mat(const E& e0,const E& e1,const E& e2)
-      {assert(M*N==3);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3)
-      {assert(M*N==4);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4)
-      {assert(M*N==5);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5)
-      {assert(M*N==6);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6)
-      {assert(M*N==7);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7)
-      {assert(M*N==8);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8)
-      {assert(M*N==9);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9)
-      {assert(M*N==10);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10)
-      {assert(M*N==11);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11)
-      {assert(M*N==12);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
-       d[rIx(11)]=e11;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11, const E& e12)
-      {assert(M*N==13);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
-       d[rIx(11)]=e11;d[rIx(12)]=e12;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11, const E& e12, const E& e13)
-      {assert(M*N==14);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
-       d[rIx(11)]=e11;d[rIx(12)]=e12;d[rIx(13)]=e13;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11, const E& e12, const E& e13, const E& e14)
-      {assert(M*N==15);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
-       d[rIx(11)]=e11;d[rIx(12)]=e12;d[rIx(13)]=e13;d[rIx(14)]=e14;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11, const E& e12, const E& e13, const E& e14, 
-        const E& e15)
-      {assert(M*N==16);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
-       d[rIx(11)]=e11;d[rIx(12)]=e12;d[rIx(13)]=e13;d[rIx(14)]=e14;d[rIx(15)]=e15;}
+    // Constructs a `Mat` from individual exact-match elements IN ROW ORDER.
+    template<
+        typename... Elements,
+        typename = std::enable_if_t<
+            (M*N==sizeof...(Elements)) &&
+            (std::is_convertible_v<Elements&&, const E&> && ...)
+        >
+    >
+    Mat(Elements&&... elementsRowByRow)
+    {
+        assignDataRowByRow(
+            std::forward_as_tuple(elementsRowByRow...),
+            std::make_integer_sequence<int, sizeof...(Elements)>{}
+        );
+    }
 
     // Construction from 1-6 *exact match* Rows
     explicit Mat(const TRow& r0)
@@ -1237,6 +1190,12 @@ private:
         const int row = k / N;
         const int col = k % N; // that's modulus, not cross product!
         return row*RS + col*CS;
+    }
+
+    template<typename ElementsRowByRowTuple, int... Idx>
+    void assignDataRowByRow(ElementsRowByRowTuple&& els, std::integer_sequence<int, Idx...>)
+    {
+        ((d[rIx(Idx)] = std::get<Idx>(els)) , ...);
     }
 };
 
