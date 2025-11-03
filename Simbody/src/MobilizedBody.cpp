@@ -2659,6 +2659,196 @@ Real& MobilizedBody::Screw::updMyPartU(const State& s, Vector& ulike) const {
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Screw, 
     MobilizedBody::ScrewImpl, MobilizedBody);
 
+    //////////////////////////
+    // MOBILIZED BODY::BEAM //
+    //////////////////////////
+
+MobilizedBody::Beam::Beam
+    (MobilizedBody& parent, const Body& body, Direction d)
+ :   MobilizedBody(new BeamImpl(d)) {
+     // inb & outb frames are just the parent body's frame and new body's frame
+     setBody(body);
+
+     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
+                                                    *this);
+ }
+
+ MobilizedBody::Beam::Beam
+    (MobilizedBody& parent, const Body& body, const Real& length, Direction d)
+ :   MobilizedBody(new BeamImpl(d)) {
+     // inb & outb frames are just the parent body's frame and new body's frame
+     setBody(body);
+     setDefaultLength(length);
+
+     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
+                                                    *this);
+ }
+
+ MobilizedBody::Beam::Beam
+    (MobilizedBody& parent, const Transform& inbFrame,
+     const Body& body,      const Transform& outbFrame, Direction d)
+ :   MobilizedBody(new BeamImpl(d)) {
+     setDefaultInboardFrame(inbFrame);
+     setDefaultOutboardFrame(outbFrame);
+     setBody(body);
+
+     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
+                                                    *this);
+ }
+
+ MobilizedBody::Beam::Beam
+    (MobilizedBody& parent, const Transform& inbFrame,
+     const Body& body,      const Transform& outbFrame,
+     const Real& length, Direction d)
+ :   MobilizedBody(new BeamImpl(d)) {
+     setDefaultInboardFrame(inbFrame);
+     setDefaultOutboardFrame(outbFrame);
+     setBody(body);
+     setDefaultLength(length);
+
+     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
+                                                    *this);
+ }
+
+ MobilizedBody::Beam& MobilizedBody::Beam::
+ setDefaultLength(const Real& length) {
+     updImpl().setDefaultLength(length);
+     return *this;
+ }
+
+ const Real& MobilizedBody::Beam::getDefaultLength() const {
+     return getImpl().getDefaultLength();
+ }
+
+ const Vec3& MobilizedBody::Beam::getDefaultQ() const {
+     return getImpl().defaultQ;
+ }
+ Vec3& MobilizedBody::Beam::updDefaultQ() {
+     return updImpl().defaultQ;
+ }
+
+ const Vec3& MobilizedBody::Beam::getQ(const State& s) const {
+     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+     QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
+ }
+ void MobilizedBody::Beam::setQ(State& s, const Vec3& q) const {
+     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+     QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+     Vec3::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
+ }
+const Vec3& MobilizedBody::Beam::getQDot(const State& s) const {
+     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+     QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
+ }
+ const Vec3& MobilizedBody::Beam::getQDotDot(const State& s) const {
+     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+     QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
+ }
+
+ const Vec3& MobilizedBody::Beam::getU(const State& s) const {
+     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+     UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
+ }
+ void MobilizedBody::Beam::setU(State& s, const Vec3& u) const {
+     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+     UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+     Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
+ }
+ const Vec3& MobilizedBody::Beam::getUDot(const State& s) const {
+     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+     UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
+ }
+
+ const Vec3& MobilizedBody::Beam::
+ getMyPartQ(const State& s, const Vector& qlike) const {
+     QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq==3);
+     return Vec3::getAs(&qlike[qStart]);
+ }
+
+ const Vec3& MobilizedBody::Beam::
+ getMyPartU(const State& s, const Vector& ulike) const {
+     UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu==3);
+     return Vec3::getAs(&ulike[uStart]);
+ }
+
+ Vec3& MobilizedBody::Beam::
+ updMyPartQ(const State& s, Vector& qlike) const {
+     QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq==3);
+     return Vec3::updAs(&qlike[qStart]);
+ }
+
+ Vec3& MobilizedBody::Beam::
+ updMyPartU(const State& s, Vector& ulike) const {
+     UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu==3);
+     return Vec3::updAs(&ulike[uStart]);
+ }
+
+ void MobilizedBody::BeamImpl::calcDecorativeGeometryAndAppendImpl
+    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
+ {
+     // Call the superclass implementation to get standard default geometry.
+
+     MobilizedBodyImpl::calcDecorativeGeometryAndAppendImpl(s, stage, geom);
+
+     // We can't generate the beam until we know the length, and we can't
+     // place either piece of geometry on the bodies until we know the parent
+     // and child mobilizer frame placements, which might not be until Instance
+     // stage.
+     if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry())
+     {
+         const Real L = getDefaultLength();
+         const Real L2 = L*L;
+         const Real L4 = L2*L2;
+
+        auto calcBeamDeflection = [L, L2](const Real& angle,
+                const Real& z) -> Real {
+            return angle * (z*z*(3.0*L - z))/(3.0*L2);
+        };
+        auto calcBeamDisplacement = [L, L2, L4](const Real& angle,
+                const Real& z) -> Real {
+            return -(angle*angle * z*z*z *(20.0*L2 - 15.0*L*z + 3.0*z*z)) /
+                    (30.0*L4);
+        };
+
+        // Retrieve the rotation angles.
+        const Transform& X_FM = getMobilizerTransform(s);
+        const Rotation& R = X_FM.R();
+        Vec3 angles = R.convertRotationToBodyFixedXYZ();
+
+        // Calculate the first point.
+        const Transform& X_BM = getOutboardFrame(s);
+        const Transform& X_GB = getBodyTransform(s);
+        Transform X_GF = X_GB * X_BM * ~X_FM;
+        Vec3 prevPoint_G = X_GF.p();
+
+        // Calculate points along the beam and draw lines between them.
+        for (int i = 0; i < 50 +  1; i++) {
+            Real z = i * L / 50;
+            Real d_y = -calcBeamDeflection(angles[0], z);
+            Real d_x = calcBeamDeflection(angles[1], z);
+            Real d_z = calcBeamDisplacement(angles[0], z) +
+                       calcBeamDisplacement(angles[1], z);
+            Vec3 nextPoint_F(d_x, d_y, z + d_z);
+            Vec3 nextPoint_G = X_GF * nextPoint_F;
+            geom.push_back(
+                DecorativeLine(prevPoint_G, nextPoint_G)
+                    .setColor(Red)
+                    .setLineThickness(4)
+            );
+
+            prevPoint_G = nextPoint_G;
+        }
+     }
+ }
+
+ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Beam,
+     MobilizedBody::BeamImpl, MobilizedBody);
+
     ////////////////////////////
     // MOBILIZED BODY::CUSTOM //
     ////////////////////////////
