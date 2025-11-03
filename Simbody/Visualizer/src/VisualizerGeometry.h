@@ -47,12 +47,12 @@ public:
     void implementCircleGeometry(const DecorativeCircle& geom) override;
     void implementSphereGeometry(const DecorativeSphere& geom) override;
     void implementEllipsoidGeometry(const DecorativeEllipsoid& geom) override;
+    void implementTorusGeometry(const DecorativeTorus& geom) override;
     void implementFrameGeometry(const DecorativeFrame& geom) override;
     void implementTextGeometry(const DecorativeText& geom) override;
     void implementMeshGeometry(const DecorativeMesh& geom) override;
     void implementMeshFileGeometry(const DecorativeMeshFile& geom) override; 
     void implementArrowGeometry(const DecorativeArrow& geom) override {}; // Not handled yet by this Visualizer
-    void implementTorusGeometry(const DecorativeTorus& geom) override {}; // Not handled yet by this Visualizer
     void implementConeGeometry(const DecorativeCone& geom) override {}; // Not handled yet by this Visualizer
     static Vec4 getColor(const DecorativeGeometry& geom,
                          const Vec3& defaultColor = Vec3(-1));

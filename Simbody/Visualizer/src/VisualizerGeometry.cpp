@@ -114,6 +114,57 @@ void VisualizerGeometry::implementEllipsoidGeometry(const SimTK::DecorativeEllip
                            getResolution(geom));
 }
 
+void VisualizerGeometry::implementTorusGeometry(
+        const SimTK::DecorativeTorus& geom) {
+
+    unsigned short resolution = getResolution(geom);
+    const int numSides = 6 * resolution;
+    const int numSlices = 18 * resolution;
+    const Real torusRadius = geom.getTorusRadius();
+    const Real tubeRadius = geom.getTubeRadius();
+
+    // Create a polygonal mesh for this torus using parameterization as follows:
+    // u = [0, 2*Pi] traces a circle in the x-y plane with radius torusRadius,
+    // which is the centroid of the torus. A point P on this circle is
+    // given by P = torusRadius*~[cos(u) sin(u) 0].
+    // v = [0, 2*Pi] traces a circle arond the cross-section (or tube) of the
+    // torus with radius tubeRadius, at a given u. A point Q on this circle
+    // is given by
+    //   Q = (torusRadius + tubeRadius*cos(v))*e1 + tubeRadius*(~[0 0 1]*sin(v))
+    // where e1 = ~[sin(u) cos(u) 0]. The tube circle is in a plane spanned
+    // by e1 and the z-axis.
+    PolygonalMesh mesh;
+
+    // add vertices
+    for (int i = 0; i < numSlices; ++i) {
+      Real u = Real((i*2*SimTK_PI)/numSlices);
+      // torus circle aligned with z-axis (z-axis through hole)
+      UnitVec3 e1(std::sin(u), std::cos(u), 0);
+      for (int j = 0; j < numSides; ++j) {
+        Real v = Real((j*2*SimTK_PI)/numSides);
+        Vec3 vtx = (torusRadius + tubeRadius*std::cos(v))*e1 +
+                    tubeRadius*std::sin(v)*Vec3(0,0,1);
+        mesh.addVertex(vtx);
+      }
+    }
+
+    // add faces, be careful to wrap indices for the last slice
+    int numVertices = mesh.getNumVertices();
+    for (int i = 0; i < numVertices; ++i) {
+      // define counter-clockwise quad faces
+      Array_<int> faceIndices;
+      faceIndices.push_back(i); // u_i,v_i
+      faceIndices.push_back((i+1)%numVertices); // u_i, v_i+1
+      faceIndices.push_back((i+1+numSides)%numVertices); // u_i+1, v_i+1
+      faceIndices.push_back((i+numSides)%numVertices); // u_i+1, v_i
+      mesh.addFace(faceIndices);
+    }
+
+    const Transform X_GD = calcX_GD(geom);
+    protocol.drawPolygonalMesh(mesh, X_GD, getScaleFactors(geom),
+                               getColor(geom), getRepresentation(geom));
+}
+
 void VisualizerGeometry::implementFrameGeometry(const SimTK::DecorativeFrame& geom) {
     const Transform X_GD = calcX_GD(geom);
     protocol.drawCoords(X_GD, geom.getAxisLength()*getScaleFactors(geom), getColor(geom));
