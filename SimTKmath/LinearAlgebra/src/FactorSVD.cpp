@@ -60,21 +60,22 @@ FactorSVDRepBase* FactorSVDDefault::clone() const {
    ///////////
    // FactorSVD //
    ///////////
-FactorSVD::~FactorSVD() {
-    delete rep;
-}
-FactorSVD::FactorSVD() {
-   rep = new FactorSVDDefault();
-}
+FactorSVD::~FactorSVD() = default;
+
+FactorSVD::FactorSVD() : rep{new FactorSVDDefault()} {}
+
 // copy constructor
-FactorSVD::FactorSVD( const FactorSVD& c ) {
-    rep = c.rep->clone();
-}
+FactorSVD::FactorSVD(const FactorSVD&) = default;
+
+// move constructor
+FactorSVD::FactorSVD( FactorSVD&& ) noexcept = default;
+
 // copy assignment operator
-FactorSVD& FactorSVD::operator=(const FactorSVD& rhs) {
-    rep = rhs.rep->clone();
-    return *this;
-}
+FactorSVD& FactorSVD::operator=(const FactorSVD&) = default;
+
+// move assignment operator
+FactorSVD& FactorSVD::operator=(FactorSVD&&) noexcept = default;
+
 int FactorSVD::getRank() {
      return(rep->getRank() );
 }
@@ -95,38 +96,34 @@ void FactorSVD::inverse( Matrix_<ELT>& inverse ) {
 }
 template < class ELT >
 FactorSVD::FactorSVD( const Matrix_<ELT>& m ) {
-
     // if user does not supply rcond set it to max(nRow,nCol)*(eps)^7/8 (similar to matlab)
     int mnmax = (m.nrow() > m.ncol()) ? m.nrow() : m.ncol();
-    rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant()); 
+    rep.reset(new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant()));
 }
 template < class ELT >
-FactorSVD::FactorSVD( const Matrix_<ELT>& m, double rcond ) {
-    rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, rcond);
-}
+FactorSVD::FactorSVD( const Matrix_<ELT>& m, double rcond ) :
+    rep{new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, rcond)}
+{}
 template < class ELT >
-FactorSVD::FactorSVD( const Matrix_<ELT>& m, float rcond ) {
-    rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, rcond);
-}
+FactorSVD::FactorSVD( const Matrix_<ELT>& m, float rcond ) :
+    rep{new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, rcond)}
+{}
 
 template < class ELT >
 void FactorSVD::factor( const Matrix_<ELT>& m ) {
-    delete rep;
 
     // if user does not supply rcond set it to max(nRow,nCol)*(eps)^7/8 (similar to matlab)
     int mnmax = (m.nrow() > m.ncol()) ? m.nrow() : m.ncol();
-    rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant()); 
+    rep.reset(new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant()));
 }
 
 template < class ELT >
 void FactorSVD::factor( const Matrix_<ELT>& m, double rcond ){
-    delete rep;
-    rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, rcond );
+    rep.reset(new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, rcond ));
 }
 template < class ELT >
 void FactorSVD::factor( const Matrix_<ELT>& m, float rcond ){
-    delete rep;
-    rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, rcond );
+    rep.reset(new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, rcond ));
 }
 
 template <class T> 

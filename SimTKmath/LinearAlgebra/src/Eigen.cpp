@@ -60,31 +60,30 @@ EigenRepBase* EigenDefault::clone() const {
    ///////////
    // Eigen //
    ///////////
-Eigen::~Eigen() {
-    delete rep;
-}
-Eigen::Eigen() {
-   rep = new EigenDefault();
-}
+Eigen::~Eigen() = default;
+
+Eigen::Eigen() : rep{new EigenDefault()} {}
 
 template < class ELT >
-Eigen::Eigen( const Matrix_<ELT>& m ) {
-    rep = new EigenRep<typename CNT<ELT>::StdNumber>(m); 
-}
+Eigen::Eigen(const Matrix_<ELT>& m) :
+    rep{new EigenRep<typename CNT<ELT>::StdNumber>(m)}
+{}
+
 // copy constructor
-Eigen::Eigen( const Eigen& c ) {
-    rep = c.rep->clone();
-}
+Eigen::Eigen(const Eigen&) = default;
+
+// move constructor
+Eigen::Eigen( Eigen&& c ) noexcept = default;
+
 // copy assignment operator
-Eigen& Eigen::operator=(const Eigen& rhs) {
-    rep = rhs.rep->clone();
-    return *this;
-}
+Eigen& Eigen::operator=(const Eigen& rhs) = default;
+
+// move assignment operator
+Eigen& Eigen::operator=(Eigen&& rhs) noexcept = default;
 
 template < class ELT >
 void Eigen::factor( const Matrix_<ELT>& m ) {
-    delete rep;
-    rep = new EigenRep<typename CNT<ELT>::StdNumber>(m); 
+    rep.reset(new EigenRep<typename CNT<ELT>::StdNumber>(m));
 }
 
 template <class VAL, class VEC> 
@@ -156,7 +155,7 @@ EigenRep<T>::EigenRep( const Matrix_<ELT>& mat):
 }
 template <typename T >
 EigenRepBase* EigenRep<T>::clone() const {
-   return( new EigenRep<T>(*this) );
+   return new EigenRep<T>(*this);
 }
 
 

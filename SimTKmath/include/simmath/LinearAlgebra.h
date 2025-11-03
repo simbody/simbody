@@ -60,7 +60,6 @@ public:
 }; // class Factor
 
 class FactorLURepBase;
-
 /**
  * Class for performing LU matrix factorizations 
  */
@@ -71,7 +70,9 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
 
     FactorLU();
     FactorLU( const FactorLU& c );
+    FactorLU( FactorLU&& ) noexcept;
     FactorLU& operator=(const FactorLU& rhs);
+    FactorLU& operator=(FactorLU&& rhs) noexcept;
 
     template <class ELT> FactorLU( const Matrix_<ELT>& m );
     /// factors a matrix
@@ -95,10 +96,11 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
 
 
     protected:
-    class FactorLURepBase *rep;
+    ClonePtr<FactorLURepBase> rep;
 
 }; // class FactorLU
 
+class FactorLLTRepBase;
 /**
  * Class for performing LLT (Cholesky) matrix factorizations
  */
@@ -108,7 +110,9 @@ class SimTK_SIMMATH_EXPORT FactorLLT : public Factor {
 
     FactorLLT();
     FactorLLT(const FactorLLT& c);
+    FactorLLT(FactorLLT&& c) noexcept;
     FactorLLT& operator=(const FactorLLT& rhs);
+    FactorLLT& operator=(FactorLLT&& rhs) noexcept;
 
     template <class ELT>
     FactorLLT(const Matrix_<ELT>& m);
@@ -130,8 +134,8 @@ class SimTK_SIMMATH_EXPORT FactorLLT : public Factor {
     template <class ELT>
     void getL(Matrix_<ELT>& l) const;
 
-   protected:
-    class FactorLLTRepBase* rep;
+    protected:
+    ClonePtr<FactorLLTRepBase> rep;
 
 };  // class FactorLLT
 
@@ -146,7 +150,10 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
 
     FactorQTZ();
     FactorQTZ( const FactorQTZ& c );
+    FactorQTZ( FactorQTZ&& c ) noexcept;
     FactorQTZ& operator=(const FactorQTZ& rhs);
+    FactorQTZ& operator=(FactorQTZ&& rhs) noexcept;
+
     /// do QTZ factorization of a matrix
     template <typename ELT> FactorQTZ( const Matrix_<ELT>& m);
     /// do QTZ factorization of a matrix for a given reciprocal condition number
@@ -173,8 +180,10 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
 //    void setRank(int rank); TBD
 
     protected:
-    class FactorQTZRepBase *rep;
+    ClonePtr<FactorQTZRepBase> rep;
 }; // class FactorQTZ
+
+class EigenRepBase;
 /**
  * Class to compute Eigen values and Eigen vectors of a matrix
  */
@@ -185,7 +194,9 @@ class SimTK_SIMMATH_EXPORT Eigen {
 
     Eigen();
     Eigen( const Eigen& c );
+    Eigen( Eigen&& c ) noexcept;
     Eigen& operator=(const Eigen& rhs);
+    Eigen& operator=(Eigen&& rhs) noexcept;
 
     /// create a default eigen class
     template <class ELT> Eigen( const Matrix_<ELT>& m );
@@ -212,9 +223,11 @@ class SimTK_SIMMATH_EXPORT Eigen {
 
      
     protected:
-    class EigenRepBase *rep;
+    ClonePtr<EigenRepBase> rep;
 
 }; // class Eigen
+
+class FactorSVDRepBase;
 /**
  * Class to compute a singular value decomposition of a matrix
  */
@@ -226,8 +239,12 @@ class SimTK_SIMMATH_EXPORT FactorSVD: public Factor {
     FactorSVD();
     /// copy  constructor  
     FactorSVD( const FactorSVD& c );
+    /// move constructor
+    FactorSVD( FactorSVD&& ) noexcept;
     /// copy  assign  
     FactorSVD& operator=(const FactorSVD& rhs);
+    /// move assign
+    FactorSVD& operator=(FactorSVD&&) noexcept;
 
     /// constructor 
     template < class ELT > FactorSVD( const Matrix_<ELT>& m );
@@ -263,7 +280,7 @@ class SimTK_SIMMATH_EXPORT FactorSVD: public Factor {
     template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
 
     protected:
-    class FactorSVDRepBase *rep;
+    ClonePtr<FactorSVDRepBase> rep;
 
 }; // class FactorSVD
 
