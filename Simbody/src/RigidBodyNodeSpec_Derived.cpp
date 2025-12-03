@@ -41,7 +41,7 @@
 #include "RigidBodyNodeSpec_Bushing.h"
 #include "RigidBodyNodeSpec_FreeLine.h"
 #include "RigidBodyNodeSpec_LineOrientation.h"
-#include "RigidBodyNodeSpec_Beam.h"
+#include "RigidBodyNodeSpec_CantileverFreeBeam.h"
 #include "RigidBodyNodeSpec_Custom.h"
 // Note: _Translation is handled separately so we can special case
 // a lone particle for speed if we find one.
@@ -256,12 +256,12 @@ RigidBodyNode* MobilizedBody::FreeLineImpl::createRigidBodyNode(
         nextUSlot,nextUSqSlot,nextQSlot)
 }
 
-RigidBodyNode* MobilizedBody::BeamImpl::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::CantileverFreeBeamImpl::createRigidBodyNode(
     UIndex&        nextUSlot,
     USquaredIndex& nextUSqSlot,
     QIndex&        nextQSlot) const
 {
-    INSTANTIATE(RBNodeBeam,
+    INSTANTIATE(RBNodeCantileverFreeBeam,
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
         getDefaultLength(),

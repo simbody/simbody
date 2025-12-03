@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_BEAM_H_
-#define SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_BEAM_H_
+#ifndef SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_CANTILEVER_FREE_BEAM_H_
+#define SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_CANTILEVER_FREE_BEAM_H_
 
 /* -------------------------------------------------------------------------- *
  *                               Simbody(tm)                                  *
@@ -25,19 +25,20 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * Define the RigidBodyNode that implements a Beam mobilizer.
+ * Define the RigidBodyNode that implements a CantileverFreeBeam mobilizer.
  */
 
 #include "SimbodyMatterSubsystemRep.h"
 #include "RigidBodyNode.h"
 #include "RigidBodyNodeSpec.h"
 
-    // BEAM //
+    // CANTILEVER FREE BEAM //
 
-// BEAM mobilizer. This provides three degrees of rotational freedom of the
-// body's M frame in the parent's F frame, along with coordinated translation
-// that defines the position of the M frame origin based on the deflection of
-// a cantilever beam subject to a point load at the end of the beam.
+// CANTILEVER FREE BEAM mobilizer. This provides three degrees of rotational
+// freedom of the body's M frame in the parent's F frame, along with coordinated
+// translation that defines the position of the M frame origin based on the
+// deflection of a cantilever beam subject to a point load at the end of the
+// beam.
 //
 // Unlike most joints, the reference configuration (i.e., X_FM when q=0) is
 // not the identity transform. Instead, although the frames are aligned the
@@ -59,7 +60,8 @@
 // +/-90 degrees.
 
 template<bool noX_MB, bool noR_PF>
-class RBNodeBeam : public RigidBodyNodeSpec<3, false, noX_MB, noR_PF> {
+class RBNodeCantileverFreeBeam :
+        public RigidBodyNodeSpec<3, false, noX_MB, noR_PF> {
     Real length;  // length of the beam
     Real deflectionCoefficient;
     Real displacementCoefficient;
@@ -67,16 +69,16 @@ class RBNodeBeam : public RigidBodyNodeSpec<3, false, noX_MB, noR_PF> {
 public:
 
 typedef typename RigidBodyNodeSpec<3, false, noX_MB, noR_PF>::HType HType;
-virtual const char* type() { return "beam"; }
+virtual const char* type() { return "cantilever free beam"; }
 
-RBNodeBeam(const MassProperties& mProps_B,
-           const Transform&      X_PF,
-           const Transform&      X_BM,
-           const Real&           length,
-           bool                  isReversed,
-           UIndex&               nextUSlot,
-           USquaredIndex&        nextUSqSlot,
-           QIndex&               nextQSlot)
+RBNodeCantileverFreeBeam(const MassProperties& mProps_B,
+                         const Transform&      X_PF,
+                         const Transform&      X_BM,
+                         const Real&           length,
+                         bool                  isReversed,
+                         UIndex&               nextUSlot,
+                         USquaredIndex&        nextUSqSlot,
+                         QIndex&               nextQSlot)
   : RigidBodyNodeSpec<3, false, noX_MB, noR_PF>(
         mProps_B, X_PF, X_BM,
         nextUSlot, nextUSqSlot, nextQSlot,
@@ -278,9 +280,9 @@ void calcAcrossJointVelocityJacobianDot(
     HDot_FM(2) = SpatialVec(Vec3(ds1, -ds0*c1-s0*dc1, dc0*c1+c0*dc1), Vec3(0));
 }
 
-// Can use default for calcQDot, multiplyByN, etc., since qdot==u for Beam
-// mobilizer.
+// Can use default for calcQDot, multiplyByN, etc., since qdot==u for
+// CantileverFreeBeam mobilizer.
 
 };
 
-#endif // SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_BEAM_H_
+#endif // SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_CANTILEVER_FREE_BEAM_H_

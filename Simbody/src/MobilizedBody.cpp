@@ -2659,13 +2659,13 @@ Real& MobilizedBody::Screw::updMyPartU(const State& s, Vector& ulike) const {
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Screw, 
     MobilizedBody::ScrewImpl, MobilizedBody);
 
-    //////////////////////////
-    // MOBILIZED BODY::BEAM //
-    //////////////////////////
+    //////////////////////////////////////////
+    // MOBILIZED BODY::CANTILEVER FREE BEAM //
+    //////////////////////////////////////////
 
-MobilizedBody::Beam::Beam
+MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
     (MobilizedBody& parent, const Body& body, Direction d)
- :   MobilizedBody(new BeamImpl(d)) {
+ :   MobilizedBody(new CantileverFreeBeamImpl(d)) {
      // inb & outb frames are just the parent body's frame and new body's frame
      setBody(body);
 
@@ -2673,9 +2673,9 @@ MobilizedBody::Beam::Beam
                                                     *this);
  }
 
- MobilizedBody::Beam::Beam
+ MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
     (MobilizedBody& parent, const Body& body, const Real& length, Direction d)
- :   MobilizedBody(new BeamImpl(d)) {
+ :   MobilizedBody(new CantileverFreeBeamImpl(d)) {
      // inb & outb frames are just the parent body's frame and new body's frame
      setBody(body);
      setDefaultLength(length);
@@ -2684,10 +2684,10 @@ MobilizedBody::Beam::Beam
                                                     *this);
  }
 
- MobilizedBody::Beam::Beam
+ MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
     (MobilizedBody& parent, const Transform& inbFrame,
      const Body& body,      const Transform& outbFrame, Direction d)
- :   MobilizedBody(new BeamImpl(d)) {
+ :   MobilizedBody(new CantileverFreeBeamImpl(d)) {
      setDefaultInboardFrame(inbFrame);
      setDefaultOutboardFrame(outbFrame);
      setBody(body);
@@ -2696,11 +2696,11 @@ MobilizedBody::Beam::Beam
                                                     *this);
  }
 
- MobilizedBody::Beam::Beam
+ MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
     (MobilizedBody& parent, const Transform& inbFrame,
      const Body& body,      const Transform& outbFrame,
      const Real& length, Direction d)
- :   MobilizedBody(new BeamImpl(d)) {
+ :   MobilizedBody(new CantileverFreeBeamImpl(d)) {
      setDefaultInboardFrame(inbFrame);
      setDefaultOutboardFrame(outbFrame);
      setBody(body);
@@ -2710,85 +2710,85 @@ MobilizedBody::Beam::Beam
                                                     *this);
  }
 
- MobilizedBody::Beam& MobilizedBody::Beam::
+ MobilizedBody::CantileverFreeBeam& MobilizedBody::CantileverFreeBeam::
  setDefaultLength(const Real& length) {
      updImpl().setDefaultLength(length);
      return *this;
  }
 
- const Real& MobilizedBody::Beam::getDefaultLength() const {
+ const Real& MobilizedBody::CantileverFreeBeam::getDefaultLength() const {
      return getImpl().getDefaultLength();
  }
 
- const Vec3& MobilizedBody::Beam::getDefaultQ() const {
+ const Vec3& MobilizedBody::CantileverFreeBeam::getDefaultQ() const {
      return getImpl().defaultQ;
  }
- Vec3& MobilizedBody::Beam::updDefaultQ() {
+ Vec3& MobilizedBody::CantileverFreeBeam::updDefaultQ() {
      return updImpl().defaultQ;
  }
 
- const Vec3& MobilizedBody::Beam::getQ(const State& s) const {
+ const Vec3& MobilizedBody::CantileverFreeBeam::getQ(const State& s) const {
      const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
      QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
      return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
  }
- void MobilizedBody::Beam::setQ(State& s, const Vec3& q) const {
+ void MobilizedBody::CantileverFreeBeam::setQ(State& s, const Vec3& q) const {
      const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
      QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
      Vec3::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
  }
-const Vec3& MobilizedBody::Beam::getQDot(const State& s) const {
+const Vec3& MobilizedBody::CantileverFreeBeam::getQDot(const State& s) const {
      const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
      QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
      return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
  }
- const Vec3& MobilizedBody::Beam::getQDotDot(const State& s) const {
+ const Vec3& MobilizedBody::CantileverFreeBeam::getQDotDot(const State& s) const {
      const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
      QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
      return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
  }
 
- const Vec3& MobilizedBody::Beam::getU(const State& s) const {
+ const Vec3& MobilizedBody::CantileverFreeBeam::getU(const State& s) const {
      const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
      UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
      return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
  }
- void MobilizedBody::Beam::setU(State& s, const Vec3& u) const {
+ void MobilizedBody::CantileverFreeBeam::setU(State& s, const Vec3& u) const {
      const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
      UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
      Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
  }
- const Vec3& MobilizedBody::Beam::getUDot(const State& s) const {
+ const Vec3& MobilizedBody::CantileverFreeBeam::getUDot(const State& s) const {
      const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
      UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
      return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
  }
 
- const Vec3& MobilizedBody::Beam::
+ const Vec3& MobilizedBody::CantileverFreeBeam::
  getMyPartQ(const State& s, const Vector& qlike) const {
      QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq==3);
      return Vec3::getAs(&qlike[qStart]);
  }
 
- const Vec3& MobilizedBody::Beam::
+ const Vec3& MobilizedBody::CantileverFreeBeam::
  getMyPartU(const State& s, const Vector& ulike) const {
      UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu==3);
      return Vec3::getAs(&ulike[uStart]);
  }
 
- Vec3& MobilizedBody::Beam::
+ Vec3& MobilizedBody::CantileverFreeBeam::
  updMyPartQ(const State& s, Vector& qlike) const {
      QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq==3);
      return Vec3::updAs(&qlike[qStart]);
  }
 
- Vec3& MobilizedBody::Beam::
+ Vec3& MobilizedBody::CantileverFreeBeam::
  updMyPartU(const State& s, Vector& ulike) const {
      UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu==3);
      return Vec3::updAs(&ulike[uStart]);
  }
 
- void MobilizedBody::BeamImpl::calcDecorativeGeometryAndAppendImpl
+ void MobilizedBody::CantileverFreeBeamImpl::calcDecorativeGeometryAndAppendImpl
     (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
  {
      // Call the superclass implementation to get standard default geometry.
@@ -2846,8 +2846,8 @@ const Vec3& MobilizedBody::Beam::getQDot(const State& s) const {
      }
  }
 
- SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Beam,
-     MobilizedBody::BeamImpl, MobilizedBody);
+ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::CantileverFreeBeam,
+     MobilizedBody::CantileverFreeBeamImpl, MobilizedBody);
 
     ////////////////////////////
     // MOBILIZED BODY::CUSTOM //

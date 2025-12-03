@@ -1028,12 +1028,14 @@ private:
     Real defaultQ; // the angle in radians
 };
 
-class MobilizedBody::BeamImpl : public MobilizedBodyImpl {
+class MobilizedBody::CantileverFreeBeamImpl : public MobilizedBodyImpl {
 public:
-    explicit BeamImpl(Direction d)
+    explicit CantileverFreeBeamImpl(Direction d)
     :   MobilizedBodyImpl(d), defaultLength(Real(0.5)),
         defaultQ() { } // default is (0,0,0), the identity rotation
-    BeamImpl* clone() const override { return new BeamImpl(*this); }
+    CantileverFreeBeamImpl* clone() const override {
+        return new CantileverFreeBeamImpl(*this);
+    }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
@@ -1042,7 +1044,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==3,
-            "MobilizedBody::BeamImpl::copyOutDefaultQImpl(): wrong number of q's");
+            "MobilizedBody::CantileverFreeBeamImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
     }
 
@@ -1056,9 +1058,9 @@ public:
     }
     const Real& getDefaultLength() const {return defaultLength;}
 
-    SimTK_DOWNCAST(BeamImpl, MobilizedBodyImpl);
+    SimTK_DOWNCAST(CantileverFreeBeamImpl, MobilizedBodyImpl);
 private:
-    friend class MobilizedBody::Beam;
+    friend class MobilizedBody::CantileverFreeBeam;
     Real defaultLength; // used for visualization only
     Vec3 defaultQ;      // the default orientation
 };
