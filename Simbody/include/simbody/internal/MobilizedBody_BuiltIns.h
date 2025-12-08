@@ -29,9 +29,9 @@ Include the header files that define each of the built-in mobilizer
 subclasses of MobilizedBody. **/
 
 #include "simbody/internal/MobilizedBody_Ball.h"
-#include "simbody/internal/MobilizedBody_CantileverFreeBeam.h"
 #include "simbody/internal/MobilizedBody_BendStretch.h"
 #include "simbody/internal/MobilizedBody_Bushing.h"
+#include "simbody/internal/MobilizedBody_CantileverFreeBeam.h"
 #include "simbody/internal/MobilizedBody_Custom.h"
 #include "simbody/internal/MobilizedBody_Cylinder.h"
 #include "simbody/internal/MobilizedBody_Ellipsoid.h"

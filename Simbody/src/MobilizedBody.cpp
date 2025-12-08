@@ -2669,8 +2669,8 @@ MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
      // inb & outb frames are just the parent body's frame and new body's frame
      setBody(body);
 
-     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
-                                                    *this);
+     parent.updMatterSubsystem().adoptMobilizedBody(
+        parent.getMobilizedBodyIndex(), *this);
  }
 
  MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
@@ -2680,8 +2680,8 @@ MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
      setBody(body);
      setDefaultLength(length);
 
-     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
-                                                    *this);
+     parent.updMatterSubsystem().adoptMobilizedBody(
+        parent.getMobilizedBodyIndex(), *this);
  }
 
  MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
@@ -2692,8 +2692,8 @@ MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
      setDefaultOutboardFrame(outbFrame);
      setBody(body);
 
-     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
-                                                    *this);
+     parent.updMatterSubsystem().adoptMobilizedBody(
+        parent.getMobilizedBodyIndex(), *this);
  }
 
  MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
@@ -2706,8 +2706,8 @@ MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
      setBody(body);
      setDefaultLength(length);
 
-     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
-                                                    *this);
+     parent.updMatterSubsystem().adoptMobilizedBody(
+        parent.getMobilizedBodyIndex(), *this);
  }
 
  MobilizedBody::CantileverFreeBeam& MobilizedBody::CantileverFreeBeam::

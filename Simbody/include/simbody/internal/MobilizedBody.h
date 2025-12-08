@@ -1856,7 +1856,7 @@ class Custom;
 class Ground;
 class FunctionBased;
 class CantileverFreeBeam;
-    
+
 // Internal use only.
 class PinImpl;
 class SliderImpl;
