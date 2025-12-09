@@ -65,7 +65,6 @@ class RBNodeCantileverFreeBeam :
     Real length;  // length of the beam
     Real deflectionCoefficient;
     Real displacementCoefficient;
-    Real displacementSpeedCoefficient;
 public:
 
 typedef typename RigidBodyNodeSpec<3, false, noX_MB, noR_PF>::HType HType;
@@ -165,8 +164,8 @@ void setUToFitLinearVelocityImpl(const SBStateDigest& sbs, const Vector& q,
     m(1, 0) = -deflectionCoefficient;
 
     // The x- and y-components of qdot induce a negative Fz speed.
-    m(2, 0) = -displacementSpeedCoefficient * q0;
-    m(2, 1) = -displacementSpeedCoefficient * q1;
+    m(2, 0) = -2.0*displacementCoefficient * q0;
+    m(2, 1) = -2.0*displacementCoefficient * q1;
 
     // Solve for qdot0 and qdot1 via least squares.
     FactorQTZ qtz(m);
