@@ -98,10 +98,6 @@ RBNodeCantileverFreeBeam(const MassProperties& mProps_B,
     // Fz-position of the beam's endpoint.
     displacementCoefficient = (4.0 / 15.0) * length;
 
-    // Multiplying this term by the beam deflection angle and its derivative
-    // gives the (absolute value of) the beam displacement speed.
-    displacementSpeedCoefficient = (8.0 / 15.0) * length;
-
     this->updateSlots(nextUSlot, nextUSqSlot, nextQSlot);
 }
 
@@ -249,8 +245,8 @@ void calcAcrossJointVelocityJacobian(const SBStateDigest& sbs,
     // Fill in columns of H_FM. See Rotation::calcNInvForBodyXYZInParentFrame().
     // Include the contributions of the Euler angle derivatives to the linear
     // velocity of the beam's endpoint.
-    H_FM(0) = SpatialVec(Vec3(1,     0,    0),    Vec3(0,     -deflectionCoefficient, -displacementCoefficient * q[0]) );
-    H_FM(1) = SpatialVec(Vec3(0,    c0,    s0),   Vec3(deflectionCoefficient, 0,      -displacementCoefficient * q[1]) );
+    H_FM(0) = SpatialVec(Vec3(1,     0,    0),    Vec3(0,     -deflectionCoefficient, -2.0*displacementCoefficient*q[0]) );
+    H_FM(1) = SpatialVec(Vec3(0,    c0,    s0),   Vec3(deflectionCoefficient, 0,      -2.0*displacementCoefficient*q[1]) );
     H_FM(2) = SpatialVec(Vec3(s1, -s0*c1, c0*c1), Vec3(0) );
 }
 
@@ -275,8 +271,8 @@ void calcAcrossJointVelocityJacobianDot(
     const Real ds0 =  c0*qd0, ds1 =  c1*qd1;
 
     // Compare with H_FM above.
-    HDot_FM(0) = SpatialVec(Vec3(0,         0,              0),       Vec3(0,  0,  -displacementCoefficient * qd0));
-    HDot_FM(1) = SpatialVec(Vec3(0,        dc0,            ds0),      Vec3(0,  0,  -displacementCoefficient * qd1));
+    HDot_FM(0) = SpatialVec(Vec3(0,         0,              0),       Vec3(0,  0,  -2.0*displacementCoefficient*qd0));
+    HDot_FM(1) = SpatialVec(Vec3(0,        dc0,            ds0),      Vec3(0,  0,  -2.0*displacementCoefficient*qd1));
     HDot_FM(2) = SpatialVec(Vec3(ds1, -ds0*c1-s0*dc1, dc0*c1+c0*dc1), Vec3(0));
 }
 

@@ -269,12 +269,218 @@ void testBushing() {
                       c2.getBodyVelocity(integ.getState()), 1e-10);
 }
 
+// A helper function to replicate the translation-rotational coupling of
+// MobilizedBody::CantileverFreeBeam associated with X and Y beam deflections.
+class BeamDeflectionFunction : public Function {
+public:
+    BeamDeflectionFunction(const Real& beamLength, bool negate) {
+        m_deflectionCoefficient = (2.0 / 3.0) * beamLength;
+        m_sign = negate ? -1.0 : 1.0;
+    }
+
+    Real calcValue(const Vector& x) const override {
+        return x[0] + m_sign * m_deflectionCoefficient * x[1];
+    }
+
+    Real calcDerivative(const Array_<int>& derivComponents,
+            const Vector& x) const override {
+        if (derivComponents.size() == 1) {
+            if (derivComponents[0] == 0) {
+                return 1;
+            } else if (derivComponents[0] == 1) {
+                return m_sign * m_deflectionCoefficient;
+            }
+        }
+        return 0;
+
+    }
+
+    int getArgumentSize() const override {
+        return 2;
+    }
+
+    int getMaxDerivativeOrder() const override {
+        return 2;
+    }
+
+private:
+    Real m_deflectionCoefficient;
+    Real m_sign;
+};
+
+// A helper function to replicate the translation-rotational coupling of
+// MobilizedBody::CantileverFreeBeam associated with Z beam displacement.
+class BeamDisplacementFunction : public Function {
+public:
+    BeamDisplacementFunction(const Real& beamLength) :
+            m_beamLength(beamLength) {
+        m_displacementCoefficient = (4.0 / 15.0) * m_beamLength;
+    }
+
+    Real calcValue(const Vector& x) const override {
+        return x[0] - m_beamLength +
+            m_displacementCoefficient * (x[1]*x[1] + x[2]*x[2]);
+    }
+
+    Real calcDerivative(const Array_<int>& derivComponents,
+            const Vector& x) const override {
+        if (derivComponents.size() == 1) {
+            if (derivComponents[0] == 0) {
+                return 1;
+            } else if (derivComponents[0] == 1) {
+                return m_displacementCoefficient * 2 * x[1];
+            } else if (derivComponents[0] == 2) {
+                return m_displacementCoefficient * 2 * x[2];
+            }
+        } else if (derivComponents.size() == 2) {
+            if (derivComponents[0] == 1 && derivComponents[1] == 1) {
+                return 2 * m_displacementCoefficient;
+            } else if (derivComponents[0] == 2 && derivComponents[1] == 2) {
+                return 2 * m_displacementCoefficient;
+            } else {
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    int getArgumentSize() const override {
+        return 3;
+    }
+
+    int getMaxDerivativeOrder() const override {
+        return 2;
+    }
+
+private:
+    Real m_beamLength;
+    Real m_displacementCoefficient;
+};
+
+// Create two pendulums with cantilever-free beam joints, one where the
+// cantilever-free beam is faked with a MobilizedBody::Gimbal and a
+// MobilizedBody::Translation where the translational coordinates are coupled
+// to the rotational coordinates via a Constraint::CoordinateCoupler using the
+// same beam equations relationships as the MobilizedBody::CantileverFreeBeam.
+// Both pendulums should provide identical generalized coordinates and speeds.
+void testCantileverFreeBeam() {
+
+    // Define the system.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -9.81, 0));
+
+    // Mass properties and mobilizer frames.
+    Body::Rigid lumpy(MassProperties(3.1, Vec3(.1, .2, .3),
+                      UnitInertia(1.2, 1.1, 1.3, .01, .02, .03)));
+    Body::Rigid massless(MassProperties(0,Vec3(0),UnitInertia(0)));
+    Transform inboard(Vec3(0.1, 0.5, -1));
+    Transform outboard(Vec3(0.2, -0.2, 0));
+
+    // Undeflected beam length.
+    Real length = 1.23;
+
+    // The first pendulum with the true cantilever-free beam mobilizer.
+    MobilizedBody::CantileverFreeBeam pendulum1(matter.updGround(), inboard,
+        lumpy, outboard, length);
+
+    // The second pendulum with the faked cantilever-free beam mobilizer.
+    MobilizedBody::Translation dummy(matter.updGround(), inboard,
+        massless, Transform());
+    MobilizedBody::Gimbal pendulum2(dummy, Transform(),
+        lumpy, outboard);
+
+    // Coupling of X translation with Y rotation.
+    std::vector<MobilizedBodyIndex> mobilizers(2);
+    std::vector<MobilizerQIndex> coordinates(2);
+    mobilizers[0]  = dummy.getMobilizedBodyIndex();
+    mobilizers[1]  = pendulum2.getMobilizedBodyIndex();
+    coordinates[0] = MobilizerQIndex(0); // X translation
+    coordinates[1] = MobilizerQIndex(1); // Y rotation
+    Constraint::CoordinateCoupler coupler1(matter,
+        new BeamDeflectionFunction(length, true), mobilizers, coordinates);
+
+    // Coupling of Y translation with X rotation.
+    mobilizers[0]  = dummy.getMobilizedBodyIndex();
+    mobilizers[1]  = pendulum2.getMobilizedBodyIndex();
+    coordinates[0] = MobilizerQIndex(1); // Y translation
+    coordinates[1] = MobilizerQIndex(0); // X rotation
+    Constraint::CoordinateCoupler coupler2(matter,
+        new BeamDeflectionFunction(length, false), mobilizers, coordinates);
+
+    // Coupling of Z translation with X and Y rotations.
+    std::vector<MobilizedBodyIndex> mobilizers3(3);
+    std::vector<MobilizerQIndex> coordinates3(3);
+    mobilizers3[0]  = dummy.getMobilizedBodyIndex();
+    mobilizers3[1]  = pendulum2.getMobilizedBodyIndex();
+    mobilizers3[2]  = pendulum2.getMobilizedBodyIndex();
+    coordinates3[0] = MobilizerQIndex(2); // Z translation
+    coordinates3[1] = MobilizerQIndex(0); // X rotation
+    coordinates3[2] = MobilizerQIndex(1); // Y rotation
+    Constraint::CoordinateCoupler coupler3(matter,
+        new BeamDisplacementFunction(length), mobilizers3, coordinates3);
+
+    // Test bodies.
+    MobilizedBody::Weld c1(pendulum1, inboard, lumpy, outboard);
+    MobilizedBody::Weld c2(pendulum2, inboard, lumpy, outboard);
+    c1.addBodyDecoration(Transform(), DecorativeBrick(.1*Vec3(1,2,3))
+        .setColor(Cyan).setOpacity(0.2));
+    c2.addBodyDecoration(Transform(), DecorativeBrick(.1*Vec3(1,2,3))
+        .setColor(Red).setRepresentation(DecorativeGeometry::DrawWireframe));
+
+    // Visualizer viz(system);
+    // viz.setBackgroundType(Visualizer::SolidColor);
+    // system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+
+    // Construct the system, prescribe the motion of the second pendulum,
+    // realize the system to the velocity stage, and project coordinates.
+    State state = system.realizeTopology();
+    pendulum2.setQ(state, Vec3(0.1, 0.2, 0.3));
+    pendulum2.setU(state, Vec3(-0.1, -0.2, -0.3));
+    system.realize(state, Stage::Velocity);
+    system.project(state, 1e-10);
+
+    // Now that constraints are satisfied for the second pendulum, set the
+    // coordinates of the first pendulum to match the coordinates of the second
+    // pendulum. This will guarantee that the kinematics of both pendulums are
+    // identical.
+    pendulum1.setQ(state, pendulum2.getQ(state));
+    pendulum1.setU(state, pendulum2.getU(state));
+    system.realize(state, Stage::Velocity);
+    // Project again, just to be sure.
+    system.project(state, 1e-10);
+
+    // Check that the state is identical.
+    SimTK_TEST_EQ(pendulum1.getQ(state), pendulum2.getQ(state));
+    SimTK_TEST_EQ(pendulum1.getU(state), pendulum2.getU(state));
+
+    // Check that the body transforms and velocities are identical.
+    SimTK_TEST_EQ_TOL(c1.getBodyTransform(state),
+        c2.getBodyTransform(state), 1e-10);
+    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(state),
+        c2.getBodyVelocity(state), 1e-10);
+
+    // Simulate it and see if both pendulums behave identically.
+    RungeKuttaMersonIntegrator integ(system);
+    integ.setAccuracy(1e-10);
+    integ.setConstraintTolerance(1e-10);
+    TimeStepper ts(system, integ);
+    ts.initialize(state);
+    ts.stepTo(5);
+    system.realize(integ.getState(), Stage::Velocity);
+    SimTK_TEST_EQ_TOL(c1.getBodyTransform(integ.getState()),
+                      c2.getBodyTransform(integ.getState()), 1e-10);
+    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(integ.getState()),
+                      c2.getBodyVelocity(integ.getState()), 1e-10);
+}
+
 int main() {
     SimTK_START_TEST("TestMobilizedBody");
         SimTK_SUBTEST(testCalculationMethods);
         SimTK_SUBTEST(testWeld);
         SimTK_SUBTEST(testGimbal);
         SimTK_SUBTEST(testBushing);
+        SimTK_SUBTEST(testCantileverFreeBeam);
     SimTK_END_TEST();
 }
-
