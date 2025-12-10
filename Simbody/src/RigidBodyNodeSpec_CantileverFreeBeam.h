@@ -138,8 +138,10 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q,
     const Vec3& w_FM, Vector& u) const override
 {
-    const Vec2 cosxy(std::cos(q[0]), std::cos(q[1]));
-    const Vec2 sinxy(std::sin(q[0]), std::sin(q[1]));
+    Real q0 = this->fromQ(q)[0];
+    Real q1 = this->fromQ(q)[1];
+    const Vec2 cosxy(std::cos(q0), std::cos(q1));
+    const Vec2 sinxy(std::sin(q0), std::sin(q1));
     const Real oocosy = 1 / cosxy[1];
     const Vec3 qdot =
         Rotation::convertAngVelInParentToBodyXYZDot(cosxy,sinxy,oocosy,w_FM);
@@ -154,7 +156,6 @@ void setUToFitLinearVelocityImpl(const SBStateDigest& sbs, const Vector& q,
 {
     Real q0 = this->fromQ(q)[0];
     Real q1 = this->fromQ(q)[1];
-
     Matrix m(3, 2, 0.0);
 
     // The y-component of qdot induces a positive Fx speed.

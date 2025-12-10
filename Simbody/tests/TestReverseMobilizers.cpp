@@ -659,6 +659,276 @@ void testFree() {
     assertEqual(reacBA, reacBA2, reacBA.norm()*1e-5);
 }
 
+// System is two free bodies A and B connected by a gimbal joint.
+// The system is Ground (6dof) A (gimbal) B (6dof) Ground.
+//   The forward system is Ground (6dof)-> A (gimbal)-> B.
+//   The reverse system is A <-(rev. gimbal) B <-(6dof) Ground.
+// The reverse system's gimbal joint q's and u's should have the
+// same meaning as the forward system's.
+
+void testGimbal() {
+    // Forward system.
+    MultibodySystem forward;
+    SimbodyMatterSubsystem fwdMatter(forward);
+    GeneralForceSubsystem fwdForces(forward);
+    Force::UniformGravity(fwdForces, fwdMatter, Vec3(0, -1, 0));
+
+    // Reverse system.
+    MultibodySystem reverse;
+    SimbodyMatterSubsystem revMatter(reverse);
+    GeneralForceSubsystem revForces(reverse);
+    Force::UniformGravity(revForces, revMatter, Vec3(0, -1, 0));
+
+    // Body properties.
+    const Vec3 com(1, 2, 3);
+    const UnitInertia centralGyration(1, 1.5, 2, 0.1, 0.2, 0.3);
+    Body::Rigid body(MassProperties(mass, com,
+        mass*centralGyration.shiftFromMassCenter(com, 1)));
+
+    // Transform X_AM, X_BM; // identity for now
+    MobilizedBody::Free fwdA(fwdMatter.Ground(), Vec3(0), body, X_AM);
+    MobilizedBody::Free revB(revMatter.Ground(), Vec3(0), body, X_BM);
+
+    MobilizedBody::Gimbal fwdB(fwdA, X_AM, body, X_BM);
+    MobilizedBody::Gimbal revA(revB, X_BM, body, X_AM, MobilizedBody::Reverse);
+
+    // The generalized speeds should mean the same things, so the generalized
+    // forces should too.
+    Force::MobilityConstantForce(fwdForces, fwdB, 0, -3.45);
+    Force::MobilityConstantForce(fwdForces, fwdB, 1,  2);
+    Force::MobilityConstantForce(fwdForces, fwdB, 2, -3);
+    Force::MobilityConstantForce(revForces, revA, 0, -3.45); // reversed
+    Force::MobilityConstantForce(revForces, revA, 1,  2);    // reversed
+    Force::MobilityConstantForce(revForces, revA, 2, -3);    // reversed
+
+    State fwdState = forward.realizeTopology();
+    State revState = reverse.realizeTopology();
+
+    // Put body A somewhere arbitrary.
+    fwdA.setQToFitTransform(fwdState, Transform(Rotation(-1.9, Vec3(-3, 2, 4)),
+                                                Vec3(-0.33, 0.66, -0.99)));
+
+    // Set all the q's; meanings should be identical.
+    Rotation R_FM(Rotation(Pi/7, Vec3(1.1, -2.2, 3.4)));
+    fwdB.setQ(fwdState, R_FM.convertRotationToBodyFixedXYZ());
+    revA.setQ(revState, R_FM.convertRotationToBodyFixedXYZ());
+
+    // Calculate where body B ended up in the forward system and then
+    // set the reverse Free joint to match so that the whole system
+    // is identically configured.
+    forward.realize(fwdState, Stage::Position);
+    const Transform& X_GB = fwdB.getBodyTransform(fwdState);
+    const Transform X_GMb = X_GB*X_BM;
+    revB.setQToFitTransform(revState, X_GMb);
+    reverse.realize(revState, Stage::Position);
+    assertEqual(fwdB.getBodyTransform(fwdState),
+                revB.getBodyTransform(revState));
+    assertEqual(fwdA.getBodyTransform(fwdState),
+                revA.getBodyTransform(revState));
+
+    // Handle velocities similarly.
+    fwdB.setU(fwdState, Vec3(3, .3, .4));
+    forward.realize(fwdState, Stage::Velocity);
+
+    const SpatialVec V_G_BM(fwdB.getBodyAngularVelocity(fwdState),
+        fwdB.findStationVelocityInGround(fwdState, X_BM.p()));
+    revB.setUToFitVelocity(revState, V_G_BM);
+
+    // Need to construct velocity of A in B from B in A.
+    const Transform  X_AB = fwdB.getMobilizerTransform(fwdState);
+    const Transform  X_BA = ~X_AB;
+    const SpatialVec V_AB = fwdB.getMobilizerVelocity(fwdState);
+    const SpatialVec V_BA( -X_BA.R()* V_AB[0],
+                           -X_BA.R()*(V_AB[1] + X_AB.p() % V_AB[0]) );
+    revA.setUToFitVelocity(revState, V_BA);
+    reverse.realize(revState, Stage::Velocity);
+
+    cout << "Vels B:\n";
+    cout << "  Fwd: " << fwdB.getBodyVelocity(fwdState) << endl;
+    cout << "  Rev: " << revB.getBodyVelocity(revState) << endl;
+    assertEqual(fwdB.getBodyVelocity(fwdState),
+                revB.getBodyVelocity(revState));
+
+    cout << "Vels A:\n";
+    cout << "  Fwd: " << fwdA.getBodyVelocity(fwdState) << endl;
+    cout << "  Rev: " << revA.getBodyVelocity(revState) << endl;
+    assertEqual(fwdA.getBodyVelocity(fwdState),
+                revA.getBodyVelocity(revState));
+
+    forward.realize(fwdState, Stage::Acceleration);
+    reverse.realize(revState, Stage::Acceleration);
+
+    cout << "Accels B:\n";
+    cout << "  Fwd: " << fwdB.getBodyAcceleration(fwdState) << endl;
+    cout << "  Rev: " << revB.getBodyAcceleration(revState) << endl;
+    assertEqual(fwdB.getBodyAcceleration(fwdState),
+                revB.getBodyAcceleration(revState));
+
+    cout << "Accels A:\n";
+    cout << "  Fwd: " << fwdA.getBodyAcceleration(fwdState) << endl;
+    cout << "  Rev: " << revA.getBodyAcceleration(revState) << endl;
+    assertEqual(fwdA.getBodyAcceleration(fwdState),
+                revA.getBodyAcceleration(revState));
+
+    Vector_<SpatialVec> fwdReac, revReac;
+    fwdMatter.calcMobilizerReactionForces(fwdState, fwdReac);
+    revMatter.calcMobilizerReactionForces(revState, revReac);
+
+    // Reaction AB != -BA for a planar joint unless the translation is 0.
+    // Instead, we have to shift the reaction F_AB at B's mobilizer frame
+    // over to A's mobilizer frame, then negate. So
+    //    F_BA = -(F_AB + [f_AB x p_BA_G; 0])
+    const SpatialVec F_AB = fwdReac[fwdB.getMobilizedBodyIndex()];
+    const SpatialVec reacBAfwd =
+        -(F_AB + SpatialVec(F_AB[1] % (X_GMb.R()*X_BA.p()), Vec3(0)));
+    const SpatialVec reacBArev = revReac[revA.getMobilizedBodyIndex()];
+
+    cout << "Reacs BA:\n";
+    cout << "  Fwd AB:  " << F_AB << " p_BA: " << X_BA.p() << endl;
+    cout << "  Fwd:     " << reacBAfwd << endl;
+    cout << "  Rev:     " << reacBArev << endl;
+    cout << "  Fwd-Rev: " << reacBAfwd-reacBArev << endl;
+
+    assertEqual(reacBAfwd, reacBArev, reacBAfwd.norm()*1e-8);
+}
+
+// System is two free bodies A and B connected by a bushing joint.
+// The system is Ground (6dof) A (bushing) B (6dof) Ground.
+//   The forward system is Ground (6dof)-> A (bushing)-> B.
+//   The reverse system is A <-(rev. bushing) B <-(6dof) Ground.
+// The reverse system's bushing joint q's and u's should have the
+// same meaning as the forward system's.
+
+void testBushing() {
+    // Forward system.
+    MultibodySystem forward;
+    SimbodyMatterSubsystem fwdMatter(forward);
+    GeneralForceSubsystem fwdForces(forward);
+    Force::UniformGravity(fwdForces, fwdMatter, Vec3(0, -1, 0));
+
+    // Reverse system.
+    MultibodySystem reverse;
+    SimbodyMatterSubsystem revMatter(reverse);
+    GeneralForceSubsystem revForces(reverse);
+    Force::UniformGravity(revForces, revMatter, Vec3(0, -1, 0));
+
+    // Body properties.
+    const Vec3 com(1, 2, 3);
+    const UnitInertia centralGyration(1, 1.5, 2, 0.1, 0.2, 0.3);
+    Body::Rigid body(MassProperties(mass, com,
+        mass*centralGyration.shiftFromMassCenter(com, 1)));
+
+    // Transform X_AM, X_BM; // identity for now
+    MobilizedBody::Free fwdA(fwdMatter.Ground(), Vec3(0), body, X_AM);
+    MobilizedBody::Free revB(revMatter.Ground(), Vec3(0), body, X_BM);
+
+    MobilizedBody::Bushing fwdB(fwdA, X_AM, body, X_BM);
+    MobilizedBody::Bushing revA(revB, X_BM, body, X_AM, MobilizedBody::Reverse);
+
+    // The generalized speeds should mean the same things, so the generalized
+    // forces should too.
+    Force::MobilityConstantForce(fwdForces, fwdB, 0, -3.45);
+    Force::MobilityConstantForce(fwdForces, fwdB, 1,  2);
+    Force::MobilityConstantForce(fwdForces, fwdB, 2, -3);
+    Force::MobilityConstantForce(revForces, revA, 0, -3.45); // reversed
+    Force::MobilityConstantForce(revForces, revA, 1,  2);    // reversed
+    Force::MobilityConstantForce(revForces, revA, 2, -3);    // reversed
+
+    State fwdState = forward.realizeTopology();
+    State revState = reverse.realizeTopology();
+
+    // Put body A somewhere arbitrary.
+    fwdA.setQToFitTransform(fwdState, Transform(Rotation(-1.9, Vec3(-3, 2, 4)),
+                                                Vec3(-0.33, 0.66, -0.99)));
+
+    // Set all the q's; meanings should be identical.
+    const Rotation R_FM(Rotation(Pi/7, Vec3(1.1, -2.2, 3.4)));
+    const Vec3 qdot = R_FM.convertRotationToBodyFixedXYZ();
+    const Vec3 p_FM(1.23, 2.34, -3.45);
+    const Vec6 q_init = Vec6(qdot[0], qdot[1], qdot[2],
+                             p_FM[0], p_FM[1], p_FM[2]);
+    fwdB.setQ(fwdState, q_init);
+    revA.setQ(revState, q_init);
+
+    // Calculate where body B ended up in the forward system and then
+    // set the reverse Free joint to match so that the whole system
+    // is identically configured.
+    forward.realize(fwdState, Stage::Position);
+    const Transform& X_GB = fwdB.getBodyTransform(fwdState);
+    const Transform X_GMb = X_GB*X_BM;
+    revB.setQToFitTransform(revState, X_GMb);
+    reverse.realize(revState, Stage::Position);
+    assertEqual(fwdB.getBodyTransform(fwdState),
+                revB.getBodyTransform(revState));
+    assertEqual(fwdA.getBodyTransform(fwdState),
+                revA.getBodyTransform(revState));
+
+    // Handle velocities similarly.
+    fwdB.setU(fwdState, Vec6(.1, .2, -.33, 3, .3, .4));
+    forward.realize(fwdState, Stage::Velocity);
+
+    const SpatialVec V_G_BM(fwdB.getBodyAngularVelocity(fwdState),
+        fwdB.findStationVelocityInGround(fwdState, X_BM.p()));
+    revB.setUToFitVelocity(revState, V_G_BM);
+
+    // Need to construct velocity of A in B from B in A.
+    const Transform  X_AB = fwdB.getMobilizerTransform(fwdState);
+    const Transform  X_BA = ~X_AB;
+    const SpatialVec V_AB = fwdB.getMobilizerVelocity(fwdState);
+    const SpatialVec V_BA( -X_BA.R()* V_AB[0],
+                           -X_BA.R()*(V_AB[1] + X_AB.p() % V_AB[0]) );
+    revA.setUToFitVelocity(revState, V_BA);
+    reverse.realize(revState, Stage::Velocity);
+
+    cout << "Vels B:\n";
+    cout << "  Fwd: " << fwdB.getBodyVelocity(fwdState) << endl;
+    cout << "  Rev: " << revB.getBodyVelocity(revState) << endl;
+    assertEqual(fwdB.getBodyVelocity(fwdState),
+                revB.getBodyVelocity(revState));
+
+    cout << "Vels A:\n";
+    cout << "  Fwd: " << fwdA.getBodyVelocity(fwdState) << endl;
+    cout << "  Rev: " << revA.getBodyVelocity(revState) << endl;
+    assertEqual(fwdA.getBodyVelocity(fwdState),
+                revA.getBodyVelocity(revState));
+
+    forward.realize(fwdState, Stage::Acceleration);
+    reverse.realize(revState, Stage::Acceleration);
+
+    cout << "Accels B:\n";
+    cout << "  Fwd: " << fwdB.getBodyAcceleration(fwdState) << endl;
+    cout << "  Rev: " << revB.getBodyAcceleration(revState) << endl;
+    assertEqual(fwdB.getBodyAcceleration(fwdState),
+                revB.getBodyAcceleration(revState));
+
+    cout << "Accels A:\n";
+    cout << "  Fwd: " << fwdA.getBodyAcceleration(fwdState) << endl;
+    cout << "  Rev: " << revA.getBodyAcceleration(revState) << endl;
+    assertEqual(fwdA.getBodyAcceleration(fwdState),
+                revA.getBodyAcceleration(revState));
+
+    Vector_<SpatialVec> fwdReac, revReac;
+    fwdMatter.calcMobilizerReactionForces(fwdState, fwdReac);
+    revMatter.calcMobilizerReactionForces(revState, revReac);
+
+    // Reaction AB != -BA for a planar joint unless the translation is 0.
+    // Instead, we have to shift the reaction F_AB at B's mobilizer frame
+    // over to A's mobilizer frame, then negate. So
+    //    F_BA = -(F_AB + [f_AB x p_BA_G; 0])
+    const SpatialVec F_AB = fwdReac[fwdB.getMobilizedBodyIndex()];
+    const SpatialVec reacBAfwd =
+        -(F_AB + SpatialVec(F_AB[1] % (X_GMb.R()*X_BA.p()), Vec3(0)));
+    const SpatialVec reacBArev = revReac[revA.getMobilizedBodyIndex()];
+
+    cout << "Reacs BA:\n";
+    cout << "  Fwd AB:  " << F_AB << " p_BA: " << X_BA.p() << endl;
+    cout << "  Fwd:     " << reacBAfwd << endl;
+    cout << "  Rev:     " << reacBArev << endl;
+    cout << "  Fwd-Rev: " << reacBAfwd-reacBArev << endl;
+
+    assertEqual(reacBAfwd, reacBArev, reacBAfwd.norm()*1e-8);
+}
+
 // System is two free bodies A and B connected by a cantilever-free beam joint.
 // The system is Ground (6dof) A (cantilever-free beam) B (6dof) Ground.
 //   The forward system is Ground (6dof)-> A (cantilever-free beam)-> B.
@@ -715,9 +985,10 @@ void testCantileverFreeBeam() {
                                                 Vec3(-0.33, 0.66, -0.99)));
 
     // Set all the q's; meanings should be identical.
-    Rotation R_FM(Rotation(Pi/7, Vec3(1.1, -2.2, 3.4)));
-    fwdB.setQ(fwdState, R_FM.convertRotationToBodyFixedXYZ());
-    revA.setQ(revState, R_FM.convertRotationToBodyFixedXYZ());
+    const Rotation R_FM(Rotation(Pi/7, Vec3(1.1, -2.2, 3.4)));
+    const Vec3 q_init = R_FM.convertRotationToBodyFixedXYZ();
+    fwdB.setQ(fwdState, q_init);
+    revA.setQ(revState, q_init);
 
     // Calculate where body B ended up in the forward system and then
     // set the reverse Free joint to match so that the whole system
@@ -749,21 +1020,17 @@ void testCantileverFreeBeam() {
     revA.setUToFitVelocity(revState, V_BA);
     reverse.realize(revState, Stage::Velocity);
 
-    std::cout << "V_BA=" << V_BA << std::endl;
-
     cout << "Vels B:\n";
     cout << "  Fwd: " << fwdB.getBodyVelocity(fwdState) << endl;
     cout << "  Rev: " << revB.getBodyVelocity(revState) << endl;
     assertEqual(fwdB.getBodyVelocity(fwdState),
                 revB.getBodyVelocity(revState));
 
-    // TODO: all tests beyond this point fail.
-
     cout << "Vels A:\n";
     cout << "  Fwd: " << fwdA.getBodyVelocity(fwdState) << endl;
     cout << "  Rev: " << revA.getBodyVelocity(revState) << endl;
-    // assertEqual(fwdA.getBodyVelocity(fwdState),
-    //             revA.getBodyVelocity(revState));
+    assertEqual(fwdA.getBodyVelocity(fwdState),
+                revA.getBodyVelocity(revState));
 
     forward.realize(fwdState, Stage::Acceleration);
     reverse.realize(revState, Stage::Acceleration);
@@ -771,14 +1038,14 @@ void testCantileverFreeBeam() {
     cout << "Accels B:\n";
     cout << "  Fwd: " << fwdB.getBodyAcceleration(fwdState) << endl;
     cout << "  Rev: " << revB.getBodyAcceleration(revState) << endl;
-    // assertEqual(fwdB.getBodyAcceleration(fwdState),
-    //             revB.getBodyAcceleration(revState));
+    assertEqual(fwdB.getBodyAcceleration(fwdState),
+                revB.getBodyAcceleration(revState));
 
     cout << "Accels A:\n";
     cout << "  Fwd: " << fwdA.getBodyAcceleration(fwdState) << endl;
     cout << "  Rev: " << revA.getBodyAcceleration(revState) << endl;
-    // assertEqual(fwdA.getBodyAcceleration(fwdState),
-    //             revA.getBodyAcceleration(revState));
+    assertEqual(fwdA.getBodyAcceleration(fwdState),
+                revA.getBodyAcceleration(revState));
 
     Vector_<SpatialVec> fwdReac, revReac;
     fwdMatter.calcMobilizerReactionForces(fwdState, fwdReac);
@@ -799,7 +1066,7 @@ void testCantileverFreeBeam() {
     cout << "  Rev:     " << reacBArev << endl;
     cout << "  Fwd-Rev: " << reacBAfwd-reacBArev << endl;
 
-    // assertEqual(reacBA, reacBA2, reacBA.norm()*1e-8);
+    assertEqual(reacBAfwd, reacBArev, reacBAfwd.norm()*1e-8);
 }
 
 int main() {
@@ -808,6 +1075,8 @@ int main() {
         SimTK_SUBTEST(testPlanar);
         SimTK_SUBTEST(testEllipsoid);
         SimTK_SUBTEST(testFree);
+        SimTK_SUBTEST(testGimbal);
+        SimTK_SUBTEST(testBushing);
         SimTK_SUBTEST(testCantileverFreeBeam);
     SimTK_END_TEST();
 }

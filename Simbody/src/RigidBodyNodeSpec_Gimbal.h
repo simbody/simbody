@@ -91,8 +91,10 @@ void setUToFitAngularVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
     Vector& u) const 
 {
-    const Vec2 cosxy(std::cos(q[0]), std::cos(q[1]));
-    const Vec2 sinxy(std::sin(q[0]), std::sin(q[1]));
+    Real q0 = this->fromQ(q)[0];
+    Real q1 = this->fromQ(q)[1];
+    const Vec2 cosxy(std::cos(q0), std::cos(q1));
+    const Vec2 sinxy(std::sin(q0), std::sin(q1));
     const Real oocosy = 1 / cosxy[1];
     const Vec3 qdot = 
         Rotation::convertAngVelInParentToBodyXYZDot(cosxy,sinxy,oocosy,w_FM);
