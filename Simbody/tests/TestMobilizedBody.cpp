@@ -78,6 +78,140 @@ void testCalculationMethods() {
     SimTK_TEST_EQ(b1.findStationVelocityInGround(state, point), b1.findStationVelocityInAnotherBody(state, point, matter.Ground()));
 }
 
+void testFittingMethods() {
+
+    // Define an empty system.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+
+    // Define zero and arbitrary transforms and velocities.
+    Transform X_FM_zero(Vec3(0));
+    SpatialVec V_FM_zero(Vec3(0), Vec3(0));
+    Transform X_FM(Rotation(-1.9, Vec3(-3, 2, 4)), Vec3(-0.33, 0.66, -0.99));
+    SpatialVec V_FM(Vec3(-3, .4, -.7), Vec3(1, .2, .3));
+
+    // MobilizedBody::Free
+    {
+        MobilizedBody::Free mobod(matter.updGround(), body);
+        system.realizeTopology();
+        State state = system.getDefaultState();
+
+        // Zero transform and velocity.
+        mobod.setQToFitTransform(state, X_FM_zero);
+        SimTK_TEST_EQ(mobod.getQ(state), Vec7(1, 0, 0, 0, 0, 0, 0));
+        mobod.setUToFitVelocity(state, V_FM_zero);
+        SimTK_TEST_EQ(mobod.getU(state), Vec6(0));
+
+        // Arbitrary transform and velocity.
+        mobod.setQToFitTransform(state, X_FM);
+        Quaternion quat = X_FM.R().convertRotationToQuaternion();
+        Vec3 trans = X_FM.p();
+        SimTK_TEST_EQ(mobod.getQ(state),
+            Vec7(quat[0], quat[1], quat[2], quat[3],
+                 trans[0], trans[1], trans[2]));
+        mobod.setUToFitVelocity(state, V_FM);
+        SimTK_TEST_EQ(mobod.getU(state),
+            Vec6(V_FM[0][0], V_FM[0][1], V_FM[0][2],
+                 V_FM[1][0], V_FM[1][1], V_FM[1][2]));
+    }
+
+    // MobilizedBody::CantileverFreeBeam
+    {
+        Real length = 1.23;
+        MobilizedBody::CantileverFreeBeam mobod(matter.updGround(),
+            body, length);
+        system.realizeTopology();
+        State state = system.getDefaultState();
+
+        // Zero transform and velocity.
+        mobod.setQToFitTransform(state, X_FM_zero);
+        SimTK_TEST_EQ(mobod.getQ(state), Vec3(0));
+        mobod.setUToFitVelocity(state, V_FM_zero);
+        SimTK_TEST_EQ(mobod.getU(state), Vec3(0));
+
+        // Check that setting a Z-translation slightly larger or slightly
+        // smaller than the beam length produces q = 0.
+        mobod.setQToFitTranslation(state, Vec3(0, 0, 0.99 * length));
+        SimTK_TEST_EQ(mobod.getQ(state), Vec3(0));
+        mobod.setQToFitTranslation(state, Vec3(0, 0, 1.01 * length));
+        SimTK_TEST_EQ(mobod.getQ(state), Vec3(0));
+        // While we're at it, check that setting the Z-translation to exactly
+        // the beam length also produces q = 0.
+        mobod.setQToFitTranslation(state, Vec3(0, 0, length));
+        SimTK_TEST_EQ(mobod.getQ(state), Vec3(0));
+
+        // Reset the state to the zero transform and velocity.
+        mobod.setQToFitTransform(state, X_FM_zero);
+        mobod.setUToFitVelocity(state, V_FM_zero);
+
+        // Arbitrary rotation.
+        mobod.setQToFitRotation(state, X_FM.R());
+        SimTK_TEST_EQ(mobod.getQ(state),
+            X_FM.R().convertRotationToBodyFixedXYZ());
+
+        // Arbitrary translation.
+        Vec3 q = mobod.getQ(state);
+        mobod.setQToFitTranslation(state, X_FM.p());
+        // Based on RBNodeCantileverFreeBeam::setQToFitTranslationImpl().
+        const UnitVec3 e(X_FM.p());
+        const Real latitude = std::atan2(-e[1], e[2]);
+        const Real longitude = std::atan2(e[0], e[2]);
+        Real spin = q[2]; // q2 value *prior* to fitting the translation
+        const Rotation R_FM =
+            Rotation(SpaceRotationSequence, latitude, XAxis, longitude, YAxis) *
+            Rotation(spin, ZAxis);
+        SimTK_TEST_EQ(mobod.getQ(state), R_FM.convertRotationToBodyFixedXYZ());
+
+        // Arbitrary transform.
+        mobod.setQToFitTransform(state, X_FM);
+        // Should be the same as the translation fitting above.
+        SimTK_TEST_EQ(mobod.getQ(state), R_FM.convertRotationToBodyFixedXYZ());
+
+        // Arbitrary angular velocity.
+        q = mobod.getQ(state); // update q to the current value in the state
+        mobod.setUToFitAngularVelocity(state, V_FM[0]);
+        // Based on RBNodeCantileverFreeBeam::setUToFitAngularVelocityImpl().
+        const Vec2 cosxy(std::cos(q[0]), std::cos(q[1]));
+        const Vec2 sinxy(std::sin(q[0]), std::sin(q[1]));
+        const Real oocosy = 1 / cosxy[1];
+        Vec3 qdot = Rotation::convertAngVelInParentToBodyXYZDot(
+            cosxy, sinxy, oocosy, V_FM[0]);
+        SimTK_TEST_EQ(mobod.getU(state), qdot);
+
+        // Arbitrary linear velocity.
+        Vec3 u = mobod.getU(state); // get the current u, prior to fitting
+        mobod.setUToFitLinearVelocity(state, V_FM[1]);
+
+        // Based on RBNodeCantileverFreeBeam::setUToFitLinearVelocityImpl().
+        Matrix m(3, 2, 0.0);
+        m(0, 1) = (2.0 / 3.0) * length;
+        m(1, 0) = -m(0, 1);
+        m(2, 0) = -(8.0 / 15.0) * length * q[0];
+        m(2, 1) = -(8.0 / 15.0) * length * q[1];
+
+        // Solve for qdot0 and qdot1 via least squares.
+        FactorQTZ qtz(m);
+        Vector b(3, 0.0);
+        b[0] = V_FM[1][0];
+        b[1] = V_FM[1][1];
+        b[2] = V_FM[1][2];
+        Vector x(2, 0.0);
+        qtz.solve(b, x);
+
+        // Should match the qdot0 and qdot1 we solved for above, plus the
+        // current value of u2.
+        qdot = Vec3(x[0], x[1], u[2]);
+        SimTK_TEST_EQ(mobod.getU(state), qdot);
+
+        // Arbitrary velocity.
+        mobod.setUToFitVelocity(state, V_FM);
+        // Should be the same as the linear velocity fitting above.
+        SimTK_TEST_EQ(mobod.getU(state), qdot);
+    }
+}
+
 void testWeld() {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -475,9 +609,12 @@ void testCantileverFreeBeam() {
                       c2.getBodyVelocity(integ.getState()), 1e-10);
 }
 
+
+
 int main() {
     SimTK_START_TEST("TestMobilizedBody");
         SimTK_SUBTEST(testCalculationMethods);
+        SimTK_SUBTEST(testFittingMethods);
         SimTK_SUBTEST(testWeld);
         SimTK_SUBTEST(testGimbal);
         SimTK_SUBTEST(testBushing);
