@@ -46,61 +46,33 @@ q3 ≠ 0. In the undeformed state (when q0 = q2 = q3 = 0), the position from Fo
 To define this mobilizer, we first need to derive the equations for the
 deflection of a cantilever-free beam under a transverse point load. The general
 differential equation for finite elastic deformations of a beam subject to a
-bending moment, \f$M\f$, is given by the following (equation 8.1-5 in [1]):
+bending moment, M, is given by EI d²y⁄dx² = M (equation 8.1-5 in [1]),
+where E is the modulus of elasticity, I is the area moment of
+inertia, x is the position along the axis of the undeflected beam, and
+y is the vertical deflection.
 
-\f[
-EI\frac{d^2y}{dx^2} = M
-\f]
+A cantilever-free beam (with length L) is rigidly fixed at one end (i.e., y = 0
+and dy⁄dx = 0 at x = 0) and free at the other end (i.e., d²y⁄dx² = 0 and
+d³y⁄dx³ = 0 at x = L). When subjected to a transverse point load, P, at the end
+of the beam, the bending moment is given by M = P(L-x). Substituting this
+loading condition into the differential equation and applying the boundary
+conditions, we can solve for the vertical deflection at the end of the beam:
 
-where \f$E\f$ is the modulus of elasticity, \f$I\f$ is the area moment of
-inertia, \f$x\f$ is the position along the axis of the undeflected beam, and
-\f$y\f$ is the vertical deflection. A cantilever-free beam (with length L) is
-rigidly fixed at one end (x = 0) and free at the other end (x = L), and
-therefore has the following boundary conditions:
+y(L) = PL³ ⁄ (3EI)
 
-\f[
-y|_{x=0} = 0
-\f]
+Similarly, we can derive the angle of deflection, θ, at the end of the beam:
 
-\f[
-\frac{dy}{dx}|_{x=0} = 0
-\f]
-
-\f[
-\frac{d^2y}{dx^2}|_{x=L} = 0
-\f]
-
-\f[
-\frac{d^3y}{dx^3}|_{x=L} = 0
-\f]
-
-When subjected to a transverse point load, \f$P\f$, at the end of the beam, the
-bending moment is given by \f$M = P(L-x)\f$. Substituting this loading condition
-into the differential equation and applying the boundary conditions, we can
-solve for the vertical deflection at the end of the beam:
-
-\f[
-y(L) = \frac{PL^3}{3EI}
-\f]
-
-Similarly, we can derive the angle of deflection, \f$\theta\f$, at the end of
-the beam:
-
-\f[
-\theta(L) = \frac{PL^2}{2EI}
-\f]
+θ(L) = PL² ⁄ (2EI)
 
 \subsection beam_deflection Beam deflection equation
 
 Using the two previously derived expressions, we can define a kinematic
 relationship between the deflection and angle of the beam's endpoint:
 
-\f[
-y = \frac{2}{3} \theta L
-\f]
+y = (2⁄3) θ L
 
 Note that this equation is only a function of the deflection angle and the
-beam length, and not \f$E\f$, \f$I\f$, or \f$P\f$, so we can use it to define
+beam length, and not E, I, or P, so we can use it to define
 the kinematic coupling between the X-Y translations and the X-Y rotations of the
 mobilizer defined below (see \ref mobilizer).
 
@@ -109,17 +81,13 @@ mobilizer defined below (see \ref mobilizer).
 The shortening of the beam can be estimated by equation 8.1-14 from "Roark's
 Formulas for Stress and Strain" [1]:
 
-\f[
-\Delta L = -\frac{1}{2} \int_0^L (\frac{dy}{dx})^2 dx
-\f]
+ΔL = −0.5 ∫₀ᴸ (dy⁄dx)² dx
 
 After integrating, applying the boundary conditions, and substituting for
-\f$\theta\f$, we get the following relationship relating the shortening of the
+θ, we get the following relationship relating the shortening of the
 beam to the angle of deflection:
 
-\f[
-\Delta L(\theta) = -\frac{4}{15} \theta^2 L
-\f]
+ΔL(θ) = −(4⁄15) θ² L
 
 This equation will drive the kinematic coupling between the Z translation and
 the X-Y rotations of the mobilizer defined below (see \ref mobilizer).
@@ -127,24 +95,25 @@ the X-Y rotations of the mobilizer defined below (see \ref mobilizer).
 \section mobilizer Mobilizer definition
 
 The generalized coordinates q are the same as for a Gimbal mobilizer, that is,
-an x-y-z body-fixed Euler sequence. The three generalized speeds u for
+an X-Y-Z body-fixed Euler sequence. The three generalized speeds u for
 this mobilizer are also the same as for a Gimbal mobilizer: the time derivatives
-of the generalized coordinates, that is, \f$u = \dot{q}\f$.
+of the generalized coordinates, that is, u = qdot.
 
-The first two rotations induce translations according to the beam deflection
-formula for a cantilever beam under a transverse point load applied at the end
-of the beam (see \ref beam_deflection). The change in the beam's endpoint
-position in the Fz direction is governed by apparent shortening of a beam due to
-bending (see \ref beam_displacement). Therefore, the components of the position
-vector from frame F's origin to frame M's origin, p_FM, is given by:
+The first two rotations, q₀ and q₁, induce translations according to the beam
+deflection formula for a cantilever beam under a transverse point load applied
+at the end of the beam (see \ref beam_deflection). The change in the beam's
+endpoint position in the Fz direction is governed by apparent shortening of a
+beam due to bending (see \ref beam_displacement). Therefore, the components of
+the position vector from frame F's origin to frame M's origin, p₀, p₁, and p₂,
+are given by:
 
-\f{eqnarray*}{
-    p_x &=& \frac{2}{3} q_1 L \\
-    p_y &=& -\frac{2}{3} q_0 L \\
-    p_z &=& L - \frac{4}{15} (q_0^2 + q_1^2) L \\
-\f}
+p₀ = 2⁄3 q₁ L
 
-The third rotation, q_2, induces a rotation about the Mz axis, which is always
+p₁ = −2⁄3 q₀ L
+
+p₂ = L − 4⁄15 (q₀² + q₁²) L
+
+The third rotation, q₂, induces a rotation about the Mz axis, which is always
 tangent to the beam at the beam's endpoint.
 
 Note that while the endpoint shortens in the Fz direction, the total length of
