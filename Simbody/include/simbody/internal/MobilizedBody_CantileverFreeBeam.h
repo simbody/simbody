@@ -33,12 +33,12 @@ namespace SimTK {
 
 /** Although this mobilizer has only three mobilities (all rotational), the
 mobilized frame M translates relative to the fixed frame F as a specified
-function of this mobilizers rotational generalized coordinates q0, q1, q2. The
+function of this mobilizers rotational generalized coordinates q₀, q₁, q₂. The
 specified function is based on the deflection shape of a cantilever-free beam,
 whose free end is subjected to a transverse point load. Although this shape is
 inspired by a cantilever-free beam, this mobilizer does not actually model a
-beam, in that there is no elastic restoring forces/torques when q0 or q2 or
-q3 ≠ 0. In the undeformed state (when q0 = q2 = q3 = 0), the position from Fo
+beam, in that there is no elastic restoring forces/torques when q₀ or q₁ or
+q₂ ≠ 0. In the undeformed state (when q₀ = q₁ = q₂ = 0), the position from Fo
 (frame F's origin) to Mo (frame M's origin) is L Fz.
 
 \section cf_beam_eqs Cantilever-free beam equations
@@ -124,10 +124,10 @@ term in the Euler-Bernoulli beam equation. However, since the primary utility of
 this mobilizer is to provide a lightweight way for modeling flexible structures
 (e.g., the bending of the spinal column in a human or animal skeleton), and not
 necessarily to accurately model large beam deflections, the beam lengthening can
-be accounted for with appropriatemodeling adjustments.
+be accounted for with appropriate modeling adjustments.
 
 While this mobilizer provides arbitrary orientation, the Euler angle
-derivatives are singular when q1 (the middle rotation) is near ± π/2 radians.
+derivatives are singular when q₁ (the middle rotation) is near ±π/2 radians.
 That means you should not attempt to do any dynamics in that configuration.
 
 \par References:
