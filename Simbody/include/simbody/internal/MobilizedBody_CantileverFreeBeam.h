@@ -69,7 +69,7 @@ Similarly, we can derive the angle of deflection, θ, at the end of the beam:
 Using the two previously derived expressions, we can define a kinematic
 relationship between the deflection and angle of the beam's endpoint:
 
-y = (2⁄3) θ L
+y(L) = (2⁄3) θ L
 
 Note that this equation is only a function of the deflection angle and the
 beam length, and not E, I, or P, so we can use it to define
@@ -97,7 +97,8 @@ the X-Y rotations of the mobilizer defined below (see \ref mobilizer).
 The generalized coordinates q are the same as for a Gimbal mobilizer, that is,
 an X-Y-Z body-fixed Euler sequence. The three generalized speeds u for
 this mobilizer are also the same as for a Gimbal mobilizer: the time derivatives
-of the generalized coordinates, that is, u = qdot.
+of the generalized coordinates, that is, uᵢ = q̇ᵢ (i.e., uᵢ = qdotᵢ for i = 0,
+1, 2).
 
 The first two rotations, q₀ and q₁, induce translations according to the beam
 deflection formula for a cantilever beam under a transverse point load applied
