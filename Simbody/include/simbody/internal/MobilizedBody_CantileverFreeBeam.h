@@ -33,7 +33,7 @@ namespace SimTK {
 
 /** Although this mobilizer has only three mobilities (all rotational), the
 mobilized frame M translates relative to the fixed frame F as a specified
-function of this mobilizers rotational generalized coordinates q₀, q₁, q₂. The
+function of this mobilizer's rotational generalized coordinates q₀, q₁, q₂. The
 specified function is based on the deflection shape of a cantilever-free beam,
 whose free end is subjected to a transverse point load. Although this shape is
 inspired by a cantilever-free beam, this mobilizer does not actually model a
@@ -104,9 +104,9 @@ The first two rotations, q₀ and q₁, induce translations according to the bea
 deflection formula for a cantilever beam under a transverse point load applied
 at the end of the beam (see \ref beam_deflection). The change in the beam's
 endpoint position in the Fz direction is governed by apparent shortening of a
-beam due to bending (see \ref beam_displacement). Therefore, the components of
-the position vector from frame F's origin to frame M's origin, p₀, p₁, and p₂,
-are given by:
+beam due to bending (see \ref beam_displacement). Denoting the position vector
+from Fo (frame F's origin) to Mo (frame M's origin), expressed in frame F as
+p₀ Fx + p₁ Fy + p₂ Fz, then p₀, p₁, and p₂ are given by
 
 p₀ = 2⁄3 q₁ L
 
@@ -128,8 +128,9 @@ necessarily to accurately model large beam deflections, the beam lengthening can
 be accounted for with appropriate modeling adjustments.
 
 While this mobilizer provides arbitrary orientation, the Euler angle
-derivatives are singular when q₁ (the middle rotation) is near ±π/2 radians.
-That means you should not attempt to do any dynamics in that configuration.
+derivatives are singular when q₁ (the middle rotation) is near ±π/2 radians,
+which is an ununusally large angle for a spinal column, for example. That means
+you should not attempt to do any dynamics in that configuration.
 
 \par References:
 
@@ -150,7 +151,7 @@ public:
     %MobilizedBody object. Specify the mobilizer frames F fixed to parent P and
     M fixed to child B. The origin of the beam is placed on the mobilizer's
     inboard frame F, and the endpoint is placed on the mobilizer's outboard
-    frame M. In the default configuration, the Fz and Mz and the parent frame
+    frame M. In the default configuration, Fz = Mz and the parent frame
     origin is located at (0,0,L) in F, where L is the length of the beam.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     CantileverFreeBeam(MobilizedBody& parent, const Transform& X_PF,

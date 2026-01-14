@@ -774,17 +774,11 @@ void testGimbal() {
     fwdMatter.calcMobilizerReactionForces(fwdState, fwdReac);
     revMatter.calcMobilizerReactionForces(revState, revReac);
 
-    // Reaction AB != -BA for a planar joint unless the translation is 0.
-    // Instead, we have to shift the reaction F_AB at B's mobilizer frame
-    // over to A's mobilizer frame, then negate. So
-    //    F_BA = -(F_AB + [f_AB x p_BA_G; 0])
-    const SpatialVec F_AB = fwdReac[fwdB.getMobilizedBodyIndex()];
-    const SpatialVec reacBAfwd =
-        -(F_AB + SpatialVec(F_AB[1] % (X_GMb.R()*X_BA.p()), Vec3(0)));
+    // Reaction AB = -BA since the translation is always 0 for a gimbal joint.
+    const SpatialVec reacBAfwd = -fwdReac[fwdB.getMobilizedBodyIndex()];
     const SpatialVec reacBArev = revReac[revA.getMobilizedBodyIndex()];
 
     cout << "Reacs BA:\n";
-    cout << "  Fwd AB:  " << F_AB << " p_BA: " << X_BA.p() << endl;
     cout << "  Fwd:     " << reacBAfwd << endl;
     cout << "  Rev:     " << reacBArev << endl;
     cout << "  Fwd-Rev: " << reacBAfwd-reacBArev << endl;
@@ -911,7 +905,7 @@ void testBushing() {
     fwdMatter.calcMobilizerReactionForces(fwdState, fwdReac);
     revMatter.calcMobilizerReactionForces(revState, revReac);
 
-    // Reaction AB != -BA for a planar joint unless the translation is 0.
+    // Reaction AB != -BA for a bushing joint unless the translation is 0.
     // Instead, we have to shift the reaction F_AB at B's mobilizer frame
     // over to A's mobilizer frame, then negate. So
     //    F_BA = -(F_AB + [f_AB x p_BA_G; 0])
@@ -1051,9 +1045,9 @@ void testCantileverFreeBeam() {
     fwdMatter.calcMobilizerReactionForces(fwdState, fwdReac);
     revMatter.calcMobilizerReactionForces(revState, revReac);
 
-    // Reaction AB != -BA for a planar joint unless the translation is 0.
-    // Instead, we have to shift the reaction F_AB at B's mobilizer frame
-    // over to A's mobilizer frame, then negate. So
+    // Reaction AB != -BA for a cantilever-free beam joint unless the
+    // translation is 0. Instead, we have to shift the reaction F_AB at B's
+    // mobilizer frame over to A's mobilizer frame, then negate. So
     //    F_BA = -(F_AB + [f_AB x p_BA_G; 0])
     const SpatialVec F_AB = fwdReac[fwdB.getMobilizedBodyIndex()];
     const SpatialVec reacBAfwd =
