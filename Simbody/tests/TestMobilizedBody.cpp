@@ -609,7 +609,58 @@ void testCantileverFreeBeam() {
                       c2.getBodyVelocity(integ.getState()), 1e-10);
 }
 
+// Create a pendulum system with a cantilever-free beam joints, and simulate it
+// given a non-zero initial angle (for the X-rotation only, so we don't run into
+// a singularity) and check that the energy is conserved at regular intervals.
+void testCantileverFreeBeamEnergyConservation() {
 
+    // Define the system.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -9.81, 0));
+
+    // Mass properties.
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+
+    // Undeflected beam length.
+    Real length = 1.23;
+
+    // Define the pendulum using a cantilever-free beam mobilizer.
+    MobilizedBody::CantileverFreeBeam pendulum(
+        matter.updGround(), Transform(Rotation(Pi/2, XAxis)),
+        body, Transform(), length);
+    pendulum.addBodyDecoration(Transform(), DecorativeSphere(0.05)
+        .setColor(Cyan).setOpacity(0.2));
+
+    // Visualizer viz(system);
+    // viz.setBackgroundType(Visualizer::SolidColor);
+    // system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+
+    // Initialize the system, set the initial state, and calculate the initial
+    // energy.
+    State state = system.realizeTopology();
+    pendulum.setQ(state, Vec3(Pi/2, 0.0, 0.0));
+    system.realize(state, Stage::Dynamics);
+    const Real initialEnergy = system.calcEnergy(state);
+
+    // Create a time stepper instance.
+    RungeKuttaMersonIntegrator integ(system);
+    integ.setAccuracy(1e-10);
+    TimeStepper ts(system, integ);
+    ts.initialize(state);
+
+    // Simulate the system and check that the energy is conserved at regular
+    // intervals.
+    Real dt = 1e-3;
+    Real time = 0.0;
+    for (int i = 0; i < 1000; ++i) {
+        time += dt;
+        ts.stepTo(time);
+        const State& s = ts.getState();
+        SimTK_TEST_EQ_TOL(initialEnergy, system.calcEnergy(s), 1e-10);
+    }
+}
 
 int main() {
     SimTK_START_TEST("TestMobilizedBody");
@@ -619,5 +670,6 @@ int main() {
         SimTK_SUBTEST(testGimbal);
         SimTK_SUBTEST(testBushing);
         SimTK_SUBTEST(testCantileverFreeBeam);
+        SimTK_SUBTEST(testCantileverFreeBeamEnergyConservation);
     SimTK_END_TEST();
 }
