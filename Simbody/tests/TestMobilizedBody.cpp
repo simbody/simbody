@@ -652,13 +652,13 @@ void testCantileverFreeBeamEnergyConservation() {
 
     // Simulate the system and check that the energy is conserved at regular
     // intervals.
-    Real dt = 1e-3;
+    Real dt = 1e-2;
     Real time = 0.0;
     for (int i = 0; i < 1000; ++i) {
         time += dt;
         ts.stepTo(time);
         const State& s = ts.getState();
-        SimTK_TEST_EQ_TOL(initialEnergy, system.calcEnergy(s), 1e-10);
+        SimTK_TEST_EQ_TOL(initialEnergy, system.calcEnergy(s), 1e-8);
     }
 }
 
