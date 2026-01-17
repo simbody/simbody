@@ -1028,6 +1028,43 @@ private:
     Real defaultQ; // the angle in radians
 };
 
+class MobilizedBody::CantileverFreeBeamImpl : public MobilizedBodyImpl {
+public:
+    explicit CantileverFreeBeamImpl(Direction d)
+    :   MobilizedBodyImpl(d), defaultLength(Real(0.5)),
+        defaultQ() { } // default is (0,0,0), the identity rotation
+    CantileverFreeBeamImpl* clone() const override {
+        return new CantileverFreeBeamImpl(*this);
+    }
+
+    RigidBodyNode* createRigidBodyNode(
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const override;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
+        SimTK_ASSERT(nq==3,
+            "MobilizedBody::CantileverFreeBeamImpl::copyOutDefaultQImpl(): wrong number of q's");
+        Vec3::updAs(q) = defaultQ;
+    }
+
+    void calcDecorativeGeometryAndAppendImpl
+        (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
+
+    void setDefaultLength(const Real& length) {
+        assert(length>0);
+        invalidateTopologyCache();
+        defaultLength=length;
+    }
+    const Real& getDefaultLength() const {return defaultLength;}
+
+    SimTK_DOWNCAST(CantileverFreeBeamImpl, MobilizedBodyImpl);
+private:
+    friend class MobilizedBody::CantileverFreeBeam;
+    Real defaultLength; // used for visualization only
+    Vec3 defaultQ;      // the default orientation
+};
+
 /////////////////////////////////////////////////
 // MOBILIZED BODY::CUSTOM::IMPLEMENTATION IMPL //
 /////////////////////////////////////////////////

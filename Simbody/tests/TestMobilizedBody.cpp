@@ -78,6 +78,140 @@ void testCalculationMethods() {
     SimTK_TEST_EQ(b1.findStationVelocityInGround(state, point), b1.findStationVelocityInAnotherBody(state, point, matter.Ground()));
 }
 
+void testFittingMethods() {
+
+    // Define an empty system.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+
+    // Define zero and arbitrary transforms and velocities.
+    Transform X_FM_zero(Vec3(0));
+    SpatialVec V_FM_zero(Vec3(0), Vec3(0));
+    Transform X_FM(Rotation(-1.9, Vec3(-3, 2, 4)), Vec3(-0.33, 0.66, -0.99));
+    SpatialVec V_FM(Vec3(-3, .4, -.7), Vec3(1, .2, .3));
+
+    // MobilizedBody::Free
+    {
+        MobilizedBody::Free mobod(matter.updGround(), body);
+        system.realizeTopology();
+        State state = system.getDefaultState();
+
+        // Zero transform and velocity.
+        mobod.setQToFitTransform(state, X_FM_zero);
+        SimTK_TEST_EQ(mobod.getQ(state), Vec7(1, 0, 0, 0, 0, 0, 0));
+        mobod.setUToFitVelocity(state, V_FM_zero);
+        SimTK_TEST_EQ(mobod.getU(state), Vec6(0));
+
+        // Arbitrary transform and velocity.
+        mobod.setQToFitTransform(state, X_FM);
+        Quaternion quat = X_FM.R().convertRotationToQuaternion();
+        Vec3 trans = X_FM.p();
+        SimTK_TEST_EQ(mobod.getQ(state),
+            Vec7(quat[0], quat[1], quat[2], quat[3],
+                 trans[0], trans[1], trans[2]));
+        mobod.setUToFitVelocity(state, V_FM);
+        SimTK_TEST_EQ(mobod.getU(state),
+            Vec6(V_FM[0][0], V_FM[0][1], V_FM[0][2],
+                 V_FM[1][0], V_FM[1][1], V_FM[1][2]));
+    }
+
+    // MobilizedBody::CantileverFreeBeam
+    {
+        Real length = 1.23;
+        MobilizedBody::CantileverFreeBeam mobod(matter.updGround(),
+            body, length);
+        system.realizeTopology();
+        State state = system.getDefaultState();
+
+        // Zero transform and velocity.
+        mobod.setQToFitTransform(state, X_FM_zero);
+        SimTK_TEST_EQ(mobod.getQ(state), Vec3(0));
+        mobod.setUToFitVelocity(state, V_FM_zero);
+        SimTK_TEST_EQ(mobod.getU(state), Vec3(0));
+
+        // Check that setting a Z-translation slightly larger or slightly
+        // smaller than the beam length produces q = 0.
+        mobod.setQToFitTranslation(state, Vec3(0, 0, 0.99 * length));
+        SimTK_TEST_EQ(mobod.getQ(state), Vec3(0));
+        mobod.setQToFitTranslation(state, Vec3(0, 0, 1.01 * length));
+        SimTK_TEST_EQ(mobod.getQ(state), Vec3(0));
+        // While we're at it, check that setting the Z-translation to exactly
+        // the beam length also produces q = 0.
+        mobod.setQToFitTranslation(state, Vec3(0, 0, length));
+        SimTK_TEST_EQ(mobod.getQ(state), Vec3(0));
+
+        // Reset the state to the zero transform and velocity.
+        mobod.setQToFitTransform(state, X_FM_zero);
+        mobod.setUToFitVelocity(state, V_FM_zero);
+
+        // Arbitrary rotation.
+        mobod.setQToFitRotation(state, X_FM.R());
+        SimTK_TEST_EQ(mobod.getQ(state),
+            X_FM.R().convertRotationToBodyFixedXYZ());
+
+        // Arbitrary translation.
+        Vec3 q = mobod.getQ(state);
+        mobod.setQToFitTranslation(state, X_FM.p());
+        // Based on RBNodeCantileverFreeBeam::setQToFitTranslationImpl().
+        const UnitVec3 e(X_FM.p());
+        const Real latitude = std::atan2(-e[1], e[2]);
+        const Real longitude = std::atan2(e[0], e[2]);
+        Real spin = q[2]; // q2 value *prior* to fitting the translation
+        const Rotation R_FM =
+            Rotation(SpaceRotationSequence, latitude, XAxis, longitude, YAxis) *
+            Rotation(spin, ZAxis);
+        SimTK_TEST_EQ(mobod.getQ(state), R_FM.convertRotationToBodyFixedXYZ());
+
+        // Arbitrary transform.
+        mobod.setQToFitTransform(state, X_FM);
+        // Should be the same as the translation fitting above.
+        SimTK_TEST_EQ(mobod.getQ(state), R_FM.convertRotationToBodyFixedXYZ());
+
+        // Arbitrary angular velocity.
+        q = mobod.getQ(state); // update q to the current value in the state
+        mobod.setUToFitAngularVelocity(state, V_FM[0]);
+        // Based on RBNodeCantileverFreeBeam::setUToFitAngularVelocityImpl().
+        const Vec2 cosxy(std::cos(q[0]), std::cos(q[1]));
+        const Vec2 sinxy(std::sin(q[0]), std::sin(q[1]));
+        const Real oocosy = 1 / cosxy[1];
+        Vec3 qdot = Rotation::convertAngVelInParentToBodyXYZDot(
+            cosxy, sinxy, oocosy, V_FM[0]);
+        SimTK_TEST_EQ(mobod.getU(state), qdot);
+
+        // Arbitrary linear velocity.
+        Vec3 u = mobod.getU(state); // get the current u, prior to fitting
+        mobod.setUToFitLinearVelocity(state, V_FM[1]);
+
+        // Based on RBNodeCantileverFreeBeam::setUToFitLinearVelocityImpl().
+        Matrix m(3, 2, 0.0);
+        m(0, 1) = (2.0 / 3.0) * length;
+        m(1, 0) = -m(0, 1);
+        m(2, 0) = -(8.0 / 15.0) * length * q[0];
+        m(2, 1) = -(8.0 / 15.0) * length * q[1];
+
+        // Solve for qdot0 and qdot1 via least squares.
+        FactorQTZ qtz(m);
+        Vector b(3, 0.0);
+        b[0] = V_FM[1][0];
+        b[1] = V_FM[1][1];
+        b[2] = V_FM[1][2];
+        Vector x(2, 0.0);
+        qtz.solve(b, x);
+
+        // Should match the qdot0 and qdot1 we solved for above, plus the
+        // current value of u2.
+        qdot = Vec3(x[0], x[1], u[2]);
+        SimTK_TEST_EQ(mobod.getU(state), qdot);
+
+        // Arbitrary velocity.
+        mobod.setUToFitVelocity(state, V_FM);
+        // Should be the same as the linear velocity fitting above.
+        SimTK_TEST_EQ(mobod.getU(state), qdot);
+    }
+}
+
 void testWeld() {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -269,12 +403,273 @@ void testBushing() {
                       c2.getBodyVelocity(integ.getState()), 1e-10);
 }
 
+// A helper function to replicate the translation-rotational coupling of
+// MobilizedBody::CantileverFreeBeam associated with X and Y beam deflections.
+class BeamDeflectionFunction : public Function {
+public:
+    BeamDeflectionFunction(const Real& beamLength, bool negate) {
+        m_deflectionCoefficient = (2.0 / 3.0) * beamLength;
+        m_sign = negate ? -1.0 : 1.0;
+    }
+
+    Real calcValue(const Vector& x) const override {
+        return x[0] + m_sign * m_deflectionCoefficient * x[1];
+    }
+
+    Real calcDerivative(const Array_<int>& derivComponents,
+            const Vector& x) const override {
+        if (derivComponents.size() == 1) {
+            if (derivComponents[0] == 0) {
+                return 1;
+            } else if (derivComponents[0] == 1) {
+                return m_sign * m_deflectionCoefficient;
+            }
+        }
+        return 0;
+
+    }
+
+    int getArgumentSize() const override {
+        return 2;
+    }
+
+    int getMaxDerivativeOrder() const override {
+        return 2;
+    }
+
+private:
+    Real m_deflectionCoefficient;
+    Real m_sign;
+};
+
+// A helper function to replicate the translation-rotational coupling of
+// MobilizedBody::CantileverFreeBeam associated with Z beam displacement.
+class BeamDisplacementFunction : public Function {
+public:
+    BeamDisplacementFunction(const Real& beamLength) :
+            m_beamLength(beamLength) {
+        m_displacementCoefficient = (4.0 / 15.0) * m_beamLength;
+    }
+
+    Real calcValue(const Vector& x) const override {
+        return x[0] - m_beamLength +
+            m_displacementCoefficient * (x[1]*x[1] + x[2]*x[2]);
+    }
+
+    Real calcDerivative(const Array_<int>& derivComponents,
+            const Vector& x) const override {
+        if (derivComponents.size() == 1) {
+            if (derivComponents[0] == 0) {
+                return 1;
+            } else if (derivComponents[0] == 1) {
+                return m_displacementCoefficient * 2 * x[1];
+            } else if (derivComponents[0] == 2) {
+                return m_displacementCoefficient * 2 * x[2];
+            }
+        } else if (derivComponents.size() == 2) {
+            if (derivComponents[0] == 1 && derivComponents[1] == 1) {
+                return 2 * m_displacementCoefficient;
+            } else if (derivComponents[0] == 2 && derivComponents[1] == 2) {
+                return 2 * m_displacementCoefficient;
+            } else {
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    int getArgumentSize() const override {
+        return 3;
+    }
+
+    int getMaxDerivativeOrder() const override {
+        return 2;
+    }
+
+private:
+    Real m_beamLength;
+    Real m_displacementCoefficient;
+};
+
+// Create two pendulums with cantilever-free beam joints, one where the
+// cantilever-free beam is faked with a MobilizedBody::Gimbal and a
+// MobilizedBody::Translation where the translational coordinates are coupled
+// to the rotational coordinates via a Constraint::CoordinateCoupler using the
+// same beam equations relationships as the MobilizedBody::CantileverFreeBeam.
+// Both pendulums should provide identical generalized coordinates and speeds.
+void testCantileverFreeBeam() {
+
+    // Define the system.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -9.81, 0));
+
+    // Mass properties and mobilizer frames.
+    Body::Rigid lumpy(MassProperties(3.1, Vec3(.1, .2, .3),
+                      UnitInertia(1.2, 1.1, 1.3, .01, .02, .03)));
+    Body::Rigid massless(MassProperties(0,Vec3(0),UnitInertia(0)));
+    Transform inboard(Vec3(0.1, 0.5, -1));
+    Transform outboard(Vec3(0.2, -0.2, 0));
+
+    // Undeflected beam length.
+    Real length = 1.23;
+
+    // The first pendulum with the true cantilever-free beam mobilizer.
+    MobilizedBody::CantileverFreeBeam pendulum1(matter.updGround(), inboard,
+        lumpy, outboard, length);
+
+    // The second pendulum with the faked cantilever-free beam mobilizer.
+    MobilizedBody::Translation dummy(matter.updGround(), inboard,
+        massless, Transform());
+    MobilizedBody::Gimbal pendulum2(dummy, Transform(),
+        lumpy, outboard);
+
+    // Coupling of X translation with Y rotation.
+    std::vector<MobilizedBodyIndex> mobilizers(2);
+    std::vector<MobilizerQIndex> coordinates(2);
+    mobilizers[0]  = dummy.getMobilizedBodyIndex();
+    mobilizers[1]  = pendulum2.getMobilizedBodyIndex();
+    coordinates[0] = MobilizerQIndex(0); // X translation
+    coordinates[1] = MobilizerQIndex(1); // Y rotation
+    Constraint::CoordinateCoupler coupler1(matter,
+        new BeamDeflectionFunction(length, true), mobilizers, coordinates);
+
+    // Coupling of Y translation with X rotation.
+    mobilizers[0]  = dummy.getMobilizedBodyIndex();
+    mobilizers[1]  = pendulum2.getMobilizedBodyIndex();
+    coordinates[0] = MobilizerQIndex(1); // Y translation
+    coordinates[1] = MobilizerQIndex(0); // X rotation
+    Constraint::CoordinateCoupler coupler2(matter,
+        new BeamDeflectionFunction(length, false), mobilizers, coordinates);
+
+    // Coupling of Z translation with X and Y rotations.
+    std::vector<MobilizedBodyIndex> mobilizers3(3);
+    std::vector<MobilizerQIndex> coordinates3(3);
+    mobilizers3[0]  = dummy.getMobilizedBodyIndex();
+    mobilizers3[1]  = pendulum2.getMobilizedBodyIndex();
+    mobilizers3[2]  = pendulum2.getMobilizedBodyIndex();
+    coordinates3[0] = MobilizerQIndex(2); // Z translation
+    coordinates3[1] = MobilizerQIndex(0); // X rotation
+    coordinates3[2] = MobilizerQIndex(1); // Y rotation
+    Constraint::CoordinateCoupler coupler3(matter,
+        new BeamDisplacementFunction(length), mobilizers3, coordinates3);
+
+    // Test bodies.
+    MobilizedBody::Weld c1(pendulum1, inboard, lumpy, outboard);
+    MobilizedBody::Weld c2(pendulum2, inboard, lumpy, outboard);
+    c1.addBodyDecoration(Transform(), DecorativeBrick(.1*Vec3(1,2,3))
+        .setColor(Cyan).setOpacity(0.2));
+    c2.addBodyDecoration(Transform(), DecorativeBrick(.1*Vec3(1,2,3))
+        .setColor(Red).setRepresentation(DecorativeGeometry::DrawWireframe));
+
+    // Visualizer viz(system);
+    // viz.setBackgroundType(Visualizer::SolidColor);
+    // system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+
+    // Construct the system, prescribe the motion of the second pendulum,
+    // realize the system to the velocity stage, and project coordinates.
+    State state = system.realizeTopology();
+    pendulum2.setQ(state, Vec3(0.1, 0.2, 0.3));
+    pendulum2.setU(state, Vec3(-0.1, -0.2, -0.3));
+    system.realize(state, Stage::Velocity);
+    system.project(state, 1e-10);
+
+    // Now that constraints are satisfied for the second pendulum, set the
+    // coordinates of the first pendulum to match the coordinates of the second
+    // pendulum. This will guarantee that the kinematics of both pendulums are
+    // identical.
+    pendulum1.setQ(state, pendulum2.getQ(state));
+    pendulum1.setU(state, pendulum2.getU(state));
+    system.realize(state, Stage::Velocity);
+    // Project again, just to be sure.
+    system.project(state, 1e-10);
+
+    // Check that the state is identical.
+    SimTK_TEST_EQ(pendulum1.getQ(state), pendulum2.getQ(state));
+    SimTK_TEST_EQ(pendulum1.getU(state), pendulum2.getU(state));
+
+    // Check that the body transforms and velocities are identical.
+    SimTK_TEST_EQ_TOL(c1.getBodyTransform(state),
+        c2.getBodyTransform(state), 1e-10);
+    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(state),
+        c2.getBodyVelocity(state), 1e-10);
+
+    // Simulate it and see if both pendulums behave identically.
+    RungeKuttaMersonIntegrator integ(system);
+    integ.setAccuracy(1e-10);
+    integ.setConstraintTolerance(1e-10);
+    TimeStepper ts(system, integ);
+    ts.initialize(state);
+    ts.stepTo(5);
+    system.realize(integ.getState(), Stage::Velocity);
+    SimTK_TEST_EQ_TOL(c1.getBodyTransform(integ.getState()),
+                      c2.getBodyTransform(integ.getState()), 1e-10);
+    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(integ.getState()),
+                      c2.getBodyVelocity(integ.getState()), 1e-10);
+}
+
+// Create a pendulum system with a cantilever-free beam joints, and simulate it
+// given a non-zero initial angle (for the X-rotation only, so we don't run into
+// a singularity) and check that the energy is conserved at regular intervals.
+void testCantileverFreeBeamEnergyConservation() {
+
+    // Define the system.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -9.81, 0));
+
+    // Mass properties.
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+
+    // Undeflected beam length.
+    Real length = 1.23;
+
+    // Define the pendulum using a cantilever-free beam mobilizer.
+    MobilizedBody::CantileverFreeBeam pendulum(
+        matter.updGround(), Transform(Rotation(Pi/2, XAxis)),
+        body, Transform(), length);
+    pendulum.addBodyDecoration(Transform(), DecorativeSphere(0.05)
+        .setColor(Cyan).setOpacity(0.2));
+
+    // Visualizer viz(system);
+    // viz.setBackgroundType(Visualizer::SolidColor);
+    // system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+
+    // Initialize the system, set the initial state, and calculate the initial
+    // energy.
+    State state = system.realizeTopology();
+    pendulum.setQ(state, Vec3(Pi/2, 0.0, 0.0));
+    system.realize(state, Stage::Dynamics);
+    const Real initialEnergy = system.calcEnergy(state);
+
+    // Create a time stepper instance.
+    RungeKuttaMersonIntegrator integ(system);
+    integ.setAccuracy(1e-10);
+    TimeStepper ts(system, integ);
+    ts.initialize(state);
+
+    // Simulate the system and check that the energy is conserved at regular
+    // intervals.
+    Real dt = 1e-2;
+    Real time = 0.0;
+    for (int i = 0; i < 1000; ++i) {
+        time += dt;
+        ts.stepTo(time);
+        const State& s = ts.getState();
+        SimTK_TEST_EQ_TOL(initialEnergy, system.calcEnergy(s), 1e-8);
+    }
+}
+
 int main() {
     SimTK_START_TEST("TestMobilizedBody");
         SimTK_SUBTEST(testCalculationMethods);
+        SimTK_SUBTEST(testFittingMethods);
         SimTK_SUBTEST(testWeld);
         SimTK_SUBTEST(testGimbal);
         SimTK_SUBTEST(testBushing);
+        SimTK_SUBTEST(testCantileverFreeBeam);
+        SimTK_SUBTEST(testCantileverFreeBeamEnergyConservation);
     SimTK_END_TEST();
 }
-

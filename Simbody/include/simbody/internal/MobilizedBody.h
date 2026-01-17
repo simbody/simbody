@@ -1855,7 +1855,8 @@ class Ellipsoid;
 class Custom;
 class Ground;
 class FunctionBased;
-    
+class CantileverFreeBeam;
+
 // Internal use only.
 class PinImpl;
 class SliderImpl;
@@ -1877,6 +1878,7 @@ class EllipsoidImpl;
 class CustomImpl;
 class GroundImpl;
 class FunctionBasedImpl;
+class CantileverFreeBeamImpl;
 };
 
 } // namespace SimTK
