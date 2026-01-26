@@ -134,7 +134,7 @@ class Xml::Document::Impl {
         SimTK_ERRCHK1_ALWAYS(status != tinyxml2::XMLError::XML_SUCCESS,
                              "Xml::readFromString()",
                              "Failed to parse the Xml string with error '%s'.",
-                             m_tixml.ErrorStr());
+                             status);
     }
 
     void writeToString(String& xmlDocument, bool compact) const {
@@ -358,14 +358,14 @@ const String& Xml::Document::getIndentString() const {
     // tinyxml2::XMLBase::SetCondenseWhiteSpace(shouldCondense);
 }
 /*static*/ bool Xml::Document::isXmlWhiteSpaceCondensed() {
-    return true;
+    return false;
 }
 
 Xml::Element Xml::Document::getRootElement() {
     assert(getImpl().m_rootElement.isValid());
     return updImpl().m_rootElement;
 }
-const String& Xml::Document::getRootTag() const {
+const String Xml::Document::getRootTag() const {
     return unconst().getRootElement().getElementTag();
 }
 void Xml::Document::setRootTag(const String& tag) {
@@ -806,16 +806,10 @@ static bool elementIsAllowed(const String& tag,
 
 Xml::Element::Element(const String& tag, const String& value) : Node() {
     if (value.empty()) return;
-
-    // Get the document that owns this element
-    tinyxml2::XMLDocument* doc = updTiElement().GetDocument();
-    assert(doc);
-
-    // Create a new text node via the document
-    tinyxml2::XMLText* textNode = doc->NewText(value.c_str());
-
-    // Append to this element
-    updTiElement().InsertEndChild(textNode);
+    tiDocument = new tinyxml2::XMLDocument();
+    tiNode = tiDocument->NewElement(tag);
+    tiDocument->InsertFirstChild(tiNode);
+    tiNode->InsertEndChild(tiDocument->NewText(value));
 }
 
 
@@ -830,10 +824,8 @@ Xml::Element Xml::Element::clone() const {
     return Element(newElt);
 }
 
-const String& Xml::Element::getElementTag() const {
-    // m_cacheValue = getTiNode().Value();
-    static const String emptyString;
-    return emptyString;
+const String Xml::Element::getElementTag() const {
+    return getTiNode().Value();
 }
 void Xml::Element::setElementTag(const String& type) {
     updTiNode().SetValue(type);
@@ -846,14 +838,14 @@ bool Xml::Element::isValueElement() const {
     return text == node_end() || ++text == node_end();  // zero or one
 }
 
-const String& Xml::Element::getValue() const {
+const String Xml::Element::getValue() const {
     static const String null;
-    SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::getValue()",
-                         "Element <%s> is not a value element.",
-                         getElementTag().c_str());
+    // SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::getValue()",
+    //                      "Element <%s> is not a value element.",
+    //                      getElementTag().c_str());
 
     node_iterator text = unconst().node_begin(TextNode);
-    return text == node_end() ? null : text->getNodeText();
+    return tiNode->FirstChild()->Value();
 }
 
 // Must add a Text node now if this Element doesn't have one.
@@ -888,15 +880,16 @@ String& Xml::Element::updValue() {
 // If there is no Text node we'll add one; if there is just one we'll
 // change its value; otherwise report an error.
 void Xml::Element::setValue(const String& value) {
-    SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::setValue()",
-                         "Element <%s> is not a value element.",
-                         getElementTag().c_str());
+    // SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::setValue()",
+    //                      "Element <%s> is not a value element.",
+    //                      getElementTag().c_str());
 
-    node_iterator text = node_begin(TextNode);
+    // node_iterator text = node_begin(TextNode);
     // if (text == node_end())
     // updTiNode().LinkEndChild(new tinyxml2::XMLText(value));
     // else
-    text->updTiNode().SetValue(value);
+    tiNode->FirstChild()->SetValue(value);
+    // text->updTiNode().SetValue(value);
 }
 
 bool Xml::Element::hasAttribute(const String& name) const {

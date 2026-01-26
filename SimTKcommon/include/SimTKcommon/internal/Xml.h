@@ -33,6 +33,7 @@
 
 // These are declared but never defined; all TinyXML code is hidden.
 namespace tinyxml2 {
+    class XMLDocument;
     class XMLNode;
     class XMLElement;
     class XMLAttribute;
@@ -414,7 +415,7 @@ Element getRootElement();
 
 /** Shortcut for getting the tag word of the root element which is usually
 the document type. This is the same as getRootElement().getElementTag(). **/
-const String& getRootTag() const;
+const String getRootTag() const;
 /** Shortcut for changing the tag word of the root element which is usually
 the document type. This is the same as getRootElement().setElementTag(tag). **/
 void setRootTag(const String& tag);
@@ -883,7 +884,7 @@ friend class Text;
 friend class Element;
 
 Node& unconst() const {return *const_cast<Node*>(this);}
-
+tinyxml2::XMLDocument*  tiDocument;
 tinyxml2::XMLNode*      tiNode; // the lone data member
 };
 
@@ -1101,7 +1102,7 @@ Element clone() const;
 
 /** Get the element tag word. This may represent the name or type of the
 element depending on context. **/
-const String& getElementTag() const;
+const String getElementTag() const;
 /** Change the tag word that is used to bracket this element. **/
 void setElementTag(const String& tag);
 
@@ -1161,7 +1162,7 @@ definition of a "value element".
 Node::getNodeText() does in the case of an element node; that returns the
 element tag word not its contents.
 @see isValueElement(), setValue(), updValue() **/
-const String& getValue() const;
+const String getValue() const;
 
 /** Obtain a writable reference to the String containing the value of this
 value element. An error will be thrown if this is not a value element. If the
@@ -1220,7 +1221,7 @@ zero or one Text nodes; if none we'll return a null string, otherwise
 the value of the Text node. Thus an element like "<tag>stuff</tag>" will
 have the value "stuff". An error will be thrown if either the element
 is not found or it is not a "value element". **/
-const String&
+const String
 getRequiredElementValue(const String& tag) const
 {   return unconst().getRequiredElement(tag).getValue(); }
 
