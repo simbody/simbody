@@ -4541,6 +4541,7 @@ void CableSpan::calcOriginUnitForce(
     const State& state,
     SpatialVec& unitForce_G) const
 {
+    getImpl().realizePosition(state);
     calcUnitForceAtCableOrigin(getImpl(), state, unitForce_G);
 }
 
@@ -4548,6 +4549,7 @@ void CableSpan::calcTerminationUnitForce(
     const State& state,
     SpatialVec& unitForce_G) const
 {
+    getImpl().realizePosition(state);
     calcUnitForceAtCableTermination(getImpl(), state, unitForce_G);
 }
 
@@ -4793,6 +4795,7 @@ void CableSpan::calcCurveSegmentUnitForce(
     CableSpanObstacleIndex ix,
     SpatialVec& unitForce_G) const
 {
+    getImpl().realizePosition(state);
     const auto& curve = getImpl().getObstacleCurveSegment(ix);
     calcUnitForceExertedByCurve(curve, state, unitForce_G);
 }
@@ -4809,6 +4812,7 @@ void CableSpan::calcViaPointUnitForce(
     CableSpanViaPointIndex ix,
     SpatialVec& unitForce_G) const
 {
+    getImpl().realizePosition(state);
     const auto& viaPoint = getImpl().getViaPoint(ix);
     calcUnitForceExertedByViaPoint(viaPoint, state, unitForce_G);
 }
