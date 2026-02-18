@@ -162,6 +162,15 @@ public:
     /// @see referenceAssign()
     PIMPLHandle& copyAssign(const HANDLE& source);
 
+    /// Move assignment either does a shallow copy of PTR handle objects
+    /// or a move assignment for non-PTR handle objects. The logic is similar
+    /// to either referenceAssign() for PTR handles or copyAssign() for PTR handles.
+    /// The difference is that moveAssign does not increment reference count and
+    /// invalidates the handle implementation pointer of the source object.
+    /// @see copyAssign()
+    /// @see referenceAssign()
+    PIMPLHandle& moveAssign(HANDLE&& source) noexcept;
+
     /// Make this an empty handle, deleting the implementation object if
     /// this handle is the owner of it. A call to isEmptyHandle() will return
     /// true after this.
@@ -207,6 +216,13 @@ protected:
     /// @see copyAssign
     PIMPLHandle(const PIMPLHandle& source);
 
+    /// The move constructor calls moveAssign function to do either
+    /// a shallow copy for PTR handle objects or move for non-PTR
+    /// handle objects. Note that the move constructor must be noexcept-qualified
+    /// to get proper move constructs of STL containers.
+    /// @see moveAssign
+    PIMPLHandle(PIMPLHandle &&source) noexcept;
+
     /// Copy assignment makes the current handle either a deep (value) or shallow
     /// (reference) copy of the supplied source PIMPL object, based on whether this
     /// is a "pointer sematics" (PTR=true) or "object (value) semantics" (PTR=false,
@@ -218,6 +234,12 @@ protected:
     /// @see referenceAssign
     /// @see copyAssign
     PIMPLHandle& operator=(const PIMPLHandle& source);
+
+    /// Move assignment operator delegates the move operation to moveAssign.
+    /// Note that the move assignment operator must be noexcept-qualified
+    /// to get proper move assignments of STL containers.
+    /// @see moveAssign
+    PIMPLHandle& operator=(PIMPLHandle&& source) noexcept;
 
     /// Set the implementation for this empty handle. This may result in either
     /// an owner or reference handle, depending on the owner handle reference
