@@ -145,7 +145,7 @@ target_compile_definitions(SimTKcommon
 # (maintaining intent of previous behavior, but more universally applied and effective)
 # See https://cmake.org/cmake/help/latest/manual/cmake-compile-features.7.html#language-standard-flags
 # for info re: ordering of the compiler flag(s) for language standards and CMAKE_<LANG>_FLAGS
-target_compile_features(SimTKcommon PUBLIC cxx_std_17)
+target_compile_features(SimTKcommon PUBLIC cxx_std_20)
 
 # Warning 4996 is not propagated to downstream targets
 target_compile_options(SimTKcommon INTERFACE
