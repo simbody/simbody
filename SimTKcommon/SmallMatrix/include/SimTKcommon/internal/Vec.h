@@ -995,13 +995,13 @@ private:
     template<typename ElementsRowByRowTuple, int... Idx>
     constexpr void assignElementsAsTuple(ElementsRowByRowTuple&& els, std::integer_sequence<int, Idx...>)
     {
-        ((d[Idx] = std::get<Idx>(els)) , ...);
+        (((*this)[Idx] = std::get<Idx>(els)) , ...);
     }
 
     template<typename R, int... Idx>
     constexpr void assignElementsAsRandomAccessRange(R&& range, std::integer_sequence<int, Idx...>)
     {
-        ((d[Idx] = range[Idx]) , ...);
+        (((*this)[Idx] = range[Idx]) , ...);
     }
 
     // TODO: should be an array of scalars rather than elements to control
