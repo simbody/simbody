@@ -30,6 +30,8 @@
 
 #include "SimTKcommon/internal/common.h"
 
+#include <tuple>
+
 namespace SimTK {
 
 
@@ -422,7 +424,7 @@ public:
     /** Default construction initializes %Vec's elements to NaN when debugging 
     but leaves them uninitialized garbage otherwise, so declarations have zero
     cost in Release builds. **/
-    Vec(){ 
+    constexpr Vec(){
     #ifndef NDEBUG
         setToNaN();
     #endif
@@ -435,45 +437,48 @@ public:
     /** Copy constructor copies the logically-included elements from the
     source %Vec; gaps due to stride are not accessed in either source or
     destination. **/
-    Vec(const Vec& src) {
-        Impl::copy(*this, src);
+    constexpr Vec(const Vec& src) {
+        assignElementsAsRandomAccessRange(src, std::make_integer_sequence<int, M>{});
     }
     /** Copy assignment operator copies the logically-included elements from 
     the source %Vec; gaps due to stride are not accessed in either source or
     destination. OK if source and destination are the same vector; results
     are unpredictable if they otherwise overlap with elements in common. **/
-    Vec& operator=(const Vec& src) {    
-        Impl::copy(*this, src);
+    constexpr Vec& operator=(const Vec& src) {
+        assignElementsAsRandomAccessRange(src, std::make_integer_sequence<int, M>{});
         return *this;
     }
 
     /** This is an implicit conversion from a %Vec of the same length
     and element type but with a different stride. **/
-    template <int SS> Vec(const Vec<M,E,SS>& src) {
-        Impl::copy(*this, src);
+    template <int SS>
+    constexpr Vec(const Vec<M,E,SS>& src) {
+        assignElementsAsRandomAccessRange(src, std::make_integer_sequence<int, M>{});
     }
 
     /** This is an implicit conversion from a %Vec of the same length
     and \e negated element type (possibly with a different stride). **/
-    template <int SS> Vec(const Vec<M,ENeg,SS>& src) {
-        Impl::copy(*this, src);
+    template <int SS>
+    constexpr Vec(const Vec<M,ENeg,SS>& src) {
+        assignElementsAsRandomAccessRange(src, std::make_integer_sequence<int, M>{});
     }
 
     /** Construct a Vec from a Vec of the same length, with any stride. Works 
     as long as the element types are assignment compatible. **/
-    template <class EE, int SS> explicit Vec(const Vec<M,EE,SS>& src) {
-        Impl::copy(*this, src);
+    template <class EE, int SS>
+    explicit constexpr Vec(const Vec<M,EE,SS>& src) {
+        assignElementsAsRandomAccessRange(src, std::make_integer_sequence<int, M>{});
     }
 
     /** Construction from a single value of this %Vec's element type assigns
     that value to each element. **/
-    explicit Vec(const E& e) {for (int i=0;i<M;++i) d[i*STRIDE]=e;}
+    explicit constexpr Vec(const E& e) {for (int i=0;i<M;++i) d[i*STRIDE]=e;}
 
     /** Construction from a single value of this %Vec's negated element type 
     assigns that value to each element, requiring floating point negation
     to be performed once to compute the type-E representation of the 
     type negator<E> value provided. **/
-    explicit Vec(const ENeg& ne) {
+    explicit constexpr Vec(const ENeg& ne) {
         const E e = ne; // requires floating point negation
         for (int i=0;i<M;++i) d[i*STRIDE]=e;
     }
@@ -487,27 +492,14 @@ public:
     // A bevy of constructors for Vecs up to length 9.
 
     /** Construct a Vec<2,E> from two elements of type E, etc. **/
-    Vec(const E& e0,const E& e1)
-      { assert(M==2);(*this)[0]=e0;(*this)[1]=e1; }
-    Vec(const E& e0,const E& e1,const E& e2)
-      { assert(M==3);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2; }
-    Vec(const E& e0,const E& e1,const E& e2,const E& e3)
-      { assert(M==4);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;(*this)[3]=e3; }
-    Vec(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4)
-      { assert(M==5);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
-        (*this)[3]=e3;(*this)[4]=e4; }
-    Vec(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5)
-      { assert(M==6);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
-        (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5; }
-    Vec(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5, const E& e6)
-      { assert(M==7);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
-        (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6; }
-    Vec(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5, const E& e6, const E& e7)
-      { assert(M==8);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
-        (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6;(*this)[7]=e7; }
-    Vec(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5, const E& e6, const E& e7, const E& e8)
-      { assert(M==9);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
-        (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6;(*this)[7]=e7;(*this)[8]=e8; }
+    constexpr Vec(const E& e0, const E& e1)                                                                                            requires (M == 2) { assignElementsAsTuple(std::make_tuple(e0, e1),                             std::make_integer_sequence<int, M>{}); }
+    constexpr Vec(const E& e0, const E& e1, const E& e2)                                                                               requires (M == 3) { assignElementsAsTuple(std::make_tuple(e0, e1, e2),                         std::make_integer_sequence<int, M>{}); }
+    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3)                                                                  requires (M == 4) { assignElementsAsTuple(std::make_tuple(e0, e1, e2, e3),                     std::make_integer_sequence<int, M>{}); }
+    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3, const E& e4)                                                     requires (M == 5) { assignElementsAsTuple(std::make_tuple(e0, e1, e2, e3, e4),                 std::make_integer_sequence<int, M>{}); }
+    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3, const E& e4, const E& e5)                                        requires (M == 6) { assignElementsAsTuple(std::make_tuple(e0, e1, e2, e3, e4, e5),             std::make_integer_sequence<int, M>{}); }
+    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3, const E& e4, const E& e5, const E& e6)                           requires (M == 7) { assignElementsAsTuple(std::make_tuple(e0, e1, e2, e3, e4, e5, e6),         std::make_integer_sequence<int, M>{}); }
+    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3, const E& e4, const E& e5, const E& e6, const E& e7)              requires (M == 8) { assignElementsAsTuple(std::make_tuple(e0, e1, e2, e3, e4, e5, e6, e7),     std::make_integer_sequence<int, M>{}); }
+    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3, const E& e4, const E& e5, const E& e6, const E& e7, const E& e8) requires (M == 9) { assignElementsAsTuple(std::make_tuple(e0, e1, e2, e3, e4, e5, e6, e7, e8), std::make_integer_sequence<int, M>{}); }
 
     /** Construction from a pointer to elements of any type EE assumes we're 
     pointing at a C++ array of EE's of the right length, and that EE is
@@ -593,17 +585,17 @@ public:
     /** Select an element of this %Vec and return a const reference to it.
     This is range-checked in Debug builds but has zero overhead in Release
     builds. **/
-    const E& operator[](int i) const 
+    constexpr const E& operator[](int i) const
     {   assert(0 <= i && i < M); return d[i*STRIDE]; }
     /** Same as const operator[] above. **/
-    const E& operator()(int i) const {return (*this)[i];}
+    constexpr const E& operator()(int i) const {return (*this)[i];}
 
     /** Select an element of this %Vec and return a writable reference 
     to it. This is range-checked in Debug builds but has zero overhead in 
     Release builds. **/
-    E& operator[](int i) {assert(0 <= i && i < M); return d[i*STRIDE];}
+    constexpr E& operator[](int i) {assert(0 <= i && i < M); return d[i*STRIDE];}
     /** Same as non-const operator[] above. **/
-    E& operator()(int i) {return (*this)[i];}
+    constexpr E& operator()(int i) {return (*this)[i];}
 
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
     typename CNT<ScalarNormSq>::TSqrt 
@@ -1000,6 +992,18 @@ public:
     {   return operator[](i); }
 
 private:
+    template<typename ElementsRowByRowTuple, int... Idx>
+    constexpr void assignElementsAsTuple(ElementsRowByRowTuple&& els, std::integer_sequence<int, Idx...>)
+    {
+        ((d[Idx] = std::get<Idx>(els)) , ...);
+    }
+
+    template<typename R, int... Idx>
+    constexpr void assignElementsAsRandomAccessRange(R&& range, std::integer_sequence<int, Idx...>)
+    {
+        ((d[Idx] = range[Idx]) , ...);
+    }
+
     // TODO: should be an array of scalars rather than elements to control
     // packing more carefully.
     ELT d[NActualElements];    // data
