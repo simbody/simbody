@@ -30,18 +30,4 @@
 #include "SimTKcommon/internal/CoordinateAxis.h"
 
 namespace SimTK {
-
-// These constants are global external symbols exported by the library. See
-// the CoordinateAxis.h header file for information.
-const CoordinateAxis::XCoordinateAxis      XAxis;
-const CoordinateAxis::YCoordinateAxis      YAxis;
-const CoordinateAxis::ZCoordinateAxis      ZAxis;
-
-const CoordinateDirection::NegXDirection   NegXAxis;
-const CoordinateDirection::NegYDirection   NegYAxis;
-const CoordinateDirection::NegZDirection   NegZAxis;
-
-
 }  // End of namespace SimTK
-
-
