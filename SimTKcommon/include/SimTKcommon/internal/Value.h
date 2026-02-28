@@ -106,9 +106,9 @@ value type-specific functionality, with implicit conversion to the underlying
 type `T`. **/
 template <class T> class Value : public AbstractValue {
 public:
-    /** Creates a `Value<T>` whose contained object of type `T` has been default 
-    constructed. **/
-    Value() {}
+    /** Creates a `Value<T>` whose contained object of type `T` has been value
+    initialized. **/
+    Value() = default;
 
     /** Creates a `Value<T>` whose contained object is copy constructed from the
     given `value`. **/
