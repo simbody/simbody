@@ -2182,6 +2182,38 @@ public:
         int numSamples,
         const std::function<void(Vec3 point_G)>& sink) const;
 
+    void calcResampledDecorativePathPoints(
+        const State& state,
+        int numCurveSegmentSamples,
+        const std::function<void(Vec3 point_G)>& sink) const
+    {
+        // Write the initial path point.
+        const CableSpanData::Position& dataPos = getDataPos(state);
+        sink(dataPos.originPoint_G);
+
+        // Write the path points for each cable segment.
+        for (CableSegmentIndex ix(0); ix < getNumCableSegments(); ++ix) {
+            const CableSegment& cableSegment = getCableSegment(ix);
+
+            // Write the path points for each obstacle in the cable segment.
+            for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
+                const CurveSegment& curve = getObstacleCurveSegment(ix);
+                curve.calcResampledPoints(state, numCurveSegmentSamples, sink);
+            }
+
+            // Write the path points for the final via point in the cable
+            // segment.
+            if (cableSegment.getFinalViaPointIndex().isValid()) {
+                const ViaPoint& viaPoint = getViaPoint(
+                    cableSegment.getFinalViaPointIndex());
+                viaPoint.calcDecorativePathPoints(state, sink);
+            }
+        }
+
+        // Write the path's termination point.
+        sink(dataPos.terminationPoint_G);
+    }
+
     void calcDecorativeGeometryAndAppend(
         const State& state,
         Array_<DecorativeGeometry>& decorations) const
@@ -4764,6 +4796,15 @@ void CableSpan::calcDecorativePathPoints(
     const std::function<void(Vec3 point_G)>& sink) const
 {
     getImpl().calcDecorativePathPoints(state, sink);
+}
+
+void CableSpan::calcResampledDecorativePathPoints(
+    const State& state,
+    int numCurveSegmentSamples,
+    const std::function<void(Vec3 point_G)>& sink) const
+{
+    getImpl().calcResampledDecorativePathPoints(state, numCurveSegmentSamples,
+        sink);
 }
 
 Real CableSpan::calcCablePower(const State& state, Real tension) const
