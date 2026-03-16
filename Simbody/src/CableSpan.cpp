@@ -1615,17 +1615,6 @@ public:
         return station_G;
     }
 
-    //--------------------------------------------------------------------------
-    // Helper function: via point visualization
-    //--------------------------------------------------------------------------
-
-    void calcDecorativePathPoints(
-        const State& state,
-        const std::function<void(Vec3 point_G)>& sink) const
-    {
-        sink(getStation_G(state));
-    }
-
 private:
     //--------------------------------------------------------------------------
     // Data
@@ -2163,12 +2152,12 @@ public:
                 curve.calcDecorativePathPoints(state, sink);
             }
 
-            // Write the path points for the final via point in the cable
+            // Write the path point for the final via point in the cable
             // segment.
             if (cableSegment.getFinalViaPointIndex().isValid()) {
                 const ViaPoint& viaPoint = getViaPoint(
                     cableSegment.getFinalViaPointIndex());
-                viaPoint.calcDecorativePathPoints(state, sink);
+                sink(viaPoint.getStation_G(state));
             }
         }
 
@@ -2201,12 +2190,12 @@ public:
                 curve.calcResampledPoints(state, numCurveSegmentSamples, sink);
             }
 
-            // Write the path points for the final via point in the cable
+            // Write the path point for the final via point in the cable
             // segment.
             if (cableSegment.getFinalViaPointIndex().isValid()) {
                 const ViaPoint& viaPoint = getViaPoint(
                     cableSegment.getFinalViaPointIndex());
-                viaPoint.calcDecorativePathPoints(state, sink);
+                sink(viaPoint.getStation_G(state));
             }
         }
 
@@ -4803,8 +4792,8 @@ void CableSpan::calcResampledDecorativePathPoints(
     int numCurveSegmentSamples,
     const std::function<void(Vec3 point_G)>& sink) const
 {
-    getImpl().calcResampledDecorativePathPoints(state, numCurveSegmentSamples,
-        sink);
+    getImpl().calcResampledDecorativePathPoints(
+        state, numCurveSegmentSamples, sink);
 }
 
 Real CableSpan::calcCablePower(const State& state, Real tension) const

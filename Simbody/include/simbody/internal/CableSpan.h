@@ -515,9 +515,10 @@ public:
         const State& state,
         const std::function<void(Vec3 point_G)>& sink) const;
 
-    /** Compute points on the path spanned by this cable suitable for
-    visualization purposes where the points along each obstacle's curve segment
-    are computed at equal length intervals.
+    /** Compute `numCurveSegmentSamples` equally-spaced points for each curve
+    segment along the path spanned by this cable and emit them to `sink`.
+    This can be useful for visualization purposes, where it can be important to
+    limit the amount of visualized path points for performance reasons.
     State must be realized to Stage::Position.
     @param state System State.
     @param numCurveSegmentSamples The number of samples to take per curve
