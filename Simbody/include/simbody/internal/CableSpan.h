@@ -307,6 +307,13 @@ public:
         const State& state,
         SpatialVec& unitForce_G) const;
 
+    /** Calculate the tangent direction of the cable span at the origin. This is
+    the direction along the path away from the origin point, i.e., the direction
+    of cable tension. State must be realized to Stage::Position.
+    @param state State of the system.
+    **/
+    UnitVec3 calcOriginTangentDirection(const State& state) const;
+
     /** Calculate the unit force exerted by the cable at the cable termination
     (in ground frame). The force can be obtained by multiplying the result by
     the cable tension. State must be realized to Stage::Position.
@@ -316,6 +323,13 @@ public:
     void calcTerminationUnitForce(
         const State& state,
         SpatialVec& unitForce_G) const;
+
+    /** Calculate the tangent direction of the cable span at the termination.
+    This is the direction along the path away from the termination point, i.e.,
+    the direction of cable tension. State must be realized to Stage::Position.
+    @param state State of the system.
+    **/
+    UnitVec3 calcTerminationTangentDirection(const State& state) const;
 
     ///@}
 
@@ -639,6 +653,26 @@ public:
         const State& state,
         CableSpanViaPointIndex ix,
         SpatialVec& unitForce_G) const;
+
+    /** Calculate the initial tangent direction of the cable span at the
+    specified via point. This is the direction along the path from the via point
+    towards the origin point, i.e., the direction of cable tension. State must
+    be realized to Stage::Position.
+    @param state State of the system.
+    @param ix The index of the via point in this CableSpan. **/
+    UnitVec3 calcViaPointInitialTangentDirection(
+        const State& state,
+        CableSpanViaPointIndex ix) const;
+
+    /** Calculate the final tangent direction of the cable span at the specified
+    via point. This is the direction along the path from the via point towards
+    the termination point, i.e., the direction of cable tension. State must be
+    realized to Stage::Position.
+    @param state State of the system.
+    @param ix The index of the via point in this CableSpan. **/
+    UnitVec3 calcViaPointFinalTangentDirection(
+        const State& state,
+        CableSpanViaPointIndex ix) const;
 
     ///@}
 
