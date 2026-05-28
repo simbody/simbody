@@ -138,17 +138,19 @@ straight line. Similarly the cable can touchdown on the obstacle if the surface
 obstructs the straight line segment again. The cable will always slide freely
 through any via points present in the path.
 
-The path is computed as an optimization problem using the previous optimal path
-as the warm start. This is done by computing natural geodesic corrections for
-each curve segment to compute the locally shortest path, as described in the
-following publication:
+The path is computed as an optimization problem by computing natural geodesic
+corrections for each curve segment to compute the locally shortest path,
+as described in the following publication:
 
     Scholz, A., Sherman, M., Stavness, I. et al (2015). A fast multi-obstacle
     muscle wrapping method using natural geodesic variations. Multibody System
     Dynamics 36, 195–219.
 
 The overall path is locally the shortest, allowing winding over an obstacle
-multiple times, without flipping to the other side.
+multiple times, without flipping to the other side. The wrapping solver can
+optionally use the solution from the previous time step as a warm start to
+improve performance during forward dynamics simulations (see method
+`getUseWarmStart()` for more information).
 
 During initialization the path is assumed to be in contact with each obstacle at
 the user defined contact-point-hint. At each contact point a
@@ -490,6 +492,21 @@ public:
 
     /** Set the algorithm used to compute the optimal path. **/
     void setAlgorithm(CableSpanAlgorithm algorithm);
+
+    /** Whether the solver uses the previously computed path as a warm
+    start to compute the next path solution. When true (the default), each path
+    computation is seeded with the previous optimal path, which is typically
+    much faster. When false, the path is always recomputed from each obstacle's
+    initial contact-point hint (see addObstacle and setObstacleContactPointHint)
+    every time the State is realized to Stage::Position. **/
+    bool getUseWarmStart() const;
+
+    /** Set whether the solver uses the previously computed path as a warm
+    start to compute the next path solution.
+    @note Changing this setting invalidates the Stage::Topology cache.
+    Therefore, callers should re-realize the system to Stage::Topology and
+    obtain a new State before any new computations. **/
+    void setUseWarmStart(bool useWarmStart);
 
     ///@}
 
