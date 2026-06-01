@@ -307,9 +307,9 @@ public:
         const State& state,
         SpatialVec& unitForce_G) const;
 
-    /** Calculate the tangent direction of the cable span at the origin. This is
-    the direction along the path away from the origin point, i.e., the direction
-    of cable tension. State must be realized to Stage::Position.
+    /** Calculate the cable span tangent direction at the origin. The direction
+    points along the path from the origin towards the termination.
+    State must be realized to Stage::Position.
     @param state State of the system.
     **/
     UnitVec3 calcOriginTangentDirection(const State& state) const;
@@ -324,9 +324,9 @@ public:
         const State& state,
         SpatialVec& unitForce_G) const;
 
-    /** Calculate the tangent direction of the cable span at the termination.
-    This is the direction along the path away from the termination point, i.e.,
-    the direction of cable tension. State must be realized to Stage::Position.
+    /** Calculate the cable span tangent direction at the termination. The
+    direction points along the path from the origin towards the termination.
+    State must be realized to Stage::Position.
     @param state State of the system.
     **/
     UnitVec3 calcTerminationTangentDirection(const State& state) const;
@@ -654,23 +654,22 @@ public:
         CableSpanViaPointIndex ix,
         SpatialVec& unitForce_G) const;
 
-    /** Calculate the initial tangent direction of the cable span at the
-    specified via point. This is the direction along the path from the via point
-    towards the origin point, i.e., the direction of cable tension. State must
-    be realized to Stage::Position.
+    /** Calculate the incoming tangent direction of the cable span at the
+    specified via point. The direction points along the path from the origin
+    towards the via point. State must be realized to Stage::Position.
     @param state State of the system.
     @param ix The index of the via point in this CableSpan. **/
-    UnitVec3 calcViaPointInitialTangentDirection(
+    UnitVec3 calcViaPointIncomingTangentDirection(
         const State& state,
         CableSpanViaPointIndex ix) const;
 
-    /** Calculate the final tangent direction of the cable span at the specified
-    via point. This is the direction along the path from the via point towards
-    the termination point, i.e., the direction of cable tension. State must be
+    /** Calculate the outgoing tangent direction of the cable span at the
+    specified via point. The direction points along the path from the via point
+    towards the termination point. State must be
     realized to Stage::Position.
     @param state State of the system.
     @param ix The index of the via point in this CableSpan. **/
-    UnitVec3 calcViaPointFinalTangentDirection(
+    UnitVec3 calcViaPointOutgoingTangentDirection(
         const State& state,
         CableSpanViaPointIndex ix) const;
 

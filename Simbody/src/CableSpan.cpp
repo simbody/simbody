@@ -4585,9 +4585,7 @@ UnitVec3 CableSpan::calcTerminationTangentDirection(const State& state) const
 {
     getImpl().realizePosition(state);
     const CableSpanData::Position& dataPos = getImpl().getDataPos(state);
-    // Negative sign to point in the direction away from the termination point,
-    // i.e., the direction of cable tension force at the termination point.
-    return -dataPos.terminationTangent_G;
+    return dataPos.terminationTangent_G;
 }
 
 ObstacleIndex CableSpan::addObstacle(
@@ -4863,25 +4861,23 @@ void CableSpan::calcViaPointUnitForce(
     calcUnitForceExertedByViaPoint(viaPoint, state, unitForce_G);
 }
 
-UnitVec3 CableSpan::calcViaPointInitialTangentDirection(
+UnitVec3 CableSpan::calcViaPointIncomingTangentDirection(
     const State& state,
     CableSpanViaPointIndex ix) const
 {
     SimTK_INDEXCHECK_ALWAYS(ix,getNumViaPoints(),
-        "CableSpan::calcViaPointInitialTangentDirection()");
+        "CableSpan::calcViaPointIncomingTangentDirection()");
     getImpl().realizePosition(state);
     const CableSpanData::Position& dataPos = getImpl().getDataPos(state);
-    // Negative sign to point in the direction away from the via point, i.e.,
-    // the direction of cable tension force at the via point.
-    return -dataPos.viaPointInTangents_G[ix];
+    return dataPos.viaPointInTangents_G[ix];
 }
 
-UnitVec3 CableSpan::calcViaPointFinalTangentDirection(
+UnitVec3 CableSpan::calcViaPointOutgoingTangentDirection(
     const State& state,
     CableSpanViaPointIndex ix) const
 {
     SimTK_INDEXCHECK_ALWAYS(ix,getNumViaPoints(),
-        "CableSpan::calcViaPointFinalTangentDirection()");
+        "CableSpan::calcViaPointOutgoingTangentDirection()");
     getImpl().realizePosition(state);
     const CableSpanData::Position& dataPos = getImpl().getDataPos(state);
     return dataPos.viaPointOutTangents_G[ix];

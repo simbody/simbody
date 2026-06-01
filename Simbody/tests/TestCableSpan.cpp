@@ -545,6 +545,44 @@ void testViaPoints()
             "Unexpected force applied to body %i",
             i);
     }
+
+    // Check tangent directions.
+    // Origin.
+    UnitVec3 originTangent = cable.calcOriginTangentDirection(s);
+    SimTK_TEST_EQ(originTangent, UnitVec3(0., 1., 0.));
+
+    // First via point.
+    CableSpanViaPointIndex viaPoint1Index(0);
+    UnitVec3 viaPoint1InTangent =
+        cable.calcViaPointIncomingTangentDirection(s, viaPoint1Index);
+    SimTK_TEST_EQ(viaPoint1InTangent, UnitVec3(0., 1., 0.));
+    UnitVec3 viaPoint1OutTangent =
+        cable.calcViaPointOutgoingTangentDirection(s, viaPoint1Index);
+    SimTK_TEST_EQ(viaPoint1OutTangent, UnitVec3(0., 0., 1.));
+
+    // Second via point.
+    CableSpanViaPointIndex viaPoint2Index(1);
+    UnitVec3 viaPoint2InTangent =
+        cable.calcViaPointIncomingTangentDirection(s, viaPoint2Index);
+    SimTK_TEST_EQ(viaPoint2InTangent, UnitVec3(0., 0., 1.));
+    UnitVec3 viaPoint2OutTangent =
+        cable.calcViaPointOutgoingTangentDirection(s, viaPoint2Index);
+    SimTK_TEST_EQ(viaPoint2OutTangent, UnitVec3(-1., 0., 0.));
+
+    // Third via point.
+    CableSpanViaPointIndex viaPoint3Index(2);
+    UnitVec3 viaPoint3InTangent =
+        cable.calcViaPointIncomingTangentDirection(s, viaPoint3Index);
+    SimTK_TEST_EQ(viaPoint3InTangent, UnitVec3(-1., 0., 0.));
+    UnitVec3 viaPoint3OutTangent =
+        cable.calcViaPointOutgoingTangentDirection(s, viaPoint3Index);
+    SimTK_TEST_EQ(viaPoint3OutTangent,
+                  UnitVec3(0., -1./std::sqrt(5.), -2./std::sqrt(5.)));
+
+    // Termination.
+    UnitVec3 terminationTangent = cable.calcTerminationTangentDirection(s);
+    SimTK_TEST_EQ(terminationTangent,
+                  UnitVec3(0., -1./std::sqrt(5.), -2./std::sqrt(5.)));
 }
 
 /** Test computed cable path over all supported surfaces and a via point,
