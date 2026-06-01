@@ -297,9 +297,19 @@ public:
     /** @name End point computations */
     ///@{
 
+    /** Calculate the cable span tangent direction at the origin. The direction
+    points along the path from the origin towards the termination.
+    State must be realized to Stage::Position.
+    @param state State of the system.
+    **/
+    UnitVec3 calcOriginTangentDirection(const State& state) const;
+
     /** Calculate the unit force exerted by the cable at the cable origin (in
-    ground frame). The force can be obtained by multiplying the result by the
-    cable tension. State must be realized to Stage::Position.
+    ground frame). The force is applied tangent to the cable span pointing
+    towards the termination, i.e., the same direction as returned by
+    calcOriginTangentDirection(). The effect of a tensile force applied to the
+    cable can be obtained by multiplying the returned unit force by the cable
+    tension. State must be realized to Stage::Position.
     @param state State of the system.
     @param[out] unitForce_G The resulting unit spatial force in ground frame.
     **/
@@ -307,9 +317,19 @@ public:
         const State& state,
         SpatialVec& unitForce_G) const;
 
+    /** Calculate the cable span tangent direction at the termination. The
+    direction points along the path from the origin towards the termination.
+    State must be realized to Stage::Position.
+    @param state State of the system.
+    **/
+    UnitVec3 calcTerminationTangentDirection(const State& state) const;
+
     /** Calculate the unit force exerted by the cable at the cable termination
-    (in ground frame). The force can be obtained by multiplying the result by
-    the cable tension. State must be realized to Stage::Position.
+    (in ground frame). The force is applied tangent to the cable span pointing
+    towards the origin, i.e., the opposite of the direction returned by
+    calcTerminationTangentDirection(). The effect of a tensile force applied to
+    the cable can be obtained by multiplying the returned unit force by the
+    cable tension. State must be realized to Stage::Position.
     @param state State of the system.
     @param[out] unitForce_G The resulting unit spatial force in ground frame.
     **/
@@ -605,8 +625,9 @@ public:
         const std::function<void(Vec3 point_G)>& sink) const;
 
     /** Calculate the unit force exerted by the cable at the specified obstacle
-    (in ground frame). The force can be obtained by multiplying the result by
-    the cable tension. State must be realized to Stage::Position.
+    (in ground frame). The effect of a tensile force applied to the cable can be
+    obtained by multiplying the returned unit force by the cable tension. State
+    must be realized to Stage::Position.
     @param state State of the system.
     @param ix The index of the obstacle in this CableSpan.
     @param[out] unitForce_G The resulting unit spatial force in ground frame. **/
@@ -630,8 +651,9 @@ public:
         CableSpanViaPointIndex ix) const;
 
     /** Calculate the unit force exerted by the cable at the specified via point
-    (in ground frame). The force can be obtained by multiplying the result by
-    the cable tension. State must be realized to Stage::Position.
+    (in ground frame). The effect of a tensile force applied to the cable can be
+    obtained by multiplying the returned unit force by the cable tension. State
+    must be realized to Stage::Position.
     @param state State of the system.
     @param ix The index of the via point in this CableSpan.
     @param[out] unitForce_G The resulting unit spatial force in ground frame. **/
@@ -639,6 +661,25 @@ public:
         const State& state,
         CableSpanViaPointIndex ix,
         SpatialVec& unitForce_G) const;
+
+    /** Calculate the incoming tangent direction of the cable span at the
+    specified via point. The direction points along the path from the origin
+    towards the via point. State must be realized to Stage::Position.
+    @param state State of the system.
+    @param ix The index of the via point in this CableSpan. **/
+    UnitVec3 calcViaPointIncomingTangentDirection(
+        const State& state,
+        CableSpanViaPointIndex ix) const;
+
+    /** Calculate the outgoing tangent direction of the cable span at the
+    specified via point. The direction points along the path from the via point
+    towards the termination point. State must be
+    realized to Stage::Position.
+    @param state State of the system.
+    @param ix The index of the via point in this CableSpan. **/
+    UnitVec3 calcViaPointOutgoingTangentDirection(
+        const State& state,
+        CableSpanViaPointIndex ix) const;
 
     ///@}
 

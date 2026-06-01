@@ -4566,12 +4566,26 @@ void CableSpan::calcOriginUnitForce(
     calcUnitForceAtCableOrigin(getImpl(), state, unitForce_G);
 }
 
+UnitVec3 CableSpan::calcOriginTangentDirection(const State& state) const
+{
+    getImpl().realizePosition(state);
+    const CableSpanData::Position& dataPos = getImpl().getDataPos(state);
+    return dataPos.originTangent_G;
+}
+
 void CableSpan::calcTerminationUnitForce(
     const State& state,
     SpatialVec& unitForce_G) const
 {
     getImpl().realizePosition(state);
     calcUnitForceAtCableTermination(getImpl(), state, unitForce_G);
+}
+
+UnitVec3 CableSpan::calcTerminationTangentDirection(const State& state) const
+{
+    getImpl().realizePosition(state);
+    const CableSpanData::Position& dataPos = getImpl().getDataPos(state);
+    return dataPos.terminationTangent_G;
 }
 
 ObstacleIndex CableSpan::addObstacle(
@@ -4845,4 +4859,26 @@ void CableSpan::calcViaPointUnitForce(
     getImpl().realizePosition(state);
     const auto& viaPoint = getImpl().getViaPoint(ix);
     calcUnitForceExertedByViaPoint(viaPoint, state, unitForce_G);
+}
+
+UnitVec3 CableSpan::calcViaPointIncomingTangentDirection(
+    const State& state,
+    CableSpanViaPointIndex ix) const
+{
+    SimTK_INDEXCHECK_ALWAYS(ix,getNumViaPoints(),
+        "CableSpan::calcViaPointIncomingTangentDirection()");
+    getImpl().realizePosition(state);
+    const CableSpanData::Position& dataPos = getImpl().getDataPos(state);
+    return dataPos.viaPointInTangents_G[ix];
+}
+
+UnitVec3 CableSpan::calcViaPointOutgoingTangentDirection(
+    const State& state,
+    CableSpanViaPointIndex ix) const
+{
+    SimTK_INDEXCHECK_ALWAYS(ix,getNumViaPoints(),
+        "CableSpan::calcViaPointOutgoingTangentDirection()");
+    getImpl().realizePosition(state);
+    const CableSpanData::Position& dataPos = getImpl().getDataPos(state);
+    return dataPos.viaPointOutTangents_G[ix];
 }
