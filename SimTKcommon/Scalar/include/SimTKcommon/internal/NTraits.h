@@ -841,6 +841,8 @@ SimTK_NTRAITS_CONJ_SPEC(double,float);SimTK_NTRAITS_CONJ_SPEC(double,double);
 //   Typeof(R+P) = Typeof(P+R)
 //   typeof(R-P) = Typeof(P::TNeg + R)
 // These must be specialized for P=Real and P=Complex.
+
+
 #define SimTK_DEFINE_REAL_NTRAITS(R)            \
 template <> class NTraits<R> {                  \
 public:                                         \
@@ -899,7 +901,7 @@ public:                                         \
     static T*       updData(T& t)       { return &t; }  \
     static const T& real(const T& t) { return t; }      \
     static T&       real(T& t)       { return t; }      \
-    static const T& imag(const T&)   { return getZero(); }   \
+    static const T& imag(const T&)   { static const T c=(T)(0); return c; }   \
     static T&       imag(T&)         { assert(false); return *reinterpret_cast<T*>(0); } \
     static const TNeg& negate(const T& t) {return reinterpret_cast<const TNeg&>(t);}        \
     static       TNeg& negate(T& t) {return reinterpret_cast<TNeg&>(t);}                    \
@@ -920,16 +922,16 @@ public:                                         \
     static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));} \
     static TInvert invert(const T& t) {return T(1)/t;}                      \
     /* properties of this floating point representation, with memory addresses */     \
-    static const T& getEps()          {return RTraits<T>::getEps();}                                    \
-    static const T& getSignificant()  {return RTraits<T>::getSignificant();}                            \
-    static const T& getNaN()          {static const T c=std::numeric_limits<T>::quiet_NaN(); return c;} \
-    static const T& getInfinity()     {static const T c=std::numeric_limits<T>::infinity();  return c;} \
-    static const T& getLeastPositive(){static const T c=std::numeric_limits<T>::min();       return c;} \
-    static const T& getMostPositive() {static const T c=std::numeric_limits<T>::max();       return c;} \
-    static const T& getLeastNegative(){static const T c=-std::numeric_limits<T>::min();      return c;} \
-    static const T& getMostNegative() {static const T c=-std::numeric_limits<T>::max();      return c;} \
-    static const T& getSqrtEps()      {static const T c=std::sqrt(getEps());                 return c;} \
-    static const T& getTiny()         {static const T c=std::pow(getEps(), (T)1.25L);        return c;} \
+    static constexpr T getEps()         {return std::numeric_limits<T>::epsilon();}                         \
+    static constexpr T getSignificant() {static const T c=std::pow(getEps(),(T)0.875L);       return c;} \
+    static constexpr T getNaN()         {return std::numeric_limits<T>::quiet_NaN();}                     \
+    static constexpr T getInfinity()    {return std::numeric_limits<T>::infinity();}                      \
+    static const T& getLeastPositive()  {static const T c=std::numeric_limits<T>::min();      return c;} \
+    static const T& getMostPositive()   {static const T c=std::numeric_limits<T>::max();      return c;} \
+    static const T& getLeastNegative()  {static const T c=-std::numeric_limits<T>::min();     return c;} \
+    static const T& getMostNegative()   {static const T c=-std::numeric_limits<T>::max();     return c;} \
+    static constexpr T getSqrtEps()     {static const T c=std::sqrt(getEps());                return c;} \
+    static constexpr T getTiny()        {static const T c=std::pow(getEps(),(T)1.25L);        return c;} \
     static bool isFinite(const T& t) {return SimTK::isFinite(t);}   \
     static bool isNaN   (const T& t) {return SimTK::isNaN(t);}      \
     static bool isInf   (const T& t) {return SimTK::isInf(t);}      \
@@ -943,33 +945,36 @@ public:                                         \
     static bool isNumericallyEqual(const T& t, const float& f, double tol){return SimTK::isNumericallyEqual(t,f,tol);}          \
     static bool isNumericallyEqual(const T& t, const double& d, double tol){return SimTK::isNumericallyEqual(t,d,tol);}         \
     static bool isNumericallyEqual(const T& t, int i, double tol){return SimTK::isNumericallyEqual(t,i,tol);}                   \
-    /* Carefully calculated constants with convenient memory addresses. */               \
-    static const T& getZero()         {static const T c=(T)(0);               return c;} \
-    static const T& getOne()          {static const T c=(T)(1);               return c;} \
-    static const T& getMinusOne()     {static const T c=(T)(-1);              return c;} \
-    static const T& getTwo()          {static const T c=(T)(2);               return c;} \
-    static const T& getThree()        {static const T c=(T)(3);               return c;} \
-    static const T& getOneHalf()      {static const T c=(T)(0.5L);            return c;} \
-    static const T& getOneThird()     {static const T c=(T)(1.L/3.L);         return c;} \
-    static const T& getOneFourth()    {static const T c=(T)(0.25L);           return c;} \
-    static const T& getOneFifth()     {static const T c=(T)(0.2L);            return c;} \
-    static const T& getOneSixth()     {static const T c=(T)(1.L/6.L);         return c;} \
-    static const T& getOneSeventh()   {static const T c=(T)(1.L/7.L);         return c;} \
-    static const T& getOneEighth()    {static const T c=(T)(0.125L);          return c;} \
-    static const T& getOneNinth()     {static const T c=(T)(1.L/9.L);         return c;} \
-    static const T& getPi()           {static const T c=(T)(SimTK_PI);        return c;} \
-    static const T& getOneOverPi()    {static const T c=(T)(1.L/SimTK_PI);    return c;} \
-    static const T& getE()            {static const T c=(T)(SimTK_E);         return c;} \
-    static const T& getLog2E()        {static const T c=(T)(SimTK_LOG2E);     return c;} \
-    static const T& getLog10E()       {static const T c=(T)(SimTK_LOG10E);    return c;} \
-    static const T& getSqrt2()        {static const T c=(T)(SimTK_SQRT2);     return c;} \
-    static const T& getOneOverSqrt2() {static const T c=(T)(1.L/SimTK_SQRT2); return c;} \
-    static const T& getSqrt3()        {static const T c=(T)(SimTK_SQRT3);     return c;} \
-    static const T& getOneOverSqrt3() {static const T c=(T)(1.L/SimTK_SQRT3); return c;} \
-    static const T& getCubeRoot2()    {static const T c=(T)(SimTK_CBRT2);     return c;} \
-    static const T& getCubeRoot3()    {static const T c=(T)(SimTK_CBRT3);     return c;} \
-    static const T& getLn2()          {static const T c=(T)(SimTK_LN2);       return c;} \
-    static const T& getLn10()         {static const T c=(T)(SimTK_LN10);      return c;} \
+    /* Carefully calculated constants. Constexpr allows constant initialization   \
+     * (before any dynamic initialization) so file-scope statics like             \
+     *   const Real Target = -Pi/4                                                \
+     * see the correct value even in static builds where link order is arbitrary. */ \
+    static constexpr T getZero()         {return T(0);}               \
+    static constexpr T getOne()          {return T(1);}               \
+    static constexpr T getMinusOne()     {return T(-1);}              \
+    static constexpr T getTwo()          {return T(2);}               \
+    static constexpr T getThree()        {return T(3);}               \
+    static constexpr T getOneHalf()      {return T(0.5L);}            \
+    static constexpr T getOneThird()     {return T(1.L/3.L);}         \
+    static constexpr T getOneFourth()    {return T(0.25L);}           \
+    static constexpr T getOneFifth()     {return T(0.2L);}            \
+    static constexpr T getOneSixth()     {return T(1.L/6.L);}         \
+    static constexpr T getOneSeventh()   {return T(1.L/7.L);}         \
+    static constexpr T getOneEighth()    {return T(0.125L);}          \
+    static constexpr T getOneNinth()     {return T(1.L/9.L);}         \
+    static constexpr T getPi()           {return T(SimTK_PI);}        \
+    static constexpr T getOneOverPi()    {return T(1.L/SimTK_PI);}    \
+    static constexpr T getE()            {return T(SimTK_E);}         \
+    static constexpr T getLog2E()        {return T(SimTK_LOG2E);}     \
+    static constexpr T getLog10E()       {return T(SimTK_LOG10E);}    \
+    static constexpr T getSqrt2()        {return T(SimTK_SQRT2);}     \
+    static constexpr T getOneOverSqrt2() {return T(1.L/SimTK_SQRT2);} \
+    static constexpr T getSqrt3()        {return T(SimTK_SQRT3);}     \
+    static constexpr T getOneOverSqrt3() {return T(1.L/SimTK_SQRT3);} \
+    static constexpr T getCubeRoot2()    {return T(SimTK_CBRT2);}     \
+    static constexpr T getCubeRoot3()    {return T(SimTK_CBRT3);}     \
+    static constexpr T getLn2()          {return T(SimTK_LN2);}       \
+    static constexpr T getLn10()         {return T(SimTK_LN10);}      \
     /* integer digit counts useful for formatted input and output */                     \
     static int getNumDigits()         {static const int c=(int)(std::log10(1/getEps()) -0.5); return c;} \
     static int getLosslessNumDigits() {static const int c=(int)(std::log10(1/getTiny())+0.5); return c;} \
