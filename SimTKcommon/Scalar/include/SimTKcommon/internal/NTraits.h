@@ -50,9 +50,12 @@
 #include "SimTKcommon/Constants.h"
 #include "SimTKcommon/internal/CompositeNumericalTypes.h"
 
-#include <cstddef>
+#include <bit>
 #include <cassert>
+#include <cmath>
 #include <complex>
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <limits>
 
@@ -831,8 +834,65 @@ template<> template<> struct NTraits< conjugate<T1> >::Result<conjugate<T2> >{\
 }
 SimTK_NTRAITS_CONJ_SPEC(float,float);SimTK_NTRAITS_CONJ_SPEC(float,double);
 SimTK_NTRAITS_CONJ_SPEC(double,float);SimTK_NTRAITS_CONJ_SPEC(double,double);
-#undef SimTK_NTRAITS_CONJ_SPEC 
+#undef SimTK_NTRAITS_CONJ_SPEC
 
+namespace detail {
+// Constexpr square root. Uses std::sqrt when __cpp_lib_constexpr_cmath is
+// available (C++23), otherwise falls back to Newton-Raphson seeded with the
+// IEEE 754 biased-exponent halving trick. The fallback handles all IEEE 754
+// special cases but may be off by 1 ulp from the correctly-rounded value.
+constexpr double ntraits_sqrt(double x) noexcept {
+#if defined(__cpp_lib_constexpr_cmath) && __cpp_lib_constexpr_cmath >= 202202L
+    return std::sqrt(x);
+#else
+    if (x != x)  return x;                                        // NaN
+    if (x < 0.0) return std::numeric_limits<double>::quiet_NaN();
+    if (x == 0.0) return x;                                       // preserves -0
+    if (x > std::numeric_limits<double>::max()) return x;         // +inf
+
+    // Scale subnormals into the normal range so the biased-exponent trick works.
+    double scale = 1.0;
+    if (x < std::numeric_limits<double>::min()) {
+        x     *= 4503599627370496.0;  // 2^52
+        scale  = 1.0 / 67108864.0;   // 2^-26 = 1/sqrt(2^52)
+    }
+
+    auto b = std::bit_cast<std::uint64_t>(x);
+    b = (b + (1023ULL << 52)) >> 1;        // halve the biased exponent
+    auto g = std::bit_cast<double>(b);
+    for (;;) {
+        const auto next = (g + x / g) * 0.5;
+        if (next >= g) return g * scale;
+        g = next;
+    }
+#endif
+}
+constexpr float ntraits_sqrt(float x) noexcept {
+#if defined(__cpp_lib_constexpr_cmath) && __cpp_lib_constexpr_cmath >= 202202L
+    return std::sqrt(x);
+#else
+    if (x != x)  return x;
+    if (x < 0.f) return std::numeric_limits<float>::quiet_NaN();
+    if (x == 0.f) return x;
+    if (x > std::numeric_limits<float>::max()) return x;
+
+    float scale = 1.0f;
+    if (x < std::numeric_limits<float>::min()) {
+        x     *= 16777216.0f;   // 2^24
+        scale  = 1.0f / 4096.0f;   // 2^-12 = 1/sqrt(2^24)
+    }
+
+    auto b = std::bit_cast<std::uint32_t>(x);
+    b = (b + (127U << 23)) >> 1;
+    auto g = std::bit_cast<float>(b);
+    for (;;) {
+        const auto next = (g + x / g) * 0.5f;
+        if (next >= g) return g * scale;
+        g = next;
+    }
+#endif
+}
+} // namespace detail
 
 // Specializations for real numbers.
 // For real scalar R, op result types are:
@@ -921,15 +981,15 @@ public:                                         \
     static TInvert invert(const T& t) {return T(1)/t;}                                    \
     /* properties of this floating point representation, with memory addresses */         \
     static constexpr T getEps()         {return std::numeric_limits<T>::epsilon();}                      \
-    static const T& getSignificant()    {static const T c = std::pow(getEps(),(T)0.875L); return c;} \
+    static constexpr T getSignificant() {auto s=detail::ntraits_sqrt(getEps()); auto t=detail::ntraits_sqrt(s); return s*t*detail::ntraits_sqrt(t);} \
     static constexpr T getNaN()         {return std::numeric_limits<T>::quiet_NaN();}                \
     static constexpr T getInfinity()    {return std::numeric_limits<T>::infinity();}                 \
     static constexpr T getLeastPositive()  {return std::numeric_limits<T>::min();}                  \
     static constexpr T getMostPositive()   {return std::numeric_limits<T>::max();}                  \
     static constexpr T getLeastNegative()  {return -std::numeric_limits<T>::min();}                 \
     static constexpr T getMostNegative()   {return -std::numeric_limits<T>::max();}                 \
-    static const T& getSqrtEps()        {static const T c = std::sqrt(getEps());          return c;} \
-    static const T& getTiny()           {static const T c = std::pow(getEps(),(T)1.25L); return c;} \
+    static constexpr T getSqrtEps()     {return detail::ntraits_sqrt(getEps());}                                                         \
+    static constexpr T getTiny()        {auto s=detail::ntraits_sqrt(getEps()); return getEps()*detail::ntraits_sqrt(s);}                 \
     static bool isFinite(const T& t) {return SimTK::isFinite(t);}   \
     static bool isNaN   (const T& t) {return SimTK::isNaN(t);}      \
     static bool isInf   (const T& t) {return SimTK::isInf(t);}      \
@@ -975,7 +1035,7 @@ public:                                         \
     static constexpr T getLn10()         {return T(SimTK_LN10);}      \
     /* integer digit counts useful for formatted input and output */                     \
     static constexpr int getNumDigits()         {return std::numeric_limits<T>::digits10;}               \
-    static int getLosslessNumDigits() {static const int c=(int)(std::log10(1/getTiny())+0.5); return c;} \
+    static constexpr int getLosslessNumDigits() {return (int)(5.0L*(std::numeric_limits<T>::digits-1)/4.0L*(SimTK_LN2/SimTK_LN10)+0.5L);} \
 }; \
 template<> struct NTraits<R>::Result<float> \
   {typedef Widest<R,float>::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;};    \
