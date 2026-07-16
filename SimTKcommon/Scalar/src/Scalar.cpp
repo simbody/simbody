@@ -35,12 +35,12 @@ namespace SimTK {
 // These constants are global external symbols exported by the library. See
 // the Scalar.h header file for information.
 
-const Real NaN               = NTraits<Real>::getNaN(); 
-const Real Infinity          = NTraits<Real>::getInfinity();
-const Real Eps               = NTraits<Real>::getEps();
+constexpr Real NaN      = NTraits<Real>::getNaN();
+constexpr Real Infinity = NTraits<Real>::getInfinity();
+constexpr Real Eps      = NTraits<Real>::getEps();
 const Real SqrtEps           = NTraits<Real>::getSqrtEps();
-const Real TinyReal          = NTraits<Real>::getTiny(); 
-const Real SignificantReal   = NTraits<Real>::getSignificant(); 
+const Real TinyReal          = NTraits<Real>::getTiny();
+const Real SignificantReal   = NTraits<Real>::getSignificant();
 const Real LeastPositiveReal = NTraits<Real>::getLeastPositive(); 
 const Real MostPositiveReal  = NTraits<Real>::getMostPositive();  
 const Real LeastNegativeReal = NTraits<Real>::getLeastNegative();
@@ -49,33 +49,33 @@ const Real MostNegativeReal  = NTraits<Real>::getMostNegative();
 const int NumDigitsReal = NTraits<Real>::getNumDigits(); 
 const int LosslessNumDigitsReal = NTraits<Real>::getLosslessNumDigits();
 
-const Real Zero         = NTraits<Real>::getZero();
-const Real One          = NTraits<Real>::getOne(); 
-const Real MinusOne     = NTraits<Real>::getMinusOne();
-const Real Two          = NTraits<Real>::getTwo(); 
-const Real Three        = NTraits<Real>::getThree(); 
+constexpr Real Zero         = NTraits<Real>::getZero();
+constexpr Real One          = NTraits<Real>::getOne();
+constexpr Real MinusOne     = NTraits<Real>::getMinusOne();
+constexpr Real Two          = NTraits<Real>::getTwo();
+constexpr Real Three        = NTraits<Real>::getThree();
 
-const Real OneHalf      = NTraits<Real>::getOneHalf();   
-const Real OneThird     = NTraits<Real>::getOneThird();  
-const Real OneFourth    = NTraits<Real>::getOneFourth(); 
-const Real OneFifth     = NTraits<Real>::getOneFifth();  
-const Real OneSixth     = NTraits<Real>::getOneSixth();  
-const Real OneSeventh   = NTraits<Real>::getOneSeventh();
-const Real OneEighth    = NTraits<Real>::getOneEighth(); 
-const Real OneNinth     = NTraits<Real>::getOneNinth();  
-const Real Pi           = NTraits<Real>::getPi();        
-const Real OneOverPi    = NTraits<Real>::getOneOverPi(); 
-const Real E            = NTraits<Real>::getE(); 
-const Real Log2E        = NTraits<Real>::getLog2E(); 
-const Real Log10E       = NTraits<Real>::getLog10E();
-const Real Sqrt2        = NTraits<Real>::getSqrt2();
-const Real OneOverSqrt2 = NTraits<Real>::getOneOverSqrt2();
-const Real Sqrt3        = NTraits<Real>::getSqrt3();
-const Real OneOverSqrt3 = NTraits<Real>::getOneOverSqrt3();
-const Real CubeRoot2    = NTraits<Real>::getCubeRoot2();
-const Real CubeRoot3    = NTraits<Real>::getCubeRoot3();
-const Real Ln2          = NTraits<Real>::getLn2();
-const Real Ln10         = NTraits<Real>::getLn10();
+constexpr Real OneHalf      = NTraits<Real>::getOneHalf();
+constexpr Real OneThird     = NTraits<Real>::getOneThird();
+constexpr Real OneFourth    = NTraits<Real>::getOneFourth();
+constexpr Real OneFifth     = NTraits<Real>::getOneFifth();
+constexpr Real OneSixth     = NTraits<Real>::getOneSixth();
+constexpr Real OneSeventh   = NTraits<Real>::getOneSeventh();
+constexpr Real OneEighth    = NTraits<Real>::getOneEighth();
+constexpr Real OneNinth     = NTraits<Real>::getOneNinth();
+constexpr Real Pi           = NTraits<Real>::getPi();
+constexpr Real OneOverPi    = NTraits<Real>::getOneOverPi();
+constexpr Real E            = NTraits<Real>::getE();
+constexpr Real Log2E        = NTraits<Real>::getLog2E();
+constexpr Real Log10E       = NTraits<Real>::getLog10E();
+constexpr Real Sqrt2        = NTraits<Real>::getSqrt2();
+constexpr Real OneOverSqrt2 = NTraits<Real>::getOneOverSqrt2();
+constexpr Real Sqrt3        = NTraits<Real>::getSqrt3();
+constexpr Real OneOverSqrt3 = NTraits<Real>::getOneOverSqrt3();
+constexpr Real CubeRoot2    = NTraits<Real>::getCubeRoot2();
+constexpr Real CubeRoot3    = NTraits<Real>::getCubeRoot3();
+constexpr Real Ln2          = NTraits<Real>::getLn2();
+constexpr Real Ln10         = NTraits<Real>::getLn10();
 
 const Complex I = NTraits<Complex>::getI();
 
