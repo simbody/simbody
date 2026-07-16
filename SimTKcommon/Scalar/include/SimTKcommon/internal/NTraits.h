@@ -841,8 +841,6 @@ SimTK_NTRAITS_CONJ_SPEC(double,float);SimTK_NTRAITS_CONJ_SPEC(double,double);
 //   Typeof(R+P) = Typeof(P+R)
 //   typeof(R-P) = Typeof(P::TNeg + R)
 // These must be specialized for P=Real and P=Complex.
-
-
 #define SimTK_DEFINE_REAL_NTRAITS(R)            \
 template <> class NTraits<R> {                  \
 public:                                         \
@@ -901,37 +899,37 @@ public:                                         \
     static T*       updData(T& t)       { return &t; }  \
     static const T& real(const T& t) { return t; }      \
     static T&       real(T& t)       { return t; }      \
-    static const T& imag(const T&)   { static const T c=(T)(0); return c; }   \
-    static T&       imag(T&)         { assert(false); return *reinterpret_cast<T*>(0); } \
-    static const TNeg& negate(const T& t) {return reinterpret_cast<const TNeg&>(t);}        \
-    static       TNeg& negate(T& t) {return reinterpret_cast<TNeg&>(t);}                    \
-    static const THerm& transpose(const T& t) {return reinterpret_cast<const THerm&>(t);}   \
-    static       THerm& transpose(T& t) {return reinterpret_cast<THerm&>(t);}               \
-    static const TPosTrans& positionalTranspose(const T& t)                 \
-        {return reinterpret_cast<const TPosTrans&>(t);}                     \
-    static       TPosTrans& positionalTranspose(T& t)                       \
-        {return reinterpret_cast<TPosTrans&>(t);}                           \
-    static const TWithoutNegator& castAwayNegatorIfAny(const T& t)          \
-        {return reinterpret_cast<const TWithoutNegator&>(t);}               \
-    static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)             \
-        {return reinterpret_cast<TWithoutNegator&>(t);}                     \
-    static ScalarNormSq scalarNormSqr(const T& t) {return t*t;}             \
-    static TSqrt        sqrt(const T& t) {return std::sqrt(t);}             \
-    static TAbs         abs(const T& t) {return std::abs(t);}               \
-    static const TStandard& standardize(const T& t) {return t;}             \
-    static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));} \
-    static TInvert invert(const T& t) {return T(1)/t;}                      \
-    /* properties of this floating point representation, with memory addresses */     \
-    static constexpr T getEps()         {return std::numeric_limits<T>::epsilon();}                         \
-    static constexpr T getSignificant() {static const T c=std::pow(getEps(),(T)0.875L);       return c;} \
-    static constexpr T getNaN()         {return std::numeric_limits<T>::quiet_NaN();}                     \
-    static constexpr T getInfinity()    {return std::numeric_limits<T>::infinity();}                      \
-    static const T& getLeastPositive()  {static const T c=std::numeric_limits<T>::min();      return c;} \
-    static const T& getMostPositive()   {static const T c=std::numeric_limits<T>::max();      return c;} \
-    static const T& getLeastNegative()  {static const T c=-std::numeric_limits<T>::min();     return c;} \
-    static const T& getMostNegative()   {static const T c=-std::numeric_limits<T>::max();     return c;} \
-    static constexpr T getSqrtEps()     {static const T c=std::sqrt(getEps());                return c;} \
-    static constexpr T getTiny()        {static const T c=std::pow(getEps(),(T)1.25L);        return c;} \
+    static const T& imag(const T&)   { static const T c = (T)(0); return c; }              \
+    static T&       imag(T&)         { assert(false); return *reinterpret_cast<T*>(0); }  \
+    static const TNeg& negate(const T& t) {return reinterpret_cast<const TNeg&>(t);}      \
+    static       TNeg& negate(T& t) {return reinterpret_cast<TNeg&>(t);}                  \
+    static const THerm& transpose(const T& t) {return reinterpret_cast<const THerm&>(t);} \
+    static       THerm& transpose(T& t) {return reinterpret_cast<THerm&>(t);}             \
+    static const TPosTrans& positionalTranspose(const T& t)                               \
+        {return reinterpret_cast<const TPosTrans&>(t);}                                   \
+    static       TPosTrans& positionalTranspose(T& t)                                     \
+        {return reinterpret_cast<TPosTrans&>(t);}                                         \
+    static const TWithoutNegator& castAwayNegatorIfAny(const T& t)                        \
+        {return reinterpret_cast<const TWithoutNegator&>(t);}                             \
+    static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)                           \
+        {return reinterpret_cast<TWithoutNegator&>(t);}                                   \
+    static ScalarNormSq scalarNormSqr(const T& t) {return t*t;}                           \
+    static TSqrt        sqrt(const T& t) {return std::sqrt(t);}                           \
+    static TAbs         abs(const T& t) {return std::abs(t);}                             \
+    static const TStandard& standardize(const T& t) {return t;}                           \
+    static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));}     \
+    static TInvert invert(const T& t) {return T(1)/t;}                                    \
+    /* properties of this floating point representation, with memory addresses */         \
+    static constexpr T getEps()         {return std::numeric_limits<T>::epsilon();}                      \
+    static const T& getSignificant()    {static const T c = std::pow(getEps(),(T)0.875L); return c;} \
+    static constexpr T getNaN()         {return std::numeric_limits<T>::quiet_NaN();}                \
+    static constexpr T getInfinity()    {return std::numeric_limits<T>::infinity();}                 \
+    static constexpr T getLeastPositive()  {return std::numeric_limits<T>::min();}                  \
+    static constexpr T getMostPositive()   {return std::numeric_limits<T>::max();}                  \
+    static constexpr T getLeastNegative()  {return -std::numeric_limits<T>::min();}                 \
+    static constexpr T getMostNegative()   {return -std::numeric_limits<T>::max();}                 \
+    static const T& getSqrtEps()        {static const T c = std::sqrt(getEps());          return c;} \
+    static const T& getTiny()           {static const T c = std::pow(getEps(),(T)1.25L); return c;} \
     static bool isFinite(const T& t) {return SimTK::isFinite(t);}   \
     static bool isNaN   (const T& t) {return SimTK::isNaN(t);}      \
     static bool isInf   (const T& t) {return SimTK::isInf(t);}      \
@@ -976,7 +974,7 @@ public:                                         \
     static constexpr T getLn2()          {return T(SimTK_LN2);}       \
     static constexpr T getLn10()         {return T(SimTK_LN10);}      \
     /* integer digit counts useful for formatted input and output */                     \
-    static int getNumDigits()         {static const int c=(int)(std::log10(1/getEps()) -0.5); return c;} \
+    static constexpr int getNumDigits()         {return std::numeric_limits<T>::digits10;}               \
     static int getLosslessNumDigits() {static const int c=(int)(std::log10(1/getTiny())+0.5); return c;} \
 }; \
 template<> struct NTraits<R>::Result<float> \

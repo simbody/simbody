@@ -41,12 +41,12 @@ constexpr Real Eps      = NTraits<Real>::getEps();
 const Real SqrtEps           = NTraits<Real>::getSqrtEps();
 const Real TinyReal          = NTraits<Real>::getTiny();
 const Real SignificantReal   = NTraits<Real>::getSignificant();
-const Real LeastPositiveReal = NTraits<Real>::getLeastPositive(); 
-const Real MostPositiveReal  = NTraits<Real>::getMostPositive();  
-const Real LeastNegativeReal = NTraits<Real>::getLeastNegative();
-const Real MostNegativeReal  = NTraits<Real>::getMostNegative();
+constexpr Real LeastPositiveReal = NTraits<Real>::getLeastPositive();
+constexpr Real MostPositiveReal  = NTraits<Real>::getMostPositive();
+constexpr Real LeastNegativeReal = NTraits<Real>::getLeastNegative();
+constexpr Real MostNegativeReal  = NTraits<Real>::getMostNegative();
 
-const int NumDigitsReal = NTraits<Real>::getNumDigits(); 
+constexpr int NumDigitsReal = NTraits<Real>::getNumDigits();
 const int LosslessNumDigitsReal = NTraits<Real>::getLosslessNumDigits();
 
 constexpr Real Zero         = NTraits<Real>::getZero();
