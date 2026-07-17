@@ -74,7 +74,7 @@ using namespace SimTK;
 
 class SimbodyMatterSubsystemRep;
 class RigidBodyNode;
-template <int dof, bool noR_FM, bool noX_MB, bool noR_PF> 
+template <int dof, bool noR_FM>
     class RigidBodyNodeSpec;
 
 // defined below
@@ -323,10 +323,12 @@ class SBInstancePerMobodInfo {
 public:
     SBInstancePerMobodInfo() {clear();}
 
-    void clear() {   
+    void clear() {
         qMethod=uMethod=udotMethod=Motion::Free;
-        firstPresQ.invalidate(); firstPresU.invalidate(); 
+        firstPresQ.invalidate(); firstPresU.invalidate();
         firstPresUDot.invalidate(); firstPresForce.invalidate();
+        noX_MB = false;
+        noR_PF = false;
     }
 
     Motion::Method      qMethod;        // how are positions calculated?
@@ -337,6 +339,9 @@ public:
     PresUPoolIndex      firstPresU;     // if uMethod==Prescribed
     PresUDotPoolIndex   firstPresUDot;  // if udotMethod==Prescribed
     PresForcePoolIndex  firstPresForce; // if udotMethod!=Free
+
+    bool                noX_MB;  // X_BM is identity
+    bool                noR_PF;  // X_PF has identity rotation
 };
 
 
@@ -471,12 +476,14 @@ public:
     //       each rigid body
     //   reference configuration X_PB when q==0 (usually that means M==F), 
     //       for each rigid body
+    //   inverse of outboard mobilizer frames, X_MB = ~X_BM
 
     Real              totalMass; // sum of all rigid body and particles masses
-    Array_<Inertia,MobilizedBodyIndex>   centralInertias;           // nb
-    Array_<Vec3,MobilizedBodyIndex>      principalMoments;          // nb
-    Array_<Rotation,MobilizedBodyIndex>  principalAxes;             // nb
-    Array_<Transform,MobilizedBodyIndex> referenceConfiguration;    // nb
+    Array_<Inertia,MobilizedBodyIndex>   centralInertias;                // nb
+    Array_<Vec3,MobilizedBodyIndex>      principalMoments;               // nb
+    Array_<Rotation,MobilizedBodyIndex>  principalAxes;                  // nb
+    Array_<Transform,MobilizedBodyIndex> referenceConfiguration;         // nb
+    Array_<Transform,MobilizedBodyIndex> outboardMobilizerFramesInverse; // nb
 
     int getNumMobilizedBodies() const {return (int)mobodInstanceInfo.size();}
     SBInstancePerMobodInfo& updMobodInstanceInfo(MobilizedBodyIndex mbx)
@@ -577,10 +584,11 @@ public:
                   const SBModelCache&    model) 
     {
         totalMass = SimTK::NaN;
-        centralInertias.resize(topo.nBodies);           // I_CB
-        principalMoments.resize(topo.nBodies);          // (Ixx,Iyy,Izz)
-        principalAxes.resize(topo.nBodies);             // [axx ayy azz]
-        referenceConfiguration.resize(topo.nBodies);    // X0_PB
+        centralInertias.resize(topo.nBodies);                // I_CB
+        principalMoments.resize(topo.nBodies);               // (Ixx,Iyy,Izz)
+        principalAxes.resize(topo.nBodies);                  // [axx ayy azz]
+        referenceConfiguration.resize(topo.nBodies);         // X0_PB
+        outboardMobilizerFramesInverse.resize(topo.nBodies); // X_MB
 
         mobodInstanceInfo.resize(topo.nBodies);
 
@@ -1261,6 +1269,7 @@ public:
 class SBModelVars {
 public:
     bool         useEulerAngles;
+    bool         useVariableMobilizerFrames;
 public:
 
     // We have to allocate these without looking at any other
@@ -1268,6 +1277,7 @@ public:
     // information.
     void allocate(const SBTopologyCache& tree) {
         useEulerAngles = false;
+        useVariableMobilizerFrames = false;
     }
 
 };

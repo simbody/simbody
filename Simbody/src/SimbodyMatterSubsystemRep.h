@@ -322,8 +322,6 @@ public:
     Array_<MobilizedBodyIndex> getChildren(MobilizedBodyIndex) const;
 
     const MassProperties& getDefaultBodyMassProperties    (MobilizedBodyIndex b) const;
-    const Transform&      getDefaultMobilizerFrame        (MobilizedBodyIndex b) const;
-    const Transform&      getDefaultMobilizerFrameOnParent(MobilizedBodyIndex b) const;
 
     void findMobilizerQs(const State& s, MobilizedBodyIndex body, QIndex& qStart, int& nq) const {
         const RigidBodyNode& n = getRigidBodyNode(body);
@@ -728,6 +726,8 @@ public:
     bool isConstraintDisabled(const State& s, ConstraintIndex constraint) const;
     void convertToEulerAngles(const State& inputState, State& outputState) const;
     void convertToQuaternions(const State& inputState, State& outputState) const;
+    void setUseVariableMobilizerFrames(State& s, bool) const;
+    bool getUseVariableMobilizerFrames(const State& s) const;
 
         // CALLABLE AFTER realizeModel()
 

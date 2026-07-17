@@ -42,22 +42,19 @@
 // angle. For the generalized speed u we use the rotation rate, which is also 
 // the angular velocity of M in F (about the z axis). We compute the
 // translational position as pitch*q, and the translation rate as pitch*u.
-template<bool noX_MB, bool noR_PF>
-class RBNodeScrew : public RigidBodyNodeSpec<1, false, noX_MB, noR_PF> {
+class RBNodeScrew : public RigidBodyNodeSpec<1, false> {
     Real pitch;
 public:
-typedef typename RigidBodyNodeSpec<1, false, noX_MB, noR_PF>::HType HType;
+typedef typename RigidBodyNodeSpec<1, false>::HType HType;
 virtual const char* type() { return "screw"; }
 
 RBNodeScrew(const MassProperties& mProps_B,
-            const Transform&      X_PF,
-            const Transform&      X_BM,
             Real                  p,  // the pitch
             bool                  isReversed,
             UIndex&               nextUSlot,
             USquaredIndex&        nextUSqSlot,
             QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<1, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+:   RigidBodyNodeSpec<1, false>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed),
     pitch(p)

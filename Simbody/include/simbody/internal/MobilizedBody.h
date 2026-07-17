@@ -445,13 +445,29 @@ MobilizedBody object itself. The State must have been realized to
 Stage::Instance or higher. **/
 const Transform& getOutboardFrame(const State& state) const;    // X_BM
 
-/** TODO: not implemented yet. Set the location and orientation of the inboard 
-(parent) mobilizer frame F, fixed to this mobilizer's parent body P.
-@see setDefaultInboardFrame() **/
-void setInboardFrame (State& state, const Transform& X_PF) const;
-/** TODO: not implemented yet. Set the location and orientation of the outboard 
-mobilizer frame M, fixed to this body B.
-@see setDefaultOutboardFrame() **/
+/** Set this mobilizer's frame F fixed on the parent body P, as the fixed
+Transform from P's body frame to the frame F fixed to P in the given State.
+Calling this method invalidates Stage::Instance and higher. The value from
+setDefaultInboardFrame()) is used as the default value during State creation.
+
+This method is only valid if the "use variable mobilizer frames" modeling
+variable which can be set via
+`SimbodyMatterSubsystem::setUseVariableMobilizerFrames(). An exception is raised
+if this method is called when "use variable mobilizer frames" is false.
+
+@see setDefaultInboardFrame(), getInboardFrame() **/
+void setInboardFrame(State& state, const Transform& X_PF) const;
+/** Set this mobilizer's frame M fixed on the child body B, as the fixed
+Transform from B's body frame to the frame M fixed to B in the given State.
+Calling this method invalidates Stage::Instance and higher. The value from
+setDefaultOutboardFrame()) is used as the default value during State creation.
+
+This method is only valid if the "use variable mobilizer frames" modeling
+variable which can be set via
+`SimbodyMatterSubsystem::setUseVariableMobilizerFrames(). An exception is raised
+if this method is called when "use variable mobilizer frames" is false.
+
+@see setDefaultOutboardFrame(), getOutboardFrame() **/
 void setOutboardFrame(State& state, const Transform& X_BM) const;
 
 // End of State Access - Bodies

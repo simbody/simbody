@@ -71,23 +71,20 @@
 //
 // This mobilizer was written by Ajay Seth and hacked somewhat by Sherm.
 
-template<bool noX_MB, bool noR_PF>
-class RBNodeEllipsoid : public RigidBodyNodeSpec<3, false, noX_MB, noR_PF> {
+class RBNodeEllipsoid : public RigidBodyNodeSpec<3, false> {
     Vec3 semi; // semi axis dimensions in x,y,z resp.
 public:
 
-typedef typename RigidBodyNodeSpec<3, false, noX_MB, noR_PF>::HType HType;
+typedef typename RigidBodyNodeSpec<3, false>::HType HType;
 virtual const char* type() { return "ellipsoid"; }
 
 RBNodeEllipsoid(const MassProperties& mProps_B,
-              const Transform&      X_PF,
-              const Transform&      X_BM,
               const Vec3&           radii, // x,y,z
               bool                  isReversed,
               UIndex&               nextUSlot,
               USquaredIndex&        nextUSqSlot,
               QIndex&               nextQSlot)
-  : RigidBodyNodeSpec<3, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+  : RigidBodyNodeSpec<3, false>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotMayDifferFromU, RigidBodyNode::QuaternionMayBeUsed, isReversed),
     semi(radii)
 {

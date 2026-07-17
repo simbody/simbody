@@ -266,21 +266,31 @@ public:
     }
 
     const Transform& getInboardFrame (const State& s) const {
-        // TODO: these should come from the state if the mobilizer has variable frames
         const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(s);
-        return getMyRigidBodyNode().getX_PF();
+        return getMyRigidBodyNode().getX_PF(iv);
     }
     const Transform& getOutboardFrame(const State& s) const {
-        // TODO: these should come from the state if the mobilizer has variable frames
         const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(s);
-        return getMyRigidBodyNode().getX_BM();
+        return getMyRigidBodyNode().getX_BM(iv);
     }
 
     void setInboardFrame (State& s, const Transform& X_PF) const {
-        assert(!"setInboardFrame(s) not implemented yet");
+        const SBModelVars& mv = getMyMatterSubsystemRep().getModelVars(s);
+        SimTK_ASSERT_ALWAYS(mv.useVariableMobilizerFrames,
+            "Variable mobilizer frames must be enabled via "
+            "SimbodyMatterSubystem::setUseVariableMobilizerFrames() before "
+            "calling MobilizedBody::setInboardFrame().");
+        SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(s);
+        getMyRigidBodyNode().updX_PF(iv) = X_PF;
     }
     void setOutboardFrame(State& s, const Transform& X_BM) const {
-        assert(!"setOutboardFrame(s) not implemented yet");
+        const SBModelVars& mv = getMyMatterSubsystemRep().getModelVars(s);
+        SimTK_ASSERT_ALWAYS(mv.useVariableMobilizerFrames,
+            "Variable mobilizer frames must be enabled via "
+            "SimbodyMatterSubystem::setUseVariableMobilizerFrames() before "
+            "calling MobilizedBody::setOutboardFrame().");
+        SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(s);
+        getMyRigidBodyNode().updX_BM(iv) = X_BM;
     }
 
     const Transform& getBodyTransform(const State& s) const {

@@ -22,8 +22,8 @@
  * -------------------------------------------------------------------------- */
 
 /* This file contains implementations of the base class methods for the
-templatized class RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>, and 
-instantiations of the class for all possible values of the arguments. */
+templatized class RigidBodyNodeSpec<dof, noR_FM>, and instantiations of
+the class for all possible values of the arguments. */
 
 #include "SimbodyMatterSubsystemRep.h"
 #include "RigidBodyNode.h"
@@ -41,19 +41,26 @@ instantiations of the class for all possible values of the arguments. */
 // Same for all mobilizers.
 // CAUTION: our H matrix definition is transposed from Jain and Schwieters.
 // Cost: 60 + 45*dof flops
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::
 calcParentToChildVelocityJacobianInGround
    (const SBModelVars&          mv,
-    const SBTreePositionCache&  pc, 
+    const SBInstanceVars&       iv,
+    const SBInstanceCache&      ic,
+    const SBTreePositionCache&  pc,
     HType&                      H_PB_G) const
 {
+    const SBInstancePerMobodInfo& info =
+        ic.getMobodInstanceInfo(this->getNodeNum());
+    const bool noX_MB = info.noX_MB;
+    const bool noR_PF = info.noR_PF;
+
     const HType& H_FM = getH_FM(pc);
 
     // We want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
 
-    const Rotation& R_PF = getX_PF().R();      // fixed config of F in P
+    const Rotation& R_PF = getX_PF(iv).R();      // fixed config of F in P
 
     // Calculated already since we're going base to tip.
     const Rotation& R_GP = getX_GP(pc).R(); // parent orientation in ground
@@ -63,7 +70,7 @@ calcParentToChildVelocityJacobianInGround
         H_PB_G = R_GF * H_FM;       // 3*dof flops
     else {
         // want r_MB_F, that is, the vector from Mo to Bo, expressed in F
-        const Vec3&     r_MB   = getX_MB().p();     // fixed
+        const Vec3&     r_MB   = getX_MB(ic).p();   // fixed
         const Rotation& R_FM   = getX_FM(pc).R();   // just calculated
         const Vec3      r_MB_F = (noR_FM ? r_MB : R_FM*r_MB);       // 15 flops
         HType H_MB_F;
@@ -79,21 +86,28 @@ calcParentToChildVelocityJacobianInGround
 // Same for all mobilizers.
 // CAUTION: our H matrix definition is transposed from Jain and Schwieters. 
 // Cost is 69 + 65*dof flops
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::
 calcParentToChildVelocityJacobianInGroundDot(
     const SBModelVars&          mv,
-    const SBTreePositionCache&  pc, 
+    const SBInstanceVars&       iv,
+    const SBInstanceCache&      ic,
+    const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
     HType&                      HDot_PB_G) const
 {
+    const SBInstancePerMobodInfo& info =
+        ic.getMobodInstanceInfo(this->getNodeNum());
+    const bool noX_MB = info.noX_MB;
+    const bool noR_PF = info.noR_PF;
+
     const HType& H_FM    = getH_FM(pc);
     const HType& HDot_FM = getHDot_FM(vc);
 
     // We want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
 
-    const Rotation& R_PF = getX_PF().R();       // fixed config of F in P
+    const Rotation& R_PF = getX_PF(iv).R();       // fixed config of F in P
 
     // Calculated already since we're going base to tip.
     const Rotation& R_GP = getX_GP(pc).R();     // parent orientation in ground
@@ -110,7 +124,7 @@ calcParentToChildVelocityJacobianInGroundDot(
                           w_GF % H_PB_G[1]);
     else {
         // want r_MB_F, that is, the vector from OM to OB, expressed in F 
-        const Vec3&     r_MB   = getX_MB().p();     // fixed
+        const Vec3&     r_MB   = getX_MB(ic).p();     // fixed
         const Rotation& R_FM   = getX_FM(pc).R();   // just calculated
         const Vec3      r_MB_F = (noR_FM ? r_MB : R_FM*r_MB); // 15 flops
 
@@ -137,8 +151,8 @@ calcParentToChildVelocityJacobianInGroundDot(
 //      H_FM_w = - R_FM*H_MF_w
 //      H_FM_v = -(R_FM*H_MF_v + p_FM x H_FM_w)
 //             
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerH_FM(
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::calcReverseMobilizerH_FM(
     const SBStateDigest& sbs,
     HType&               H_FM) const
 {
@@ -182,8 +196,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerH_FM(
 //
 // where "a_x" indicates the cross product matrix of vector a.
 //  
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerHDot_FM(
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::calcReverseMobilizerHDot_FM(
     const SBStateDigest& sbs,
     HType&               HDot_FM) const
 {
@@ -246,8 +260,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerHDot_FM(
 //   e.g. pin=143, ball=591 (197/dof), free=1746 (291/dof)
 // Note that per-child cost is paid just once for each non-base body in
 // the whole tree; that is, each body is touched just once.
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::
 realizeArticulatedBodyInertiasInward(
     const SBInstanceCache&          ic,
     const SBTreePositionCache&      pc,
@@ -352,8 +366,8 @@ realizeArticulatedBodyInertiasInward(
 // This is the first (inward) loop of Algorithm 16.2 on page 323 of Jain's
 // 2011 book, modified to include the applied body force and not including
 // the auxiliary quantity "nu=DI*eps".
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass1Inward(
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::calcUDotPass1Inward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -405,8 +419,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass1Inward(
 // Base to tip: temp allA_GB does not need to be initialized before
 // beginning the iteration.
 //
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
+template<int dof, bool noR_FM> void 
+RigidBodyNodeSpec<dof, noR_FM>::calcUDotPass2Outward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -480,8 +494,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
 // 0 for a prescribed one.
 
 // Pass 1, to be called from tip to base.
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass1Inward(
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::multiplyByMInvPass1Inward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -518,8 +532,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass1Inward(
 // Pass 2 of multiplyByMInv.
 // Base to tip: temp allA_GB does not need to be initialized before
 // beginning the iteration.
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass2Outward(
+template<int dof, bool noR_FM> void 
+RigidBodyNodeSpec<dof, noR_FM>::multiplyByMInvPass2Outward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -563,8 +577,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass2Outward(
 // as pass 1 for inverse dynamics.
 //
 // This must be called base to tip. The cost is 12*dof + 18 flops.
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
+template<int dof, bool noR_FM> void 
+RigidBodyNodeSpec<dof, noR_FM>::
 calcBodyAccelerationsFromUdotOutward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
@@ -606,8 +620,8 @@ calcBodyAccelerationsFromUdotOutward(
 //      pass2: 12*dof + 75 flops
 //             -----------------
 //      total: 24*dof + 93 flops
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::
 calcInverseDynamicsPass2Inward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
@@ -654,8 +668,8 @@ calcInverseDynamicsPass2Inward(
 // precalculated along with D = ~H*R*H. Then I *think* this could be a single
 // pass with tau = D*udot. Whether this is worth it would depend on how much
 // this gets re-used after R and D are calculated.
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMPass1Outward(
+template<int dof, bool noR_FM> void 
+RigidBodyNodeSpec<dof, noR_FM>::multiplyByMPass1Outward(
     const SBTreePositionCache&  pc,
     const Real*                 allUDot,
     SpatialVec*                 allA_GB) const
@@ -671,8 +685,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMPass1Outward(
 
 // Call tip to base after calling multiplyByMPass1Outward() for each
 // rigid body.
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMPass2Inward(
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::multiplyByMPass2Inward(
     const SBTreePositionCache&  pc,
     const SpatialVec*           allA_GB,
     SpatialVec*                 allF,   // temp
@@ -706,8 +720,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMPass2Inward(
 // & Kreutz-Delgado:  A spatial operator algebra 
 // for manipulator modeling and control. Intl. J. Robotics Research 
 // 10(4):371-381 (1991).
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeYOutward
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::realizeYOutward
    (const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -757,8 +771,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeYOutward
 //
 // Call base to tip (outward).
 //
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::
 multiplyBySystemJacobian(
     const SBTreePositionCache&  pc,
     const Real*                 v,
@@ -790,8 +804,8 @@ multiplyBySystemJacobian(
 //
 // Call tip to base.
 //
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::
 multiplyBySystemJacobianTranspose(
     const SBTreePositionCache&  pc,
     SpatialVec*                 zTmp,
@@ -820,8 +834,8 @@ multiplyBySystemJacobianTranspose(
 // To be called from tip to base.
 // Temps do not need to be initialized.
 // (sherm 060727) In spatial operators, this calculates ~H*Phi*(F-(MA+b))
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
+template<int dof, bool noR_FM> void
+RigidBodyNodeSpec<dof, noR_FM>::calcEquivalentJointForces(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
     const SpatialVec*           bodyForces,
@@ -851,17 +865,11 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
     // INSTANTIATIONS //
     ////////////////////
 
-#define INSTANTIATE(dof, noR_FM) \
-template class RigidBodyNodeSpec<dof, noR_FM, false, false>; \
-template class RigidBodyNodeSpec<dof, noR_FM, false, true>; \
-template class RigidBodyNodeSpec<dof, noR_FM, true, false>; \
-template class RigidBodyNodeSpec<dof, noR_FM, true, true>;
-
-INSTANTIATE(1, false)
-INSTANTIATE(2, false)
-INSTANTIATE(3, false)
-INSTANTIATE(4, false)
-INSTANTIATE(5, false)
-INSTANTIATE(6, false)
-INSTANTIATE(1, true)
-INSTANTIATE(3, true)
+template class RigidBodyNodeSpec<1, false>;
+template class RigidBodyNodeSpec<2, false>;
+template class RigidBodyNodeSpec<3, false>;
+template class RigidBodyNodeSpec<4, false>;
+template class RigidBodyNodeSpec<5, false>;
+template class RigidBodyNodeSpec<6, false>;
+template class RigidBodyNodeSpec<1, true>;
+template class RigidBodyNodeSpec<3, true>;
