@@ -709,13 +709,31 @@ const MassProperties& getMassProperties_OB_B() const {return massProps_B;}
 const Real&           getMass          () const {return massProps_B.getMass();}
 const Vec3&           getCOM_B         () const {return massProps_B.getMassCenter();}
 const UnitInertia&    getUnitInertia_OB_B() const {return massProps_B.getUnitInertia();}
-const Transform&      getX_BM          () const {return X_BM;}
-const Transform&      getX_PF          () const {return X_PF;}
+
+// The mobilizer inboard and outboard frame transforms are stored in the `State`
+// as instance variables.
+const Transform& getX_PF(const SBInstanceVars& iv) const {
+    return fromB(iv.inboardMobilizerFrames);
+}
+Transform& updX_PF(SBInstanceVars& iv) const {
+    return toB(iv.inboardMobilizerFrames);
+}
+const Transform& getX_BM(const SBInstanceVars& iv) const {
+    return fromB(iv.outboardMobilizerFrames);
+}
+Transform& updX_BM(SBInstanceVars& iv) const {
+    return toB(iv.outboardMobilizerFrames);
+}
+
+// The inverse of the mobilizer outboard frame transform is pre-computed and
+// stored in the instance cache.
+const Transform& getX_MB(const SBInstanceCache& ic) const {
+    return fromB(ic.outboardMobilizerFramesInverse);
+}
 
 // These are calculated on construction.
 // TODO: principal axes
 const Inertia&        getInertia_CB_B  () const {return inertia_CB_B;}
-const Transform&      getX_MB          () const {return X_MB;}
 
 // This says whether this mobilizer has prescribed *acceleration*, and if so
 // whether the acceleration is known to be zero.
@@ -942,10 +960,8 @@ void setNodeDefaultModelValues(const SBTopologyCache& tc, SBModelVars& mv) const
 // All the rest are called right after realizeModel() since that's when all the
 // remaining state variables are allocated.
 void setNodeDefaultInstanceValues(const SBModelVars& mv, SBInstanceVars& iv) const {
-    // mass properties, inb and outb frame are handled here
+    // mass properties are handled here
     toB(iv.bodyMassProperties)      = getMassProperties_OB_B();
-    toB(iv.outboardMobilizerFrames) = getX_BM();
-    toB(iv.inboardMobilizerFrames)  = getX_PF();
     setMobilizerDefaultInstanceValues(mv,iv);
 }
 void setNodeDefaultTimeValues(const SBModelVars& mv, SBTimeVars& tv)  const {
@@ -999,8 +1015,6 @@ protected:
 // This is the constructor for the abstract base type for use by the derived
 // concrete types in their constructors.
 RigidBodyNode(const MassProperties& mProps_B,
-              const Transform&      xform_PF,
-              const Transform&      xform_BM,
               QDotHandling          qdotType,
               QuaternionUse         quatUse,
               bool                  reverse=false)
@@ -1009,7 +1023,6 @@ RigidBodyNode(const MassProperties& mProps_B,
     inertia_CB_B(mProps_B.isFinite()
                  ? mProps_B.calcCentralInertia()
                  : (mProps_B.isInf() ? Inertia(Infinity) : Inertia())),
-    X_BM(xform_BM), X_PF(xform_PF), X_MB(~xform_BM),
     qdotHandling(qdotType), quaternionUse(quatUse), reversed(reverse)
 {
     // If a quaternion might be used, it can't possibly be true that qdot is
@@ -1060,17 +1073,6 @@ const MassProperties massProps_B;
 // This is the supplied inertia, shifted to the center of mass. It is still
 // a constant expressed in B, but is taken about the COM.
 const Inertia   inertia_CB_B;
-
-// Orientation and location of inboard mobilizer frame M, measured
-// and expressed in body frame B.
-const Transform X_BM; 
-const Transform X_MB; // inverse of X_BM, calculated on construction
-
-// This is set when we attach this node to its parent in the tree. This is the
-// configuration of the parent's outboard mobilizer attachment frame corresponding
-// to body B (F) measured from and expressed in the parent frame P. It is 
-// a constant in frame P. TODO: make it parameterizable.
-const Transform X_PF;
 
 // Concrete RigidBodyNodes should set this flag on construction to indicate whether they can guarantee
 // that their mobilizer's qdots are just the generalized speeds u, for all possible

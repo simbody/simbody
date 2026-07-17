@@ -67,21 +67,18 @@
 //     NOTE: THAT IS NOT THE SAME FRAME AS FOR A FREE JOINT
 // Thus the qdots have to be derived from the generalized speeds to
 // be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
-template<bool noX_MB, bool noR_PF>
-class RBNodeFreeLine : public RigidBodyNodeSpec<5, false, noX_MB, noR_PF> {
+class RBNodeFreeLine : public RigidBodyNodeSpec<5, false> {
 public:
 
-typedef typename RigidBodyNodeSpec<5, false, noX_MB, noR_PF>::HType HType;
+typedef typename RigidBodyNodeSpec<5, false>::HType HType;
 virtual const char* type() { return "full"; }
 
 RBNodeFreeLine(const MassProperties& mProps_B,
-               const Transform&      X_PF,
-               const Transform&      X_BM,
                bool                  isReversed,
                UIndex&               nextUSlot,
                USquaredIndex&        nextUSqSlot,
                QIndex&               nextQSlot)
-  : RigidBodyNodeSpec<5, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+  : RigidBodyNodeSpec<5, false>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotMayDifferFromU, RigidBodyNode::QuaternionMayBeUsed, isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);

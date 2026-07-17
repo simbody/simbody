@@ -322,8 +322,6 @@ public:
     Array_<MobilizedBodyIndex> getChildren(MobilizedBodyIndex) const;
 
     const MassProperties& getDefaultBodyMassProperties    (MobilizedBodyIndex b) const;
-    const Transform&      getDefaultMobilizerFrame        (MobilizedBodyIndex b) const;
-    const Transform&      getDefaultMobilizerFrameOnParent(MobilizedBodyIndex b) const;
 
     void findMobilizerQs(const State& s, MobilizedBodyIndex body, QIndex& qStart, int& nq) const {
         const RigidBodyNode& n = getRigidBodyNode(body);
