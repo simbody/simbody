@@ -56,21 +56,18 @@
  * mobilities). Each implementation works only on fixed size Vec<> and Mat<> 
  * types, so can use very high speed inline operators.
  */
-template<int dof, bool noR_FM=false, bool noX_MB=false, bool noR_PF=false>
+template<int dof, bool noR_FM=false>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
 
 RigidBodyNodeSpec(const MassProperties& mProps_B,
-                  const Transform&      X_PF,
-                  const Transform&      X_BM,
                   UIndex&               nextUSlot,
                   USquaredIndex&        nextUSqSlot,
                   QIndex&               nextQSlot,
                   QDotHandling          qdotHandling,
                   QuaternionUse         quaternionUse,
                   bool                  isReversed)
-:   RigidBodyNode(mProps_B, X_PF, X_BM, 
-                  qdotHandling, quaternionUse, isReversed)
+:   RigidBodyNode(mProps_B, qdotHandling, quaternionUse, isReversed)
 {
     // don't call any virtual methods in here!
     uIndex   = nextUSlot;
@@ -230,6 +227,7 @@ void realizePosition(const SBStateDigest& sbs) const override
 {
     const SBModelVars&      mv   = sbs.getModelVars();
     const SBModelCache&     mc   = sbs.getModelCache();
+    const SBInstanceVars&   iv   = sbs.getInstanceVars();
     const SBInstanceCache&  ic   = sbs.getInstanceCache();
     const Vector&           allQ = sbs.getQ();
     SBTreePositionCache&    pc   = sbs.updTreePositionCache();
@@ -268,7 +266,7 @@ void realizePosition(const SBStateDigest& sbs) const override
 
     // With X_FM in the cache, and X_GP for the parent already calculated (we're doing
     // an outward pass), we can calculate X_PB and X_GB now.
-    calcBodyTransforms(pc, updX_PB(pc), updX_GB(pc));
+    calcBodyTransforms(iv, ic, pc, updX_PB(pc), updX_GB(pc));
 
     // Here we do allow the mobilizer to calculate the reversed H matrix, but the
     // default implementation of the reversed method just calls the forward method
@@ -281,7 +279,7 @@ void realizePosition(const SBStateDigest& sbs) const override
     // calculated to compute H(==H_PB_G), the equivalent hinge matrix between 
     // the parent's body frame P and child's body frame B, but expressed in
     // Ground. (F is fixed on P and M is fixed on B.)
-    calcParentToChildVelocityJacobianInGround(mv,pc, updH(pc));
+    calcParentToChildVelocityJacobianInGround(mv, iv, ic, pc, updH(pc));
 
     // Mobilizer independent.
     calcJointIndependentKinematicsPos(pc);
@@ -305,6 +303,8 @@ void realizePosition(const SBStateDigest& sbs) const override
 void realizeVelocity(const SBStateDigest& sbs) const override
 {
     const SBModelVars&          mv = sbs.getModelVars();
+    const SBInstanceVars&       iv = sbs.getInstanceVars();
+    const SBInstanceCache&      ic = sbs.getInstanceCache();
     const SBTreePositionCache&  pc = sbs.getTreePositionCache();
     SBTreeVelocityCache&        vc = sbs.updTreeVelocityCache();
     const Vector&               allU = sbs.getU();
@@ -325,7 +325,8 @@ void realizeVelocity(const SBStateDigest& sbs) const override
     // of H (==H_PB_G) between the parent's body frame P and child's body 
     // frame B. The derivative is taken in the Ground frame and the result
     // is expressed in Ground. (F is fixed on P and M is fixed on B.)
-    calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, updHDot(vc));
+    calcParentToChildVelocityJacobianInGroundDot(mv, iv, ic, pc, vc,
+                                                 updHDot(vc));
     updVD_PB_G(vc) = getHDot(vc) * u;   // 6*dof flops
 
     // Mobilizer independent.
@@ -552,12 +553,18 @@ virtual void calcReverseMobilizerHDot_FM(
 // This routine is NOT joint specific, but cannot be called until the across-joint
 // transform X_FM has been calculated and is available in the State cache.
 void calcBodyTransforms(
-    const SBTreePositionCache&  pc, 
-    Transform&                  X_PB, 
-    Transform&                  X_GB) const 
+    const SBInstanceVars&       iv,
+    const SBInstanceCache&      ic,
+    const SBTreePositionCache&  pc,
+    Transform&                  X_PB,
+    Transform&                  X_GB) const
 {
-    const Transform& X_MB = getX_MB();   // fixed
-    const Transform& X_PF = getX_PF();   // fixed
+    const SBInstancePerMobodInfo& info = ic.getMobodInstanceInfo(this->getNodeNum());
+    const bool noX_MB = info.noX_MB;
+    const bool noR_PF = info.noR_PF;
+
+    const Transform& X_MB = getX_MB(ic); // fixed
+    const Transform& X_PF = getX_PF(iv); // fixed
     const Transform& X_FM = getX_FM(pc); // just calculated
     const Transform& X_GP = getX_GP(pc); // already calculated
 
@@ -572,6 +579,8 @@ void calcBodyTransforms(
 // one used by Jain and Schwieters, but transposed.
 void calcParentToChildVelocityJacobianInGround(
     const SBModelVars&          mv,
+    const SBInstanceVars&       iv,
+    const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc, 
     HType&                      H_PB_G) const;
 
@@ -580,6 +589,8 @@ void calcParentToChildVelocityJacobianInGround(
 // Ground frame.
 void calcParentToChildVelocityJacobianInGroundDot(
     const SBModelVars&          mv,
+    const SBInstanceVars&       iv,
+    const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc, 
     const SBTreeVelocityCache&  vc, 
     HType&                      HDot_PB_G) const;

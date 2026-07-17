@@ -48,21 +48,18 @@
 //
 // NOTE: An XYZ Euler angle sequence has a singularity when the middle angle
 // is at 90 or 270 degrees; quaternions are never singular.
-template<bool noX_MB, bool noR_PF>
-class RBNodeBall : public RigidBodyNodeSpec<3, false, noX_MB, noR_PF> {
+class RBNodeBall : public RigidBodyNodeSpec<3, false> {
 public:
 
-typedef typename RigidBodyNodeSpec<3, false, noX_MB, noR_PF>::HType HType;
+typedef typename RigidBodyNodeSpec<3, false>::HType HType;
 virtual const char* type() { return "ball"; }
 
 RBNodeBall(const MassProperties& mProps_B,
-           const Transform&      X_PF,
-           const Transform&      X_BM,
            bool                  isReversed,
            UIndex&               nextUSlot,
            USquaredIndex&        nextUSqSlot,
            QIndex&               nextQSlot)
-  : RigidBodyNodeSpec<3, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+  : RigidBodyNodeSpec<3, false>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotMayDifferFromU, RigidBodyNode::QuaternionMayBeUsed, isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);

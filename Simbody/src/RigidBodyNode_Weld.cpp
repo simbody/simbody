@@ -51,11 +51,9 @@
  */
 class ImmobileRigidBodyNode : public RigidBodyNode {
 public:
-    ImmobileRigidBodyNode(const MassProperties& mProps_B, const Transform& X_PF,
-                          const Transform& X_BM, const UIndex& uIx, 
+    ImmobileRigidBodyNode(const MassProperties& mProps_B, const UIndex& uIx,
                           const USquaredIndex& usqIx, const QIndex& qIx)
-    :   RigidBodyNode(mProps_B, X_PF, X_BM, 
-                      QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed) 
+    :   RigidBodyNode(mProps_B, QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
         uIndex   = uIx;
         uSqIndex = usqIx;
@@ -140,7 +138,6 @@ class RBGroundBody : public ImmobileRigidBodyNode {
 public:
     RBGroundBody()
     :   ImmobileRigidBodyNode(MassProperties(Infinity, Vec3(0), Inertia(Infinity)), 
-                              Transform(), Transform(),
                               UIndex(0), USquaredIndex(0), QIndex(0)) {}
 
     const char* type() const override { return "ground"; }
@@ -368,10 +365,9 @@ public:
 // but has no q's and no u's.
 class RBNodeWeld : public ImmobileRigidBodyNode {
 public:
-    RBNodeWeld(const MassProperties& mProps_B, const Transform& X_PF, 
-               const Transform& X_BM, const UIndex& uIx, 
+    RBNodeWeld(const MassProperties& mProps_B, const UIndex& uIx,
                const USquaredIndex& usqIx, const QIndex& qIx)
-    :   ImmobileRigidBodyNode(mProps_B, X_PF, X_BM, uIx, usqIx, qIx) {}
+    :   ImmobileRigidBodyNode(mProps_B, uIx, usqIx, qIx) {}
 
     const char* type() const override { return "weld"; }
 
@@ -387,10 +383,12 @@ public:
     }
 
     void realizePosition(const SBStateDigest& sbs) const override {
+        const SBInstanceVars& iv = sbs.getInstanceVars();
+        const SBInstanceCache& ic = sbs.getInstanceCache();
         SBTreePositionCache& pc = sbs.updTreePositionCache();
 
-        const Transform& X_MB = getX_MB();   // fixed
-        const Transform& X_PF = getX_PF();   // fixed
+        const Transform& X_MB = getX_MB(ic); // fixed
+        const Transform& X_PF = getX_PF(iv); // fixed
         const Transform& X_GP = getX_GP(pc); // already calculated
 
         updX_FM(pc).setToZero();
@@ -706,7 +704,6 @@ RigidBodyNode* MobilizedBody::WeldImpl::createRigidBodyNode(
 {
     return new RBNodeWeld(
         getDefaultRigidBodyMassProperties(),
-        getDefaultInboardFrame(),getDefaultOutboardFrame(),
         nextUSlot, nextUSqSlot, nextQSlot);
 }
 
