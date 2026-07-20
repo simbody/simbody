@@ -1660,7 +1660,6 @@ void SimbodyMatterSubsystemRep::setDefaultModelValues(const SBTopologyCache& top
 {
     // Tree-level defaults
     modelVars.useEulerAngles = false;
-    modelVars.useVariableMobilizerFrames = false;
 
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
@@ -1810,18 +1809,6 @@ convertToQuaternions(const State& inputState, State& outputState) const {
             node.convertToQuaternions(inputQ, outputQ);
         }
     }
-}
-
-void SimbodyMatterSubsystemRep::
-setUseVariableMobilizerFrames(State& s, bool useVariableMobilizerFrames) const {
-    SBModelVars& modelVars = updModelVars(s);
-    modelVars.useVariableMobilizerFrames = useVariableMobilizerFrames;
-}
-
-bool SimbodyMatterSubsystemRep::
-getUseVariableMobilizerFrames(const State& s) const {
-    const SBModelVars& modelVars = getModelVars(s);
-    return modelVars.useVariableMobilizerFrames;
 }
 
 bool SimbodyMatterSubsystemRep::

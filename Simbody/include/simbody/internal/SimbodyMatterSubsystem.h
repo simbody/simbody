@@ -305,18 +305,6 @@ void setUseEulerAngles(State& state, bool useEulerAngles) const;
 set in the supplied \a state. **/
 bool getUseEulerAngles(const State& state) const;
 
-/** Enable Instance-stage modification of mobilizer inboard and outboard
-frames. Changes to these frames can be set via the `MobilizedBody` methods
-`setInboardFrame()` and `setOutboardFrame()`. When false (the default), those
-calls are disallowed. Changing this flag invalidates Model stage and above in
-the supplied \a state, leaving it realized only through Topology stage. **/
-void setUseVariableMobilizerFrames(State& state,
-                                   bool useVariableMobilizerFrames) const;
-
-/** Return the current setting of the "use variable mobilizer frames"
-model variable as set in the supplied \a state. **/
-bool getUseVariableMobilizerFrames(const State& state) const;
-
 /** Return the number of quaternions in use by the mobilizers of this system, 
 given the current setting of the "use Euler angles" flag in the supplied
 \a state, and the types of mobilizers in the multibody tree. 

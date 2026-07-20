@@ -726,8 +726,6 @@ public:
     bool isConstraintDisabled(const State& s, ConstraintIndex constraint) const;
     void convertToEulerAngles(const State& inputState, State& outputState) const;
     void convertToQuaternions(const State& inputState, State& outputState) const;
-    void setUseVariableMobilizerFrames(State& s, bool) const;
-    bool getUseVariableMobilizerFrames(const State& s) const;
 
         // CALLABLE AFTER realizeModel()
 

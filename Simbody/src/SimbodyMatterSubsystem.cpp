@@ -2124,14 +2124,6 @@ void SimbodyMatterSubsystem::convertToEulerAngles(const State& inputState, State
   { return getRep().convertToEulerAngles(inputState, outputState); }
 void SimbodyMatterSubsystem::convertToQuaternions(const State& inputState, State& outputState) const
   { return getRep().convertToQuaternions(inputState, outputState); }
-void SimbodyMatterSubsystem::setUseVariableMobilizerFrames(State& s,
-        bool useVariableMobilizerFrames) const {
-    getRep().setUseVariableMobilizerFrames(s, useVariableMobilizerFrames);
-}
-bool SimbodyMatterSubsystem::getUseVariableMobilizerFrames(
-        const State& s) const {
-    return getRep().getUseVariableMobilizerFrames(s);
-}
 
 void SimbodyMatterSubsystem::normalizeQuaternions(State& state) const {
     Vector dummy; // no error estimate to correct

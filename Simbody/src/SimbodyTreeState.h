@@ -340,8 +340,8 @@ public:
     PresUDotPoolIndex   firstPresUDot;  // if udotMethod==Prescribed
     PresForcePoolIndex  firstPresForce; // if udotMethod!=Free
 
-    bool                noX_MB;  // X_BM is identity
-    bool                noR_PF;  // X_PF has identity rotation
+    bool                noX_MB;         // is X_BM an identity transform?
+    bool                noR_PF;         // is R_PF an identity rotation?
 };
 
 

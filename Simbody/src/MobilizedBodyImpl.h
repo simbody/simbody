@@ -275,20 +275,10 @@ public:
     }
 
     void setInboardFrame (State& s, const Transform& X_PF) const {
-        const SBModelVars& mv = getMyMatterSubsystemRep().getModelVars(s);
-        SimTK_ASSERT_ALWAYS(mv.useVariableMobilizerFrames,
-            "Variable mobilizer frames must be enabled via "
-            "SimbodyMatterSubystem::setUseVariableMobilizerFrames() before "
-            "calling MobilizedBody::setInboardFrame().");
         SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(s);
         getMyRigidBodyNode().updX_PF(iv) = X_PF;
     }
     void setOutboardFrame(State& s, const Transform& X_BM) const {
-        const SBModelVars& mv = getMyMatterSubsystemRep().getModelVars(s);
-        SimTK_ASSERT_ALWAYS(mv.useVariableMobilizerFrames,
-            "Variable mobilizer frames must be enabled via "
-            "SimbodyMatterSubystem::setUseVariableMobilizerFrames() before "
-            "calling MobilizedBody::setOutboardFrame().");
         SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(s);
         getMyRigidBodyNode().updX_BM(iv) = X_BM;
     }

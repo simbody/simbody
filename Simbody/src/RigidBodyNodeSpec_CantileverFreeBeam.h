@@ -59,8 +59,7 @@
 // NOTE: This mobilizer has a singularity when the middle angle (q[1]) is near
 // +/-90 degrees.
 
-class RBNodeCantileverFreeBeam :
-        public RigidBodyNodeSpec<3, false> {
+class RBNodeCantileverFreeBeam : public RigidBodyNodeSpec<3, false> {
     Real length;  // length of the beam
     Real deflectionCoefficient;
     Real displacementCoefficient;
@@ -76,8 +75,7 @@ RBNodeCantileverFreeBeam(const MassProperties& mProps_B,
                          USquaredIndex&        nextUSqSlot,
                          QIndex&               nextQSlot)
   : RigidBodyNodeSpec<3, false>(
-        mProps_B,
-        nextUSlot, nextUSqSlot, nextQSlot,
+        mProps_B, nextUSlot, nextUSqSlot, nextQSlot,
         RigidBodyNode::QDotIsAlwaysTheSameAsU,
         RigidBodyNode::QuaternionIsNeverUsed,
         isReversed),

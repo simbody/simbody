@@ -683,10 +683,7 @@ void testVariableMobilizerFrames() {
     SimTK_TEST_EQ(free.getInboardFrame(state), X_PF);
     SimTK_TEST_EQ(free.getOutboardFrame(state), X_BM);
 
-    // Set new inboard and outboard frame transforms. We need to enable the
-    // modeling variable on SimbodyMatterSubsystem first.
-    matter.setUseVariableMobilizerFrames(state, true);
-    system.realizeModel(state);
+    // Set new inboard and outboard frame transforms.
     Transform newX_PF(Rotation(1.2, Vec3(-1, 2, -3)), Vec3(-0.11, 0.22, -0.33));
     Transform newX_BM(Rotation(-1.7, Vec3(8, -6, -7)), Vec3(0.15, -0.30, 0.45));
     free.setInboardFrame(state, newX_PF);

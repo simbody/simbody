@@ -60,8 +60,7 @@ RBNodeGimbal( const MassProperties& mProps_B,
               USquaredIndex&        nextUSqSlot,
               QIndex&               nextQSlot)
 :   RigidBodyNodeSpec<3, false>
-       (mProps_B,
-        nextUSlot,nextUSqSlot,nextQSlot,
+       (mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
         RigidBodyNode::QDotIsAlwaysTheSameAsU, 
         RigidBodyNode::QuaternionIsNeverUsed, 
         isReversed)
