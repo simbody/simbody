@@ -8,6 +8,7 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* Added support for variable mobilizer inboard and outboard frames (PR #859)
 * Add MobilizedBody::CantileverFreeBeam, a mobilizer for modeling spinal joints and
   other flexible structures. (PR #844)
 * Fixed implementations of setUToFitAngularVelocityImpl for the gimbal and bushing
