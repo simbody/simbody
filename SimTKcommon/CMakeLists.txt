@@ -172,18 +172,6 @@ install(TARGETS SimTKcommon EXPORT SimbodyTargets
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ
         DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-if(WIN32)
-    # This will only run on Windows, so no need to specify permissions
-    install(IMPORTED_RUNTIME_ARTIFACTS SimTKcommon
-        RUNTIME_DEPENDENCY_SET vendored-dlls
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(RUNTIME_DEPENDENCY_SET vendored-dlls
-        PRE_EXCLUDE_REGEXES "^(api|ext)-ms"
-        POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
-        )
-endif()
-
 if(NOT SIMBODY_BUILD_SHARED_LIBS AND SIMBODY_COVERAGE)
     add_coverage(SimTKcommon)
 endif()
