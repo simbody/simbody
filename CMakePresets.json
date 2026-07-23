@@ -18,7 +18,6 @@
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
             },
-            "generator": "Visual Studio 17 2022",
             "architecture": {
                 "value": "x64"
             }
