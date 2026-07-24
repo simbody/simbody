@@ -160,11 +160,9 @@ public:
     const TReal& real() const {return reinterpret_cast<const TReal&>(NTraits<N>::real(v));}
     TReal&       real()       {return reinterpret_cast<      TReal&>(NTraits<N>::real(v));}
 
-    // Only active if `N` has an imaginary component
+    // These are only active if `N` has an imaginary component.
     const TImag& imag() const requires requires (const N& v) { NTraits<N>::imag(v); }
     {return reinterpret_cast<const TImag&>(NTraits<N>::imag(v));}
-
-    // Only active if `N` has an imaginary component
     TImag&       imag() requires requires (N& v) { NTraits<N>::imag(v); }
     {return reinterpret_cast<      TImag&>(NTraits<N>::imag(v));}
 
