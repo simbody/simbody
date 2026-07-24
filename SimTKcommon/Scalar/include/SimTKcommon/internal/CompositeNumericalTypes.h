@@ -202,8 +202,8 @@ public:
 
     static const TReal& real(const T& t) { return t.real(); }
     static       TReal& real(T& t)       { return t.real(); }
-    static const TImag& imag(const T& t) { return t.imag(); }
-    static       TImag& imag(T& t)       { return t.imag(); }
+    static const TImag& imag(const T& t) requires requires { t.imag(); } { return t.imag(); }
+    static       TImag& imag(T& t)       requires requires { t.imag(); } { return t.imag(); }
 
     // We expect to be able to negate and transpose (hermitian or
     // positional) with just type casting; no need for help from class
