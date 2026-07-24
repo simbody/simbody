@@ -970,8 +970,8 @@ public:                                         \
     static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));}     \
     static TInvert invert(const T& t) {return T(1)/t;}                                    \
     /* properties of this floating point representation */                                \
-    static constexpr T getEps()         {return std::numeric_limits<T>::epsilon();}       \
-    static constexpr T getSignificant() {constexpr auto s=detail::consteval_sqrt(getEps()); constexpr auto t=detail::consteval_sqrt(s); return s*t*detail::consteval_sqrt(t);} \
+    static constexpr T getEps()         {return RTraits<T>::getEps();}                    \
+    static constexpr T getSignificant() {return RTraits<T>::getSignificant();}            \
     static constexpr T getNaN()         {return std::numeric_limits<T>::quiet_NaN();}     \
     static constexpr T getInfinity()    {return std::numeric_limits<T>::infinity();}      \
     static constexpr T getLeastPositive()  {return std::numeric_limits<T>::min();}        \
@@ -993,10 +993,7 @@ public:                                         \
     static bool isNumericallyEqual(const T& t, const float& f, double tol){return SimTK::isNumericallyEqual(t,f,tol);}          \
     static bool isNumericallyEqual(const T& t, const double& d, double tol){return SimTK::isNumericallyEqual(t,d,tol);}         \
     static bool isNumericallyEqual(const T& t, int i, double tol){return SimTK::isNumericallyEqual(t,i,tol);}                   \
-    /* Carefully calculated constants. Constexpr allows constant initialization   \
-     * (before any dynamic initialization) so file-scope statics like             \
-     *   const Real Target = -Pi/4                                                \
-     * see the correct value even in static builds where link order is arbitrary. */ \
+    /* Carefully calculated constants. */                             \
     static constexpr T getZero()         {return T(0);}               \
     static constexpr T getOne()          {return T(1);}               \
     static constexpr T getMinusOne()     {return T(-1);}              \
