@@ -49,7 +49,6 @@
 
 #include "SimTKcommon/Constants.h"
 #include "SimTKcommon/internal/CompositeNumericalTypes.h"
-#include "SimTKcommon/internal/Math.h"
 
 #include <bit>
 #include <cassert>
@@ -57,11 +56,52 @@
 #include <complex>
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 #include <limits>
 
 using std::complex;
-    
+
+namespace SimTK::detail {
+// Consteval square root. Uses `std::sqrt` when `__cpp_lib_constexpr_cmath` is
+// available (C++23). Otherwise uses a Newton-Raphson solver, which may be
+// off by 1 ULP due to differences in rounding.
+consteval double consteval_sqrt(double x) noexcept {
+#if defined(__cpp_lib_constexpr_cmath) && __cpp_lib_constexpr_cmath >= 202202L
+    return std::sqrt(x);  // In new C++es, just call `std::sqrt`.
+#else
+    static_assert(std::numeric_limits<double>::is_iec559);
+
+    constexpr double max_double = std::numeric_limits<double>::max();
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+
+    // Trivial/edge cases.
+    if (x != x)          return x;    // forward NaNs
+    if (x <  0.0)        return nan;  // sqrt(negative_number) -> NaN
+    if (x == 0.0)        return x;    // preserve -0 and +0
+    if (x >  max_double) return x;    // +inf
+
+    // Subnormal scaling.
+    double scale = 1.0;
+    if (x < std::numeric_limits<double>::min()) {
+        x     *= 4503599627370496.0;  // 2^52
+        scale  = 1.0 / 67108864.0;    // 2^-26
+    }
+
+    auto b = std::bit_cast<std::uint64_t>(x);
+    b = (b + (1023ULL << 52)) >> 1;
+    auto g = std::bit_cast<double>(b);
+
+    // Newton-Raphson solver: might be off by 1ULP
+    for (;;) {
+        const auto next = (g + x / g) * 0.5;
+        if (next >= g) break;
+        g = next;
+    }
+
+    return g * scale;
+#endif
+}
+}
+
 namespace SimTK {
 
 // This is the 3rd type of number, conjugate. It is like complex except that
@@ -153,17 +193,23 @@ template <class R> class RTraits {/* Only defined for real types */};
 template <> class RTraits<float> {
 public:
     /// Attainable accuracy at this precision.
-    static const float& getEps()         {static const float c=std::numeric_limits<float>::epsilon(); return c;}
+    static constexpr float getEps()               {return std::numeric_limits<float>::epsilon();}
     /// What multiple of attainable accuracy do we consider significant? 
-    static const float& getSignificant() {static const float c=std::pow(getEps(), 0.875f); return c;}
+    static constexpr float getSignificant() {
+        // Three nested square roots compute x / x^(1/8) = x^(7/8) = x^0.875
+        return getEps() / detail::consteval_sqrt(detail::consteval_sqrt(detail::consteval_sqrt(getEps())));
+    }
     /// The default numerical error tolerance is always given in double precision.
-    static double getDefaultTolerance()  {return (double)getSignificant();}
+    static constexpr double getDefaultTolerance() {return static_cast<double>(getSignificant());}
 };
 template <> class RTraits<double> {
 public:
-    static const double& getEps()         {static const double c=std::numeric_limits<double>::epsilon(); return c;}
-    static const double& getSignificant() {static const double c=std::pow(getEps(), 0.875); return c;}
-    static double getDefaultTolerance()   {return getSignificant();}
+    static constexpr double getEps()              {return std::numeric_limits<double>::epsilon();}
+    static constexpr double getSignificant() {
+        // Three nested square roots compute x / x^(1/8) = x^(7/8) = x^0.875
+        return getEps() / detail::consteval_sqrt(detail::consteval_sqrt(detail::consteval_sqrt(getEps())));
+    }
+    static constexpr double getDefaultTolerance() {return getSignificant();}
 };
 
 /**
@@ -543,19 +589,10 @@ public:
     static TNormalize normalize(const T& t) {return t/abs(t);}
     static TInvert    invert(const T& t)    {return TReal(1)/t;}
 
-    static const T& getNaN() {
-        static const T c=T(NTraits<R>::getNaN(), NTraits<R>::getNaN());
-        return c;
-    }
-    static const T& getInfinity() {
-        static const T c=T(NTraits<R>::getInfinity(),NTraits<R>::getInfinity());
-        return c;
-    }
+    static constexpr T getNaN() {return T(NTraits<R>::getNaN(), NTraits<R>::getNaN());}
+    static constexpr T getInfinity() {return T(NTraits<R>::getInfinity(),NTraits<R>::getInfinity());}
 
-    static const T& getI() {
-        static const T c = T(0,1);
-        return c;
-    }
+    static constexpr T getI() {return T(0,1);}
 
     static bool isFinite(const T& t) {return SimTK::isFinite(t);}
     static bool isNaN(const T& t) {return SimTK::isNaN(t);}
@@ -580,32 +617,32 @@ public:
     static bool isNumericallyEqual(const T& a, int b, double tol) {return SimTK::isNumericallyEqual(a,b,tol);}
 
     // The rest are the same as the real equivalents, with zero imaginary part.              
-    static const T& getZero()         {static const T c(NTraits<R>::getZero());         return c;}
-    static const T& getOne()          {static const T c(NTraits<R>::getOne());          return c;}
-    static const T& getMinusOne()     {static const T c(NTraits<R>::getMinusOne());     return c;}
-    static const T& getTwo()          {static const T c(NTraits<R>::getTwo());          return c;}
-    static const T& getThree()        {static const T c(NTraits<R>::getThree());        return c;}
-    static const T& getOneHalf()      {static const T c(NTraits<R>::getOneHalf());      return c;}
-    static const T& getOneThird()     {static const T c(NTraits<R>::getOneThird());     return c;}
-    static const T& getOneFourth()    {static const T c(NTraits<R>::getOneFourth());    return c;}
-    static const T& getOneFifth()     {static const T c(NTraits<R>::getOneFifth());     return c;}
-    static const T& getOneSixth()     {static const T c(NTraits<R>::getOneSixth());     return c;}
-    static const T& getOneSeventh()   {static const T c(NTraits<R>::getOneSeventh());   return c;}
-    static const T& getOneEighth()    {static const T c(NTraits<R>::getOneEighth());    return c;}
-    static const T& getOneNinth()     {static const T c(NTraits<R>::getOneNinth());     return c;}
-    static const T& getPi()           {static const T c(NTraits<R>::getPi());           return c;}
-    static const T& getOneOverPi()    {static const T c(NTraits<R>::getOneOverPi());    return c;}
-    static const T& getE()            {static const T c(NTraits<R>::getE());            return c;}
-    static const T& getLog2E()        {static const T c(NTraits<R>::getLog2E());        return c;}
-    static const T& getLog10E()       {static const T c(NTraits<R>::getLog10E());       return c;}
-    static const T& getSqrt2()        {static const T c(NTraits<R>::getSqrt2());        return c;}
-    static const T& getOneOverSqrt2() {static const T c(NTraits<R>::getOneOverSqrt2()); return c;}
-    static const T& getSqrt3()        {static const T c(NTraits<R>::getSqrt3());        return c;}
-    static const T& getOneOverSqrt3() {static const T c(NTraits<R>::getOneOverSqrt3()); return c;}
-    static const T& getCubeRoot2()    {static const T c(NTraits<R>::getCubeRoot2());    return c;}
-    static const T& getCubeRoot3()    {static const T c(NTraits<R>::getCubeRoot3());    return c;}
-    static const T& getLn2()          {static const T c(NTraits<R>::getLn2());          return c;}
-    static const T& getLn10()         {static const T c(NTraits<R>::getLn10());         return c;}
+    static constexpr T getZero()         {return T(NTraits<R>::getZero());         }
+    static constexpr T getOne()          {return T(NTraits<R>::getOne());          }
+    static constexpr T getMinusOne()     {return T(NTraits<R>::getMinusOne());     }
+    static constexpr T getTwo()          {return T(NTraits<R>::getTwo());          }
+    static constexpr T getThree()        {return T(NTraits<R>::getThree());        }
+    static constexpr T getOneHalf()      {return T(NTraits<R>::getOneHalf());      }
+    static constexpr T getOneThird()     {return T(NTraits<R>::getOneThird());     }
+    static constexpr T getOneFourth()    {return T(NTraits<R>::getOneFourth());    }
+    static constexpr T getOneFifth()     {return T(NTraits<R>::getOneFifth());     }
+    static constexpr T getOneSixth()     {return T(NTraits<R>::getOneSixth());     }
+    static constexpr T getOneSeventh()   {return T(NTraits<R>::getOneSeventh());   }
+    static constexpr T getOneEighth()    {return T(NTraits<R>::getOneEighth());    }
+    static constexpr T getOneNinth()     {return T(NTraits<R>::getOneNinth());     }
+    static constexpr T getPi()           {return T(NTraits<R>::getPi());           }
+    static constexpr T getOneOverPi()    {return T(NTraits<R>::getOneOverPi());    }
+    static constexpr T getE()            {return T(NTraits<R>::getE());            }
+    static constexpr T getLog2E()        {return T(NTraits<R>::getLog2E());        }
+    static constexpr T getLog10E()       {return T(NTraits<R>::getLog10E());       }
+    static constexpr T getSqrt2()        {return T(NTraits<R>::getSqrt2());        }
+    static constexpr T getOneOverSqrt2() {return T(NTraits<R>::getOneOverSqrt2()); }
+    static constexpr T getSqrt3()        {return T(NTraits<R>::getSqrt3());        }
+    static constexpr T getOneOverSqrt3() {return T(NTraits<R>::getOneOverSqrt3()); }
+    static constexpr T getCubeRoot2()    {return T(NTraits<R>::getCubeRoot2());    }
+    static constexpr T getCubeRoot3()    {return T(NTraits<R>::getCubeRoot3());    }
+    static constexpr T getLn2()          {return T(NTraits<R>::getLn2());          }
+    static constexpr T getLn10()         {return T(NTraits<R>::getLn10());         }
 };
 
 
@@ -736,22 +773,13 @@ public:
 
     // We want a "conjugate NaN", NaN - NaN*i, meaning both reals should
     // be positive NaN.
-    static const T& getNaN() { 
-        static const T c=T(NTraits<R>::getNaN(),NTraits<R>::getNaN());
-        return c;
-    }
+    static constexpr T getNaN() {return T(NTraits<R>::getNaN(),NTraits<R>::getNaN());}
     // We want a "conjugate infinity", Inf - Inf*i, meaning both stored reals
     // are positive Inf.
-    static const T& getInfinity() {
-        static const T c=T(NTraits<R>::getInfinity(),NTraits<R>::getInfinity());
-        return c;
-    }
+    static constexpr T getInfinity() {return T(NTraits<R>::getInfinity(),NTraits<R>::getInfinity());}
     // But we want the constant i (=sqrt(-1)) to be the same however we represent it,
     // so for conjugate i = 0 - (-1)i.
-    static const T& getI() {
-        static const T c = T(0,-1);
-        return c;
-    }
+    static constexpr T getI() {return T(0,-1);}
 
     static bool isFinite(const T& t) {return SimTK::isFinite(t);}
     static bool isNaN(const T& t) {return SimTK::isNaN(t);}
@@ -776,32 +804,32 @@ public:
     static bool isNumericallyEqual(const T& a, int b, double tol) {return SimTK::isNumericallyEqual(a,b,tol);}
 
     // The rest are the same as the real equivalents, with zero imaginary part.              
-    static const T& getZero()         {static const T c(NTraits<R>::getZero());         return c;}
-    static const T& getOne()          {static const T c(NTraits<R>::getOne());          return c;}
-    static const T& getMinusOne()     {static const T c(NTraits<R>::getMinusOne());     return c;}
-    static const T& getTwo()          {static const T c(NTraits<R>::getTwo());          return c;}
-    static const T& getThree()        {static const T c(NTraits<R>::getThree());        return c;}
-    static const T& getOneHalf()      {static const T c(NTraits<R>::getOneHalf());      return c;}
-    static const T& getOneThird()     {static const T c(NTraits<R>::getOneThird());     return c;}
-    static const T& getOneFourth()    {static const T c(NTraits<R>::getOneFourth());    return c;}
-    static const T& getOneFifth()     {static const T c(NTraits<R>::getOneFifth());     return c;}
-    static const T& getOneSixth()     {static const T c(NTraits<R>::getOneSixth());     return c;}
-    static const T& getOneSeventh()   {static const T c(NTraits<R>::getOneSeventh());   return c;}
-    static const T& getOneEighth()    {static const T c(NTraits<R>::getOneEighth());    return c;}
-    static const T& getOneNinth()     {static const T c(NTraits<R>::getOneNinth());     return c;}
-    static const T& getPi()           {static const T c(NTraits<R>::getPi());           return c;}
-    static const T& getOneOverPi()    {static const T c(NTraits<R>::getOneOverPi());    return c;}
-    static const T& getE()            {static const T c(NTraits<R>::getE());            return c;}
-    static const T& getLog2E()        {static const T c(NTraits<R>::getLog2E());        return c;}
-    static const T& getLog10E()       {static const T c(NTraits<R>::getLog10E());       return c;}
-    static const T& getSqrt2()        {static const T c(NTraits<R>::getSqrt2());        return c;}
-    static const T& getOneOverSqrt2() {static const T c(NTraits<R>::getOneOverSqrt2()); return c;}
-    static const T& getSqrt3()        {static const T c(NTraits<R>::getSqrt3());        return c;}
-    static const T& getOneOverSqrt3() {static const T c(NTraits<R>::getOneOverSqrt3()); return c;}
-    static const T& getCubeRoot2()    {static const T c(NTraits<R>::getCubeRoot2());    return c;}
-    static const T& getCubeRoot3()    {static const T c(NTraits<R>::getCubeRoot3());    return c;}
-    static const T& getLn2()          {static const T c(NTraits<R>::getLn2());          return c;}
-    static const T& getLn10()         {static const T c(NTraits<R>::getLn10());         return c;}
+    static constexpr T getZero()         {return T(NTraits<R>::getZero());         }
+    static constexpr T getOne()          {return T(NTraits<R>::getOne());          }
+    static constexpr T getMinusOne()     {return T(NTraits<R>::getMinusOne());     }
+    static constexpr T getTwo()          {return T(NTraits<R>::getTwo());          }
+    static constexpr T getThree()        {return T(NTraits<R>::getThree());        }
+    static constexpr T getOneHalf()      {return T(NTraits<R>::getOneHalf());      }
+    static constexpr T getOneThird()     {return T(NTraits<R>::getOneThird());     }
+    static constexpr T getOneFourth()    {return T(NTraits<R>::getOneFourth());    }
+    static constexpr T getOneFifth()     {return T(NTraits<R>::getOneFifth());     }
+    static constexpr T getOneSixth()     {return T(NTraits<R>::getOneSixth());     }
+    static constexpr T getOneSeventh()   {return T(NTraits<R>::getOneSeventh());   }
+    static constexpr T getOneEighth()    {return T(NTraits<R>::getOneEighth());    }
+    static constexpr T getOneNinth()     {return T(NTraits<R>::getOneNinth());     }
+    static constexpr T getPi()           {return T(NTraits<R>::getPi());           }
+    static constexpr T getOneOverPi()    {return T(NTraits<R>::getOneOverPi());    }
+    static constexpr T getE()            {return T(NTraits<R>::getE());            }
+    static constexpr T getLog2E()        {return T(NTraits<R>::getLog2E());        }
+    static constexpr T getLog10E()       {return T(NTraits<R>::getLog10E());       }
+    static constexpr T getSqrt2()        {return T(NTraits<R>::getSqrt2());        }
+    static constexpr T getOneOverSqrt2() {return T(NTraits<R>::getOneOverSqrt2()); }
+    static constexpr T getSqrt3()        {return T(NTraits<R>::getSqrt3());        }
+    static constexpr T getOneOverSqrt3() {return T(NTraits<R>::getOneOverSqrt3()); }
+    static constexpr T getCubeRoot2()    {return T(NTraits<R>::getCubeRoot2());    }
+    static constexpr T getCubeRoot3()    {return T(NTraits<R>::getCubeRoot3());    }
+    static constexpr T getLn2()          {return T(NTraits<R>::getLn2());          }
+    static constexpr T getLn10()         {return T(NTraits<R>::getLn10());         }
 };
 
 // Any op involving conjugate & a real is best left as a conjugate. However,
@@ -902,8 +930,8 @@ public:                                         \
     static T*       updData(T& t)       { return &t; }  \
     static const T& real(const T& t) { return t; }      \
     static T&       real(T& t)       { return t; }      \
-    static const T& imag(const T&)   { static const T c = (T)(0); return c; }              \
-    static T&       imag(T&)         { assert(false); return *reinterpret_cast<T*>(0); }  \
+    static const T& imag(const T&)   { static const T v{};                return v; }     \
+    static T&       imag(T&)         { static T v{};       assert(false); return v; }     \
     static const TNeg& negate(const T& t) {return reinterpret_cast<const TNeg&>(t);}      \
     static       TNeg& negate(T& t) {return reinterpret_cast<TNeg&>(t);}                  \
     static const THerm& transpose(const T& t) {return reinterpret_cast<const THerm&>(t);} \
@@ -922,17 +950,17 @@ public:                                         \
     static const TStandard& standardize(const T& t) {return t;}                           \
     static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));}     \
     static TInvert invert(const T& t) {return T(1)/t;}                                    \
-    /* properties of this floating point representation, with memory addresses */         \
-    static constexpr T getEps()         {return std::numeric_limits<T>::epsilon();}       \
-    static constexpr T getSignificant() {auto s=constexpr_sqrt(getEps()); auto t=constexpr_sqrt(s); return s*t*constexpr_sqrt(t);} \
+    /* properties of this floating point representation */                                \
+    static constexpr T getEps()         {return RTraits<T>::getEps();}                    \
+    static constexpr T getSignificant() {return RTraits<T>::getSignificant();}            \
     static constexpr T getNaN()         {return std::numeric_limits<T>::quiet_NaN();}     \
     static constexpr T getInfinity()    {return std::numeric_limits<T>::infinity();}      \
     static constexpr T getLeastPositive()  {return std::numeric_limits<T>::min();}        \
     static constexpr T getMostPositive()   {return std::numeric_limits<T>::max();}        \
     static constexpr T getLeastNegative()  {return -std::numeric_limits<T>::min();}       \
     static constexpr T getMostNegative()   {return -std::numeric_limits<T>::max();}       \
-    static constexpr T getSqrtEps()     {return constexpr_sqrt(getEps());}                                      \
-    static constexpr T getTiny()        {auto s=constexpr_sqrt(getEps()); return getEps()*constexpr_sqrt(s);}   \
+    static constexpr T getSqrtEps()     {return detail::consteval_sqrt(getEps());}                                      \
+    static constexpr T getTiny()        {constexpr auto s=detail::consteval_sqrt(getEps()); return getEps()*detail::consteval_sqrt(s);}   \
     static bool isFinite(const T& t) {return SimTK::isFinite(t);}                                               \
     static bool isNaN   (const T& t) {return SimTK::isNaN(t);}                                                  \
     static bool isInf   (const T& t) {return SimTK::isInf(t);}                                                  \
@@ -946,10 +974,7 @@ public:                                         \
     static bool isNumericallyEqual(const T& t, const float& f, double tol){return SimTK::isNumericallyEqual(t,f,tol);}          \
     static bool isNumericallyEqual(const T& t, const double& d, double tol){return SimTK::isNumericallyEqual(t,d,tol);}         \
     static bool isNumericallyEqual(const T& t, int i, double tol){return SimTK::isNumericallyEqual(t,i,tol);}                   \
-    /* Carefully calculated constants. Constexpr allows constant initialization   \
-     * (before any dynamic initialization) so file-scope statics like             \
-     *   const Real Target = -Pi/4                                                \
-     * see the correct value even in static builds where link order is arbitrary. */ \
+    /* Carefully calculated constants. */                             \
     static constexpr T getZero()         {return T(0);}               \
     static constexpr T getOne()          {return T(1);}               \
     static constexpr T getMinusOne()     {return T(-1);}              \

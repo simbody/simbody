@@ -35,6 +35,7 @@
  */
 
 #include "SimTKcommon/Scalar.h"
+#include "SimTKcommon/internal/Array.h"
 
 #include <iostream>
 #include <cassert>
