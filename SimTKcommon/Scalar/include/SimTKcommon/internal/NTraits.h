@@ -950,8 +950,8 @@ public:                                         \
     static T*       updData(T& t)       { return &t; }  \
     static const T& real(const T& t) { return t; }      \
     static T&       real(T& t)       { return t; }      \
-    static const T& imag(const T&)   { static const T v; assert(false); return v; }       \
-    static T&       imag(T&)         { static T v;       assert(false); return v; }       \
+    static const T& imag(const T&)   { static const T v{}; assert(false); return v; }     \
+    static T&       imag(T&)         { static T v{};       assert(false); return v; }     \
     static const TNeg& negate(const T& t) {return reinterpret_cast<const TNeg&>(t);}      \
     static       TNeg& negate(T& t) {return reinterpret_cast<TNeg&>(t);}                  \
     static const THerm& transpose(const T& t) {return reinterpret_cast<const THerm&>(t);} \
