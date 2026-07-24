@@ -30,6 +30,63 @@ using std::endl;
 
 using namespace SimTK;
 
+namespace SimTK {
+// These instantiations are just here to make sure everything is working. We would
+// rather have these fail to compile here than in some poor user's program.
+// (sherm 090827: also, the Intel compiler 11.1.038 seems to need some of these to be
+// present in the library)
+
+template class negator<float>;
+template class negator<double>;
+
+template class negator< complex<float> >;
+template class negator< complex<double> >;
+
+template class negator< conjugate<float> >;
+template class negator< conjugate<double> >;
+
+template class CNT< negator<float> >;
+template class CNT< negator<double> >;
+
+template class CNT< complex<float> >;
+template class CNT< complex<double> >;
+
+template class CNT< negator< complex<float> > >;
+template class CNT< negator< complex<double> > >;
+
+template class CNT< conjugate<float> >;
+template class CNT< conjugate<double> >;
+
+template class CNT< negator< conjugate<float> > >;
+template class CNT< negator< conjugate<double> > >;
+
+
+#define INSTANTIATE_ALL_LEFT(T) \
+template bool isNumericallyEqual(const T&, const complex<float>&,           double tol); \
+template bool isNumericallyEqual(const T&, const complex<double>&,          double tol); \
+template bool isNumericallyEqual(const T&, const conjugate<float>&,         double tol); \
+template bool isNumericallyEqual(const T&, const conjugate<double>&,        double tol); \
+template bool isNumericallyEqual(const T&, const float&,                    double tol); \
+template bool isNumericallyEqual(const T&, const double&,                   double tol); \
+template bool isNumericallyEqual(const T&, int,                             double tol)
+
+INSTANTIATE_ALL_LEFT(complex<float>);
+INSTANTIATE_ALL_LEFT(complex<double>);
+INSTANTIATE_ALL_LEFT(conjugate<float>);
+INSTANTIATE_ALL_LEFT(conjugate<double>);
+
+// Don't duplicate anything instantiated with the previous macro.
+#define INSTANTIATE_ALL_RIGHT(T) \
+template bool isNumericallyEqual(const float&,                  const T&, double tol); \
+template bool isNumericallyEqual(const double&,                 const T&, double tol); \
+template bool isNumericallyEqual(int,                           const T&, double tol)
+
+INSTANTIATE_ALL_RIGHT(complex<float>);
+INSTANTIATE_ALL_RIGHT(complex<double>);
+INSTANTIATE_ALL_RIGHT(conjugate<float>);
+INSTANTIATE_ALL_RIGHT(conjugate<double>);
+}
+
 
 void testIsNaN() {
     const float  fltRegular = -12.34f;
@@ -749,4 +806,3 @@ int main() {
 
     SimTK_END_TEST();
 }
-

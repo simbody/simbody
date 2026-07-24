@@ -34,8 +34,6 @@
 #include "SimTKcommon/Constants.h"
 #include "SimTKcommon/internal/Exception.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
-#include "SimTKcommon/internal/String.h"
-#include "SimTKcommon/internal/Array.h"
 
 #include "SimTKcommon/internal/conjugate.h"
 #include "SimTKcommon/internal/CompositeNumericalTypes.h"
@@ -61,19 +59,15 @@ typedef conjugate<Real> Conjugate;  // like Complex
 
 This is a set of predefined constants in the form of Real (%SimTK default 
 precision) symbols that are important for writing precision-independent
-numerical algorithms. These constants have memory addresses (that is, they
-are not macros), so you can return references to them. These are global
-external symbols rather than static members to avoid problems with static 
-initialization order.
+numerical algorithms.
 
 Constants defined here include common mathematical values like pi, e, and
 sqrt(2) and also numerical constants related to the floating point
 implementation of the Real type, such as NaN, Infinity, and the machine
 precision Epsilon. For convenience we also provide several common numerical
 values for which it is useful to have a precision-independent representation
-(mostly to avoid warnings or casts to avoid them), and also where it is 
-useful to have a referenceable memory location that contains those values.
-These include small integers and common small fractions like 1/2 and 1/3.
+(mostly to avoid warnings or casts to avoid them). These include small
+integers and common small fractions like 1/2 and 1/3.
 
 Note that the Simbody convention for typed constants is to name them like 
 ordinary variables except with an initial capital letter (like a class name). 
@@ -88,96 +82,92 @@ the default-precision Real type; be very careful using this because it has
 many strange properties such as not comparing equal to itself. You must use
 the SimTK::isNaN() function instead to determine whether something contains
 a NaN value. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real NaN; 
+inline constexpr Real NaN = NTraits<Real>::getNaN();
 /** This is the IEEE positive infinity constant for this implementation of
 the default-precision Real type; -Infinity will produce the negative infinity
 constant. Infinity tests larger than any other Real value. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real Infinity;
+inline constexpr Real Infinity = NTraits<Real>::getInfinity();
 
 /** Epsilon is the size of roundoff noise; it is the smallest positive number
 of default-precision type Real such that 1+Eps != 1. If Real is double (the
 normal case) then Eps ~= 1e-16; if Real is float then Eps ~= 1e-7. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real Eps;
+inline constexpr Real Eps = NTraits<Real>::getEps();
 /** This is the square root of Eps, ~1e-8 if Real is double, ~3e-4 if Real
 is float. Many numerical algorithms are limited to accuracy of sqrt(Eps)
 so this constant is useful in checking for termination of them. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real SqrtEps;
+inline constexpr Real SqrtEps = NTraits<Real>::getSqrtEps();
 /** TinyReal is a floating point value smaller than the floating point
 precision; it is defined as Eps^(5/4) which is ~1e-20 for Real==double and
 ~1e-9 for float. This is commonly used as a number to add to a computation in 
 a denominator (such as a vector length) that might come out zero, just for
 the purpose of avoiding a divide by zero. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real TinyReal; 
+inline constexpr Real TinyReal = NTraits<Real>::getTiny();
 /** SignificantReal is the smallest value that we consider to be clearly 
 distinct from roundoff error when it is the result of a computation;
 it is defined as Eps^(7/8) which is ~1e-14 when Real==double, ~1e-6 when
 Real==float. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real SignificantReal; 
+inline constexpr Real SignificantReal =  NTraits<Real>::getSignificant();
 
 /** This is the smallest positive real number that can be expressed in the
 type Real; it is ~1e-308 when Real==double, ~1e-38 when Real==float. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real LeastPositiveReal; 
+inline constexpr Real LeastPositiveReal = NTraits<Real>::getLeastPositive();
 /** This is the largest finite positive real number that can be expressed in 
 the Real type; ~1e+308 when Real==double, ~1e+38 when Real==float.\ Note
 that there is also a value Infinity that will test larger than this one. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real MostPositiveReal;  
+inline constexpr Real MostPositiveReal = NTraits<Real>::getMostPositive();
 /** This is the largest negative real number (that is, closest to zero) that
 can be expressed in values of type Real. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real LeastNegativeReal;
+inline constexpr Real LeastNegativeReal = NTraits<Real>::getLeastNegative();
 /** This is the smallest finite negative real number that
 can be expressed in values of type Real.\ Note that -Infinity is a value
 that will still test smaller than this one. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real MostNegativeReal;
+inline constexpr Real MostNegativeReal = NTraits<Real>::getMostNegative();
 
 /** This is the number of decimal digits that can be reliably stored and
 retrieved in the default Real precision (typically log10(1/eps)-1), that is,
 about 15 digits when Real==double and 6 digits when Real==float. **/
-extern SimTK_SimTKCOMMON_EXPORT const int NumDigitsReal; 
+inline constexpr int NumDigitsReal = NTraits<Real>::getNumDigits();
 
 /** This is the smallest number of decimal digits you should store in a text
 file if you want to be able to get exactly the same bit pattern back when you 
 read it back in and convert the text to a Real value. Typically, this is about
 log10(1/tiny), which is about 20 digits when Real==double and 9 digits when
 Real==float. **/
-extern SimTK_SimTKCOMMON_EXPORT const int LosslessNumDigitsReal; // double ~20, 
-                                                                 // float ~9
+inline constexpr int LosslessNumDigitsReal = NTraits<Real>::getLosslessNumDigits(); // double ~20, float ~9
 
-    // Carefully calculated constants, with convenient memory addresses.
+inline constexpr Real Zero     = NTraits<Real>::getZero();     ///< Real(0)
+inline constexpr Real One      = NTraits<Real>::getOne();      ///< Real(1)
+inline constexpr Real MinusOne = NTraits<Real>::getMinusOne(); ///< Real(-1)
+inline constexpr Real Two      = NTraits<Real>::getTwo();      ///< Real(2)
+inline constexpr Real Three    = NTraits<Real>::getThree();    ///< Real(3)
 
-extern SimTK_SimTKCOMMON_EXPORT const Real Zero;        ///< Real(0)
-extern SimTK_SimTKCOMMON_EXPORT const Real One;         ///< Real(1)
-extern SimTK_SimTKCOMMON_EXPORT const Real MinusOne;    ///< Real(-1)
-extern SimTK_SimTKCOMMON_EXPORT const Real Two;         ///< Real(2)
-extern SimTK_SimTKCOMMON_EXPORT const Real Three;       ///< Real(3)
-
-extern SimTK_SimTKCOMMON_EXPORT const Real OneHalf;     ///< Real(1)/2
-extern SimTK_SimTKCOMMON_EXPORT const Real OneThird;    ///< Real(1)/3
-extern SimTK_SimTKCOMMON_EXPORT const Real OneFourth;   ///< Real(1)/4
-extern SimTK_SimTKCOMMON_EXPORT const Real OneFifth;    ///< Real(1)/5
-extern SimTK_SimTKCOMMON_EXPORT const Real OneSixth;    ///< Real(1)/6
-extern SimTK_SimTKCOMMON_EXPORT const Real OneSeventh;  ///< Real(1)/7
-extern SimTK_SimTKCOMMON_EXPORT const Real OneEighth;   ///< Real(1)/8
-extern SimTK_SimTKCOMMON_EXPORT const Real OneNinth;    ///< Real(1)/9
-extern SimTK_SimTKCOMMON_EXPORT const Real Pi;          ///< Real(pi)
-extern SimTK_SimTKCOMMON_EXPORT const Real OneOverPi;   ///< 1/Real(pi)
-extern SimTK_SimTKCOMMON_EXPORT const Real E;           ///< \e e = Real(exp(1))
-extern SimTK_SimTKCOMMON_EXPORT const Real Log2E;       ///< Real(log2(\e e)) (log base 2)
-extern SimTK_SimTKCOMMON_EXPORT const Real Log10E;      ///< Real(log10(\e e)) (log base 10)
-extern SimTK_SimTKCOMMON_EXPORT const Real Sqrt2;       ///< Real(sqrt(2))
-extern SimTK_SimTKCOMMON_EXPORT const Real OneOverSqrt2;///< 1/sqrt(2)==sqrt(2)/2 as Real
-extern SimTK_SimTKCOMMON_EXPORT const Real Sqrt3;       ///< Real(sqrt(3))
-extern SimTK_SimTKCOMMON_EXPORT const Real OneOverSqrt3;///< Real(1/sqrt(3))
-extern SimTK_SimTKCOMMON_EXPORT const Real CubeRoot2;   ///< Real(2^(1/3)) (cube root of 2)
-extern SimTK_SimTKCOMMON_EXPORT const Real CubeRoot3;   ///< Real(3^(1/3)) (cube root of 3)
-extern SimTK_SimTKCOMMON_EXPORT const Real Ln2;         ///< Real(ln(2)) (natural log of 2)
-extern SimTK_SimTKCOMMON_EXPORT const Real Ln10;        ///< Real(ln(10)) (natural log of 10)
+inline constexpr Real OneHalf      = NTraits<Real>::getOneHalf();      ///< Real(1)/2
+inline constexpr Real OneThird     = NTraits<Real>::getOneThird();     ///< Real(1)/3
+inline constexpr Real OneFourth    = NTraits<Real>::getOneFourth();    ///< Real(1)/4
+inline constexpr Real OneFifth     = NTraits<Real>::getOneFifth();     ///< Real(1)/5
+inline constexpr Real OneSixth     = NTraits<Real>::getOneSixth();     ///< Real(1)/6
+inline constexpr Real OneSeventh   = NTraits<Real>::getOneSeventh();   ///< Real(1)/7
+inline constexpr Real OneEighth    = NTraits<Real>::getOneEighth();    ///< Real(1)/8
+inline constexpr Real OneNinth     = NTraits<Real>::getOneNinth();     ///< Real(1)/9
+inline constexpr Real Pi           = NTraits<Real>::getPi();           ///< Real(pi)
+inline constexpr Real OneOverPi    = NTraits<Real>::getOneOverPi();    ///< 1/Real(pi)
+inline constexpr Real E            = NTraits<Real>::getE();            ///< \e e = Real(exp(1))
+inline constexpr Real Log2E        = NTraits<Real>::getLog2E();        ///< Real(log2(\e e)) (log base 2)
+inline constexpr Real Log10E       = NTraits<Real>::getLog10E();       ///< Real(log10(\e e)) (log base 10)
+inline constexpr Real Sqrt2        = NTraits<Real>::getSqrt2();        ///< Real(sqrt(2))
+inline constexpr Real OneOverSqrt2 = NTraits<Real>::getOneOverSqrt2(); ///< 1/sqrt(2)==sqrt(2)/2 as Real
+inline constexpr Real Sqrt3        = NTraits<Real>::getSqrt3();        ///< Real(sqrt(3))
+inline constexpr Real OneOverSqrt3 = NTraits<Real>::getOneOverSqrt3(); ///< Real(1/sqrt(3))
+inline constexpr Real CubeRoot2    = NTraits<Real>::getCubeRoot2();    ///< Real(2^(1/3)) (cube root of 2)
+inline constexpr Real CubeRoot3    = NTraits<Real>::getCubeRoot3();    ///< Real(3^(1/3)) (cube root of 3)
+inline constexpr Real Ln2          = NTraits<Real>::getLn2();          ///< Real(ln(2)) (natural log of 2)
+inline constexpr Real Ln10         = NTraits<Real>::getLn10();         ///< Real(ln(10)) (natural log of 10)
        
 /** We only need one complex constant, \e i = sqrt(-1).\ For the rest 
 just multiply the real constant by \e i, or convert with 
-Complex(the Real constant), or if you need an address you can use 
-NTraits<Complex>::getPi(), etc. 
+Complex(the Real constant).
 @see NTraits **/
-extern SimTK_SimTKCOMMON_EXPORT const Complex I;
+inline constexpr Complex I = NTraits<Complex>::getI();
 /**@}**/
 
     ///////////////////////////
