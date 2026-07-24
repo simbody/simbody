@@ -19,6 +19,11 @@ PRs and issues that were included in a particular release.
   out-of-bounds rows.
 * Breaking: all constants in `Scalar.h` and `NTraits.h` are now `constexpr`, which means
   downstream code can no longer reference their memory address.
+* Fixed `NTraits<Real>` having an `imag` method. The previous implementations of
+  these methods were placeholders with invalid behavior that were present so that
+  `negate<Real>` could compile, which has now been replaced with `requires` checks
+  on those templates.
+
 
 3.8 (May 2025)
 --------------------
