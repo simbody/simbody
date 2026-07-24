@@ -26,6 +26,7 @@
 
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
+#include "SimTKcommon/Scalar.h"
 
 #include <iomanip>
 #include <cstdio>
@@ -41,8 +42,6 @@
 #endif
 
 namespace SimTK {
-
-extern SimTK_SimTKCOMMON_EXPORT const int LosslessNumDigitsReal;
 
 template <class N> class negator;
 template <class R> class conjugate;

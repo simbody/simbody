@@ -16,7 +16,10 @@ PRs and issues that were included in a particular release.
 * Add quaternion multiplication (Hamilton product) 
 * Required C++ level was increased from C++11 to C++20
 * Fixed an out-of-bounds warning/error emitted by overloads of SimTK::Mat accessing
-  out-of-bounds rows
+  out-of-bounds rows.
+* Breaking: all constants in `Scalar.h` and `NTraits.h` are now `constexpr`, which means
+  downstream code can no longer reference their memory address.
+
 
 3.8 (May 2025)
 --------------------
