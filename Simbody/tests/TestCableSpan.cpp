@@ -1204,6 +1204,148 @@ void testRobustInitialPath()
         expectedLength);
 }
 
+/** CableSpan warm start test.
+
+This tests that path solutions are dependent on previous path solutions when
+warm starts are enabled, and only dependent on the contact hint when warm starts
+are disabled. **/
+void testUseWarmStart() {
+    class PendulumSystem {
+    public:
+        PendulumSystem(bool useWarmStart, Real defaultAngle) :
+                m_matter(m_system), m_cables(m_system) {
+
+            // Pendulum bodies.
+            Body::Rigid pendulumBody(MassProperties(1., Vec3(0),
+                    Inertia(1)));
+            Body::Rigid headBody(MassProperties(1., Vec3(0), Inertia(1)));
+
+            // Base body is welded to ground.
+            MobilizedBody::Weld base(
+                m_matter.Ground(),
+                Transform(Vec3(0., 1.5, 0.)),
+                pendulumBody,
+                Transform());
+
+            // Pendulum body is mobilized by a pin joint.
+            m_pendulum = MobilizedBody::Pin(
+                base,
+                Transform(Vec3(0.)),
+                headBody,
+                Transform(Vec3(0., 1., 0.)));
+            m_pendulum.setDefaultAngle(defaultAngle);
+
+            // Add a cable from the head origin to the base origin, wrapping
+            // over an ellipsoid obstacle.
+            m_cable = CableSpan(
+                m_cables,
+                m_pendulum,
+                Vec3(0.),
+                base,
+                Vec3(0.));
+            // Add the ellipsoid obstacle with a contact hint biased in the
+            // positive x-direction so that, when finding a path solution from
+            // the contact hint, the cable will wrap over the side of the
+            // ellipsoid in the positive x-direction.
+            m_cable.addObstacle(
+                base,
+                Transform(Rotation(), Vec3(0, -0.5, 0)),
+                std::shared_ptr<ContactGeometry>(
+                    new ContactGeometry::Ellipsoid(Vec3(0.1, 0.1, 0.5))),
+                Vec3(0.01, 0.2, 0.));
+
+            // Configure the solver.
+            m_cable.setUseWarmStart(useWarmStart);
+            m_cable.setCurveSegmentAccuracy(1e-12);
+            m_cable.setSmoothnessTolerance(1e-8);
+            m_cable.setSolverMaxIterations(100);
+            m_cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
+        }
+
+        State getDefaultState() {
+            m_system.realizeTopology();
+            return m_system.getDefaultState();
+        }
+
+        Real getCableLength(const State& s) {
+            return m_cable.calcLength(s);
+        }
+
+        Vec3 getInitialCurvePoint(const State& s) {
+            CableSpanObstacleIndex obsIx(0);
+            return m_cable.calcCurveSegmentInitialFrenetFrame(s, obsIx).p();
+        }
+
+        void setPendulumAngle(State& s, Real angle) {
+            m_pendulum.setAngle(s, angle);
+        }
+
+        void realizePosition(State& s) {
+            m_system.realize(s, Stage::Position);
+        }
+
+    private:
+        MultibodySystem m_system;
+        SimbodyMatterSubsystem m_matter;
+        CableSubsystem m_cables;
+        CableSpan m_cable;
+        MobilizedBody::Pin m_pendulum;
+    };
+
+
+    // Given option to use warm start and a default pendulum angle, construct a
+    // pendulum system with a wrap ellipsoid and calculate the initial curve
+    // point. We first realize the system to the position stage using the
+    // default angle, and then set the angle so that pendulum body to lies
+    // directly benath the ellipsoid obstacle. The initial curve point is then
+    // calculated. If warm start is enabled, the initial curve point should
+    // depend on the choice of the default angle we dictates the initial path
+    // solution. If warm start is disabled, the initial curve point should be
+    // the same regardless of the default angle since the path solver should
+    // always compute the path from the same initial point (i.e., the contact
+    // hint).
+    auto calcInitialCurvePoint = [](bool useWarmStart, Real defaultAngle)
+            -> Vec3 {
+        PendulumSystem pendulumSystem(useWarmStart, defaultAngle);
+        State s = pendulumSystem.getDefaultState();
+        pendulumSystem.realizePosition(s);
+        pendulumSystem.setPendulumAngle(s, 2.0*SimTK::Pi);
+        pendulumSystem.realizePosition(s);
+        return pendulumSystem.getInitialCurvePoint(s);
+    };
+
+
+    // Warm start enabled. The path should have converged to similar solutions,
+    // but on opposite sides of the ellipsoid obstacle, so the initial wrap
+    // points should have equal magnitude but opposite sign in the x-direction
+    // and have equal y-components. The z-components should be zero.
+    const Real tol = 1e-5;
+    {
+        auto firstPoint = calcInitialCurvePoint(true, 0.05*SimTK::Pi);
+        auto secondPoint = calcInitialCurvePoint(true, 1.95*SimTK::Pi);
+        SimTK_ASSERT_ALWAYS(std::abs(firstPoint[0] + secondPoint[0]) < tol,
+            "Warm start enabled: x-components of the initial wrap points "
+            "should have equal magnitude but opposite sign, but they do not.");
+        SimTK_ASSERT_ALWAYS(std::abs(firstPoint[1] - secondPoint[1]) < tol,
+             "Warm start enabled: y-components of the initial wrap points "
+             "should be equal, but they are not.");
+        SimTK_ASSERT_ALWAYS(std::abs(firstPoint[2]) < tol &&
+                            std::abs(secondPoint[2]) < tol,
+            "Warm start enabled: z-components of the initial wrap points "
+            "should be zero, but they are not.");
+    }
+
+    // Warm start disabled. The curve points should be equal since the path
+    // solver should be computing the path from the same initial point (i.e.,
+    // the contact hint) in both case.
+    {
+        auto firstPoint = calcInitialCurvePoint(false, 0.05*SimTK::Pi);
+        auto secondPoint = calcInitialCurvePoint(false, 1.95*SimTK::Pi);
+        SimTK_ASSERT_ALWAYS((firstPoint - secondPoint).norm() < tol,
+            "Warm start disabled: initial wrap points do not match.");
+    }
+}
+
 int main()
 {
     testSimpleCable();
@@ -1213,4 +1355,5 @@ int main()
     testAllSurfaceKinds(true);  // Test length derivative.
     testSolverOptimum();
     testRobustInitialPath();
+    testUseWarmStart();
 }
