@@ -85,6 +85,9 @@ INSTANTIATE_ALL_RIGHT(complex<float>);
 INSTANTIATE_ALL_RIGHT(complex<double>);
 INSTANTIATE_ALL_RIGHT(conjugate<float>);
 INSTANTIATE_ALL_RIGHT(conjugate<double>);
+
+#undef INSTANTIATE_ALL_LEFT
+#undef INSTANTIATE_ALL_RIGHT
 }
 
 
