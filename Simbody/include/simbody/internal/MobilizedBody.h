@@ -433,16 +433,16 @@ const UnitInertia& getBodyUnitInertiaAboutBodyOrigin(const State& state) const {
 }
 
 /** Return a reference to this mobilizer's frame F fixed on the parent body P,
-as the fixed Transform from P's body frame to the frame F fixed to P. If this
-frame is changeable, the result comes from the State cache, otherwise it is the
-default value from the MobilizedBody object itself. The State must have been
-realized to Stage::Instance or higher. **/
+as the fixed Transform X_PF from P's body frame to the frame F. The value is
+held in the State as an Instance-stage variable, initialized from
+setDefaultInboardFrame() at State creation and updatable with setInboardFrame().
+The State must have been realized to Stage::Instance or higher. **/
 const Transform& getInboardFrame (const State& state) const;    // X_PF
 /** Return a reference to this mobilizer's frame M fixed on the child body B,
-as the fixed Transform from B's body frame to the frame M fixed on B. If this
-frame is changeable, the result comes from the State cache, otherwise it is the
-default value from the MobilizedBody object itself. The State must have been
-realized to Stage::Instance or higher. **/
+as the fixed Transform X_BM from B's body frame to the frame M. The value is
+held in the State as an Instance-stage variable, initialized from
+setDefaultOutboardFrame() at State creation and updatable with setOutboardFrame().
+The State must have been realized to Stage::Instance or higher. **/
 const Transform& getOutboardFrame(const State& state) const;    // X_BM
 
 /** Set this mobilizer's frame F fixed on the parent body P, as the fixed
