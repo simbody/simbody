@@ -19,8 +19,7 @@ PRs and issues that were included in a particular release.
 * Required C++ level was increased from C++11 to C++20
 * Fixed an out-of-bounds warning/error emitted by overloads of SimTK::Mat accessing
   out-of-bounds rows.
-* Breaking: all constants in `Scalar.h` and `NTraits.h` are now `constexpr`, which means
-  downstream code can no longer reference their memory address.
+* Breaking: constants in `Scalar.h` are now `inline constexpr` (header-defined) rather than exported library symbols; code that relied on the constants being a single exported symbol (e.g., comparing addresses across shared-library boundaries) may be affected.
 
 
 3.8 (May 2025)
