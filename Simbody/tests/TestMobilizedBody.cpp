@@ -664,7 +664,7 @@ void testCantileverFreeBeamEnergyConservation() {
 
 void testVariableMobilizerFrames() {
 
-    // Create a system with two bodies.=
+    // Create a system with two bodies.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
@@ -688,8 +688,17 @@ void testVariableMobilizerFrames() {
     Transform newX_BM(Rotation(-1.7, Vec3(8, -6, -7)), Vec3(0.15, -0.30, 0.45));
     free.setInboardFrame(state, newX_PF);
     free.setOutboardFrame(state, newX_BM);
+    // No need to realize here, since we're just pulling directly from the
+    // Instance-stage discrete variables.
     SimTK_TEST_EQ(free.getInboardFrame(state), newX_PF);
     SimTK_TEST_EQ(free.getOutboardFrame(state), newX_BM);
+
+    // Now we need to realize to Position, since we're pulling from the cache to
+    // perform calculations.
+    system.realize(state, Stage::Position);
+    Vec3 station(0.1, 0.2, 0.3);
+    Vec3 location = free.findStationLocationInGround(state, station);
+    SimTK_TEST_EQ(location, newX_PF * ~newX_BM * station);
 
     // Grabbing a fresh default state should restore the mobilizer frame
     // defaults.
