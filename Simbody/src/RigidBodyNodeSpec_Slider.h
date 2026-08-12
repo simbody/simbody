@@ -38,20 +38,17 @@
 // Sliding joint (1 dof translation). The translation is along the x
 // axis of the parent body's F frame, with M=F when the coordinate
 // is zero and the orientation of M in F frozen at 0 forever.
-template<bool noX_MB, bool noR_PF>
-class RBNodeSlider : public RigidBodyNodeSpec<1, true, noX_MB, noR_PF> {
+class RBNodeSlider : public RigidBodyNodeSpec<1, true> {
 public:
-typedef typename RigidBodyNodeSpec<1, false, noX_MB, noR_PF>::HType HType;
+typedef typename RigidBodyNodeSpec<1, true>::HType HType;
 virtual const char* type() { return "slider"; }
 
 RBNodeSlider(const MassProperties&    mProps_B,
-                const Transform&      X_PF,
-                const Transform&      X_BM,
                 bool                  isReversed,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<1, true, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+:   RigidBodyNodeSpec<1, true>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {

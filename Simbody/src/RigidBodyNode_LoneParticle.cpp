@@ -26,16 +26,17 @@
 #include "MobilizedBodyImpl.h"
 #include "RigidBodyNodeSpec_Translation.h"
 
-/* This is a specialized class used for MobilizedBody::Translation mobilizers
-that satisfy _all_ of the following requirements:
+/* This is a specialized class used for mobilizers that satisfy _all_ of the
+following requirements:
  -  The body has no children.
  -  The body's parent is ground.
  -  The inboard and outboard transforms are both identities.
  -  The body is not reversed.
 
 These assumptions allow lots of routines to be implemented simpler and faster.
-If any of them is not met, we use the more general RBNodeTranslate to
-implement the Translation mobilizer.
+
+This class is not currently used to implement the any mobilizer, including
+MobilizedBody::Translation (see PR #859).
 */
 class RBNodeLoneParticle : public RigidBodyNode {
 public:
@@ -43,7 +44,7 @@ RBNodeLoneParticle(const MassProperties& mProps_B,
                    UIndex&               nextUSlot,
                    USquaredIndex&        nextUSqSlot,
                    QIndex&               nextQSlot)
-:   RigidBodyNode(mProps_B, Vec3(0), Vec3(0), 
+:   RigidBodyNode(mProps_B,
                   QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, false) {
     uIndex = nextUSlot;
     uSqIndex = nextUSqSlot;
@@ -459,49 +460,3 @@ void setUToFitLinearVelocityImpl(const SBStateDigest&, const Vector& q,
 }
 
 };
-
-RigidBodyNode* MobilizedBody::TranslationImpl::createRigidBodyNode(
-        UIndex&        nextUSlot,
-        USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const {
-    if (!hasChildren && getMyParentMobilizedBodyIndex() == 0 && !isReversed() &&
-            getDefaultInboardFrame().p() == 0 && getDefaultInboardFrame().R() == Mat33(1) &&
-            getDefaultOutboardFrame().p() == 0 && getDefaultOutboardFrame().R() == Mat33(1)) {
-        // This satisfies all the requirements to use RBNodeLoneParticle.
-        
-        return new RBNodeLoneParticle(getDefaultRigidBodyMassProperties(), nextUSlot,nextUSqSlot,nextQSlot);
-    }
-    
-    // Use RBNodeTranslate for the general case.
-    
-    bool noX_MB = (getDefaultOutboardFrame().p() == 0 && getDefaultOutboardFrame().R() == Mat33(1));
-    bool noR_PF = (getDefaultInboardFrame().R() == Mat33(1));
-    if (noX_MB) {
-        if (noR_PF)
-            return new RBNodeTranslate<true, true> (
-                getDefaultRigidBodyMassProperties(),
-                getDefaultInboardFrame(),getDefaultOutboardFrame(),
-                isReversed(),
-                nextUSlot,nextUSqSlot,nextQSlot);
-        else
-            return new RBNodeTranslate<true, false> (
-                getDefaultRigidBodyMassProperties(),
-                getDefaultInboardFrame(),getDefaultOutboardFrame(),
-                isReversed(),
-                nextUSlot,nextUSqSlot,nextQSlot);
-    }
-    else {
-        if (noR_PF)
-            return new RBNodeTranslate<false, true> (
-                getDefaultRigidBodyMassProperties(),
-                getDefaultInboardFrame(),getDefaultOutboardFrame(),
-                isReversed(),
-                nextUSlot,nextUSqSlot,nextQSlot);
-        else
-            return new RBNodeTranslate<false, false> (
-                getDefaultRigidBodyMassProperties(),
-                getDefaultInboardFrame(),getDefaultOutboardFrame(),
-                isReversed(),
-                nextUSlot,nextUSqSlot,nextQSlot);
-    }
-}

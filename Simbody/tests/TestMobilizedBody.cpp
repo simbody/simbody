@@ -662,6 +662,52 @@ void testCantileverFreeBeamEnergyConservation() {
     }
 }
 
+void testVariableMobilizerFrames() {
+
+    // Create a system with two bodies.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+
+    // Define a free mobilizer with non-zero/non-unity inboard and outboard
+    Transform X_PF(Rotation(-1.9, Vec3(-3, 2, 4)), Vec3(-0.33, 0.66, -0.99));
+    Transform X_BM(Rotation(0.5, Vec3(2, -5, 1)), Vec3(0.25, -0.50, 0.75));
+    MobilizedBody::Free free(matter.Ground(), X_PF, body, X_BM);
+
+    // Inboard and outboard frames should match their defaults.
+    system.realizeTopology();
+    State state = system.getDefaultState();
+    SimTK_TEST_EQ(free.getDefaultInboardFrame(), X_PF);
+    SimTK_TEST_EQ(free.getDefaultOutboardFrame(), X_BM);
+    SimTK_TEST_EQ(free.getInboardFrame(state), X_PF);
+    SimTK_TEST_EQ(free.getOutboardFrame(state), X_BM);
+
+    // Set new inboard and outboard frame transforms.
+    Transform newX_PF(Rotation(1.2, Vec3(-1, 2, -3)), Vec3(-0.11, 0.22, -0.33));
+    Transform newX_BM(Rotation(-1.7, Vec3(8, -6, -7)), Vec3(0.15, -0.30, 0.45));
+    free.setInboardFrame(state, newX_PF);
+    free.setOutboardFrame(state, newX_BM);
+    // No need to realize here, since we're just pulling directly from the
+    // Instance-stage discrete variables.
+    SimTK_TEST_EQ(free.getInboardFrame(state), newX_PF);
+    SimTK_TEST_EQ(free.getOutboardFrame(state), newX_BM);
+
+    // Now we need to realize to Position, since we're pulling from the cache to
+    // perform calculations.
+    system.realize(state, Stage::Position);
+    Vec3 station(0.1, 0.2, 0.3);
+    Vec3 location = free.findStationLocationInGround(state, station);
+    const Transform& X_FM = free.getMobilizerTransform(state);
+    SimTK_TEST_EQ(location, newX_PF * X_FM * ~newX_BM * station);
+
+    // Grabbing a fresh default state should restore the mobilizer frame
+    // defaults.
+    state = system.getDefaultState();
+    SimTK_TEST_EQ(free.getInboardFrame(state), X_PF);
+    SimTK_TEST_EQ(free.getOutboardFrame(state), X_BM);
+}
+
 int main() {
     SimTK_START_TEST("TestMobilizedBody");
         SimTK_SUBTEST(testCalculationMethods);
@@ -671,5 +717,6 @@ int main() {
         SimTK_SUBTEST(testBushing);
         SimTK_SUBTEST(testCantileverFreeBeam);
         SimTK_SUBTEST(testCantileverFreeBeamEnergyConservation);
+        SimTK_SUBTEST(testVariableMobilizerFrames);
     SimTK_END_TEST();
 }
