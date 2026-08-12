@@ -26,16 +26,17 @@
 #include "MobilizedBodyImpl.h"
 #include "RigidBodyNodeSpec_Translation.h"
 
-/* This is a specialized class used for MobilizedBody::Translation mobilizers
-that satisfy _all_ of the following requirements:
+/* This is a specialized class used for mobilizers that satisfy _all_ of the
+following requirements:
  -  The body has no children.
  -  The body's parent is ground.
  -  The inboard and outboard transforms are both identities.
  -  The body is not reversed.
 
 These assumptions allow lots of routines to be implemented simpler and faster.
-If any of them is not met, we use the more general RBNodeTranslate to
-implement the Translation mobilizer.
+
+This class is not currently used to implement the any mobilizer, including
+MobilizedBody::Translation (see PR #859).
 */
 class RBNodeLoneParticle : public RigidBodyNode {
 public:

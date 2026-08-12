@@ -698,7 +698,8 @@ void testVariableMobilizerFrames() {
     system.realize(state, Stage::Position);
     Vec3 station(0.1, 0.2, 0.3);
     Vec3 location = free.findStationLocationInGround(state, station);
-    SimTK_TEST_EQ(location, newX_PF * ~newX_BM * station);
+    const Transform& X_FM = free.getMobilizerTransform(state);
+    SimTK_TEST_EQ(location, newX_PF * X_FM * ~newX_BM * station);
 
     // Grabbing a fresh default state should restore the mobilizer frame
     // defaults.
