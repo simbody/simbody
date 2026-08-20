@@ -495,25 +495,67 @@ public:
     constexpr Vec(const E& e0, const E& e1)
     requires (M == 2)
     { assignElements(e0, e1);}
+
     constexpr Vec(const E& e0, const E& e1, const E& e2)
     requires (M == 3)
     { assignElements(e0, e1, e2); }
+
     constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3)
     requires (M == 4)
     { assignElements(e0, e1, e2, e3); }
-    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3, const E& e4)
+
+    constexpr Vec(
+        const E& e0,
+        const E& e1,
+        const E& e2,
+        const E& e3,
+        const E& e4)
     requires (M == 5)
     { assignElements(e0, e1, e2, e3, e4); }
-    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3, const E& e4, const E& e5)
+
+    constexpr Vec(
+        const E& e0,
+        const E& e1,
+        const E& e2,
+        const E& e3,
+        const E& e4,
+        const E& e5)
     requires (M == 6)
     { assignElements(e0, e1, e2, e3, e4, e5); }
-    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3, const E& e4, const E& e5, const E& e6)
+
+    constexpr Vec(
+        const E& e0,
+        const E& e1,
+        const E& e2,
+        const E& e3,
+        const E& e4,
+        const E& e5,
+        const E& e6)
     requires (M == 7)
     { assignElements(e0, e1, e2, e3, e4, e5, e6); }
-    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3, const E& e4, const E& e5, const E& e6, const E& e7)
+
+    constexpr Vec(
+        const E& e0,
+        const E& e1,
+        const E& e2,
+        const E& e3,
+        const E& e4,
+        const E& e5,
+        const E& e6,
+        const E& e7)
     requires (M == 8)
     { assignElements(e0, e1, e2, e3, e4, e5, e6, e7); }
-    constexpr Vec(const E& e0, const E& e1, const E& e2, const E& e3, const E& e4, const E& e5, const E& e6, const E& e7, const E& e8)
+
+    constexpr Vec(
+        const E& e0,
+        const E& e1,
+        const E& e2,
+        const E& e3,
+        const E& e4,
+        const E& e5,
+        const E& e6,
+        const E& e7,
+        const E& e8)
     requires (M == 9)
     { assignElements(e0, e1, e2, e3, e4, e5, e6, e7, e8); }
 
@@ -1010,14 +1052,18 @@ public:
 private:
     template<typename ElementsRowByRowTuple, int... Idx>
     requires (sizeof...(Idx) == M)
-    constexpr void assignElementsFromTuple(ElementsRowByRowTuple&& els, std::integer_sequence<int, Idx...>)
+    constexpr void assignElementsFromTuple(
+        ElementsRowByRowTuple&& els,
+        std::integer_sequence<int, Idx...>)
     {
         (((*this)[Idx] = std::get<Idx>(els)) , ...);
     }
 
     template<typename R, int... Idx>
     requires (sizeof...(Idx) == M)
-    constexpr void assignElementsFromRange(R&& range, std::integer_sequence<int, Idx...>)
+    constexpr void assignElementsFromRange(
+        R&& range,
+        std::integer_sequence<int, Idx...>)
     {
         (((*this)[Idx] = range[Idx]) , ...);
     }
@@ -1032,7 +1078,10 @@ private:
     requires (sizeof...(Els) == M)
     constexpr void assignElements(Els&&... els)
     {
-        assignElementsFromTuple(std::make_tuple(std::forward<Els>(els)...),  std::make_integer_sequence<int, M>{});
+        assignElementsFromTuple(
+            std::make_tuple(std::forward<Els>(els)...),
+            std::make_integer_sequence<int, M>{}
+        );
     }
 
     // TODO: should be an array of scalars rather than elements to control
