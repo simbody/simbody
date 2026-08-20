@@ -103,10 +103,11 @@ jobs:
           path: simbody-${{ steps.commithash.outputs.hash }}.zip
 
 
-  ubuntu:
-    name: Ubuntu
-
-    runs-on: ubuntu-22.04
+  manylinux_2_28_x86_64:
+    name: ManyLinux (AlmaLinux8)
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/pypa/manylinux_2_28_x86_64
 
     strategy:
       matrix:
@@ -122,7 +123,7 @@ jobs:
         run: echo "::set-output name=hash::$(git rev-parse --short HEAD)"
 
       - name: Install packages
-        run: sudo apt-get install --yes liblapack-dev freeglut3-dev libxi-dev libxmu-dev doxygen
+        run: dnf install -y lapack-devel freeglut-devel libXi-devel libXmu-devel doxygen clang zip
 
       - name: Configure
         run: |

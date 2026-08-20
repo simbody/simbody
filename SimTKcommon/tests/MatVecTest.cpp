@@ -327,11 +327,9 @@ void testMiscellaneous()
 
     cout << "cv2.real()=" << cv2.real() << " cv2.imag()=" << cv2.imag() << endl;
 
-    Vec<2,negator<complex<float> >,1>& negCv2 = (Vec<2,negator<complex<float> >,1>&)cv2;
-    Vec<2,conjugate<float>,1>& conjCv2 = (Vec<2,conjugate<float>,1>&)cv2;
-    Vec<2,negator<conjugate<float> >,1>& negConjCv2 = (Vec<2,negator<conjugate<float> >,1>&)cv2;
-
-    
+    Vec<2,negator<complex<float> >,1>& negCv2 = -cv2;
+    Vec<2,conjugate<float>,1> conjCv2{cv2};
+    Vec<2,negator<conjugate<float> >,1>& negConjCv2 = -conjCv2;
 
     Vec<2,complex<float> > testMe = cv2;
     cout << "testMe=cv2 (init)=" << testMe << endl;
@@ -402,7 +400,7 @@ void testMiscellaneous()
 
     Vec<2> v1(&d[0]), v2(&d[2]);
     Row<2> r1(&d[4]), r2(&d[6]);
-    Vec<2>::TNeg& nv1 = (Vec<2>::TNeg&)v1;
+    Vec<2>::TNeg& nv1 = -v1;
 
     negator<double> nd(100); cout << endl << "nd=" << nd << endl;
     cout << "nv1=" << nv1 << endl;

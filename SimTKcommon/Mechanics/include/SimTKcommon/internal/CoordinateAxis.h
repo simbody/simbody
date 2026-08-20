@@ -180,9 +180,9 @@ protected:
     class YTypeAxis{};
     class ZTypeAxis{};
 
-    CoordinateAxis( const XTypeAxis& ) : m_myAxisId(0) {}
-    CoordinateAxis( const YTypeAxis& ) : m_myAxisId(1) {}
-    CoordinateAxis( const ZTypeAxis& ) : m_myAxisId(2) {}
+    constexpr CoordinateAxis( const XTypeAxis& ) : m_myAxisId(0) {}
+    constexpr CoordinateAxis( const YTypeAxis& ) : m_myAxisId(1) {}
+    constexpr CoordinateAxis( const ZTypeAxis& ) : m_myAxisId(2) {}
     /** @endcond **/
 private:            
 
@@ -192,24 +192,27 @@ private:
 
 // Helper classes that allow compile time recognition of axis directions.
 class CoordinateAxis::XCoordinateAxis : public CoordinateAxis {
-  public: XCoordinateAxis() : CoordinateAxis(XTypeAxis()) {}
+public:
+    constexpr XCoordinateAxis() : CoordinateAxis(XTypeAxis()) {}
 };
 class CoordinateAxis::YCoordinateAxis : public CoordinateAxis {
-  public: YCoordinateAxis() : CoordinateAxis(YTypeAxis()) {}
+public:
+    constexpr YCoordinateAxis() : CoordinateAxis(YTypeAxis()) {}
 };
 class CoordinateAxis::ZCoordinateAxis : public CoordinateAxis {
-  public: ZCoordinateAxis() : CoordinateAxis(ZTypeAxis()) {}
+public:
+    constexpr ZCoordinateAxis() : CoordinateAxis(ZTypeAxis()) {}
 };
 
 /** Constant representing the X coordinate axis; will implicitly convert to
 the integer 0 when used in a context requiring an integer. **/
-extern SimTK_SimTKCOMMON_EXPORT const CoordinateAxis::XCoordinateAxis  XAxis;
+constexpr CoordinateAxis::XCoordinateAxis  XAxis;
 /** Constant representing the Y coordinate axis; will implicitly convert to
 the integer 1 when used in a context requiring an integer. **/
-extern SimTK_SimTKCOMMON_EXPORT const CoordinateAxis::YCoordinateAxis  YAxis;
+constexpr CoordinateAxis::YCoordinateAxis  YAxis;
 /** Constant representing the Z coordinate axis; will implicitly convert to
 the integer 2 when used in a context requiring an integer. **/
-extern SimTK_SimTKCOMMON_EXPORT const CoordinateAxis::ZCoordinateAxis  ZAxis;
+constexpr CoordinateAxis::ZCoordinateAxis  ZAxis;
 
 inline const CoordinateAxis& CoordinateAxis::getCoordinateAxis(int i) {
     assert(isIndexInRange(i));
@@ -249,12 +252,12 @@ public:
 
     /** Implicit conversion of a CoordinateAxis to a positive 
     CoordinateDirection along that axis. **/
-    CoordinateDirection(const CoordinateAxis& axis)
+    constexpr CoordinateDirection(const CoordinateAxis& axis)
     :   m_axis(axis), m_direction(1) {}
 
     /** Explicit creation of a negative CoordinateDirection from a 
     CoordinateAxis. **/
-    CoordinateDirection(const CoordinateAxis& axis, Negative)
+    constexpr CoordinateDirection(const CoordinateAxis& axis, Negative)
     :   m_axis(axis), m_direction(-1) {}
 
     /** Explicit creation of a CoordinateDirection from a CoordinateAxis
@@ -336,22 +339,22 @@ private:
 // Helper classes that allow compile time recognition of negative axis
 // directions.
 class CoordinateDirection::NegXDirection : public CoordinateDirection {
-  public: NegXDirection() : CoordinateDirection(XAxis,Negative()) {}
+public:
+    constexpr NegXDirection() : CoordinateDirection(XAxis,Negative()) {}
 };
 class CoordinateDirection::NegYDirection : public CoordinateDirection {
-  public: NegYDirection() : CoordinateDirection(YAxis,Negative()) {}
+public:
+    constexpr NegYDirection() : CoordinateDirection(YAxis,Negative()) {}
 };
 class CoordinateDirection::NegZDirection : public CoordinateDirection {
-  public: NegZDirection() : CoordinateDirection(ZAxis,Negative()) {}
+public:
+    constexpr NegZDirection() : CoordinateDirection(ZAxis,Negative()) {}
 };
 
 // Predefine constants for the negative X,Y,Z directions.
-extern SimTK_SimTKCOMMON_EXPORT const CoordinateDirection::NegXDirection  
-    NegXAxis; ///< Global constant indicating -X coordinate direction.
-extern SimTK_SimTKCOMMON_EXPORT const CoordinateDirection::NegYDirection  
-    NegYAxis; ///< Global constant indicating -Y coordinate direction.
-extern SimTK_SimTKCOMMON_EXPORT const CoordinateDirection::NegZDirection  
-    NegZAxis; ///< Global constant indicating -Z coordinate direction.
+constexpr CoordinateDirection::NegXDirection NegXAxis; ///< Global constant indicating -X coordinate direction.
+constexpr CoordinateDirection::NegYDirection NegYAxis; ///< Global constant indicating -Y coordinate direction.
+constexpr CoordinateDirection::NegZDirection NegZAxis; ///< Global constant indicating -Z coordinate direction.
 
 /// Compare two CoordinateDirection objects. @relates CoordinateDirection 
 inline bool operator==(const CoordinateDirection& d1, 

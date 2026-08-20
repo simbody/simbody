@@ -28,8 +28,8 @@
 
 using namespace SimTK;
 
-static const Vec3 DefaultBodyColor = Gray;
-static const Vec3 DefaultPointColor = Magenta;
+static constexpr Vec3 DefaultBodyColor = Gray;
+static constexpr Vec3 DefaultPointColor = Magenta;
 
 VisualizerGeometry::VisualizerGeometry
    (VisualizerProtocol& protocol, const SimbodyMatterSubsystem& matter, 
