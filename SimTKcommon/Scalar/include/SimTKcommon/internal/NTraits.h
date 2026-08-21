@@ -61,67 +61,47 @@
 using std::complex;
 
 namespace SimTK::detail {
-// Consteval square root. Uses `std::sqrt` when __cpp_lib_constexpr_cmath is
-// available (C++23), otherwise falls back to Newton-Raphson seeded with the
-// IEEE 754 biased-exponent halving trick. The fallback handles all IEEE 754
-// special cases but may be off by 1 ulp from the correctly-rounded value.
+// Consteval square root. Uses `std::sqrt` when `__cpp_lib_constexpr_cmath` is
+// available (C++23). Otherwise uses a Newton-Raphson solver, which may be
+// off by 1 ULP due to differences in rounding.
 consteval double consteval_sqrt(double x) noexcept {
 #if defined(__cpp_lib_constexpr_cmath) && __cpp_lib_constexpr_cmath >= 202202L
-    return std::sqrt(x);
+    return std::sqrt(x);  // In new C++es, just call `std::sqrt`.
 #else
-    // NaN (care: breaks with -ffast-math, consteval is always
-    //      IEE754-compliant, though)
-    if (x != x)  return x;
+    static_assert(std::numeric_limits<double>::is_iec559);
 
-    if (x < 0.0) return std::numeric_limits<double>::quiet_NaN();
-    if (x == 0.0) return x;                                       // preserves -0
-    if (x > std::numeric_limits<double>::max()) return x;         // +inf
+    constexpr double max_double = std::numeric_limits<double>::max();
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
 
-    // Scale subnormals into the normal range so the biased-exponent trick works.
+    // Trivial/edge cases.
+    if (x != x)          return x;    // forward NaNs
+    if (x <  0.0)        return nan;  // sqrt(negative_number) -> NaN
+    if (x == 0.0)        return x;    // preserve -0 and +0
+    if (x >  max_double) return x;    // +inf
+
+    // Subnormal scaling.
     double scale = 1.0;
     if (x < std::numeric_limits<double>::min()) {
         x     *= 4503599627370496.0;  // 2^52
-        scale  = 1.0 / 67108864.0;   // 2^-26 = 1/sqrt(2^52)
+        scale  = 1.0 / 67108864.0;    // 2^-26
     }
 
     auto b = std::bit_cast<std::uint64_t>(x);
-    b = (b + (1023ULL << 52)) >> 1;        // halve the biased exponent
+    b = (b + (1023ULL << 52)) >> 1;
     auto g = std::bit_cast<double>(b);
+
+    // Newton-Raphson solver: might be off by 1ULP
     for (;;) {
         const auto next = (g + x / g) * 0.5;
-        if (next >= g) return g * scale;
+        if (next >= g) break;
         g = next;
     }
-#endif
-}
 
-consteval float consteval_sqrt(float x) noexcept {
-#if defined(__cpp_lib_constexpr_cmath) && __cpp_lib_constexpr_cmath >= 202202L
-    return std::sqrt(x);
-#else
-    if (x != x)  return x;
-    if (x < 0.f) return std::numeric_limits<float>::quiet_NaN();
-    if (x == 0.f) return x;
-    if (x > std::numeric_limits<float>::max()) return x;
-
-    float scale = 1.0f;
-    if (x < std::numeric_limits<float>::min()) {
-        x     *= 16777216.0f;    // 2^24
-        scale  = 1.0f / 4096.0f; // 2^-12 = 1/sqrt(2^24)
-    }
-
-    auto b = std::bit_cast<std::uint32_t>(x);
-    b = (b + (127U << 23)) >> 1;
-    auto g = std::bit_cast<float>(b);
-    for (;;) {
-        const auto next = (g + x / g) * 0.5f;
-        if (next >= g) return g * scale;
-        g = next;
-    }
+    return g * scale;
 #endif
 }
 }
-    
+
 namespace SimTK {
 
 // This is the 3rd type of number, conjugate. It is like complex except that
