@@ -326,7 +326,6 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
                     nIndex--;
                     normalIndices.push_back(nIndex);
                 }
-                s.ignore(line.size(), ' ');
             }
             if (getNumFaces() == 0) { // First encountered face, set expectations
                 expectNormals = (indices.size() == normalIndices.size());
@@ -1295,4 +1294,3 @@ createCylinderMesh(const UnitVec3& axis, Real radius, Real halfLength,
 
     return cyl; // just a shallow copy
 }
-

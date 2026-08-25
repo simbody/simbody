@@ -114,6 +114,39 @@ void testLoadObjFile() {
     ASSERT(!mesh.hasTextureCoordinates())
 }
 
+void testLoadObjFileWithWhitespaceDelimitedFaces() {
+    string file;
+    file += "v 0 0 0\n";
+    file += "v 1 0 0\n";
+    file += "v 1 1 0\n";
+    file += "v 0 1 0\n";
+    file += "vt 0 0\n";
+    file += "vt 1 0\n";
+    file += "vt 1 1\n";
+    file += "vt 0 1\n";
+    file += "vn 0 0 1\n";
+    file += "f\t1/1/1\t2/2/1\v3/3/1\f4/4/1\n";
+    file += "f  1/1/1\t2/2/1 \\\n";
+    file += "  3/3/1\v4/4/1\n";
+
+    PolygonalMesh mesh;
+    stringstream stream(file);
+    mesh.loadObjFile(stream);
+
+    const Vec2 expectedTextureCoordinates[] = {Vec2(0, 0), Vec2(1, 0),
+                                               Vec2(1, 1), Vec2(0, 1)};
+    ASSERT(mesh.getNumFaces() == 2);
+    for (int face = 0; face < mesh.getNumFaces(); ++face) {
+        ASSERT(mesh.getNumVerticesForFace(face) == 4);
+        for (int vertex = 0; vertex < 4; ++vertex) {
+            ASSERT(mesh.getFaceVertex(face, vertex) == vertex);
+            ASSERT(mesh.getVertexNormal(face, vertex) == UnitVec3(0, 0, 1));
+            ASSERT(mesh.getVertexTextureCoordinate(face, vertex) ==
+                   expectedTextureCoordinates[vertex]);
+        }
+    }
+}
+
 void testLoadObjFileWithNormalsTexture() {
     string file;
     file += "# This is a comment\n";
@@ -572,6 +605,7 @@ int main() {
     try {
         testCreateMesh();
         testLoadObjFile();
+        testLoadObjFileWithWhitespaceDelimitedFaces();
         testLoadObjFileWithNormalsTexture();
         testConvertObjFileToVisualizationFormat();
         testLoadVtpFile();
