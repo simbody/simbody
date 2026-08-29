@@ -2736,6 +2736,71 @@ addInPositionConstraintForces
 
 
 //==============================================================================
+//                        CONSTRAINT::PRESCRIBED VELOCITY
+//==============================================================================
+Constraint::PrescribedVelocity::PrescribedVelocity
+   (SimbodyMatterSubsystem&     matter,
+    const Function*             function,
+    MobilizedBodyIndex          speedBody,
+    MobilizerUIndex             speedIndex)
+:   Custom(new PrescribedVelocityImpl(matter, function, speedBody, speedIndex)) {}
+
+Constraint::PrescribedVelocityImpl::PrescribedVelocityImpl
+   (SimbodyMatterSubsystem& matter,
+    const Function* function,
+    MobilizedBodyIndex speedBody,
+    MobilizerUIndex speedIndex)
+:   Implementation(matter, 0, 1, 0), function(function),
+    speedIndex(speedIndex), temp(1), referenceCount(new int[1])
+{
+    assert(function->getArgumentSize() == 1);
+    assert(function->getMaxDerivativeOrder() >= 2);
+
+    referenceCount[0] = 1;
+    const MobilizedBody& mobod = matter.getMobilizedBody(speedBody);
+    this->speedBody = addConstrainedMobilizer(mobod);
+}
+
+void Constraint::PrescribedVelocityImpl::
+calcVelocityErrors
+   (const State&                                     s,
+    const Array_<SpatialVec, ConstrainedBodyIndex>&  V_AB,
+    const Array_<Real, ConstrainedUIndex>&           constrainedU,
+    Array_<Real>&                                    verr) const
+{
+    temp[0] = s.getTime();
+    verr[0] = getOneU(s, constrainedU, speedBody, speedIndex) 
+              - function->calcValue(temp);
+}
+
+void Constraint::PrescribedVelocityImpl::
+calcVelocityDotErrors
+   (const State&                                     s,
+    const Array_<SpatialVec, ConstrainedBodyIndex>&  A_AB,
+    const Array_<Real, ConstrainedUIndex>&           constrainedUDot,
+    Array_<Real>&                                    vaerr) const
+{
+    temp[0] = s.getTime();
+    Array_<int> components(1, 0); // i.e., components={0}
+    vaerr[0] = getOneUDot(s, constrainedUDot, speedBody, speedIndex)
+               - function->calcDerivative(components, temp);
+}
+
+
+void Constraint::PrescribedVelocityImpl::
+addInVelocityConstraintForces
+   (const State&                                s,
+    const Array_<Real>&                         multipliers,
+    Array_<SpatialVec, ConstrainedBodyIndex>&   bodyForces,
+    Array_<Real, ConstrainedUIndex>&            mobilityForces) const
+{
+    const Real fq = multipliers[0];
+    addInOneMobilityForce(s, speedBody, speedIndex, fq, mobilityForces);
+}
+
+
+
+//==============================================================================
 //                              CONSTRAINT IMPL
 //==============================================================================
 
