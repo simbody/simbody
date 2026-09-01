@@ -560,6 +560,51 @@ public:
         const Vector_<SpatialVec>& X, 
         Vector&                    JtX) const;
 
+    // Calculate the product of the body position Jacobian with respect to
+    // inboard frame positions, JpF, with a vector of nb position-like
+    // quantities, dp_PF. If dp_PF is a vector of perturbations in mobilizer
+    // inboard frame (F) positions, expressed in the parent body P, then the
+    // result is the change in mobilized body (B) origin positions (Bo) measured
+    // and expressed in Ground.
+    void multiplyByPositionJacobianWrtInboardFramePositions(const State& s,
+        const Vector_<Vec3>& dp_PF,
+        Vector_<Vec3>&       dp_GB) const;
+
+    // Calculate the product of the transposed body position Jacobian with
+    // respect to inboard frame positions, ~JpF (==JpF^T), with a vector of nb
+    // gradient-like quantities, g_GB. If g_GB is the gradient of a scalar
+    // function with respect to the mobilized body (B) origin positions (Bo) in
+    // Ground, then the result is the gradient of that same function with
+    // respect to the mobilizer inboard frame (F) positions, expressed in the
+    // parent bodies P.
+    void multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
+        const State&         s,
+        const Vector_<Vec3>& g_GB,
+        Vector_<Vec3>&       g_PF) const;
+
+    // Calculate the product of the body position Jacobian with respect to
+    // outboard frame positions, JpM, with a vector of nb position-like
+    // quantities, dp_BM. If dp_BM is a vector of perturbations in mobilizer
+    // outboard frame (M) positions, expressed in the child body B, then the
+    // result is the change in mobilized body (B) origin positions (Bo) measured
+    // and expressed in Ground.
+    void multiplyByPositionJacobianWrtOutboardFramePositions(
+        const State&         s,
+        const Vector_<Vec3>& dp_BM,
+        Vector_<Vec3>&       dp_GB) const;
+
+    // Calculate the product of the transposed body position Jacobian with
+    // respect to outboard frame positions, ~JpM (==JpM^T), with a vector of nb
+    // gradient-like quantities, g_GB. If g_GB is the gradient of a scalar
+    // function with respect to the mobilized body (B) origin positions (Bo) in
+    // Ground, then the result is the gradient of that same function with
+    // respect to the mobilizer outboard frame (M) positions, expressed in the
+    // child bodies B.
+    void multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
+        const State&         s,
+        const Vector_<Vec3>& g_GB,
+        Vector_<Vec3>&       g_BM) const;
+
     // Given a set of body forces, return the equivalent set of mobilizer torques 
     // IGNORING CONSTRAINTS.
     // Must be in DynamicsStage so that articulated body inertias are available,
