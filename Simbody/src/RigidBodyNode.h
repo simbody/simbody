@@ -510,6 +510,69 @@ virtual void multiplyBySystemJacobianTranspose(
   { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", 
     "multiplyBySystemJacobianTranspose"); }
 
+
+// Calculate the contribution of a perturbation in the inboard frame position
+// of this node to the perturbation of this node's body frame position, in
+// Ground. Call base to tip, skipping the Ground mobilized body, whose position
+// is fixed.
+void multiplyByPositionJacobianWrtInboardFramePosition(
+        const SBTreePositionCache&  pc,
+        const Vec3*                 dp_PF,
+        Vec3*                       dp_GB) const {
+
+    dp_GB[nodeNum] = dp_GB[parent->getNodeNum()] +
+                     getX_GP(pc).R() * dp_PF[nodeNum];
+}
+
+// Calculate this node's contribution to the transpose of the position Jacobian
+// with respect to the inboard frame position. Call tip to base, skipping the
+// Ground mobilized body, whose position is fixed.
+void multiplyByPositionJacobianWrtInboardFramePositionTranspose(
+        const SBTreePositionCache&  pc,
+        Vec3*                       zTmp,
+        const Vec3*                 g_GB,
+        Vec3*                       g_PF) const {
+
+    Vec3& sum = zTmp[nodeNum];
+    sum = g_GB[nodeNum];
+    for (unsigned i = 0; i < children.size(); ++i) {
+        sum += zTmp[children[i]->getNodeNum()];
+    }
+
+    g_PF[nodeNum] = ~getX_GP(pc).R() * sum;
+}
+
+// Calculate the contribution of a perturbation in the outboard frame position
+// of this node to the perturbation of this node's body frame position, in
+// Ground. Call base to tip, skipping the Ground mobilized body, whose position
+// is fixed.
+void multiplyByPositionJacobianWrtOutboardFramePosition(
+        const SBTreePositionCache&  pc,
+        const Vec3*                 dp_BM,
+        Vec3*                       dp_GB) const {
+
+    dp_GB[nodeNum] = dp_GB[parent->getNodeNum()] -
+                     getX_GB(pc).R() * dp_BM[nodeNum];
+}
+
+// Calculate this node's contribution to the transpose of the position Jacobian
+// with respect to the outboard frame position. Call tip to base, skipping the
+// Ground mobilized body, whose position is fixed.
+void multiplyByPositionJacobianWrtOutboardFramePositionTranspose(
+        const SBTreePositionCache&  pc,
+        Vec3*                       zTmp,
+        const Vec3*                 g_GB,
+        Vec3*                       g_BM) const {
+
+    Vec3& sum = zTmp[nodeNum];
+    sum = g_GB[nodeNum];
+    for (unsigned i = 0; i < children.size(); ++i) {
+        sum += zTmp[children[i]->getNodeNum()];
+    }
+
+    g_BM[nodeNum] = -(~getX_GB(pc).R() * sum);
+}
+
 virtual void calcEquivalentJointForces(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
