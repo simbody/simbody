@@ -244,7 +244,7 @@ public:
     ptrdiff_t nelt() const {assert(Base::nrow()==1); return Base::nelt();}
 
     // Override MatrixBase operators to return the right shape
-    TAbs abs() const {
+    SimTK_NODISCARD TAbs abs() const {
         TAbs result; Base::abs(result); return result;
     }
 
@@ -272,7 +272,7 @@ public:
     RowVectorView_<ELT> operator()(const Array_<int>& indices)       {return updIndex(indices);}
  
     // Hermitian transpose.
-    THerm transpose() const {return Base::transpose().getAsVectorView();}
+    SimTK_NODISCARD THerm transpose() const {return Base::transpose().getAsVectorView();}
     THerm updTranspose()    {return Base::updTranspose().updAsVectorView();}
 
     THerm operator~() const {return transpose();}
@@ -282,7 +282,7 @@ public:
 
     // Negation
 
-    const TNeg& negate()    const {return *reinterpret_cast<const TNeg*>(this); }
+    SimTK_NODISCARD const TNeg& negate()    const {return *reinterpret_cast<const TNeg*>(this); }
     TNeg&       updNegate()       {return *reinterpret_cast<TNeg*>(this); }
 
     const TNeg& operator-() const {return negate();}

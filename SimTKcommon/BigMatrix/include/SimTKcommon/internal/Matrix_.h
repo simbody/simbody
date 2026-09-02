@@ -124,7 +124,7 @@ public:
     Matrix_& operator+=(const ELT& r)       { this->updDiag() += r; return *this; }
     Matrix_& operator-=(const ELT& r)       { this->updDiag() -= r; return *this; }  
 
-    const TNeg& negate()    const {return *reinterpret_cast<const TNeg*>(this); }
+    SimTK_NODISCARD const TNeg& negate()    const {return *reinterpret_cast<const TNeg*>(this); }
     TNeg&       updNegate()       {return *reinterpret_cast<TNeg*>(this); }
 
     const TNeg& operator-() const {return negate();}
