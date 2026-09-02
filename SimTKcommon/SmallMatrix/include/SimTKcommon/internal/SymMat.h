@@ -192,7 +192,7 @@ public:
     // abs() is elementwise absolute value; that is, the return value has the same
     // dimension as this SymMat but with each element replaced by whatever it thinks
     // its absolute value is.
-    TAbs abs() const { 
+    SimTK_NODISCARD TAbs abs() const { 
         return TAbs(getAsVec().abs());
     }
 
@@ -580,7 +580,7 @@ public:
     /// SymMat<> does, because we can eliminate the negation here almost for free.
     /// But we can't standardize (change conjugate to complex) for free, so we'll retain
     /// conjugates if there are any.
-    TNormalize normalize() const {
+    SimTK_NODISCARD TNormalize normalize() const {
         if (CNT<E>::IsScalar) {
             return castAwayNegatorIfAny() / (int(SignInterpretation)*norm());
         } else {
@@ -591,7 +591,7 @@ public:
         }
     }
 
-    TInvert invert() const {assert(false); return TInvert();} // TODO default inversion
+    SimTK_NODISCARD TInvert invert() const {assert(false); return TInvert();} // TODO default inversion
 
     const SymMat& operator+() const { return *this; }
     const TNeg&   operator-() const { return negate(); }
@@ -599,10 +599,10 @@ public:
     const THerm&  operator~() const { return transpose(); }
     THerm&        operator~()       { return updTranspose(); }
 
-    const TNeg&  negate() const { return *reinterpret_cast<const TNeg*>(this); }
+    SimTK_NODISCARD const TNeg&  negate() const { return *reinterpret_cast<const TNeg*>(this); }
     TNeg&        updNegate()    { return *reinterpret_cast<TNeg*>(this); }
 
-    const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
+    SimTK_NODISCARD const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
     THerm&       updTranspose()       { return *reinterpret_cast<THerm*>(this); }
 
     const TPosTrans& positionalTranspose() const
