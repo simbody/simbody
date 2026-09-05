@@ -2025,6 +2025,71 @@ void SimbodyMatterSubsystem::calcBiasForFrameJacobian
 
 
 //==============================================================================
+//           JACOBIANS WRT INBOARD/OUTBOARD MOBILIZER FRAME POSITIONS
+//==============================================================================
+
+void SimbodyMatterSubsystem::multiplyByPositionJacobianWrtInboardFramePositions(
+        const State&         s,
+        const Vector_<Vec3>& dp_PF,
+        Vector_<Vec3>&       dp_GB) const {
+    SimTK_APIARGCHECK2_ALWAYS(dp_PF.size() == getNumBodies(),
+        "SimbodyMatterSubsystem",
+        "multiplyByPositionJacobianWrtInboardFramePositions",
+        "The number of inboard frame perturbations, dp_PF (%d), and number of "
+        "bodies (%d) must be the same.",
+        dp_PF.size(), getNumBodies());
+    getRep().multiplyByPositionJacobianWrtInboardFramePositions(
+            s, dp_PF, dp_GB);
+}
+
+void SimbodyMatterSubsystem::
+multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
+        const State&         s,
+        const Vector_<Vec3>& g_GB,
+        Vector_<Vec3>&       g_PF) const {
+    SimTK_APIARGCHECK2_ALWAYS(g_GB.size() == getNumBodies(),
+        "SimbodyMatterSubsystem",
+        "multiplyByPositionJacobianWrtInboardFramePositionsTranspose",
+        "The length of g_GB (%d) and the number of bodies (%d) must be the "
+        "same.",
+        g_GB.size(), getNumBodies());
+    getRep().multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
+            s, g_GB, g_PF);
+}
+
+void SimbodyMatterSubsystem::multiplyByPositionJacobianWrtOutboardFramePositions(
+        const State&         s,
+        const Vector_<Vec3>& dp_BM,
+        Vector_<Vec3>&       dp_GB) const {
+    SimTK_APIARGCHECK2_ALWAYS(dp_BM.size() == getNumBodies(),
+        "SimbodyMatterSubsystem",
+        "multiplyByPositionJacobianWrtOutboardFramePositions",
+        "The number of outboard frame perturbations, dp_BM (%d), and number of "
+        "bodies (%d) must be the same.",
+        dp_BM.size(), getNumBodies());
+    getRep().multiplyByPositionJacobianWrtOutboardFramePositions(
+            s, dp_BM, dp_GB);
+}
+
+void SimbodyMatterSubsystem::
+multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
+        const State&         s,
+        const Vector_<Vec3>& g_GB,
+        Vector_<Vec3>&       g_BM) const {
+    SimTK_APIARGCHECK2_ALWAYS(g_GB.size() == getNumBodies(),
+        "SimbodyMatterSubsystem",
+        "multiplyByPositionJacobianWrtOutboardFramePositionsTranspose",
+        "The length of g_GB (%d) and the number of bodies (%d) must be the "
+        "same.",
+        g_GB.size(), getNumBodies());
+    getRep().multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
+            s, g_GB, g_BM);
+}
+
+
+
+
+//==============================================================================
 //                              MISC OPERATORS
 //==============================================================================
 

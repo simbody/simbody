@@ -6352,6 +6352,120 @@ void SimbodyMatterSubsystemRep::multiplyBySystemJacobianTranspose
 //................... MULTIPLY BY SYSTEM JACOBIAN TRANSPOSE ....................
 
 
+// =============================================================================
+//             JACOBIANS WRT MOBILIZER INBOARD AND OUTBOARD FRAMES
+// =============================================================================
+
+void SimbodyMatterSubsystemRep::
+multiplyByPositionJacobianWrtInboardFramePositions(
+        const State&         s,
+        const Vector_<Vec3>& dp_PF,
+        Vector_<Vec3>&       dp_GB) const {
+    const int nb = getNumBodies();
+    assert(dp_PF.size() == nb);
+    dp_GB.resize(nb);
+    assert(dp_PF.hasContiguousData() && dp_GB.hasContiguousData());
+
+    const SBTreePositionCache& pc = getTreePositionCache(s);
+    const Vec3* dp_PFPtr = dp_PF.size() ? &dp_PF[0] : NULL;
+    Vec3*       dp_GBPtr = dp_GB.size() ? &dp_GB[0] : NULL;
+
+    dp_GBPtr[0] = Vec3(0); // Ground is fixed.
+
+    // Skip ground -- it has no inboard frame.
+    for (int i = 1; i < static_cast<int>(rbNodeLevels.size()); i++) {
+        for (int j = 0; j < static_cast<int>(rbNodeLevels[i].size()); j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.multiplyByPositionJacobianWrtInboardFramePosition(
+                    pc, dp_PFPtr, dp_GBPtr);
+        }
+    }
+}
+
+void SimbodyMatterSubsystemRep::
+multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
+        const State&         s,
+        const Vector_<Vec3>& g_GB,
+        Vector_<Vec3>&       g_PF) const {
+    const int nb = getNumBodies();
+    assert(g_GB.size() == nb);
+    g_PF.resize(nb);
+    assert(g_GB.hasContiguousData() && g_PF.hasContiguousData());
+
+    const SBTreePositionCache& pc = getTreePositionCache(s);
+
+    Vector_<Vec3> zTemp(nb); zTemp.setToZero();
+    const Vec3* g_GBPtr  = g_GB.size() ? &g_GB[0] : NULL;
+    Vec3*       g_PFPtr  = g_PF.size() ? &g_PF[0] : NULL;
+    Vec3*       zTempPtr = zTemp.size() ? &zTemp[0] : NULL;
+
+    // Skip ground -- it has no inboard frame.
+    for (int i = static_cast<int>(rbNodeLevels.size()) - 1; i > 0; i--) {
+        for (int j=0; j < static_cast<int>(rbNodeLevels[i].size()); j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.multiplyByPositionJacobianWrtInboardFramePositionTranspose(
+                    pc, zTempPtr, g_GBPtr, g_PFPtr);
+        }
+    }
+
+    g_PFPtr[0] = Vec3(0); // Ground has no inboard frame.
+}
+
+void SimbodyMatterSubsystemRep::
+multiplyByPositionJacobianWrtOutboardFramePositions(
+        const State&         s,
+        const Vector_<Vec3>& dp_BM,
+        Vector_<Vec3>&       dp_GB) const {
+    const int nb = getNumBodies();
+    assert(dp_BM.size() == nb);
+    dp_GB.resize(nb);
+    assert(dp_BM.hasContiguousData() && dp_GB.hasContiguousData());
+
+    const SBTreePositionCache& pc = getTreePositionCache(s);
+    const Vec3* dp_BMPtr = dp_BM.size() ? &dp_BM[0] : NULL;
+    Vec3*       dp_GBPtr = dp_GB.size() ? &dp_GB[0] : NULL;
+
+    dp_GBPtr[0] = Vec3(0); // Ground is fixed.
+
+    // Skip ground -- it has no outboard frame.
+    for (int i = 1; i < static_cast<int>(rbNodeLevels.size()); i++) {
+        for (int j = 0; j < static_cast<int>(rbNodeLevels[i].size()); j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.multiplyByPositionJacobianWrtOutboardFramePosition(
+                    pc, dp_BMPtr, dp_GBPtr);
+        }
+    }
+}
+
+void SimbodyMatterSubsystemRep::
+multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
+        const State&         s,
+        const Vector_<Vec3>& g_GB,
+        Vector_<Vec3>&       g_BM) const {
+    const int nb = getNumBodies();
+    assert(g_GB.size() == nb);
+    g_BM.resize(nb);
+    assert(g_GB.hasContiguousData() && g_BM.hasContiguousData());
+
+    const SBTreePositionCache& pc = getTreePositionCache(s);
+    Vector_<Vec3> zTemp(nb); zTemp.setToZero();
+    const Vec3* g_GBPtr  = g_GB.size() ? &g_GB[0] : NULL;
+    Vec3*       g_BMPtr  = g_BM.size() ? &g_BM[0] : NULL;
+    Vec3*       zTempPtr = zTemp.size() ? &zTemp[0] : NULL;
+
+    // Skip ground -- it has no outboard frame.
+    for (int i = static_cast<int>(rbNodeLevels.size()) - 1; i > 0; i--) {
+        for (int j = 0; j < static_cast<int>(rbNodeLevels[i].size()); j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.multiplyByPositionJacobianWrtOutboardFramePositionTranspose(
+                    pc, zTempPtr, g_GBPtr, g_BMPtr);
+        }
+    }
+
+    g_BMPtr[0] = Vec3(0); // Ground has no outboard frame.
+}
+
+//............. JACOBIANS WRT MOBILIZER INBOARD AND OUTBOARD FRAMES ............
 
 // =============================================================================
 //                     CALC TREE EQUIVALENT MOBILITY FORCES
