@@ -9,7 +9,9 @@
     action verbs (e.g., normalize(), invert(), transpose()). **/
 #if defined(SWIG) || defined(DOXYGEN)
     #define SimTK_NODISCARD
-#elif defined(__cplusplus) && (__cplusplus >= 201703L)
+#elif defined(__cplusplus) && \
+      ((__cplusplus >= 201703L) || \
+       (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L))
     #define SimTK_NODISCARD [[nodiscard]]
 #elif defined(__clang__) || defined(__GNUC__)
     #define SimTK_NODISCARD __attribute__((warn_unused_result))
