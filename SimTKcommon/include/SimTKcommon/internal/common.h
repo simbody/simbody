@@ -2,25 +2,6 @@
 #define SimTK_SimTKCOMMON_COMMON_H_
 
 /* -------------------------------------------------------------------------- *
- *                           SimTK_NODISCARD                                  *
- * -------------------------------------------------------------------------- */
-/** Warn if a caller fails to capture or use the return value of a method.
-    Primarily used on pure evaluation methods whose names resemble in-place
-    action verbs (e.g., normalize(), invert(), transpose()). **/
-#if defined(SWIG) || defined(DOXYGEN)
-    #define SimTK_NODISCARD
-#elif defined(__cplusplus) && \
-      ((__cplusplus >= 201703L) || \
-       (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L))
-    #define SimTK_NODISCARD [[nodiscard]]
-#elif defined(__clang__) || defined(__GNUC__)
-    #define SimTK_NODISCARD __attribute__((warn_unused_result))
-#else
-    #define SimTK_NODISCARD
-#endif
-
-
-/* -------------------------------------------------------------------------- *
  *                       Simbody(tm): SimTKcommon                             *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK biosimulation toolkit originating from           *
@@ -315,6 +296,25 @@ that we can use non-standard compiler hacks. */
 Don't use them. Sorry, can't use the DEPRECATED_14 macro here! */
 #define OVERRIDE_11 override
 #define FINAL_11 final
+
+/* -------------------------------------------------------------------------- *
+ *                           SimTK_NODISCARD                                  *
+ * -------------------------------------------------------------------------- */
+/** Warn if a caller fails to capture or use the return value of a method.
+    Primarily used on pure evaluation methods whose names resemble in-place
+    action verbs (e.g., normalize(), invert(), transpose()). **/
+#if defined(SWIG) || defined(DOXYGEN)
+    #define SimTK_NODISCARD
+#elif defined(__cplusplus) && \
+      ((__cplusplus >= 201703L) || \
+       (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L))
+    #define SimTK_NODISCARD [[nodiscard]]
+#elif defined(__clang__) || defined(__GNUC__)
+    #define SimTK_NODISCARD __attribute__((warn_unused_result))
+#else
+    #define SimTK_NODISCARD
+#endif
+
 
 namespace SimTK {
 

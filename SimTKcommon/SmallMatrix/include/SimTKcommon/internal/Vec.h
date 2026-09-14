@@ -718,7 +718,7 @@ public:
     the individual elements. That is, a Vec<2,Vec3> becomes a Row<2,Vec3>,
     rather than a Row<2,Row3> as would happen with ordinary transpose(). This
     is just a recast; no copying or computation is performed here. **/
-    const TPosTrans& positionalTranspose() const
+    SimTK_NODISCARD const TPosTrans& positionalTranspose() const
         { return *reinterpret_cast<const TPosTrans*>(this); }
     /** Positional transpose returning a writable reference. **/
     TPosTrans&       updPositionalTranspose()

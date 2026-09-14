@@ -166,7 +166,7 @@ public:
     { Base::template colScaleInPlace<EE>(v); return *this; }
     template <class EE> inline void colScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
     { return Base::template colScale<EE>(v,out); }
-    template <class EE> inline typename EltResult<EE>::Mul colScale(const VectorBase<EE>& v) const
+    template <class EE> SimTK_NODISCARD inline typename EltResult<EE>::Mul colScale(const VectorBase<EE>& v) const
     { typename EltResult<EE>::Mul out(ncol()); Base::template colScale<EE>(v,out); return out; }
 
 

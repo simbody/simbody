@@ -393,7 +393,7 @@ public:
     template <class EE> inline void 
     rowScale(const VectorBase<EE>& r, typename EltResult<EE>::Mul& out) const;
 
-    template <class EE> inline typename EltResult<EE>::Mul 
+    template <class EE> SimTK_NODISCARD inline typename EltResult<EE>::Mul 
     rowScale(const VectorBase<EE>& r) const {
         typename EltResult<EE>::Mul out(nrow(), ncol()); rowScale(r,out); return out;
     }
@@ -406,7 +406,7 @@ public:
     template <class EE> inline void 
     colScale(const VectorBase<EE>& c, typename EltResult<EE>::Mul& out) const;
 
-    template <class EE> inline typename EltResult<EE>::Mul
+    template <class EE> SimTK_NODISCARD inline typename EltResult<EE>::Mul
     colScale(const VectorBase<EE>& c) const {
         typename EltResult<EE>::Mul out(nrow(), ncol()); colScale(c,out); return out;
     }
@@ -423,7 +423,7 @@ public:
     rowAndColScale(const VectorBase<ER>& r, const VectorBase<EC>& c, 
                    typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul& out) const;
 
-    template <class ER, class EC> inline typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul
+    template <class ER, class EC> SimTK_NODISCARD inline typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul
     rowAndColScale(const VectorBase<ER>& r, const VectorBase<EC>& c) const {
         typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul 
             out(nrow(), ncol()); 

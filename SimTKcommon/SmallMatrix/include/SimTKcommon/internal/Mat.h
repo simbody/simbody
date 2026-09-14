@@ -685,7 +685,7 @@ public:
     SimTK_NODISCARD const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
     THerm&       updTranspose()       { return *reinterpret_cast<THerm*>(this); }
 
-    const TPosTrans& positionalTranspose() const
+    SimTK_NODISCARD const TPosTrans& positionalTranspose() const
         { return *reinterpret_cast<const TPosTrans*>(this); }
     TPosTrans&       updPositionalTranspose()
         { return *reinterpret_cast<TPosTrans*>(this); }
