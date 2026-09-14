@@ -346,7 +346,7 @@ public:
     dimension as this Vec but with each element replaced by whatever it thinks
     its absolute value is. The element type may have changed and the stride
     of the return Vec is always 1. **/
-    TAbs abs() const {
+    SimTK_NODISCARD TAbs abs() const {
         TAbs vabs;
         for(int i=0;i<M;++i) vabs[i] = CNT<E>::abs(d[i*STRIDE]);
         return vabs;
@@ -670,7 +670,7 @@ public:
     Vec<> does, because we can eliminate the negation here almost for free.
     But we can't standardize (change conjugate to complex) for free, so we'll retain
     conjugates if there are any. **/
-    TNormalize normalize() const {
+    SimTK_NODISCARD TNormalize normalize() const {
         if (CNT<E>::IsScalar) {
             return castAwayNegatorIfAny() / (int(SignInterpretation)*norm());
         } else {
@@ -682,7 +682,7 @@ public:
     }
 
     /** This method is not supported for %Vec objects. **/
-    TInvert invert() const {assert(false); return TInvert();} // TODO default inversion
+    SimTK_NODISCARD TInvert invert() const {assert(false); return TInvert();} // TODO default inversion
 
     /** Unary plus does nothing. **/
     const Vec&   operator+() const { return *this; }
@@ -703,13 +703,13 @@ public:
     THerm&       operator~()       { return updTranspose(); }
 
     /** Non-operator version of unary negation; just a recast. **/
-    const TNeg&  negate() const { return *reinterpret_cast<const TNeg*>(this); }
+    SimTK_NODISCARD const TNeg&  negate() const { return *reinterpret_cast<const TNeg*>(this); }
     /** Non-operator version of unary negation; recasts and returns a 
     writable reference. **/
     TNeg&        updNegate()    { return *reinterpret_cast<      TNeg*>(this); }
 
     /** Non-operator version of Hermitian transpose; just a recast. **/
-    const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
+    SimTK_NODISCARD const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
     /** Non-operator version of Hermitian transpose; recasts and returns a 
     writable reference. **/
     THerm&       updTranspose()       { return *reinterpret_cast<      THerm*>(this); }
@@ -718,7 +718,7 @@ public:
     the individual elements. That is, a Vec<2,Vec3> becomes a Row<2,Vec3>,
     rather than a Row<2,Row3> as would happen with ordinary transpose(). This
     is just a recast; no copying or computation is performed here. **/
-    const TPosTrans& positionalTranspose() const
+    SimTK_NODISCARD const TPosTrans& positionalTranspose() const
         { return *reinterpret_cast<const TPosTrans*>(this); }
     /** Positional transpose returning a writable reference. **/
     TPosTrans&       updPositionalTranspose()

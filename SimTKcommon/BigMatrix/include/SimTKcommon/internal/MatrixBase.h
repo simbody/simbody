@@ -393,7 +393,7 @@ public:
     template <class EE> inline void 
     rowScale(const VectorBase<EE>& r, typename EltResult<EE>::Mul& out) const;
 
-    template <class EE> inline typename EltResult<EE>::Mul 
+    template <class EE> SimTK_NODISCARD inline typename EltResult<EE>::Mul 
     rowScale(const VectorBase<EE>& r) const {
         typename EltResult<EE>::Mul out(nrow(), ncol()); rowScale(r,out); return out;
     }
@@ -406,7 +406,7 @@ public:
     template <class EE> inline void 
     colScale(const VectorBase<EE>& c, typename EltResult<EE>::Mul& out) const;
 
-    template <class EE> inline typename EltResult<EE>::Mul
+    template <class EE> SimTK_NODISCARD inline typename EltResult<EE>::Mul
     colScale(const VectorBase<EE>& c) const {
         typename EltResult<EE>::Mul out(nrow(), ncol()); colScale(c,out); return out;
     }
@@ -423,7 +423,7 @@ public:
     rowAndColScale(const VectorBase<ER>& r, const VectorBase<EC>& c, 
                    typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul& out) const;
 
-    template <class ER, class EC> inline typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul
+    template <class ER, class EC> SimTK_NODISCARD inline typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul
     rowAndColScale(const VectorBase<ER>& r, const VectorBase<EC>& c) const {
         typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul 
             out(nrow(), ncol()); 
@@ -449,7 +449,7 @@ public:
 
     void elementwiseInvert(MatrixBase<typename CNT<E>::TInvert>& out) const;
 
-    MatrixBase<typename CNT<E>::TInvert> elementwiseInvert() const {
+    SimTK_NODISCARD MatrixBase<typename CNT<E>::TInvert> elementwiseInvert() const {
         MatrixBase<typename CNT<E>::TInvert> out(nrow(), ncol());
         elementwiseInvert(out);
         return out;
@@ -604,7 +604,7 @@ public:
       { return updBlock(i,j,m,n); }
  
     // Hermitian transpose.
-    inline MatrixView_<EHerm> transpose() const;
+    SimTK_NODISCARD inline MatrixView_<EHerm> transpose() const;
     inline MatrixView_<EHerm> updTranspose();
 
     MatrixView_<EHerm> operator~() const {return transpose();}
@@ -631,7 +631,7 @@ public:
     //MatrixView_<EReal> imag() {return updImag();}
 
     // TODO: this routine seems ill-advised but I need it for the IVM port at the moment
-    TInvert invert() const {  // return a newly-allocated inverse; dump negator 
+    SimTK_NODISCARD TInvert invert() const {  // return a newly-allocated inverse; dump negator 
         TInvert m(*this);
         m.helper.invertInPlace();
         return m;   // TODO - bad: makes an extra copy
@@ -695,7 +695,7 @@ public:
     /// abs() with the result as a function return. More convenient than the 
     /// other abs() member function, but may involve an additional copy of the 
     /// matrix.
-    TAbs abs() const { TAbs mabs; abs(mabs); return mabs; }
+    SimTK_NODISCARD TAbs abs() const { TAbs mabs; abs(mabs); return mabs; }
 
     /// Return a Matrix of the same shape and contents as this one but
     /// with the element type converted to one based on the standard
@@ -758,7 +758,7 @@ public:
 
     //TODO: make unary +/- return a self-view so they won't reallocate?
     const MatrixBase& operator+() const {return *this; }
-    const TNeg&       negate()    const {return *reinterpret_cast<const TNeg*>(this); }
+    SimTK_NODISCARD const TNeg&       negate()    const {return *reinterpret_cast<const TNeg*>(this); }
     TNeg&             updNegate()       {return *reinterpret_cast<TNeg*>(this); }
 
     const TNeg&       operator-() const {return negate();}
