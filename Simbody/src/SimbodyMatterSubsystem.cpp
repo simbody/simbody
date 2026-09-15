@@ -2032,14 +2032,34 @@ void SimbodyMatterSubsystem::multiplyByPositionJacobianWrtInboardFramePositions(
         const State&         s,
         const Vector_<Vec3>& dp_PF,
         Vector_<Vec3>&       dp_GB) const {
-    SimTK_APIARGCHECK2_ALWAYS(dp_PF.size() == getNumBodies(),
+
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies();
+    SimTK_APIARGCHECK2_ALWAYS(dp_PF.size() == nb,
         "SimbodyMatterSubsystem",
         "multiplyByPositionJacobianWrtInboardFramePositions",
         "The number of inboard frame perturbations, dp_PF (%d), and number of "
         "bodies (%d) must be the same.",
-        dp_PF.size(), getNumBodies());
-    getRep().multiplyByPositionJacobianWrtInboardFramePositions(
-            s, dp_PF, dp_GB);
+        dp_PF.size(), nb);
+
+    const bool dp_PFIsContig = dp_PF.hasContiguousData();
+    const bool dp_GBIsContig = dp_GB.hasContiguousData();
+
+    Vector_<Vec3> dp_PF_contig;
+    Vector_<Vec3> dp_GB_contig;
+    const Vector_<Vec3>* dp_PFp = dp_PFIsContig ? &dp_PF
+                                : (const Vector_<Vec3>*)&dp_PF_contig;
+    Vector_<Vec3>*       dp_GBp = dp_GBIsContig ? &dp_GB : &dp_GB_contig;
+    if (!dp_PFIsContig) {
+        dp_PF_contig.resize(nb);
+        dp_PF_contig(0, nb) = dp_PF; // prevent reallocation
+    }
+
+    rep.multiplyByPositionJacobianWrtInboardFramePositions(
+            s, *dp_PFp, *dp_GBp);
+
+    if (!dp_GBIsContig)
+        dp_GB = *dp_GBp;
 }
 
 void SimbodyMatterSubsystem::
@@ -2047,28 +2067,68 @@ multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
         const State&         s,
         const Vector_<Vec3>& g_GB,
         Vector_<Vec3>&       g_PF) const {
-    SimTK_APIARGCHECK2_ALWAYS(g_GB.size() == getNumBodies(),
+
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies();
+    SimTK_APIARGCHECK2_ALWAYS(g_GB.size() == nb,
         "SimbodyMatterSubsystem",
         "multiplyByPositionJacobianWrtInboardFramePositionsTranspose",
         "The length of g_GB (%d) and the number of bodies (%d) must be the "
         "same.",
-        g_GB.size(), getNumBodies());
-    getRep().multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
-            s, g_GB, g_PF);
+        g_GB.size(), nb);
+
+    const bool g_GBIsContig = g_GB.hasContiguousData();
+    const bool g_PFIsContig = g_PF.hasContiguousData();
+
+    Vector_<Vec3> g_GB_contig;
+    Vector_<Vec3> g_PF_contig;
+    const Vector_<Vec3>* g_GBp = g_GBIsContig ? &g_GB
+                               : (const Vector_<Vec3>*)&g_GB_contig;
+    Vector_<Vec3>*       g_PFp = g_PFIsContig ? &g_PF : &g_PF_contig;
+    if (!g_GBIsContig) {
+        g_GB_contig.resize(nb);
+        g_GB_contig(0, nb) = g_GB; // prevent reallocation
+    }
+
+    rep.multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
+            s, *g_GBp, *g_PFp);
+
+    if (!g_PFIsContig)
+        g_PF = *g_PFp;
 }
 
 void SimbodyMatterSubsystem::multiplyByPositionJacobianWrtOutboardFramePositions(
         const State&         s,
         const Vector_<Vec3>& dp_BM,
         Vector_<Vec3>&       dp_GB) const {
-    SimTK_APIARGCHECK2_ALWAYS(dp_BM.size() == getNumBodies(),
+
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies();
+    SimTK_APIARGCHECK2_ALWAYS(dp_BM.size() == nb,
         "SimbodyMatterSubsystem",
         "multiplyByPositionJacobianWrtOutboardFramePositions",
         "The number of outboard frame perturbations, dp_BM (%d), and number of "
         "bodies (%d) must be the same.",
-        dp_BM.size(), getNumBodies());
-    getRep().multiplyByPositionJacobianWrtOutboardFramePositions(
-            s, dp_BM, dp_GB);
+        dp_BM.size(), nb);
+
+    const bool dp_BMIsContig = dp_BM.hasContiguousData();
+    const bool dp_GBIsContig = dp_GB.hasContiguousData();
+
+    Vector_<Vec3> dp_BM_contig;
+    Vector_<Vec3> dp_GB_contig;
+    const Vector_<Vec3>* dp_BMp = dp_BMIsContig ? &dp_BM
+                                : (const Vector_<Vec3>*)&dp_BM_contig;
+    Vector_<Vec3>*       dp_GBp = dp_GBIsContig ? &dp_GB : &dp_GB_contig;
+    if (!dp_BMIsContig) {
+        dp_BM_contig.resize(nb);
+        dp_BM_contig(0, nb) = dp_BM; // prevent reallocation
+    }
+
+    rep.multiplyByPositionJacobianWrtOutboardFramePositions(
+            s, *dp_BMp, *dp_GBp);
+
+    if (!dp_GBIsContig)
+        dp_GB = *dp_GBp;
 }
 
 void SimbodyMatterSubsystem::
@@ -2076,14 +2136,34 @@ multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
         const State&         s,
         const Vector_<Vec3>& g_GB,
         Vector_<Vec3>&       g_BM) const {
-    SimTK_APIARGCHECK2_ALWAYS(g_GB.size() == getNumBodies(),
+
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies();
+    SimTK_APIARGCHECK2_ALWAYS(g_GB.size() == nb,
         "SimbodyMatterSubsystem",
         "multiplyByPositionJacobianWrtOutboardFramePositionsTranspose",
         "The length of g_GB (%d) and the number of bodies (%d) must be the "
         "same.",
-        g_GB.size(), getNumBodies());
-    getRep().multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
-            s, g_GB, g_BM);
+        g_GB.size(), nb);
+
+    const bool g_GBIsContig = g_GB.hasContiguousData();
+    const bool g_BMIsContig = g_BM.hasContiguousData();
+
+    Vector_<Vec3> g_GB_contig;
+    Vector_<Vec3> g_BM_contig;
+    const Vector_<Vec3>* g_GBp = g_GBIsContig ? &g_GB
+                               : (const Vector_<Vec3>*)&g_GB_contig;
+    Vector_<Vec3>*       g_BMp = g_BMIsContig ? &g_BM : &g_BM_contig;
+    if (!g_GBIsContig) {
+        g_GB_contig.resize(nb);
+        g_GB_contig(0, nb) = g_GB; // prevent reallocation
+    }
+
+    rep.multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
+            s, *g_GBp, *g_BMp);
+
+    if (!g_BMIsContig)
+        g_BM = *g_BMp;
 }
 
 
