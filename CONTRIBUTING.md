@@ -32,7 +32,7 @@ For New Contributors
 - A title must be given to the issue which gives
 the other contributors an idea of what the issue is.
 - The body of your issue must address one of our "labels".
-- Most of our issue's cover the following labels:
+- Most of our issues cover the following labels:
 bugs, build issues, constraint issues, contact issues, documentation issues.
 - There are many other types of issues that we invite you to share. The totality of our labels is listed here https://github.com/simbody/simbody/labels
 
