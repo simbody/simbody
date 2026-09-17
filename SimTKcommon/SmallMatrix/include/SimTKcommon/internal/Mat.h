@@ -30,6 +30,9 @@
 
 #include "SimTKcommon/internal/common.h"
 
+#include <tuple>
+#include <type_traits>
+
 namespace SimTK {
 
 /** @brief This class represents a small matrix whose size is known at compile 
@@ -225,7 +228,7 @@ public:
     /** Elementwise absolute value; that is, the return value has the same
     dimensions as this Mat but with each element replaced by whatever it thinks
     its absolute value is. **/
-    TAbs abs() const { 
+    SimTK_NODISCARD TAbs abs() const { 
         TAbs mabs;
         for(int j=0;j<N;++j) mabs(j) = (*this)(j).abs();
         return mabs;
@@ -376,71 +379,21 @@ public:
     explicit Mat(int i) 
       { new (this) Mat(E(Precision(i))); }
 
-    // A bevy of constructors from individual exact-match elements IN ROW ORDER.
-    Mat(const E& e0,const E& e1)
-      {assert(M*N==2);d[rIx(0)]=e0;d[rIx(1)]=e1;}
-    Mat(const E& e0,const E& e1,const E& e2)
-      {assert(M*N==3);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3)
-      {assert(M*N==4);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4)
-      {assert(M*N==5);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5)
-      {assert(M*N==6);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6)
-      {assert(M*N==7);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7)
-      {assert(M*N==8);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8)
-      {assert(M*N==9);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9)
-      {assert(M*N==10);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10)
-      {assert(M*N==11);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11)
-      {assert(M*N==12);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
-       d[rIx(11)]=e11;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11, const E& e12)
-      {assert(M*N==13);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
-       d[rIx(11)]=e11;d[rIx(12)]=e12;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11, const E& e12, const E& e13)
-      {assert(M*N==14);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
-       d[rIx(11)]=e11;d[rIx(12)]=e12;d[rIx(13)]=e13;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11, const E& e12, const E& e13, const E& e14)
-      {assert(M*N==15);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
-       d[rIx(11)]=e11;d[rIx(12)]=e12;d[rIx(13)]=e13;d[rIx(14)]=e14;}
-    Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
-        const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11, const E& e12, const E& e13, const E& e14, 
-        const E& e15)
-      {assert(M*N==16);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
-       d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
-       d[rIx(11)]=e11;d[rIx(12)]=e12;d[rIx(13)]=e13;d[rIx(14)]=e14;d[rIx(15)]=e15;}
+    // Constructs a `Mat` from individual exact-match elements IN ROW ORDER.
+    template<
+        typename... Elements,
+        typename = std::enable_if_t<
+            (M*N==sizeof...(Elements)) &&
+            (std::is_convertible_v<Elements&&, const E&> && ...)
+        >
+    >
+    Mat(Elements&&... elementsRowByRow)
+    {
+        assignDataRowByRow(
+            std::forward_as_tuple(elementsRowByRow...),
+            std::make_integer_sequence<int, sizeof...(Elements)>{}
+        );
+    }
 
     // Construction from 1-6 *exact match* Rows
     explicit Mat(const TRow& r0)
@@ -704,9 +657,9 @@ public:
     // Mat<> does, because we can eliminate the negation here almost for free.
     // But we can't standardize (change conjugate to complex) for free, so we'll retain
     // conjugates if there are any.
-    TNormalize normalize() const {
+    SimTK_NODISCARD TNormalize normalize() const {
         if (CNT<E>::IsScalar) {
-            return castAwayNegatorIfAny() / (SignInterpretation*norm());
+            return castAwayNegatorIfAny() / (int(SignInterpretation)*norm());
         } else {
             TNormalize elementwiseNormalized;
             // punt to the column Vec to deal with the elements
@@ -718,7 +671,7 @@ public:
 
     // Default inversion. Assume full rank if square, otherwise return
     // pseudoinverse. (Mostly TODO)
-    TInvert invert() const;
+    SimTK_NODISCARD TInvert invert() const;
 
     const Mat&   operator+() const { return *this; }
     const TNeg&  operator-() const { return negate(); }
@@ -726,13 +679,13 @@ public:
     const THerm& operator~() const { return transpose(); }
     THerm&       operator~()       { return updTranspose(); }
 
-    const TNeg&  negate() const { return *reinterpret_cast<const TNeg*>(this); }
+    SimTK_NODISCARD const TNeg&  negate() const { return *reinterpret_cast<const TNeg*>(this); }
     TNeg&        updNegate()    { return *reinterpret_cast<TNeg*>(this); }
 
-    const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
+    SimTK_NODISCARD const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
     THerm&       updTranspose()       { return *reinterpret_cast<THerm*>(this); }
 
-    const TPosTrans& positionalTranspose() const
+    SimTK_NODISCARD const TPosTrans& positionalTranspose() const
         { return *reinterpret_cast<const TPosTrans*>(this); }
     TPosTrans&       updPositionalTranspose()
         { return *reinterpret_cast<TPosTrans*>(this); }
@@ -1120,7 +1073,7 @@ public:
 
     /// For approximate comparisons, the default tolerance to use for a matrix is
     /// its shortest dimension times its elements' default tolerance.
-    static double getDefaultTolerance() {return MinDim*CNT<ELT>::getDefaultTolerance();}
+    static double getDefaultTolerance() {return int(MinDim)*CNT<ELT>::getDefaultTolerance();}
 
     /// %Test whether this matrix is numerically equal to some other matrix with
     /// the same shape, using a specified tolerance.
@@ -1237,6 +1190,12 @@ private:
         const int row = k / N;
         const int col = k % N; // that's modulus, not cross product!
         return row*RS + col*CS;
+    }
+
+    template<typename ElementsRowByRowTuple, int... Idx>
+    void assignDataRowByRow(ElementsRowByRowTuple&& els, std::integer_sequence<int, Idx...>)
+    {
+        ((d[rIx(Idx)] = std::get<Idx>(els)) , ...);
     }
 };
 

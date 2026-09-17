@@ -229,7 +229,7 @@ public:
     static Value& downcast(AbstractValue& value) {return updDowncast(value);}
 
 private:
-    T   m_thing;
+    T   m_thing{};
 };
 
 

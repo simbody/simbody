@@ -51,23 +51,19 @@
 // singularity. A modeling option allows the Free to be switched to use Euler
 // angles when necessary.
 
-template<bool noX_MB, bool noR_PF>
-class RBNodeBushing : public RigidBodyNodeSpec<6, false, noX_MB, noR_PF> {
+class RBNodeBushing : public RigidBodyNodeSpec<6, false> {
 public:
 
-typedef typename RigidBodyNodeSpec<6, false, noX_MB, noR_PF>::HType HType;
+typedef typename RigidBodyNodeSpec<6, false>::HType HType;
 virtual const char* type() { return "bushing"; }
 
 RBNodeBushing(const MassProperties& mProps_B,
-              const Transform&      X_PF,
-              const Transform&      X_BM,
               bool                  isReversed,
               UIndex&               nextUSlot,
               USquaredIndex&        nextUSqSlot,
               QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<6, false, noX_MB, noR_PF>
-       (mProps_B,X_PF,X_BM,
-        nextUSlot,nextUSqSlot,nextQSlot,
+:   RigidBodyNodeSpec<6, false>
+       (mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
         RigidBodyNode::QDotIsAlwaysTheSameAsU, 
         RigidBodyNode::QuaternionIsNeverUsed, 
         isReversed)
@@ -104,8 +100,10 @@ void setUToFitAngularVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
     Vector& u) const override 
 {
-    const Vec2 cosxy(std::cos(q[0]), std::cos(q[1]));
-    const Vec2 sinxy(std::sin(q[0]), std::sin(q[1]));
+    Real q0 = this->fromQ(q)[0];
+    Real q1 = this->fromQ(q)[1];
+    const Vec2 cosxy(std::cos(q0), std::cos(q1));
+    const Vec2 sinxy(std::sin(q0), std::sin(q1));
     const Real oocosy = 1 / cosxy[1];
     const Vec3 qdot = 
         Rotation::convertAngVelInParentToBodyXYZDot(cosxy,sinxy,oocosy,w_FM);

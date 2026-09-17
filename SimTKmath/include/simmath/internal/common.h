@@ -1,5 +1,5 @@
 #ifndef SimTK_SIMMATH_COMMON_H_
-#define SimTK_SIMMATH_COMMON_H_ 
+#define SimTK_SIMMATH_COMMON_H_
 
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
@@ -106,12 +106,13 @@ private:
 
 class IllegalLapackArg : public Base {
 public:
-        IllegalLapackArg( const char *fn, int ln, const char *lapackRoutine, 
+        IllegalLapackArg( const char *fn, int ln, const char *lapackRoutine,
                   int info ) : Base(fn, ln)
         {
-        char buf[1024];
+        const int n = 1024;
+        char buf[n];
 
-        sprintf(buf, "SimTK internal error: %s called with an illegal value to"
+        snprintf(buf, n, "SimTK internal error: %s called with an illegal value to"
             " argument #%d.\nPlease report this at SimTK.org.",
             lapackRoutine, -info );
         setMessage(String(buf));
@@ -121,12 +122,13 @@ private:
 };
 class IncorrectArrayLength : public Base {
 public:
-        IncorrectArrayLength( const char *fn, int ln, const char *valueName, int length,  
+        IncorrectArrayLength( const char *fn, int ln, const char *valueName, int length,
                               const char *paramName, int paramValue, const char *where) : Base(fn, ln)
         {
+        const int n = 1024;
         char buf[1024];
 
-        sprintf(buf, "Incorrect array length in %s : %s is %d and must equal %s which is %d",
+        snprintf(buf, n, "Incorrect array length in %s : %s is %d and must equal %s which is %d",
             where, valueName, length, paramName, paramValue );
         setMessage(String(buf));
 
@@ -136,12 +138,13 @@ private:
 
 class SingularMatrix : public Base {
 public:
-        SingularMatrix( const char *fn, int ln, int index,  
+        SingularMatrix( const char *fn, int ln, int index,
                                const char *where) : Base(fn, ln)
         {
-        char buf[1024];
+        const int n = 1024;
+        char buf[n];
 
-        sprintf(buf, "%s failed because index %d in matrix was singular and factorization failed",
+        snprintf(buf, n, "%s failed because index %d in matrix was singular and factorization failed",
             where, index );
         setMessage(String(buf));
 
@@ -151,12 +154,13 @@ private:
 
 class ConvergedFailed : public Base {
 public:
-        ConvergedFailed( const char *fn, int ln, const char *algorithm,  
+        ConvergedFailed( const char *fn, int ln, const char *algorithm,
                                const char *where) : Base(fn, ln)
         {
-        char buf[1024];
+        const int n = 1024;
+        char buf[n];
 
-        sprintf(buf, "%s failed because %s failed to converge", where, algorithm );
+        snprintf(buf, n, "%s failed because %s failed to converge", where, algorithm );
         setMessage(String(buf));
 
         }
@@ -165,12 +169,13 @@ private:
 
 class NotPositiveDefinite : public Base {
 public:
-        NotPositiveDefinite( const char *fn, int ln, int index,  
+        NotPositiveDefinite( const char *fn, int ln, int index,
                                const char *where) : Base(fn, ln)
         {
-        char buf[1024];
+        const int n = 1024;
+        char buf[n];
 
-        sprintf(buf, "%s failed because index %d in matrix was not positive definite and factorization failed ",
+        snprintf(buf, n, "%s failed because index %d in matrix was not positive definite and factorization failed ",
             where, index );
         setMessage(String(buf));
 

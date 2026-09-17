@@ -55,7 +55,7 @@ PathInstanceInfo::PathInstanceInfo
         if (obs.getNumCoordsPerContactPoint() > 0) { // a surface
             mapObstacleToSurface[ox] = next++;
             mapSurfaceToObstacle.push_back(ox);
-            assert(mapSurfaceToObstacle.size() == next);
+            assert(SurfaceObstacleIndex{mapSurfaceToObstacle.size()} == next);
         }
         obstaclePose[ox]=obs.getDefaultPoseOnBody();
     }

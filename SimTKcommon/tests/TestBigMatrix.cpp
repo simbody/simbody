@@ -303,6 +303,19 @@ int main() {
         SimTK_TEST(rv1.ncol() == 0);
         SimTK_TEST(rv1.nelt() == 0);
 
+        // Check that RowVector and RowVectorView both work.
+        const double rowtestdata[] = {1,4, // Data supplied in row order.
+                                      2,5,
+                                      3,6};
+        Matrix rowtest(3,2, rowtestdata);  // But, stored in column order.
+        std::cout << "rowtest=" << rowtest << "\n";
+        RowVectorView row1view = rowtest[1];
+        RowVector row1 = rowtest[1];
+        testVector(row1view, Vec2(2,5));
+        testVector(row1, Vec2(2,5));
+        SimTK_TEST_EQ(row1view.hasContiguousData(), false);
+        SimTK_TEST_EQ(row1.hasContiguousData(), true);
+
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;

@@ -59,23 +59,21 @@ FactorLURepBase* FactorLUDefault::clone() const {
    ///////////////
    // FactorLU //
    ///////////////
-FactorLU::~FactorLU() {
-    delete rep;
-}
+FactorLU::~FactorLU() = default;
 // default constructor
-FactorLU::FactorLU() {
-    rep = new FactorLUDefault();
-}
+FactorLU::FactorLU() : rep(new FactorLUDefault()) {}
 
 // copy constructor
-FactorLU::FactorLU( const FactorLU& c ) {
-    rep = c.rep->clone();
-}
+FactorLU::FactorLU( const FactorLU& c ) = default;
+
+// move constructor
+FactorLU::FactorLU( FactorLU&& ) noexcept = default;
+
 // copy assignment operator
-FactorLU& FactorLU::operator=(const FactorLU& rhs) {
-    rep = rhs.rep->clone();
-    return *this;
-}
+FactorLU& FactorLU::operator=(const FactorLU& rhs) = default;
+
+// move assignment operator
+FactorLU& FactorLU::operator=(FactorLU&& rhs) noexcept = default;
 
 template <typename ELT>
 void FactorLU::inverse( Matrix_<ELT>& inverse ) const {
@@ -84,14 +82,13 @@ void FactorLU::inverse( Matrix_<ELT>& inverse ) const {
 
 
 template < class ELT >
-FactorLU::FactorLU( const Matrix_<ELT>& m ) {
-    rep = new FactorLURep<typename CNT<ELT>::StdNumber>(m);
-}
+FactorLU::FactorLU( const Matrix_<ELT>& m ) :
+    rep{new FactorLURep<typename CNT<ELT>::StdNumber>(m)}
+{}
 
 template < class ELT >
 void FactorLU::factor( const Matrix_<ELT>& m ) {
-    delete rep;
-    rep = new FactorLURep<typename CNT<ELT>::StdNumber>(m);
+    rep.reset(new FactorLURep<typename CNT<ELT>::StdNumber>(m));
 }
 
 template < typename ELT >

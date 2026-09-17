@@ -40,20 +40,17 @@
 // Cartesian directions are the axes of the parent body's F frame, with M=F 
 // when all 3 coords are 0, and the orientation of M in F is 0 (identity) 
 // forever.
-template<bool noX_MB, bool noR_PF>
-class RBNodeTranslate : public RigidBodyNodeSpec<3, true, noX_MB, noR_PF> {
+class RBNodeTranslate : public RigidBodyNodeSpec<3, true> {
 public:
-typedef typename RigidBodyNodeSpec<3, true, noX_MB, noR_PF>::HType HType;
+typedef typename RigidBodyNodeSpec<3, true>::HType HType;
 virtual const char* type() { return "translate"; }
 
 RBNodeTranslate(const MassProperties& mProps_B,
-                const Transform&      X_PF,
-                const Transform&      X_BM,
                 bool                  isReversed,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<3, true, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+:   RigidBodyNodeSpec<3, true>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {

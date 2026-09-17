@@ -190,8 +190,9 @@ namespace SimTKIpopt
                              prefix.c_str(), irow, jcol);
         if (ConstComp(irow,jcol)) {
           DBG_ASSERT(name.size()<200);
-          char buffer[256];
-          sprintf(buffer, "%s[%d][%d]", name.c_str(), irow, jcol);
+          const int n = 256;
+          char buffer[n];
+          snprintf(buffer, n, "%s[%d][%d]", name.c_str(), irow, jcol);
           std::string term_name = buffer;
           ConstComp(irow,jcol)->Print(&jnlst, level, category, term_name,
                                       indent+1, prefix);

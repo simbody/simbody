@@ -1041,10 +1041,7 @@ unregisterWithPrerequisites(StateImpl& stateImpl) const {
     }
 }
 
-
-
-#ifndef NDEBUG
-//--------------------------------- Debug only ---------------------------------
+// ------------------- Only Executed in Debug Builds -------------------
 void CacheEntryInfo::
 recordPrerequisiteVersions(const StateImpl& stateImpl) {
     if (isQPrerequisite())
@@ -1097,7 +1094,6 @@ validatePrerequisiteVersions(const StateImpl& stateImpl) const {
             info.getValueVersion(), m_cacheEntryVersions[i]);
     }
 }
-//--------------------------------- Debug only ---------------------------------
-#endif
+// ------------------- Only Executed in Debug Builds -------------------
 
 

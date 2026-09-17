@@ -1131,13 +1131,17 @@ std::istream& readVectorFromStreamHelper
 
         // Now read in an element of type T.
         // The extractor T::operator>>() will ignore leading white space.
-        if (!isFixedSize)
-            out.resizeKeep(out.size()+1); // grow by one (default consructed)
+        if (!isFixedSize && nextIndex >= out.size())
+        {
+            // grow output vector geometrically (resized to actual size after loop)
+            out.resizeKeep(out.size() == 0 ? 1 : 2*out.size());
+        }
         in >> out[nextIndex]; if (in.fail()) break;
         ++nextIndex;
 
         if (!in.good()) break; // might be eof
     }
+    out.resizeKeep(nextIndex);  // cut off trailing elements
 
     // We will get here under a number of circumstances:
     //  - the fail bit is set in the istream, or

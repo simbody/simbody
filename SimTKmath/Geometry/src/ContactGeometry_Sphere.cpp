@@ -279,6 +279,99 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
     setGeodesicToArc(e1, e2, radius, angle, geod);
 }
 
+void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    int numberOfKnotPoints,
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
+        geodesicKnotPointsSink) const
+{
+    SimTK_ERRCHK1_ALWAYS(
+        numberOfKnotPoints >= 2,
+        "ContactGeometry::Sphere::Impl::shootGeodesicInDirectionAnalytically",
+        "Argument numberOfKnotPoints must be greater than 2 (got numberOfKnotPoints = %d)",
+        numberOfKnotPoints);
+
+    // Define the geodesic state on the sphere as a frenet frame, i.e. a
+    // rotation matrix defined by the tangent, surface-normal and binormal
+    // axes.
+    const CoordinateAxis tangentAxis  = XAxis;
+    const CoordinateAxis normalAxis   = YAxis;
+    const CoordinateAxis binormalAxis = ZAxis;
+
+    // Construct frenet frame at geodesic start.
+    Rotation R;
+    R.setRotationFromTwoAxes(
+        UnitVec3(initialPointApprox),
+        normalAxis,
+        initialTangentApprox,
+        tangentAxis);
+
+    // Translational jacobi scalar at geodesic start.
+    Real a    = 1.;
+    Real aDot = 0.;
+
+    // Rotational jacobi scalar at geodesic start.
+    Real r    = 0.;
+    Real rDot = 1.;
+
+    // Hold on to the initial tangent and normal for computing the jacobi
+    // scalars during the integration.
+    const UnitVec3 t_P = R.getAxisUnitVec(tangentAxis);
+    const UnitVec3 n_P = R.getAxisUnitVec(normalAxis);
+
+    // Integration can be done by rotating about a constant axis with a
+    // constant angle.
+
+    // The angle rotated by each integration step.
+    const Real dAngle =
+        finalArcLength / (radius * static_cast<Real>(numberOfKnotPoints - 1));
+
+    // If the tangent is along Xaxis and the normal is along Yaxis, the
+    // axis of rotation is the negative of the binormal axis.
+    const UnitVec3 axis = -R.getAxisUnitVec(binormalAxis);
+
+    // Compute the rotation matrix that transforms one frenet frame to the
+    // frenet frame at the next integration step.
+    Rotation dR(dAngle, axis);
+
+    // Compute the frenet frames at the geodesic knot points.
+    for (int knotIx = 0; knotIx < numberOfKnotPoints; ++knotIx) {
+        // Write the geodesic knot point to the sink.
+        ContactGeometry::GeodesicKnotPoint y;
+        y.arcLength =
+            finalArcLength * (static_cast<Real>(knotIx) /
+                              static_cast<Real>(numberOfKnotPoints - 1));
+        y.point          = R.getAxisUnitVec(normalAxis) * radius;
+        y.tangent        = R.getAxisUnitVec(tangentAxis);
+        y.jacobiRot      = r;
+        y.jacobiRotDot   = rDot;
+        y.jacobiTrans    = a;
+        y.jacobiTransDot = aDot;
+        geodesicKnotPointsSink(y);
+
+        if (knotIx + 1 == numberOfKnotPoints) {
+            return;
+        }
+
+        // Compute the frenet frame at the next knot point.
+        R = dR * R;
+
+        // Grab the tangent and normal vector for computing the jacbobi fields.
+        const UnitVec3& t_Q = R.getAxisUnitVec(tangentAxis);
+        const UnitVec3& n_Q = R.getAxisUnitVec(normalAxis);
+
+        // Compute the translational jacobi scalar at the next knot point.
+        a    = dot(t_P, t_Q);
+        aDot = -dot(t_P, n_Q) / radius;
+
+        // Compute the rotational jacobi scalar at the next knot point.
+        r    = -dot(n_P, t_Q) * radius;
+        rDot = dot(n_P, n_Q);
+    }
+}
+
 void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
         const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const {
 

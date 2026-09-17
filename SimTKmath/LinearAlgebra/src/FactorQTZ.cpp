@@ -58,60 +58,58 @@ FactorQTZRepBase* FactorQTZDefault::clone() const {
    ///////////////
    // FactorQTZ //
    ///////////////
-FactorQTZ::~FactorQTZ() {
-    delete rep;
-}
+FactorQTZ::~FactorQTZ() = default;
+
 // default constructor
-FactorQTZ::FactorQTZ() {
-    rep = new FactorQTZDefault();
-}
+FactorQTZ::FactorQTZ() :
+    rep{new FactorQTZDefault()}
+{}
+
 // copy constructor
-FactorQTZ::FactorQTZ( const FactorQTZ& c ) {
-    rep = c.rep->clone();
-}
+FactorQTZ::FactorQTZ( const FactorQTZ& c ) = default;
+
+// move constructor
+FactorQTZ::FactorQTZ( FactorQTZ&& c ) noexcept = default;
+
 // copy assignment operator
-FactorQTZ& FactorQTZ::operator=(const FactorQTZ& rhs) {
-    rep = rhs.rep->clone();
-    return *this;
-}
+FactorQTZ& FactorQTZ::operator=(const FactorQTZ& rhs) = default;
+
+// move assignment operator
+FactorQTZ& FactorQTZ::operator=(FactorQTZ&& rhs) noexcept = default;
 
 template <typename ELT>
 void FactorQTZ::inverse( Matrix_<ELT>& inverse ) const {
     rep->inverse( inverse );
 }
 template < class ELT >
-void FactorQTZ::factor( const Matrix_<ELT>& m ){
-    delete rep;
-  
+void FactorQTZ::factor( const Matrix_<ELT>& m ){  
     // if user does not supply rcond set it to max(nRow,nCol)*(eps)^7/8 (similar to matlab)
     int mnmax = (m.nrow() > m.ncol()) ? m.nrow() : m.ncol();
-    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant());
+    rep.reset(new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant()));
 }
 template < class ELT >
 void FactorQTZ::factor( const Matrix_<ELT>& m, double rcond ){
-    delete rep;
-    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond );
+    rep.reset(new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond ));
 }
 template < class ELT >
 void FactorQTZ::factor( const Matrix_<ELT>& m, float rcond ){
-    delete rep;
-    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond );
+    rep.reset(new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond ));
 }
 template < class ELT >
 FactorQTZ::FactorQTZ( const Matrix_<ELT>& m ) {
 
     // if user does not supply rcond set it to max(nRow,nCol)*(eps)^7/8 (similar to matlab)
     int mnmax = (m.nrow() > m.ncol()) ? m.nrow() : m.ncol();
-    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant()); 
+    rep.reset(new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant()));
 }
 template < class ELT >
-FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, double rcond ) {
-    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond); 
-}
+FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, double rcond ) :
+    rep{new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond)}
+{}
 template < class ELT >
-FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, float rcond ) {
-    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond); 
-}
+FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, float rcond ) :
+    rep{new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond)}
+{}
 
 int FactorQTZ::getRank() const {
     return(rep->rank);

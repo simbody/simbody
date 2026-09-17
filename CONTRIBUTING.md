@@ -24,6 +24,17 @@ There are lots of ways to contribute to the Simbody project, and people with wid
 
     Michael A. Sherman, Ajay Seth, Scott L. Delp, Simbody: multibody dynamics for biomedical research, *Procedia IUTAM* 2:241-261 (2011) http://dx.doi.org/10.1016/j.piutam.2011.04.023
 
+For New Contributors
+------------------
+- The Issue Tracker may be awkward & difficult to manage for newcomers.
+- Click the link here https://github.com/simbody/simbody/issues to open up the Issues tab.
+- Once there, click the "New" button on the top right of the screen.
+- A title must be given to the issue which gives
+the other contributors an idea of what the issue is.
+- The body of your issue must address one of our "labels".
+- Most of our issues cover the following labels:
+bugs, build issues, constraint issues, contact issues, documentation issues.
+- There are many other types of issues that we invite you to share. The totality of our labels is listed here https://github.com/simbody/simbody/labels
 
 Submitting Pull Requests (PRs)
 ------------------------------
@@ -397,10 +408,16 @@ Matthew Millard     |@mjhmilla      |Bicubic spline
 Jack Middleton      |               |Numerical methods
 Christopher Bruns   |@cmbruns-hhmi  |Molmodel
 Randy Radmer        |               |Molmodel
+Jason Blum          |@jjblum        |Vis bug fix
+Allen Hill          |@halleysfifthinc|CMake build system improvements
+Pepijn Van den Bos  |@pepbos        |CableSpan feature
+Adam Kewley         |@adamkewley    |CableSpan feature, code review
+Nick Bianco         |@nickbianco    |Jacobian PV methods, calcForces()
+Clay Anderson       |@fcanderson    |Exponential Spring contact
 Charles Schwieters  |               |Provided initial multibody code
 Abhinandan Jain     |               |Underlying spatial algebra formulation
 Isaac Newton        |               |F=ma, calculus, etc.
-Jason Blum          |@jjblum        |Vis bug fix
+
 
 Contributor License Agreement
 -----------------------------

@@ -1,7 +1,7 @@
 include(FindDoxygen)
 
 if(DOXYGEN_EXECUTABLE-NOTFOUND)
-else(DOXYGEN_EXECUTABLE-NOTFOUND)
+else()
     set(DOXY_CONFIG "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
 
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in 
@@ -16,5 +16,5 @@ else(DOXYGEN_EXECUTABLE-NOTFOUND)
             )
     # This is just a shortcut to the Doxygen index.html.
     install(FILES "SimbodyAPI.html" DESTINATION "${CMAKE_INSTALL_DOCDIR}")
-endif(DOXYGEN_EXECUTABLE-NOTFOUND)
+endif()
 

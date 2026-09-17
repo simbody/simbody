@@ -38,19 +38,17 @@
  * RigidBodyNodeSpec for Custom Mobilizers. This is still templatized
  * by the number of u's (mobilities) in the user-defined Mobilizer.
  */
-template <int nu, bool noX_MB, bool noR_PF>
-class RBNodeCustom : public RigidBodyNodeSpec<nu, false, noX_MB, noR_PF> {
-    typedef typename RigidBodyNodeSpec<nu, false, noX_MB, noR_PF>::HType HType;
+template <int nu>
+class RBNodeCustom : public RigidBodyNodeSpec<nu, false> {
+    typedef typename RigidBodyNodeSpec<nu, false>::HType HType;
 public:
     RBNodeCustom(const MobilizedBody::Custom::Implementation& impl,
                  const MassProperties&  mProps_B, 
-                 const Transform&       X_PF, 
-                 const Transform&       X_BM,
                  bool                   isReversed,
                  UIndex&                nextUSlot, 
                  USquaredIndex&         nextUSqSlot, 
                  QIndex&                nextQSlot)
-    :   RigidBodyNodeSpec<nu, false, noX_MB, noR_PF>(mProps_B, X_PF, X_BM, nextUSlot, nextUSqSlot, nextQSlot, 
+    :   RigidBodyNodeSpec<nu, false>(mProps_B, nextUSlot, nextUSqSlot, nextQSlot,
                               RigidBodyNode::QDotMayDifferFromU,
                               impl.getImpl().getNumAngles() == 4 ? RigidBodyNode::QuaternionMayBeUsed 
                                                                  : RigidBodyNode::QuaternionIsNeverUsed,

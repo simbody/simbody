@@ -322,8 +322,6 @@ public:
     Array_<MobilizedBodyIndex> getChildren(MobilizedBodyIndex) const;
 
     const MassProperties& getDefaultBodyMassProperties    (MobilizedBodyIndex b) const;
-    const Transform&      getDefaultMobilizerFrame        (MobilizedBodyIndex b) const;
-    const Transform&      getDefaultMobilizerFrameOnParent(MobilizedBodyIndex b) const;
 
     void findMobilizerQs(const State& s, MobilizedBodyIndex body, QIndex& qStart, int& nq) const {
         const RigidBodyNode& n = getRigidBodyNode(body);
@@ -811,8 +809,11 @@ public:
 
     // Form the product 
     //    fu = [ ~P ~V ~A ] * lambda
-    // with all or a subset of P,V,A included. The multiplier-like vector 
-    // must have length m=mp+mv+ma always. This is an O(n+m) method.
+    // with all or a subset of P,V,A included. The multiplier-like vector
+    // must have length equal to the total number of active kinematic
+    // constraints for the included submatrices; the maximum length is
+    // m=mp+mv+ma.
+    // This is an O(n+m) method.
     void multiplyByPVATranspose(const State&     state,
                                 bool             includeP,
                                 bool             includeV,

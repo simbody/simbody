@@ -40,20 +40,17 @@
 // rotational freedom about a particular axis, the z axis of the parent's F 
 // frame, which is aligned forever with the z axis of the body's M frame. In 
 // addition, the origin points Mo of M and Fo of F are identical forever.
-template<bool noX_MB, bool noR_PF>
-class RBNodeTorsion : public RigidBodyNodeSpec<1, false, noX_MB, noR_PF> {
+class RBNodeTorsion : public RigidBodyNodeSpec<1, false> {
 public:
 virtual const char* type() { return "torsion"; }
-typedef typename RigidBodyNodeSpec<1, false, noX_MB, noR_PF>::HType HType;
+typedef typename RigidBodyNodeSpec<1, false>::HType HType;
 
 RBNodeTorsion(const MassProperties&   mProps_B,
-                const Transform&      X_PF,
-                const Transform&      X_BM,
                 bool                  isReversed,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<1, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+:   RigidBodyNodeSpec<1, false>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {

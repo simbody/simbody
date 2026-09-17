@@ -129,8 +129,9 @@ namespace SimTKIpopt
       jnlst.PrintfIndented(level, category, indent,
                            "%sTerm %d with factor %23.16e and the following matrix:\n",
                            prefix.c_str(), iterm, factors_[iterm]);
+      const int n = 256;
       char buffer[256];
-      sprintf(buffer, "Term: %d", iterm);
+      snprintf(buffer, n, "Term: %d", iterm);
       std::string name = buffer;
       matrices_[iterm]->Print(&jnlst, level, category, name, indent+1, prefix);
     }

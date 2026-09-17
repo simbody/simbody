@@ -389,10 +389,8 @@ public:
                != m_cacheEntryPrerequisites.cend();
     }
 
-    #ifndef NDEBUG
     void recordPrerequisiteVersions(const StateImpl&);
     void validatePrerequisiteVersions(const StateImpl&) const;
-    #endif
 
     const ListOfDependents& getDependents() const {return m_dependents;}
     ListOfDependents& updDependents() {return m_dependents;}
@@ -434,11 +432,9 @@ private:
     // numbers are recorded for every prerequisite. Then the "is valid" code
     // can double check that the "is up to date with prerequisites" flag is
     // set correctly.
-    #ifndef NDEBUG
     ValueVersion                m_qVersion{0}, m_uVersion{0}, m_zVersion{0};
     Array_<ValueVersion>        m_discreteVarVersions;
     Array_<ValueVersion>        m_cacheEntryVersions;
-    #endif
 
     bool isReasonable() const {
         return (   m_allocationStage==Stage::Topology

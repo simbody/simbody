@@ -520,8 +520,9 @@ namespace SimTKIpopt
 
     //#define tracequalityfunction
 #ifdef tracequalityfunction
-    char fname[100];
-    sprintf(fname, "qf_values_%d.dat", IpData().iter_count());
+    const int n1 = 100;
+    char fname[n1];
+    snprintf(fname, n1, "qf_values_%d.dat", IpData().iter_count());
     FILE* fid = fopen(fname, "w");
 
     Number sigma_1 = sigma_max_;
@@ -603,10 +604,11 @@ namespace SimTKIpopt
     curr_slack_s_U_ = NULL;
 
     // DELETEME
-    char ssigma[40];
-    sprintf(ssigma, " sigma=%8.2e", sigma);
+    const int n2 = 40;
+    char ssigma[n2];
+    snprintf(ssigma, n2, " sigma=%8.2e", sigma);
     IpData().Append_info_string(ssigma);
-    sprintf(ssigma, " qf=%d", count_qf_evals_);
+    snprintf(ssigma, n2, " qf=%d", count_qf_evals_);
     IpData().Append_info_string(ssigma);
     /*
     sprintf(ssigma, " xi=%8.2e ", IpCq().curr_centrality_measure());

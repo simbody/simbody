@@ -55,20 +55,17 @@
 // Note that the U-Joint degrees of freedom relating the parent's F frame to 
 // the child's M frame are about x and y, with the "long" axis of the
 // driveshaft along z.
-template<bool noX_MB, bool noR_PF>
-class RBNodeUJoint : public RigidBodyNodeSpec<2, false, noX_MB, noR_PF> {
+class RBNodeUJoint : public RigidBodyNodeSpec<2, false> {
 public:
-typedef typename RigidBodyNodeSpec<2, false, noX_MB, noR_PF>::HType HType;
+typedef typename RigidBodyNodeSpec<2, false>::HType HType;
 virtual const char* type() { return "ujoint"; }
 
 RBNodeUJoint(const MassProperties& mProps_B,
-                const Transform&      X_PF,
-                const Transform&      X_BM,
                 bool                  isReversed,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<2, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+:   RigidBodyNodeSpec<2, false>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {

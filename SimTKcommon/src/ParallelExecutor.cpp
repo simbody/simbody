@@ -182,6 +182,9 @@ void ParallelExecutor::execute(Task& task, int times) {
 #ifdef __APPLE__
    #include <sys/sysctl.h>
    #include <dlfcn.h>
+#elif __FreeBSD__
+    #include <sys/types.h>
+    #include <sys/sysctl.h>
 #elif _WIN32
    #include <windows.h>
 #elif __linux__
@@ -202,15 +205,23 @@ int ParallelExecutor::getNumProcessors() {
     } else {
        return(1);
     }
-#else
-#ifdef __linux__
+#elif defined(__FreeBSD__)
+    int mib[2];
+    int ncpu;
+    size_t szNcpu = sizeof(ncpu);
+
+    mib[0] = CTL_HW;
+    mib[1] = HW_NCPU;
+    int ret = sysctl(mib, 2, &ncpu, &szNcpu, NULL, 0);
+    return ret == 0 ? ncpu : 1;
+#elif defined(__linux__)
     long nProcessorsOnline     = sysconf(_SC_NPROCESSORS_ONLN);
     if( nProcessorsOnline == -1 )  {
         return(1);
     } else {
         return( (int)nProcessorsOnline );
     }
-#else
+#elif defined(_WIN32)
     // Windows
 
     SYSTEM_INFO siSysInfo;
@@ -225,7 +236,8 @@ int ParallelExecutor::getNumProcessors() {
     ncpu =  siSysInfo.dwNumberOfProcessors;
     if( ncpu < 1 ) ncpu = 1;
     return(ncpu);
-#endif
+#else
+  #error "Architecture unsupported"
 #endif
 }
 

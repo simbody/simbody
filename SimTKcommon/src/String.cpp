@@ -49,7 +49,8 @@ String::String(float r, const char* fmt) {
             "Unrecognized non-finite value %g.", (double)r);
         return;
     }
-    char buf[64]; sprintf(buf,fmt,r); (*this)=buf; 
+    const int n = 64;
+    char buf[n]; snprintf(buf,n,fmt,r); (*this)=buf;
 }
 
 String::String(double r, const char* fmt) {
@@ -60,7 +61,8 @@ String::String(double r, const char* fmt) {
             "Unrecognized non-finite value %g.", r);
         return;
     }
-    char buf[64]; sprintf(buf,fmt,r); (*this)=buf; 
+    const int n = 64;
+    char buf[n]; snprintf(buf,n,fmt,r); (*this)=buf;
 }
 
 static String cleanUp(const String& in) {
@@ -80,9 +82,9 @@ bool String::tryConvertToFloat(float& out) const {
     const String adjusted = cleanUp(*this);
     if (adjusted=="nan")  {out=NTraits<float>::getNaN();  return true;}
     if (   adjusted=="inf" || adjusted=="infinity"
-        || adjusted=="+inf" || adjusted=="+infinity") 
+        || adjusted=="+inf" || adjusted=="+infinity")
     {   out = NTraits<float>::getInfinity(); return true;}
-    if (adjusted=="-inf" || adjusted=="-infinity") 
+    if (adjusted=="-inf" || adjusted=="-infinity")
     {   out = -NTraits<float>::getInfinity(); return true;}
     std::istringstream sstream(adjusted);
     sstream >> out;
@@ -93,9 +95,9 @@ bool String::tryConvertToDouble(double& out) const {
     const String adjusted = cleanUp(*this);
     if (adjusted=="nan")  {out=NTraits<double>::getNaN();  return true;}
     if (   adjusted=="inf" || adjusted=="infinity"
-        || adjusted=="+inf" || adjusted=="+infinity") 
+        || adjusted=="+inf" || adjusted=="+infinity")
     {   out = NTraits<double>::getInfinity(); return true;}
-    if (adjusted=="-inf" || adjusted=="-infinity") 
+    if (adjusted=="-inf" || adjusted=="-infinity")
     {   out = -NTraits<double>::getInfinity(); return true;}
     std::istringstream sstream(adjusted);
     sstream >> out;

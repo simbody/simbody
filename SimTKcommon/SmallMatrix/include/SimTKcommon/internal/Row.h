@@ -160,7 +160,7 @@ public:
         NRows               = 1,
         NCols               = N,
         NPackedElements     = N,
-        NActualElements     = N * STRIDE,   // includes trailing gap
+        NActualElements     = (N-1)*STRIDE + 1,  // no trailing gap
         NActualScalars      = CNT<E>::NActualScalars * NActualElements,
         RowSpacing          = NActualElements,
         ColSpacing          = STRIDE,
@@ -237,7 +237,7 @@ public:
     // abs() is elementwise absolute value; that is, the return value has the same
     // dimension as this Row but with each element replaced by whatever it thinks
     // its absolute value is.
-    TAbs abs() const {
+    SimTK_NODISCARD TAbs abs() const {
         TAbs rabs;
         for(int i=0;i<N;++i) rabs[i] = CNT<E>::abs(d[i*STRIDE]);
         return rabs;
@@ -466,9 +466,9 @@ public:
     // Row<> does, because we can eliminate the negation here almost for free.
     // But we can't standardize (change conjugate to complex) for free, so we'll retain
     // conjugates if there are any.
-    TNormalize normalize() const {
+    SimTK_NODISCARD TNormalize normalize() const {
         if (CNT<E>::IsScalar) {
-            return castAwayNegatorIfAny() / (SignInterpretation*norm());
+            return castAwayNegatorIfAny() / (int(SignInterpretation)*norm());
         } else {
             TNormalize elementwiseNormalized;
             for (int j=0; j<N; ++j) 
@@ -477,7 +477,7 @@ public:
         }
     }
 
-    TInvert invert() const {assert(false); return TInvert();} // TODO default inversion
+    SimTK_NODISCARD TInvert invert() const {assert(false); return TInvert();} // TODO default inversion
 
     const Row&   operator+() const { return *this; }
     const TNeg&  operator-() const { return negate(); }
@@ -485,13 +485,13 @@ public:
     const THerm& operator~() const { return transpose(); }
     THerm&       operator~()       { return updTranspose(); }
 
-    const TNeg&  negate() const { return *reinterpret_cast<const TNeg*>(this); }
+    SimTK_NODISCARD const TNeg&  negate() const { return *reinterpret_cast<const TNeg*>(this); }
     TNeg&        updNegate()    { return *reinterpret_cast<TNeg*>(this); }
 
-    const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
+    SimTK_NODISCARD const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
     THerm&       updTranspose()       { return *reinterpret_cast<THerm*>(this); }
 
-    const TPosTrans& positionalTranspose() const
+    SimTK_NODISCARD const TPosTrans& positionalTranspose() const
         { return *reinterpret_cast<const TPosTrans*>(this); }
     TPosTrans&       updPositionalTranspose()
         { return *reinterpret_cast<TPosTrans*>(this); }

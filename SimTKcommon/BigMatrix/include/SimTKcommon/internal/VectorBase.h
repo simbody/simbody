@@ -169,7 +169,7 @@ public:
     { Base::template rowScaleInPlace<EE>(v); return *this; }
     template <class EE> inline void rowScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
     { Base::rowScale(v,out); }
-    template <class EE> inline typename EltResult<EE>::Mul rowScale(const VectorBase<EE>& v) const
+    template <class EE> SimTK_NODISCARD inline typename EltResult<EE>::Mul rowScale(const VectorBase<EE>& v) const
     { typename EltResult<EE>::Mul out(nrow()); Base::rowScale(v,out); return out; }
 
     /** Return the root-mean-square (RMS) norm of a Vector of scalars, with 
@@ -322,7 +322,7 @@ public:
     }
 
     /// Return out[i]=this[i]^-1 as function return.
-    VectorBase<typename CNT<ELT>::TInvert> elementwiseInvert() const {
+    SimTK_NODISCARD VectorBase<typename CNT<ELT>::TInvert> elementwiseInvert() const {
         VectorBase<typename CNT<ELT>::TInvert> out(nrow());
         Base::elementwiseInvert(out);
         return out;
@@ -403,7 +403,7 @@ public:
     ptrdiff_t nelt() const {assert(Base::ncol()==1); return Base::nelt();}
 
     // Override MatrixBase operators to return the right shape
-    TAbs abs() const {TAbs result; Base::abs(result); return result;}
+    SimTK_NODISCARD TAbs abs() const {TAbs result; Base::abs(result); return result;}
     
     // Override MatrixBase indexing operators          
     const ELT& operator[](int i) const {return *reinterpret_cast<const ELT*>(Base::getHelper().getElt(i));}
@@ -432,7 +432,7 @@ public:
     VectorView_<ELT> operator()(const Array_<int>& indices)       {return updIndex(indices);}
  
     // Hermitian transpose.
-    THerm transpose() const {return Base::transpose().getAsRowVectorView();}
+    SimTK_NODISCARD THerm transpose() const {return Base::transpose().getAsRowVectorView();}
     THerm updTranspose()    {return Base::updTranspose().updAsRowVectorView();}
 
     THerm operator~() const {return transpose();}
@@ -442,7 +442,7 @@ public:
 
     // Negation
 
-    const TNeg& negate()    const {return *reinterpret_cast<const TNeg*>(this); }
+    SimTK_NODISCARD const TNeg& negate()    const {return *reinterpret_cast<const TNeg*>(this); }
     TNeg&       updNegate()       {return *reinterpret_cast<TNeg*>(this); }
 
     const TNeg& operator-() const {return negate();}

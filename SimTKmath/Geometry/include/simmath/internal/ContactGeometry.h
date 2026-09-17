@@ -35,6 +35,7 @@ individual contact shapes. **/
 #include "simmath/internal/BicubicSurface.h"
 
 #include <cassert>
+#include <functional>
 
 namespace SimTK {
 
@@ -121,6 +122,27 @@ class TriangleMesh;
 // TODO
 class Cone;
 
+/** The state of a geodesic at a (knot) point along the geodesic. */
+struct GeodesicKnotPoint {
+    /** The length of the geodesic at this point. **/
+    Real arcLength = NaN;
+
+    /** The location of the point on the curve. **/
+    Vec3 point {NaN};
+    /** The tangent is the derivative of the point to arc length. **/
+    UnitVec3 tangent {NaN, NaN, NaN};
+
+    /** The scalar related to the rotational jacobi field. **/
+    Real jacobiRot = NaN;
+    /** The scalar related to the binormal translational jacobi field. **/
+    Real jacobiTrans = NaN;
+
+    /** The derivative of jacobiRot to arc length. **/
+    Real jacobiRotDot = NaN;
+    /** The derivative of jacobiTrans to arc length. **/
+    Real jacobiTransDot = NaN;
+};
+
 /** Base class default constructor creates an empty handle. **/
 ContactGeometry() : impl(0) {}
 /** Copy constructor makes a deep copy. **/
@@ -134,6 +156,12 @@ implementation. **/
 
 /** Generate a DecorativeGeometry that matches the shape of this ContactGeometry **/
 DecorativeGeometry createDecorativeGeometry() const;
+
+/** This function checks to see if a point is within the defined bounds of this
+particular ContactGeometry. Attempting to invoke calcSurfaceValue(),
+calcSurfaceGradient() etc, on an out-of-range point will raise an exception;
+use this method to check first if you are not sure. **/
+bool isSurfaceDefined(const Vec3& point) const;
 
 /** Given a point, find the nearest point on the surface of this object. If 
 multiple points on the surface are equally close to the specified point, this 
@@ -234,7 +262,52 @@ bool trackSeparationFromLine(const Vec3& pointOnLine,
                              Vec3& closestPointOnLine,
                              Real& height) const;
 
+/** Exit flag returned by calcNearestPointOnLineImplicitly. */
+enum class NearestPointOnLineResult
+{
+    Converged,
+    MaxIterationsExceeded,
+    PointFallsBelowSurface,
+};
 
+/** Compute the nearest point on the line spanned by points pA-pB to the surface.
+This function exits early if the point lies below the surface.
+
+@param pointA Line origin point.
+@param pointB Line termination point.
+@param maxIterations Maximum number of solver iterations.
+@param tolerance If the stepsize falls below this value stop iterating
+@param nearestPointOnLine The computed nearest point on the line.
+@return The NearestPointOnLineResult signifying the result status upon exit.
+
+<h3>Theory</h3>
+Computing the point is done by searching for a maximum of the surface
+constraint value `c=f(p)`, along the line. The point on the line `pL` can be
+expressed with one unknown scalar alpha as:
+<pre>
+pL = pA + alpha * (pB-pA)  with 0 <= alpha <= 1.
+</pre>
+This gives the optimization problem as:
+<pre>
+max f(alpha), s.t. 0 <= alpha <= 1
+</pre>
+The constraint `f(alpha)` can be approximated using the gradient `g`, and hessian `H`:
+<pre>
+f(alpha) = c + g * (pB - pA) * alpha + 1/2 * ~(pB - pA) * H * (pB - pA) * alpha^2 + ...
+</pre>
+Update alpha as:
+<pre>
+alpha += g * (pB-pA) / ( ~(pB-pA) * H * (pB-pA) )
+</pre>
+The search is terminated when either the step size falls below given tolerance,
+or the max number of iterations is exceeded, or if the point falls below the
+surface. **/
+NearestPointOnLineResult calcNearestPointOnLineImplicitly(
+    const Vec3& pointA,
+    const Vec3& pointB,
+    int maxIterations,
+    Real tolerance,
+    Vec3& nearestPointOnLine) const;
 
 /** Determine whether this object intersects a ray, and if so, find the 
 intersection point.
@@ -374,6 +447,16 @@ k = ~tp * H * tp / |g|,
 where H is the Hessian matrix evaluated at p. 
 **/
 Real calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
+
+/** For an implicit surface, return the geodesic torsion tau of the surface at
+a given point p in a given direction tp. Make sure the point is on the surface
+and the direction vector lies in the tangent plane. Then
+<pre>
+tau = - ( H * tp ) . ( g % tp ) / |g|^2
+</pre>
+where H is the Hessian matrix, and g is the gradient vector, evaluated at p.
+**/
+Real calcSurfaceTorsionInDirection(const Vec3& point, const UnitVec3& direction) const;
 
 /** For an implicit surface at a given point p, return the principal 
 curvatures and principal curvature directions, using only the implicit
@@ -559,6 +642,75 @@ is closest to that point. Otherwise, find the shortest length geodesic.
 void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
         const GeodesicOptions& options, Geodesic& geod) const;
 
+/** Use this function to determine if you can compute a geodesic analytically
+using shootGeodesicInDirectionAnalytically. **/
+bool isAnalyticFormAvailable() const;
+
+/** Given an approximate initial point and an approximate initial tangent
+direction compute the geodesic of given arc length analytically. This method is
+only available for a few surfaces for which an analytic description actually
+exists. Use ContactGeometry::isAnalyticFormAvailable to check if you do not
+know. The initial point will be projected to the surface, and the initial
+tangent projected to the normal plane before computing the geodesic. The
+resulting geodesic is written to the provided sink as GeodesicKnotPoints.
+
+Since the geodesic is computed analytically the final GeodesicKnotPoint could
+be computed directly after the initial GeodesicKnotPoint, resulting in only two
+knots being computed. However, it is often useful to obtain some intermediate
+knots as well (e.g. for visualization purposes), which is why the
+numberOfKnotPoints is a parameter. If you do not need any intermediate knots,
+set this equal to 2.
+
+@param initialPointApprox Coordinates of starting point in local surface
+coordinates. This point will be projected to the surface.
+@param initialTangentApprox Direction of geodesic at start, in local surface
+coordinates. This vector will be projected to the normal plane, and normalized.
+@param finalArcLength Length of the computed geodesic.
+@param numberOfKnotPoints The total number of knot points used to describe the
+geodesic. Must be larger or equal to 2.
+@param geodesicKnotPointsSink The resulting geodesic is written to this sink as
+knot points at equal length intervals.
+**/
+void shootGeodesicInDirectionAnalytically(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    int numberOfKnotPoints,
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
+        geodesicKnotPointsSink) const;
+
+/** Given an approximate initial point and an approximate initial tangent
+direction compute the geodesic of given arc length implicitly. The initial
+point will be projected to the surface, and the initial tangent projected to
+the normal plane before computing the geodesic. The geodesic is computed by
+numerical integration, and each GeodesciKnotPoint point is written to the
+provided sink.
+
+@param initialPointApprox Coordinates of starting point in local surface
+coordinates. This point will be projected to the surface.
+@param initialTangentApprox Direction of geodesic at start, in local surface
+coordinates. This vector will be projected to the normal plane, and normalized.
+@param finalArcLength Length of the computed geodesic.
+@param initialIntegratorStepSize Initial step size used by the numerical
+integrator.
+@param integratorAccuracy Numerical integrator accuracy (controls the
+integration step size).
+@param constraintTolerance Surface constraint tolerance at the integrator knot
+points.
+@param maxIterations TODO not connected.
+@param geodesicKnotPointsSink The resulting geodesic is written to this sink as
+computed integrator knot points.
+**/
+void shootGeodesicInDirectionImplicitly(
+    const Vec3& initialPointApprox,
+    const Vec3& initialTangentApprox,
+    Real finalArcLength,
+    Real initialIntegratorStepSize,
+    Real integratorAccuracy,
+    Real constraintTolerance,
+    int maxIterations,
+    const std::function<void(const ContactGeometry::GeodesicKnotPoint&)>&
+        geodesicKnotPointsSink) const;
 
 /** Given the current positions of two points P and Q moving on this surface, 
 and the previous geodesic curve G' connecting prior locations P' and Q' of

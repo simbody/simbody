@@ -266,21 +266,21 @@ public:
     }
 
     const Transform& getInboardFrame (const State& s) const {
-        // TODO: these should come from the state if the mobilizer has variable frames
         const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(s);
-        return getMyRigidBodyNode().getX_PF();
+        return getMyRigidBodyNode().getX_PF(iv);
     }
     const Transform& getOutboardFrame(const State& s) const {
-        // TODO: these should come from the state if the mobilizer has variable frames
         const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(s);
-        return getMyRigidBodyNode().getX_BM();
+        return getMyRigidBodyNode().getX_BM(iv);
     }
 
     void setInboardFrame (State& s, const Transform& X_PF) const {
-        assert(!"setInboardFrame(s) not implemented yet");
+        SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(s);
+        getMyRigidBodyNode().updX_PF(iv) = X_PF;
     }
     void setOutboardFrame(State& s, const Transform& X_BM) const {
-        assert(!"setOutboardFrame(s) not implemented yet");
+        SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(s);
+        getMyRigidBodyNode().updX_BM(iv) = X_BM;
     }
 
     const Transform& getBodyTransform(const State& s) const {
@@ -1026,6 +1026,43 @@ private:
     friend class MobilizedBody::Screw;
     Real defaultPitch;
     Real defaultQ; // the angle in radians
+};
+
+class MobilizedBody::CantileverFreeBeamImpl : public MobilizedBodyImpl {
+public:
+    explicit CantileverFreeBeamImpl(Direction d)
+    :   MobilizedBodyImpl(d), defaultLength(Real(0.5)),
+        defaultQ() { } // default is (0,0,0), the identity rotation
+    CantileverFreeBeamImpl* clone() const override {
+        return new CantileverFreeBeamImpl(*this);
+    }
+
+    RigidBodyNode* createRigidBodyNode(
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const override;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
+        SimTK_ASSERT(nq==3,
+            "MobilizedBody::CantileverFreeBeamImpl::copyOutDefaultQImpl(): wrong number of q's");
+        Vec3::updAs(q) = defaultQ;
+    }
+
+    void calcDecorativeGeometryAndAppendImpl
+        (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
+
+    void setDefaultLength(const Real& length) {
+        assert(length>0);
+        invalidateTopologyCache();
+        defaultLength=length;
+    }
+    const Real& getDefaultLength() const {return defaultLength;}
+
+    SimTK_DOWNCAST(CantileverFreeBeamImpl, MobilizedBodyImpl);
+private:
+    friend class MobilizedBody::CantileverFreeBeam;
+    Real defaultLength; // used for visualization only
+    Vec3 defaultQ;      // the default orientation
 };
 
 /////////////////////////////////////////////////

@@ -40,20 +40,17 @@
 // and the common z axis of F and M as the rotational axis. The generalized
 // coordinates are theta,x,y interpreted as rotation around z and translation
 // along the (space fixed) Fx and Fy axes.
-template<bool noX_MB, bool noR_PF>
-class RBNodePlanar : public RigidBodyNodeSpec<3, false, noX_MB, noR_PF> {
+class RBNodePlanar : public RigidBodyNodeSpec<3, false> {
 public:
-typedef typename RigidBodyNodeSpec<3, false, noX_MB, noR_PF>::HType HType;
+typedef typename RigidBodyNodeSpec<3, false>::HType HType;
 virtual const char* type() { return "planar"; }
 
 RBNodePlanar(const MassProperties&    mProps_B,
-                const Transform&      X_PF,
-                const Transform&      X_BM,
                 bool                  isReversed,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<3, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+:   RigidBodyNodeSpec<3, false>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {

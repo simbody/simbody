@@ -1,12 +1,39 @@
 Simbody Changelog and Release Notes
 ===================================
 
-This is not a comprehensive list of changes but rather a hand-curated collection of the more notable ones. For a comprehensive history, see the [Simbody GitHub repo](https://github.com/simbody/simbody). You can use the release dates below to find all the PRs and issues that were included in a particular release. 
+This is not a comprehensive list of changes but rather a hand-curated collection
+of the more notable ones. For a comprehensive history, see the
+[Simbody GitHub repo](https://github.com/simbody/simbody). You can use the release dates below to find all the
+PRs and issues that were included in a particular release.
 
-**Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
-
-3.8 (in development)
+3.9 (in development)
 --------------------
+* Added support for variable mobilizer inboard and outboard frames (PR #859)
+* `MobilizedBody::Translation` "lone particle" support has been removed  (PR #859)
+* Add MobilizedBody::CantileverFreeBeam, a mobilizer for modeling spinal joints and
+  other flexible structures. (PR #844)
+* Fixed implementations of setUToFitAngularVelocityImpl for the gimbal and bushing
+  mobilizers. (PR #844)
+* Add LLT (Cholesky) factorization
+* Add quaternion multiplication (Hamilton product) 
+* Required C++ level was increased from C++11 to C++20
+* Fixed an out-of-bounds warning/error emitted by overloads of SimTK::Mat accessing
+  out-of-bounds rows.
+* Breaking: constants in `Scalar.h` are now `inline constexpr` (header-defined) rather than exported library symbols; code that relied on the constants being a single exported symbol (e.g., comparing addresses across shared-library boundaries) may be affected.
+
+
+3.8 (May 2025)
+--------------------
+* Added CableSpan as a superior replacement for CablePath. (PRs #791 and #814)
+* Many improvements/modernization of the CMake build system. (PR #801)
+* Minor changes for C++20 compatibility.
+* Added calcForceContributionsSum() to GeneralForceSubsystem. (PR #788)
+* Added methods for dealing with the position and velocity (PV) subset of
+  the full constraint Jacobian G: multiplyByPV(), etc. (PR #783)
+* Improved performance of reading mesh files. (PR #773)
+* Added ExponentialSpringForce, an efficient point-ground contact model.
+  (PRs #720, #734, #746 and others)
+* Many minor improvements and bug fixes, see Simbody GitHub for details.
 
 3.7 (December 2019)
 -------------------

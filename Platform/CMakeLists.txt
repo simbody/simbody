@@ -11,28 +11,31 @@
 # was replaced with C++11 threading in 2018.
 #-----------------------------------------------------------
 
-set(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${CMAKE_HOST_SYSTEM_NAME})
-
-if(WIN32 AND NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
-    # only provided for native builds
+# Nothing here is needed done if Unix, WINDOWS_USE_EXTERNAL_LIBS or (non-native) cross-compiling for Windows
+if(NOT WIN32 OR WINDOWS_USE_EXTERNAL_LIBS OR (WIN32 AND NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows))
+    # Users/system must provide own BLAS/LAPACK
     return()
 endif()
 
+set(PLATFORM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/${CMAKE_HOST_SYSTEM_NAME})
+
+# Native cross-compiling (e.g. compiling on Windows using non-MSVC compiler, aka MinGW)
 if(MINGW)
     # Caution: No cross-compiling is taken into account:
     # If we use a 32 bit compiler, we will get a 32 executable.
     # The same for 64 bit platform
-    #
+
     # 1 Check the thread model
     include(CheckCXXSourceCompiles)
     CHECK_CXX_SOURCE_COMPILES("#include <mutex>\nint main(){std::mutex m;return 0;}" GPP_SUPPORTS_STD_MUTEX)
     if(NOT GPP_SUPPORTS_STD_MUTEX)
-        message(STATUS "Your MinGW version does not support std::mutex.")
-        message(STATUS "This is probably because of the win32 thread model used.")
-        message(STATUS "Change to a posix thread model.")
-        message(STATUS "Also note that exception mechanism is important before downloading another MinGW version")
-        message(STATUS "    For a 32 bit instatallation, use a Posix thread with DWARF (DW2) exception mechanism")
-        message(STATUS "    For a 64 bit instatallation, use a Posix thread with SJLJ exception mechanism")
+        message(STATUS
+            "Your MinGW version does not support std::mutex."
+            "This is probably because of the win32 thread model used."
+            "Change to a posix thread model."
+            "Also note that exception mechanism is important before downloading another MinGW version"
+            "    For a 32 bit installation, use a Posix thread with DWARF (DW2) exception mechanism"
+            "    For a 64 bit installation, use a Posix thread with SJLJ exception mechanism")
         message(FATAL_ERROR "Your MinGW version does not support std::mutex. -> Change to a posix thread model")
     endif()
     # 2 Check the exception mechanism
@@ -90,87 +93,6 @@ if(MINGW)
 endif()
 
 set(LIB_ABI_DIR "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}")
-file(GLOB LIB_FILES
-    "${LIB_ABI_DIR}/*.a"
-    "${LIB_ABI_DIR}/*.so"
-    "${LIB_ABI_DIR}/*.so.*"
-    "${LIB_ABI_DIR}/*.dylib"
-    "${LIB_ABI_DIR}/*.lib"
-    "${LIB_ABI_DIR}/*.dll")
-
-if(MINGW)
-    # If we use MinGW, we bypass the classical *dll and use
-    # the MinGW ones.
-    # TODO: We should select only the ones needed...
-    if(BUILD_USING_OTHER_LAPACK)
-        set(LIB_FILES ${MINGW_DLLS} ${LAPACK_BEING_USED})
-    else()
-        set(LIB_FILES ${MINGW_DLLS}
-                      ${LIB_ABI_DIR}/liblapack.dll
-                      ${LIB_ABI_DIR}/libblas.dll)
-    endif()
-endif()
-
-# message(STATUS "List of dependencies : ${LIB_FILES}" )
-
-# This is where we're going to put these binaries.
-set(COPIED_LIB_FILES)
-foreach(LIBF ${LIB_FILES})
-    get_filename_component(LIBF_ROOT ${LIBF} NAME)
-    set(COPIED_LIB_FILES ${COPIED_LIB_FILES}
-    "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
-endforeach()
-
-add_custom_target(PlatformFiles_subdir DEPENDS ${COPIED_LIB_FILES})
-add_dependencies(PlatformFiles PlatformFiles_subdir)
-set_target_properties(PlatformFiles
-    PROPERTIES PROJECT_LABEL "Code - Platform Files")
-
-# During build, we want to copy all of the platform binaries
-# into the same binary directory that we are using for all of
-# the ones we build. That ensures that our build will always
-# use the current versions of these.
-#
-# At installation, we copy both includes and binaries into
-# the appropriate locations of the SimTK_INSTALL_DIR.
-
-foreach(LIBF ${LIB_FILES})
-    get_filename_component(LIBF_ROOT ${LIBF} NAME)
-    set(COPIED_LIBF "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
-    if(MINGW)
-        set(LIBF_SRC ${LIBF})
-        set(LIBF_DEST ${COPIED_LIBF})
-    else()
-        file(TO_NATIVE_PATH "${LIBF}" LIBF_SRC)
-        file(TO_NATIVE_PATH "${COPIED_LIBF}" LIBF_DEST)
-    endif()
-
-    string(REGEX MATCH "[.][dD][lL][lL]$" isFileADll ${LIBF})
-    if(isFileADll)
-        # Only the runtime libraries (.dll) are needed next to the
-        # executables/tests; import libraries (.lib) are linked through
-        # target_link_libraries.
-        add_custom_command(OUTPUT "${COPIED_LIBF}"
-            COMMAND ${CMAKE_COMMAND} -E copy "${LIBF_SRC}" "${LIBF_DEST}"
-            DEPENDS "${LIBF}"
-            COMMENT "Copy ${LIBF_SRC} -> ${LIBF_DEST}"
-            VERBATIM)
-    endif()
-
-    if(isFileADll)
-        install(FILES ${LIBF}
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                GROUP_READ GROUP_WRITE GROUP_EXECUTE
-                    WORLD_READ WORLD_EXECUTE
-        DESTINATION ${CMAKE_INSTALL_BINDIR})
-    else()
-        install(FILES ${LIBF}
-        PERMISSIONS OWNER_READ OWNER_WRITE
-                GROUP_READ GROUP_WRITE
-                    WORLD_READ
-        DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    endif()
-endforeach()
 
 # Create "fake" IMPORTED targets to represent the pre-built platform libraries.
 # When CMake sees that a target links to, e.g., the blas target, CMake will use
@@ -181,19 +103,64 @@ endforeach()
 # All the platform libraries (including quadmath, etc.) still must be on the
 # PATH when running executables using Simbody.
 if(WIN32 AND NOT BUILD_USING_OTHER_LAPACK)
+    # declare transitive dependencies for blas/lapack (see simbody/simbody#771)
+    #
+    # the transitive dependencies don't, themselves, have IMPLIBs, because
+    # they have already been linked by blas/lapack. However, cmake can become
+    # confused when it sees a library with no IMPLIB, so we include blas's
+    # here to satisfy cmake
+    #
+    # (if you link to blas or lapack, you're going to link to the blas IMPLIB
+    # anyway, so it makes no difference)
+    add_library(libgcc_s_sjlj-1 SHARED IMPORTED)
+    set_target_properties(libgcc_s_sjlj-1 PROPERTIES
+        IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
+        IMPORTED_LOCATION "${LIB_ABI_DIR}/libgcc_s_sjlj-1.dll"
+        )
+    add_library(libgfortran-3 SHARED IMPORTED)
+    set_target_properties(libgfortran-3 PROPERTIES
+        IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
+        IMPORTED_LOCATION "${LIB_ABI_DIR}/libgfortran-3.dll"
+        )
+    add_library(libquadmath-0 SHARED IMPORTED)
+    set_target_properties(libquadmath-0 PROPERTIES
+        IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
+        IMPORTED_LOCATION "${LIB_ABI_DIR}/libquadmath-0.dll"
+        )
+
     # Without GLOBAL, this target is only available in this dir. and below,
     # but we want to use these targets everywhere in this project.
     add_library(blas SHARED IMPORTED GLOBAL)
     set_target_properties(blas PROPERTIES
         IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
+        IMPORTED_LOCATION "${LIB_ABI_DIR}/libblas.dll"
         )
-    
+    # link to transitive dependencies
+    target_link_libraries(blas INTERFACE libgcc_s_sjlj-1 libgfortran-3 libquadmath-0)
+
+    # CMake won't install import libraries, but downstream libraries that depend on our
+    # vendored blas/lapack need the import libs to link
+    install(FILES $<TARGET_PROPERTY:blas,IMPORTED_IMPLIB>
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ
+        DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
     add_library(lapack SHARED IMPORTED GLOBAL)
     set_target_properties(lapack PROPERTIES
         IMPORTED_IMPLIB "${LIB_ABI_DIR}/liblapack.lib"
+        IMPORTED_LOCATION "${LIB_ABI_DIR}/liblapack.dll"
         # lapack depends on blas:
         INTERFACE_LINK_LIBRARIES blas
         )
+    install(FILES $<TARGET_PROPERTY:lapack,IMPORTED_IMPLIB>
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ
+        DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(FILES
+        $<TARGET_PROPERTY:blas,IMPORTED_LOCATION>
+        $<TARGET_PROPERTY:lapack,IMPORTED_LOCATION>
+        $<TARGET_PROPERTY:libgcc_s_sjlj-1,IMPORTED_LOCATION>
+        $<TARGET_PROPERTY:libgfortran-3,IMPORTED_LOCATION>
+        $<TARGET_PROPERTY:libquadmath-0,IMPORTED_LOCATION>
+        DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
 # There is just one item in PLATFORM_INCLUDE_DIRECTORIES.

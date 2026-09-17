@@ -432,26 +432,30 @@ const UnitInertia& getBodyUnitInertiaAboutBodyOrigin(const State& state) const {
     return getBodyMassProperties(state).getUnitInertia();
 }
 
-/** Return a reference to this mobilizer's frame F fixed on the parent body P, 
-as the fixed Transform from P's body frame to the frame F fixed to P. If this 
-frame is changeable, the result comes from the State cache, otherwise it is from
-the MobilizedBody object itself. The State must have been realized to 
-Stage::Instance or higher. **/
+/** Return a reference to this mobilizer's frame F fixed on the parent body P,
+as the fixed Transform X_PF from P's body frame to the frame F. The value is
+held in the State as an Instance-stage variable, initialized from
+setDefaultInboardFrame() at State creation and updatable with setInboardFrame().
+The State must have been realized to Stage::Instance or higher. **/
 const Transform& getInboardFrame (const State& state) const;    // X_PF
-/** Return a reference to this MobilizedBody's mobilizer frame M, as the fixed 
-Transform from this body B's frame to the frame M fixed on B. If this frame is 
-changeable, the result comes from the State cache, otherwise it is from the 
-MobilizedBody object itself. The State must have been realized to 
-Stage::Instance or higher. **/
+/** Return a reference to this mobilizer's frame M fixed on the child body B,
+as the fixed Transform X_BM from B's body frame to the frame M. The value is
+held in the State as an Instance-stage variable, initialized from
+setDefaultOutboardFrame() at State creation and updatable with setOutboardFrame().
+The State must have been realized to Stage::Instance or higher. **/
 const Transform& getOutboardFrame(const State& state) const;    // X_BM
 
-/** TODO: not implemented yet. Set the location and orientation of the inboard 
-(parent) mobilizer frame F, fixed to this mobilizer's parent body P.
-@see setDefaultInboardFrame() **/
-void setInboardFrame (State& state, const Transform& X_PF) const;
-/** TODO: not implemented yet. Set the location and orientation of the outboard 
-mobilizer frame M, fixed to this body B.
-@see setDefaultOutboardFrame() **/
+/** Set this mobilizer's frame F fixed on the parent body P, as the fixed
+Transform from P's body frame to the frame F fixed to P in the given State.
+Calling this method invalidates Stage::Instance and higher. The value from
+setDefaultInboardFrame() is used as the default value during State creation.
+@see setDefaultInboardFrame(), getInboardFrame() **/
+void setInboardFrame(State& state, const Transform& X_PF) const;
+/** Set this mobilizer's frame M fixed on the child body B, as the fixed
+Transform from B's body frame to the frame M fixed to B in the given State.
+Calling this method invalidates Stage::Instance and higher. The value from
+setDefaultOutboardFrame() is used as the default value during State creation.
+@see setDefaultOutboardFrame(), getOutboardFrame() **/
 void setOutboardFrame(State& state, const Transform& X_BM) const;
 
 // End of State Access - Bodies
@@ -648,7 +652,7 @@ void setUToFitLinearVelocity(State& state, const Vec3& v_FM) const;
 of this mobilizer's mobilities (actually a column of H_PB_G; what Jain calls H* 
 and Schwieters calls H^T). This is the matrix that maps generalized speeds u to 
 the cross-body relative spatial velocity V_PB_G via V_PB_G=H*u. Note that 
-although H relates child body B to parent body B, it is expressed in the ground 
+although H relates child body B to parent body P, it is expressed in the ground
 frame G so the resulting cross-body velocity of B in P is also expressed in G. 
 The supplied state must have been realized through Position stage because H 
 varies with this mobilizer's generalized coordinates q.
@@ -1260,7 +1264,7 @@ Inertia calcBodyInertiaAboutAnotherBodyStation
 
 /** Calculate body B's momentum (angular, linear) measured and expressed in 
 Ground, but taken about the body origin Bo. **/
-SpatialVec calcBodyMomentumAboutBodyOriginInGround(const State& state) {
+SpatialVec calcBodyMomentumAboutBodyOriginInGround(const State& state) const {
     const MassProperties M_Bo_G = expressMassPropertiesInGroundFrame(state);
     const SpatialVec&    V_GB   = getBodyVelocity(state);
     return M_Bo_G.toSpatialMat() * V_GB;
@@ -1855,7 +1859,8 @@ class Ellipsoid;
 class Custom;
 class Ground;
 class FunctionBased;
-    
+class CantileverFreeBeam;
+
 // Internal use only.
 class PinImpl;
 class SliderImpl;
@@ -1877,6 +1882,7 @@ class EllipsoidImpl;
 class CustomImpl;
 class GroundImpl;
 class FunctionBasedImpl;
+class CantileverFreeBeamImpl;
 };
 
 } // namespace SimTK

@@ -74,7 +74,7 @@ using namespace SimTK;
 
 class SimbodyMatterSubsystemRep;
 class RigidBodyNode;
-template <int dof, bool noR_FM, bool noX_MB, bool noR_PF> 
+template <int dof, bool noR_FM>
     class RigidBodyNodeSpec;
 
 // defined below
@@ -323,10 +323,12 @@ class SBInstancePerMobodInfo {
 public:
     SBInstancePerMobodInfo() {clear();}
 
-    void clear() {   
+    void clear() {
         qMethod=uMethod=udotMethod=Motion::Free;
-        firstPresQ.invalidate(); firstPresU.invalidate(); 
+        firstPresQ.invalidate(); firstPresU.invalidate();
         firstPresUDot.invalidate(); firstPresForce.invalidate();
+        noX_MB = false;
+        noR_PF = false;
     }
 
     Motion::Method      qMethod;        // how are positions calculated?
@@ -337,6 +339,9 @@ public:
     PresUPoolIndex      firstPresU;     // if uMethod==Prescribed
     PresUDotPoolIndex   firstPresUDot;  // if udotMethod==Prescribed
     PresForcePoolIndex  firstPresForce; // if udotMethod!=Free
+
+    bool                noX_MB;         // is X_BM an identity transform?
+    bool                noR_PF;         // is R_PF an identity rotation?
 };
 
 
@@ -471,12 +476,14 @@ public:
     //       each rigid body
     //   reference configuration X_PB when q==0 (usually that means M==F), 
     //       for each rigid body
+    //   inverse of outboard mobilizer frames, X_MB = ~X_BM
 
     Real              totalMass; // sum of all rigid body and particles masses
-    Array_<Inertia,MobilizedBodyIndex>   centralInertias;           // nb
-    Array_<Vec3,MobilizedBodyIndex>      principalMoments;          // nb
-    Array_<Rotation,MobilizedBodyIndex>  principalAxes;             // nb
-    Array_<Transform,MobilizedBodyIndex> referenceConfiguration;    // nb
+    Array_<Inertia,MobilizedBodyIndex>   centralInertias;                // nb
+    Array_<Vec3,MobilizedBodyIndex>      principalMoments;               // nb
+    Array_<Rotation,MobilizedBodyIndex>  principalAxes;                  // nb
+    Array_<Transform,MobilizedBodyIndex> referenceConfiguration;         // nb
+    Array_<Transform,MobilizedBodyIndex> outboardMobilizerFramesInverse; // nb
 
     int getNumMobilizedBodies() const {return (int)mobodInstanceInfo.size();}
     SBInstancePerMobodInfo& updMobodInstanceInfo(MobilizedBodyIndex mbx)
@@ -577,10 +584,11 @@ public:
                   const SBModelCache&    model) 
     {
         totalMass = SimTK::NaN;
-        centralInertias.resize(topo.nBodies);           // I_CB
-        principalMoments.resize(topo.nBodies);          // (Ixx,Iyy,Izz)
-        principalAxes.resize(topo.nBodies);             // [axx ayy azz]
-        referenceConfiguration.resize(topo.nBodies);    // X0_PB
+        centralInertias.resize(topo.nBodies);                // I_CB
+        principalMoments.resize(topo.nBodies);               // (Ixx,Iyy,Izz)
+        principalAxes.resize(topo.nBodies);                  // [axx ayy azz]
+        referenceConfiguration.resize(topo.nBodies);         // X0_PB
+        outboardMobilizerFramesInverse.resize(topo.nBodies); // X_MB
 
         mobodInstanceInfo.resize(topo.nBodies);
 
@@ -671,8 +679,10 @@ public:
     // CAUTION: our definition of the H matrix is transposed from those used
     // by Jain and by Schwieters. Jain would call these H* and Schwieters
     // would call them H^T, but we call them H.
-    Array_<Vec3> storageForH_FM; // 2 x ndof (H_FM)
-    Array_<Vec3> storageForH;    // 2 x ndof (H_PB_G)
+    // TODO(sherm1) Since each dof gets a SpatialVec, consider making each
+    //  entry a SpatialVec instead to get rid of the 2x in the index.
+    Array_<Vec3> storageForH_FM;   // 2 x ndof (H_FM)
+    Array_<Vec3> storageForH_PB_G; // 2 x ndof (H_PB_G)
 
     Array_<Transform,MobilizedBodyIndex>    bodyJointInParentJointFrame;  // nb (X_FM)
     Array_<Transform,MobilizedBodyIndex>    bodyConfigInParent;           // nb (X_PB)
@@ -715,7 +725,7 @@ public:
         mobilizerQCache.resize(model.totalNQPoolInUse);
 
         storageForH_FM.resize(2*nDofs);
-        storageForH.resize(2*nDofs);
+        storageForH_PB_G.resize(2*nDofs);
 
         bodyJointInParentJointFrame.resize(nBodies); 
         bodyJointInParentJointFrame[GroundIndex].setToZero();

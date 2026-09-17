@@ -19,3 +19,6 @@ obj-*
 # CLion
 /cmake-build-*
 .idea/
+/out/
+/.vs/
+/CMakeUserPresets.json

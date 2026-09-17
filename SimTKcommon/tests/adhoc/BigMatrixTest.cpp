@@ -684,7 +684,7 @@ int main()
     Matrix_<P> big(N,N);
     for (int j=0; j<N; ++j)
         for (int i=0; i<N; ++i)
-            big(i,j) = 1+(float)std::rand()/RAND_MAX;
+            big(i,j) = 1+(double)std::rand()/RAND_MAX;
     cout << "big.norm()=" << big.norm() << endl;
 
 
