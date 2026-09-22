@@ -52,6 +52,7 @@ struct SimulationOptions {
 
 // Declarations
 void testInitialization();
+void testMobilizedBodyHandleLifetime();
 void testBlockVerticalBounceNoDampNoFric();
 void testBlockVerticalBounceNoDampNoFric();
 void testBlockVerticalBounceNoDampWithFric();
@@ -157,6 +158,7 @@ int main() {
     SimTK_START_TEST("TestExponentialSpring");
 
     SimTK_SUBTEST(testInitialization);
+    SimTK_SUBTEST(testMobilizedBodyHandleLifetime);
 
     SimTK_SUBTEST(testBlockVerticalBounceNoDampNoFric);
     SimTK_SUBTEST(testBlockVerticalBounceNoDampWithFric);
@@ -188,6 +190,30 @@ int main() {
 //=============================================================================
 // SUB TESTS
 //=============================================================================
+//_____________________________________________________________________________
+void testMobilizedBodyHandleLifetime() {
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Body::Rigid bodyInfo(MassProperties(1.0, Vec3(0), UnitInertia(1)));
+    MobilizedBody::Free body(matter.Ground(), bodyInfo);
+    MobilizedBody::Free otherBody(matter.Ground(), bodyInfo);
+
+    unique_ptr<ExponentialSpringForce> spring;
+    {
+        MobilizedBody temporaryBodyHandle = body;
+        spring.reset(new ExponentialSpringForce(
+            forces, Transform(), temporaryBodyHandle, Vec3(0)));
+
+        temporaryBodyHandle = otherBody;
+        SimTK_TEST(spring->getBody().isSameMobilizedBody(body));
+    }
+
+    State state = system.realizeTopology();
+    system.realize(state, Stage::Dynamics);
+    SimTK_TEST(spring->getBody().isSameMobilizedBody(body));
+}
+
 //_____________________________________________________________________________
 // Drop, no damp, no fric
 void testBlockVerticalBounceNoDampNoFric() {
