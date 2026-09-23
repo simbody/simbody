@@ -1021,6 +1021,52 @@ void testVariableMobilizerFrames() {
     SimTK_TEST_EQ(free.getOutboardFrame(state), X_BM);
 }
 
+void testVariableEllipsoidRadii() {
+
+    // Create a system with two ellipsoid mobilizer: forward and reverse.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    Transform X_PF(Rotation(-1.9, Vec3(-3, 2, 4)), Vec3(-0.33, 0.66, -0.99));
+    Transform X_BM(Rotation(0.5, Vec3(2, -5, 1)), Vec3(0.25, -0.50, 0.75));
+    const Vec3 defaultRadii(0.35, 0.2, 0.45);
+    MobilizedBody::Ellipsoid ellipsoidForward(matter.Ground(), X_PF, body, X_BM,
+            defaultRadii, MobilizedBody::Forward);
+    MobilizedBody::Ellipsoid ellipsoidReverse(matter.Ground(), X_PF, body, X_BM,
+            defaultRadii, MobilizedBody::Reverse);
+
+    // The ellipsoid radii should match the defaults.
+    system.realizeTopology();
+    State state = system.getDefaultState();
+    SimTK_TEST_EQ(ellipsoidForward.getRadii(state), defaultRadii);
+    SimTK_TEST_EQ(ellipsoidReverse.getRadii(state), defaultRadii);
+
+    // Set new ellipsoid.
+    Vec3 newRadiiForward(Vec3(0.11, 0.22, 0.33));
+    Vec3 newRadiiReverse(Vec3(0.25, 0.55, 0.75));
+    ellipsoidForward.setRadii(state, newRadiiForward);
+    ellipsoidReverse.setRadii(state, newRadiiReverse);
+    // No need to realize here, since we're just pulling directly from the
+    // Instance-stage discrete variables.
+    SimTK_TEST_EQ(ellipsoidForward.getRadii(state), newRadiiForward);
+    SimTK_TEST_EQ(ellipsoidReverse.getRadii(state), newRadiiReverse);
+
+    // Now we need to realize to Position, since we're pulling from the cache to
+    // perform calculations.
+    system.realize(state, Stage::Position);
+    Vec3 station(0.1, 0.2, 0.3);
+    Vec3 location = ellipsoidForward.findStationLocationInGround(state, station);
+    const Transform& X_FM = ellipsoidForward.getMobilizerTransform(state);
+    SimTK_TEST_EQ(location, X_PF * X_FM * ~X_BM * station);
+
+    // Grabbing a fresh default state should restore the mobilizer frame
+    // defaults.
+    state = system.getDefaultState();
+    SimTK_TEST_EQ(ellipsoidForward.getRadii(state), defaultRadii);
+    SimTK_TEST_EQ(ellipsoidReverse.getRadii(state), defaultRadii);
+}
+
 int main() {
     SimTK_START_TEST("TestMobilizedBody");
         SimTK_SUBTEST(testCalculationMethods);
@@ -1033,5 +1079,6 @@ int main() {
         SimTK_SUBTEST(testMirroredEllipsoid);
         SimTK_SUBTEST(testMirroredEllipsoidJacobians);
         SimTK_SUBTEST(testVariableMobilizerFrames);
+        SimTK_SUBTEST(testVariableEllipsoidRadii);
     SimTK_END_TEST();
 }

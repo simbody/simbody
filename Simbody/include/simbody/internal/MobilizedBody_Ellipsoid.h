@@ -174,7 +174,7 @@ public:
     /** Modify the default semi-axis dimensions of the ellipsoid, given in
     the F frame. These are usually set on construction. **/
     Ellipsoid& setDefaultRadii(const Vec3& radii);
-    /** Get the default semi-axis dimensions of the ellipsoid as specified 
+    /** Get the default semi-axis dimensions of the ellipsoid as specified
     during construction or via setDefaultRadii(). **/
     const Vec3& getDefaultRadii() const;
 
@@ -195,6 +195,72 @@ public:
     this method invalidates the %MobilizedBody's topology, so the containing
     System's realizeTopology() method must be called again. **/
     Ellipsoid& clearMirrorAxis();
+
+    /** Get the semi-axis dimensions of the ellipsoid currently in use, from the
+    given \a state. These are Instance-stage state variables, initialized from
+    getDefaultRadii(). **/
+    const Vec3& getRadii(const State& state) const;
+    /** Change the semi-axis dimensions of the ellipsoid in the given \a state,
+    invalidating Stage::Instance. All radii must be greater than zero. **/
+    void setRadii(State& state, const Vec3& radii) const;
+
+    /** Calculate the product of the body position Jacobian with respect to
+    this mobilizer's ellipsoid radii, Jr, with a Vec3 quantity, dradii. If
+    dradii is a perturbations in the ellipsoid radii, then the result is the
+    change in mobilized body (B) origin positions (Bo) measured and expressed in
+    Ground.
+
+    @param[in]      state
+        A State that has already been realized through Position stage.
+    @param[in]      dradii
+        A Vec3 quantity, usually the perturbation in this ellipsoid's semi-axis
+        dimensions.
+    @param[out]     dp_GB
+        The product Jr*dradii, usually the change in mobilized body (B) origin
+        positions (Bo), measured and expressed in Ground. The 0th entry is set to
+        zero since Ground does not move.
+
+    @see multiplyByPositionJacobianWrtRadiiTranspose() **/
+    void multiplyByPositionJacobianWrtRadii(
+            const State&   state,
+            const Vec3&    dradii,
+            Vector_<Vec3>& dp_GB) const;
+
+    /** Calculate the product of the transposed body position Jacobian with
+    respect to mobilizer radii, ~Jr (==Jr^T), with a vector of nb gradient-like
+    quantities, g_GB. If g_GB is the gradient of a scalar function with respect
+    to the mobilized body (B) origin positions (Bo) in Ground, then the result
+    is the gradient of that same function with respect to this mobilizer's
+    ellipsoid radii.
+
+    @param[in]      state
+        A State that has already been realized through Position stage.
+    @param[in]      g_GB
+        A vector of nb gradient-like quantities, one per mobilized body in the
+        order of MobilizedBodyIndex. The 0th entry is ignored since Ground does
+        not move. Usually, g_GB contains sensitivities like
+        partial(f)/partial(p_GB) for a scalar function f, expressed in Ground.
+    @returns
+        The product ~Jr*g_GB, usually the gradient of f with respect to this
+        mobilizer's ellipsoid radii.
+
+    <h3>Usage</h3>
+    If you have a scalar function f that depends on the mobilized body positions
+    p_GB (e.g., the squared distance between a measured point and a body origin),
+    use this method to obtain the gradient of f with respect to this mobilizer's
+    ellipsoid radii:
+    <pre>
+                partial(f)           partial(f)
+    g_radii = -------------- = ~Jr --------------
+              partial(radii)        partial(p_GB)
+    </pre>
+    This operator may be useful when computing gradients with respect to this
+    mobilizer's radii when optimizing the geometry of a multibody system.
+
+    @see multiplyByPositionJacobianWrtRadii() **/
+    Vec3 multiplyByPositionJacobianWrtRadiiTranspose(
+            const State&         state,
+            const Vector_<Vec3>& g_GB) const;
 
     /** Provide a default orientation for this mobilizer if you don't want to
     start with the identity rotation (that is, alignment of the F and M 

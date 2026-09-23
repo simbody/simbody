@@ -199,8 +199,8 @@ RigidBodyNode* MobilizedBody::EllipsoidImpl::createRigidBodyNode(
     QIndex&        nextQSlot) const
 {
     return new RBNodeEllipsoid(
+        *this,
         getDefaultRigidBodyMassProperties(),
-        getDefaultRadii(),
         getMirrorAxis(),
         isReversed(),
         nextUSlot, nextUSqSlot, nextQSlot);

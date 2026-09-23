@@ -853,12 +853,34 @@ public:
     bool isMirrored()    const {return mirrorAxis >= 0;}
     int  getMirrorAxis() const {return mirrorAxis;}
 
+    const Vec3& getRadii(const State& s) const {
+        return s.getDiscreteVariable(getMySubsystemIndex(), radiiIx)
+                    .getValue<Vec3>();
+    }
+    void setRadii(State& s, const Vec3& r) const {
+        assert(r[0]>0 && r[1]>0 && r[2]>0);
+        s.updDiscreteVariable(
+                getMySubsystemIndex(), radiiIx).updValue<Vec3>() = r;
+    }
+
+    void realizeTopologyVirtual(State& s) const override {
+        radiiIx = s.allocateDiscreteVariable(getMySubsystemIndex(),
+                                             Stage::Instance,
+                                             new Value<Vec3>(defaultRadii));
+    }
+
     SimTK_DOWNCAST(EllipsoidImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Ellipsoid;
-    Vec3 defaultRadii;    // used for visualization only
+
+    SubsystemIndex getMySubsystemIndex() const {
+        return getMyMatterSubsystemRep().getMySubsystemIndex();
+    }
+
+    Vec3 defaultRadii;    // initial value for the radii state variable
     Quaternion defaultQ;  // the default orientation
     int mirrorAxis;       // -1 unless this mobilizer is mirrored
+    mutable DiscreteVariableIndex radiiIx; // the radii discrete value index
 };
 
 class MobilizedBody::TranslationImpl : public MobilizedBodyImpl {

@@ -35,7 +35,7 @@
 #include "SimbodyMatterSubsystemRep.h"
 #include "RigidBodyNode.h"
 #include "RigidBodyNodeSpec.h"
-
+#include "MobilizedBodyImpl.h"
 
     // ELLIPSOID //
 
@@ -52,7 +52,7 @@
 // not the identity transform. Instead, although the frames are aligned the
 // M frame origin is offset from F along their shared +z axis, so that it lies
 // on the ellipsoid surface at the point (0,0,rz) where rz is the z-radius
-// (semiaxis) of the ellipsoid.
+// of the ellipsoid.
 //
 // The generalized coordinates are:
 //   * 4 quaternions or 3 1-2-3 body fixed Euler angles (that is, fixed in M)
@@ -81,15 +81,15 @@
 // This mobilizer was written by Ajay Seth and hacked somewhat by Sherm.
 
 class RBNodeEllipsoid : public RigidBodyNodeSpec<3, false> {
-    Vec3 semi;       // semi axis dimensions in x,y,z resp.
     int  mirrorAxis; // 0,1,2 for x,y,z; -1 means not mirrored
+    const MobilizedBody::EllipsoidImpl& impl;
 public:
 
 typedef typename RigidBodyNodeSpec<3, false>::HType HType;
 virtual const char* type() { return "ellipsoid"; }
 
-RBNodeEllipsoid(const MassProperties& mProps_B,
-              const Vec3&           radii,      // x,y,z
+RBNodeEllipsoid(const MobilizedBody::EllipsoidImpl& impl,
+              const MassProperties& mProps_B,
               int                   mirrorAxis, // -1 if not mirrored
               bool                  isReversed,
               UIndex&               nextUSlot,
@@ -97,9 +97,13 @@ RBNodeEllipsoid(const MassProperties& mProps_B,
               QIndex&               nextQSlot)
   : RigidBodyNodeSpec<3, false>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotMayDifferFromU, RigidBodyNode::QuaternionMayBeUsed, isReversed),
-    semi(radii), mirrorAxis(mirrorAxis)
+    impl(impl), mirrorAxis(mirrorAxis)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+}
+
+const Vec3& getRadii(const SBStateDigest& sbs) const {
+    return impl.getRadii(sbs.getState());
 }
 
     // MIRRORING HELPER FUNCTIONS //
@@ -182,6 +186,7 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector
     // the requested ray is the normalized diag(1/a,1/b,1/c)*p_FM. The p_FM
     // that results is then exactly parallel to the request, with its distance
     // along that ray fixed by the surface.
+    const Vec3& semi = getRadii(sbs);
     const UnitVec3 e(p_F0M0[0]/semi[0], p_F0M0[1]/semi[1], p_F0M0[2]/semi[2]);
 
     // Point Mz along e. Mz is the third column of Rx(q1)Ry(q2)Rz(q3), namely
@@ -249,6 +254,7 @@ void setUToFitLinearVelocityImpl
     // perpendicular to Mz is reachable, and u = Mz X w delivers exactly that,
     // since (Mz X w) X Mz == w - Mz*(Mz.w). Adding any multiple of Mz leaves
     // v_FM alone, so carry the current spin over.
+    const Vec3& semi = getRadii(sbs);
     const Vec3 w(v_F0M0[0]/semi[0], v_F0M0[1]/semi[1], v_F0M0[2]/semi[2]);
     const Vec3 u_now = this->fromU(u);
 
@@ -313,7 +319,7 @@ void calcX_FM(const SBStateDigest& sbs,
         X_F0M0.updR().setRotationFromQuaternion(quat); // 29 flops
     }
 
-    // Translation.
+    const Vec3& semi = getRadii(sbs);
     const Vec3& n = X_F0M0.z(); // just calculated above
     X_F0M0.updP() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
 
@@ -335,6 +341,7 @@ void calcAcrossJointVelocityJacobian(
     // used to *define* this mobilizer, not necessarily the ones used after
     // handling mobilizer reversal.
     Vec3 n = this->findX_F0M0(pc).z();
+    const Vec3& semi = getRadii(sbs);
 
     // We want the normal of the unmirrored joint. If the mirror is about the
     // Z-axis, then the mirrored normal will point into the ellipsoid, which
@@ -372,7 +379,8 @@ void calcAcrossJointVelocityJacobianDot(
     if (mirrorAxis == ZAxis) n = -n;   // 3 flops
     mirrorAngular(w_F0M0, mirrorAxis); // 2 flops
 
-    const Vec3       ndot   = w_F0M0 % n; // w_FM x n (9 flops)
+    const Vec3       ndot  = w_F0M0 % n; // w_FM x n (9 flops)
+    const Vec3&      semi  = getRadii(sbs);
 
     HDot_FM(0) = SpatialVec( Vec3(0), Vec3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
     HDot_FM(1) = SpatialVec( Vec3(0), Vec3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
