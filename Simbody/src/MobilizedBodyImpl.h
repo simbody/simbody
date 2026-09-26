@@ -380,6 +380,10 @@ public:
         return *myMatterSubsystemRep;
     }
 
+    SubsystemIndex getMySubsystemIndex() const {
+        return getMyMatterSubsystemRep().getMySubsystemIndex();
+    }
+
     const SBModelPerMobodInfo& getMyModelInfo(const State& s) const {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const SBModelCache& mc = matterRep.getModelCache(s);
@@ -879,10 +883,6 @@ public:
 private:
     friend class MobilizedBody::Ellipsoid;
 
-    SubsystemIndex getMySubsystemIndex() const {
-        return getMyMatterSubsystemRep().getMySubsystemIndex();
-    }
-
     Vec3 defaultRadii;    // initial value for the radii state variable
     Quaternion defaultQ;  // the default orientation
     int mirrorAxis;       // -1 unless this mobilizer is mirrored
@@ -1090,17 +1090,39 @@ public:
         (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
     void setDefaultLength(const Real& length) {
-        assert(length>0);
+        SimTK_APIARGCHECK1_ALWAYS(length > 0,
+            "MobilizedBody::CantileverFreeBeam", "setDefaultLength",
+            "The length must be positive but was %g.", length);
         invalidateTopologyCache();
         defaultLength=length;
     }
     const Real& getDefaultLength() const {return defaultLength;}
 
+    const Real& getLength(const State& s) const {
+        return s.getDiscreteVariable(getMySubsystemIndex(), lengthIx)
+                    .getValue<Real>();
+    }
+    void setLength(State& s, const Real& length) const {
+        SimTK_APIARGCHECK1_ALWAYS(length > 0,
+            "MobilizedBody::CantileverFreeBeam", "setLength",
+            "The length must be positive but was %g.", length);
+        s.updDiscreteVariable(
+                getMySubsystemIndex(), lengthIx).updValue<Real>() = length;
+    }
+
+    void realizeTopologyVirtual(State& s) const override {
+        lengthIx = s.allocateDiscreteVariable(getMySubsystemIndex(),
+                                              Stage::Instance,
+                                              new Value<Real>(defaultLength));
+    }
+
     SimTK_DOWNCAST(CantileverFreeBeamImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::CantileverFreeBeam;
-    Real defaultLength; // used for visualization only
-    Vec3 defaultQ;      // the default orientation
+
+    Real defaultLength;  // initial value for the length state variable
+    Vec3 defaultQ;       // the default orientation
+    mutable DiscreteVariableIndex lengthIx; // the length discrete value index
 };
 
 /////////////////////////////////////////////////

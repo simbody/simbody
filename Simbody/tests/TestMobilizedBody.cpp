@@ -996,6 +996,47 @@ void testMirroredEllipsoidJacobians() {
     }
 }
 
+// Check H_FM and HDot_FM of a CantileverFreeBeam against finite differences,
+// first with the default lengths and then after changing the lengths in an
+// already-realized State.
+void testCantileverFreeBeamJacobians() {
+    const Transform X_PF(Rotation(0.3, Vec3(1,-2,3)), Vec3(0.1, 0.5, -1));
+    const Transform X_BM(Rotation(-0.7, Vec3(2,1,-1)), Vec3(0.2, -0.2, 0.05));
+
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    Body::Rigid body(MassProperties(3.1, Vec3(.1,.2,.3),
+                     UnitInertia(1.2,1.1,1.3,.01,.02,.03)));
+
+    // A forward and a reversed beam in series, so that the second one's F
+    // frame is moving and the velocity Jacobian terms couple across bodies.
+    MobilizedBody::CantileverFreeBeam mobod1(matter.updGround(), X_PF,
+                                             body, X_BM, 0.8);
+    MobilizedBody::CantileverFreeBeam mobod2(mobod1, X_BM, body, X_PF, 1.4,
+                                             MobilizedBody::Reverse);
+
+    system.realizeTopology();
+    State state = system.getDefaultState();
+    mobod1.setQ(state, Vec3(0.4, -0.3, 0.7));
+    mobod2.setQ(state, Vec3(-0.6, 0.5, -0.2));
+    mobod1.setU(state, Vec3(-3, .4, -.7));
+    mobod2.setU(state, Vec3(1.3, -2.1, .9));
+    system.realize(state, Stage::Velocity);
+
+    const MobilizedBody* mobods[2] = {&mobod1, &mobod2};
+    checkJacobiansByFiniteDifference(system, matter, state, mobods);
+
+    // Change the lengths in the already-realized State. This must invalidate
+    // Instance stage, so that re-realizing recomputes X_FM, H_FM, and HDot_FM
+    // with the new lengths rather than reusing the cached results from the
+    // defaults.
+    mobod1.setLength(state, 1.9);
+    mobod2.setLength(state, 0.35);
+    SimTK_TEST(state.getSystemStage() < Stage::Instance);
+    system.realize(state, Stage::Velocity);
+    checkJacobiansByFiniteDifference(system, matter, state, mobods);
+}
+
 void testVariableMobilizerFrames() {
 
     // Create a system with two bodies.
@@ -1087,6 +1128,56 @@ void testVariableEllipsoidRadii() {
     SimTK_TEST_EQ(ellipsoidReverse.getRadii(state), defaultRadii);
 }
 
+void testVariableBeamLength() {
+
+    // Create a system with two cantilever free beam mobilizers: forward and
+    // reverse.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    Transform X_PF(Rotation(-1.9, Vec3(-3, 2, 4)), Vec3(-0.33, 0.66, -0.99));
+    Transform X_BM(Rotation(0.5, Vec3(2, -5, 1)), Vec3(0.25, -0.50, 0.75));
+    const Real defaultLength = 0.75;
+    MobilizedBody::CantileverFreeBeam beamForward(matter.Ground(), X_PF, body,
+            X_BM, defaultLength, MobilizedBody::Forward);
+    MobilizedBody::CantileverFreeBeam beamReverse(matter.Ground(), X_PF, body,
+            X_BM, defaultLength, MobilizedBody::Reverse);
+
+    // The beam lengths should match the defaults.
+    system.realizeTopology();
+    State state = system.getDefaultState();
+    SimTK_TEST_EQ(beamForward.getLength(state), defaultLength);
+    SimTK_TEST_EQ(beamReverse.getLength(state), defaultLength);
+
+    // Set new beam lengths.
+    Real newLengthForward = 1.35;
+    Real newLengthReverse = 0.42;
+    beamForward.setLength(state, newLengthForward);
+    beamReverse.setLength(state, newLengthReverse);
+    // No need to realize here, since we're just pulling directly from the
+    // Instance-stage discrete variables.
+    SimTK_TEST_EQ(beamForward.getLength(state), newLengthForward);
+    SimTK_TEST_EQ(beamReverse.getLength(state), newLengthReverse);
+
+    // Now we need to realize to Position, since we're pulling from the cache to
+    // perform calculations.
+    system.realize(state, Stage::Position);
+    Vec3 station(0.1, 0.2, 0.3);
+    Vec3 location = beamForward.findStationLocationInGround(state, station);
+    const Transform& X_FM = beamForward.getMobilizerTransform(state);
+    SimTK_TEST_EQ(location, X_PF * X_FM * ~X_BM * station);
+
+    // In the undeformed state the M frame origin is offset from Fo along their
+    // shared +z axis by the beam length.
+    SimTK_TEST_EQ(X_FM.p(), Vec3(0, 0, newLengthForward));
+
+    // Grabbing a fresh default state should restore the length defaults.
+    state = system.getDefaultState();
+    SimTK_TEST_EQ(beamForward.getLength(state), defaultLength);
+    SimTK_TEST_EQ(beamReverse.getLength(state), defaultLength);
+}
+
 int main() {
     SimTK_START_TEST("TestMobilizedBody");
         SimTK_SUBTEST(testCalculationMethods);
@@ -1098,7 +1189,9 @@ int main() {
         SimTK_SUBTEST(testCantileverFreeBeamEnergyConservation);
         SimTK_SUBTEST(testMirroredEllipsoid);
         SimTK_SUBTEST(testMirroredEllipsoidJacobians);
+        SimTK_SUBTEST(testCantileverFreeBeamJacobians);
         SimTK_SUBTEST(testVariableMobilizerFrames);
         SimTK_SUBTEST(testVariableEllipsoidRadii);
+        SimTK_SUBTEST(testVariableBeamLength);
     SimTK_END_TEST();
 }

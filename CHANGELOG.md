@@ -8,7 +8,12 @@ PRs and issues that were included in a particular release.
 
 3.10 (in development)
 ---------------------
-
+* `MobilizedBody::CantileverFreeBeam` length is now an Instance-stage state
+  variable, accessed with `getLength(state)`/`setLength(state, length)` and
+  initialized from `getDefaultLength()`; the beam decoration also uses the
+  length from the state. Added `multiplyByPositionJacobianWrtLength()` and
+  `multiplyByPositionJacobianWrtLengthTranspose()` for the sensitivity of body
+  origin positions to the beam length.
 
 3.9 (November 2026)
 -------------------

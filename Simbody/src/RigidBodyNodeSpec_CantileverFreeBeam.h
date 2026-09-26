@@ -31,6 +31,7 @@
 #include "SimbodyMatterSubsystemRep.h"
 #include "RigidBodyNode.h"
 #include "RigidBodyNodeSpec.h"
+#include "MobilizedBodyImpl.h"
 
     // CANTILEVER FREE BEAM //
 
@@ -60,16 +61,14 @@
 // +/-90 degrees.
 
 class RBNodeCantileverFreeBeam : public RigidBodyNodeSpec<3, false> {
-    Real length;  // length of the beam
-    Real deflectionCoefficient;
-    Real displacementCoefficient;
+    const MobilizedBody::CantileverFreeBeamImpl& impl;
 public:
 
 typedef typename RigidBodyNodeSpec<3, false>::HType HType;
 virtual const char* type() { return "cantilever free beam"; }
 
-RBNodeCantileverFreeBeam(const MassProperties& mProps_B,
-                         const Real&           length,
+RBNodeCantileverFreeBeam(const MobilizedBody::CantileverFreeBeamImpl& impl,
+                         const MassProperties& mProps_B,
                          bool                  isReversed,
                          UIndex&               nextUSlot,
                          USquaredIndex&        nextUSqSlot,
@@ -79,20 +78,28 @@ RBNodeCantileverFreeBeam(const MassProperties& mProps_B,
         RigidBodyNode::QDotIsAlwaysTheSameAsU,
         RigidBodyNode::QuaternionIsNeverUsed,
         isReversed),
-    length(length)
+    impl(impl)
 {
-    // Multiplying this term by the beam deflection angle gives the beam
-    // deflection, which is the absolute value of the beam's end point position
-    // in the Fx and Fy directions. This coefficient may also be used to
-    // calculate the beam deflection speed.
-    deflectionCoefficient = (2.0 / 3.0) * length;
-
-    // Multiplying this term by the beam deflection angle squared gives the beam
-    // displacement, which can be subtracted from the beam length to give the
-    // Fz-position of the beam's endpoint.
-    displacementCoefficient = (4.0 / 15.0) * length;
-
     this->updateSlots(nextUSlot, nextUSqSlot, nextQSlot);
+}
+
+const Real& getLength(const SBStateDigest& sbs) const {
+    return impl.getLength(sbs.getState());
+}
+
+// Multiplying this term by the beam deflection angle gives the beam
+// deflection, which is the absolute value of the beam's end point position
+// in the Fx and Fy directions. This coefficient may also be used to
+// calculate the beam deflection speed.
+static Real getDeflectionCoefficient(Real length) {
+    return (2.0 / 3.0) * length;
+}
+
+// Multiplying this term by the beam deflection angle squared gives the beam
+// displacement, which can be subtracted from the beam length to give the
+// Fz-position of the beam's endpoint.
+static Real getDisplacementCoefficient(Real length) {
+    return (4.0 / 15.0) * length;
 }
 
     // Implementations of virtual methods.
@@ -150,6 +157,9 @@ void setUToFitLinearVelocityImpl(const SBStateDigest& sbs, const Vector& q,
 {
     Real q0 = this->fromQ(q)[0];
     Real q1 = this->fromQ(q)[1];
+    const Real length                  = getLength(sbs);
+    const Real deflectionCoefficient   = getDeflectionCoefficient(length);
+    const Real displacementCoefficient = getDisplacementCoefficient(length);
     Matrix m(3, 2, 0.0);
 
     // The y-component of qdot induces a positive Fx speed.
@@ -214,6 +224,9 @@ void calcX_FM(const SBStateDigest& sbs,
 
     const Real& q0 = Vec3::getAs(q)[0];
     const Real& q1 = Vec3::getAs(q)[1];
+    const Real length                  = getLength(sbs);
+    const Real deflectionCoefficient   = getDeflectionCoefficient(length);
+    const Real displacementCoefficient = getDisplacementCoefficient(length);
     X_F0M0.updP() = Vec3(
         q1 * deflectionCoefficient,
         -q0 * deflectionCoefficient,
@@ -235,6 +248,9 @@ void calcAcrossJointVelocityJacobian(const SBStateDigest& sbs,
     const Real c0 = pool[CosQ], c1 = pool[CosQ+1];
     const Real s0 = pool[SinQ], s1 = pool[SinQ+1];
     const Vec3& q = this->fromQ(sbs.getQ());
+    const Real length                  = getLength(sbs);
+    const Real deflectionCoefficient   = getDeflectionCoefficient(length);
+    const Real displacementCoefficient = getDisplacementCoefficient(length);
 
     // Fill in columns of H_FM. See Rotation::calcNInvForBodyXYZInParentFrame().
     // Include the contributions of the Euler angle derivatives to the linear
@@ -265,6 +281,9 @@ void calcAcrossJointVelocityJacobianDot(
 
     const Real dc0 = -s0*qd0, dc1 = -s1*qd1; // derivatives of c0,c1,s0,s1
     const Real ds0 =  c0*qd0, ds1 =  c1*qd1;
+
+    const Real displacementCoefficient =
+        getDisplacementCoefficient(getLength(sbs));
 
     // Compare with H_FM above.
     HDot_FM(0) = SpatialVec(Vec3(0, 0, 0),
