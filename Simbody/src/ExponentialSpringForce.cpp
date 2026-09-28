@@ -128,8 +128,8 @@ public:
     ExponentialSpringForceImpl(const Transform& X_GP,
         const MobilizedBody& body_B, const Vec3& station_B,
         const ExponentialSpringParameters& params) :
-        X_GP(X_GP), matter(body_B.getMatterSubsystem()),
-        bodyIndex(body_B.getMobilizedBodyIndex()), station_B(station_B),
+        X_GP(X_GP), bodyIndex(body_B.getMobilizedBodyIndex()),
+        station_B(station_B),
         defaultAnchorPoint(Vec3(0., 0., 0.)), defaultSliding(1.0)
     {
         this->params = params;
@@ -141,7 +141,10 @@ public:
     // CONSTRUCTOR CHOICES THAT ARE NOT CHANGEABLE
     const Transform& getContactPlaneTransform() const { return X_GP; }
     const MobilizedBody& getBody() const {
-        return matter.getMobilizedBody(bodyIndex);
+        return getForceSubsystem()
+            .getMultibodySystem()
+            .getMatterSubsystem()
+            .getMobilizedBody(bodyIndex);
     }
     const Vec3& getStation() const { return station_B; }
 
@@ -587,7 +590,6 @@ private:
     //-------------------------------------------------------------------------
     ExponentialSpringParameters params;
     Transform X_GP;
-    const SimbodyMatterSubsystem& matter;
     const MobilizedBodyIndex bodyIndex;
     Vec3 station_B;
     Vec3 defaultAnchorPoint;
