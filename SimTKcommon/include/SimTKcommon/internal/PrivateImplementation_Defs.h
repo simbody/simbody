@@ -145,6 +145,12 @@ PIMPLHandle<HANDLE,IMPL,PTR>::PIMPLHandle(const PIMPLHandle& src) : impl(0) {
     else     copyAssign(src.downcastToHandle());
 }                   
 
+// copy constructor
+template <class HANDLE, class IMPL, bool PTR>
+PIMPLHandle<HANDLE,IMPL,PTR>::PIMPLHandle(PIMPLHandle&& src) noexcept : impl(0) {
+    moveAssign(static_cast<HANDLE&&>(src));
+}
+
 // copy assignment
 template <class HANDLE, class IMPL, bool PTR>
 PIMPLHandle<HANDLE,IMPL,PTR>& PIMPLHandle<HANDLE,IMPL,PTR>::
@@ -153,6 +159,13 @@ operator=(const PIMPLHandle& src) {
     else     copyAssign(src.downcastToHandle());
     return *this;
 } 
+
+// move assignment
+template <class HANDLE, class IMPL, bool PTR>
+PIMPLHandle<HANDLE,IMPL,PTR>& PIMPLHandle<HANDLE,IMPL,PTR>::
+operator=(PIMPLHandle &&src) noexcept {
+    return moveAssign(static_cast<HANDLE&&>(src));
+}
 
 template <class HANDLE, class IMPL, bool PTR>
 bool PIMPLHandle<HANDLE,IMPL,PTR>::isOwnerHandle() const {
@@ -214,6 +227,24 @@ copyAssign(const HANDLE& src) {
         impl = src.impl->clone(); // NOTE: instantiation requires definition of IMPL class
         impl->setOwnerHandle(updDowncastToHandle()); // bumps ref count (to 1)
         assert(impl->getHandleCount() == 1);
+    }
+    return *this;
+}
+
+template <class HANDLE, class IMPL, bool PTR>
+PIMPLHandle<HANDLE,IMPL,PTR>& PIMPLHandle<HANDLE,IMPL,PTR>::
+moveAssign(HANDLE &&src) noexcept {
+    if (isSameHandle(src)) return *this; // that was easy!
+    clearHandle();
+    if (src.impl) {
+        if (PTR)
+            impl = src.impl;
+        else {
+            impl = std::move(src.impl);
+            impl->replaceOwnerHandle(updDowncastToHandle());
+            assert(impl->getHandleCount() == 1);
+        }
+        src.impl = nullptr;
     }
     return *this;
 }
