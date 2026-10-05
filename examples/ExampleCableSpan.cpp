@@ -123,12 +123,6 @@ public:
                 DecorativePoint(X_GS.shiftFrameStationToBase(x_PS))
                     .setColor(Orange));
 
-            // Only draw curve segment related decorations if the cable is in
-            // contact with the corresponding obstacle.
-            if (!isInContactWithSurface) {
-                continue;
-            }
-
             // Draw a fixed number of sphere points per curve segment.
             const int numDecorativePoints = 4;
             m_cable.calcCurveSegmentResampledPoints(

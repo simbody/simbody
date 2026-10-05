@@ -2237,8 +2237,8 @@ public:
 
             // Write the path points for each obstacle in the cable segment.
             for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
-                const CurveSegment& curve = getObstacleCurveSegment(ix);
-                curve.calcResampledPoints(state, numCurveSegmentSamples, sink);
+                calcCurveSegmentResampledPoints(state, ix,
+                    numCurveSegmentSamples, sink);
             }
 
             // Write the path point for the final via point in the cable
@@ -4293,6 +4293,17 @@ void CurveSegment::calcResampledPoints(
     const CurveSegmentData::Position& dataPos  = getDataPos(state);
     const ContactGeometry& geometry            = getContactGeometry();
 
+    // If the curve is not in contact with the ground, place all sample points
+    // at the point on the cable segment closest to the surface.
+    if (!isInContactWithSurface(state)) {
+        const Vec3 trackingPoint_G = dataPos.X_GS.shiftFrameStationToBase(
+            dataInst.trackingPointOnLine_S);
+        for (int i = 0; i < numSamples; ++i) {
+            sink(trackingPoint_G);
+        }
+        return;
+    }
+
     // If the obstacle's surface is analytic we compute the geodesic with the
     // desired granularity.
     if (geometry.isAnalyticFormAvailable()) {
@@ -4333,11 +4344,6 @@ void CableSpan::Impl::calcCurveSegmentResampledPoints(
 {
     realizePosition(state);
     const CurveSegment& curve = getObstacleCurveSegment(ix);
-    SimTK_ERRCHK1_ALWAYS(
-        curve.isInContactWithSurface(state),
-        "CableSpan::calcCurveSegmentResampledPoints",
-        "Obstacle %i is not in contact with cable",
-        ix);
     SimTK_ERRCHK1_ALWAYS(
         numSamples >= 2,
         "CableSpan::calcCurveSegmentResampledPoints",
