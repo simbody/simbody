@@ -559,7 +559,7 @@ public:
     State must be realized to Stage::Position.
     @param state System State.
     @param numCurveSegmentSamples The number of samples to take per curve
-                                  segment.
+                                  segment (minimum is 2).
     @param sink Where the path points (in ground frame) will be written to. **/
     void calcResampledDecorativePathPoints(
         const State& state,
@@ -627,8 +627,9 @@ public:
     using Hermite interpolation, generally resulting in a good approximation of
     the point at the requested arc lengths.
 
-    This function throws an exception if the obstacle is not in contact with
-    the cable. Check isInContactWithObstacle() before calling this function.
+    When a curve segment is not in contact with an obstacle, all sampled points
+    will be drawn at the point on the cable segment closest to the obstacle.
+    Therefore, the total number of samples emitted remains constant.
 
     @param state State of the system.
     @param ix The index of the obstacle in this CableSpan.
