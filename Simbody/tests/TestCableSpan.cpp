@@ -971,6 +971,28 @@ void testTouchdownAndLiftoff()
                 expectedContactStatus,
                 gotContactStatus,
                 angle);
+
+            // The decorative path points must be finite, whether or not the
+            // obstacle is in contact with the cable.
+            int numPoints = 0;
+            auto assertPointIsFinite = [&](Vec3 point_G) {
+                SimTK_ASSERT2_ALWAYS(point_G.isFinite(),
+                    "Cable %i produced a non-finite decorative path point at "
+                    "yCoord = %f", cableIx, yCoord);
+                ++numPoints;
+            };
+            cables.getCable(cableIx).calcDecorativePathPoints(s,
+                assertPointIsFinite);
+
+            // The number or resampled points should remain the same, whether or
+            // not the obstacle is in contact with the cable.
+            constexpr int numSamples = 5;
+            numPoints = 0;
+            cables.getCable(cableIx).calcResampledDecorativePathPoints(s,
+                numSamples, assertPointIsFinite);
+            SimTK_ASSERT3_ALWAYS(numPoints == numSamples + 2,
+                "Cable %i expected %i resampled decorative path points, but "
+                "got %i", cableIx, numSamples + 2, numPoints);
         }
 
         if (viz) {
