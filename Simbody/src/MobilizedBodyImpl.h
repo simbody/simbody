@@ -815,9 +815,10 @@ private:
 
 class MobilizedBody::EllipsoidImpl : public MobilizedBodyImpl {
 public:
-    explicit EllipsoidImpl(Direction d) 
-    :   MobilizedBodyImpl(d), defaultRadii(Real(0.5),Real(1./3.),Real(0.25)), 
-        defaultQ() { } // default is (1,0,0,0), the identity rotation
+    explicit EllipsoidImpl(Direction d)
+    :   MobilizedBodyImpl(d), defaultRadii(Real(0.5),Real(1./3.),Real(0.25)),
+        defaultQ(), // default is (1,0,0,0), the identity rotation
+        mirrorAxis(-1) { }
     EllipsoidImpl* clone() const override { return new EllipsoidImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -844,11 +845,20 @@ public:
     }
     const Vec3& getDefaultRadii() const {return defaultRadii;}
 
+    void setMirrorAxis(int axis) {
+        assert(-1 <= axis && axis <= 2);
+        invalidateTopologyCache();
+        mirrorAxis=axis;
+    }
+    bool isMirrored()    const {return mirrorAxis >= 0;}
+    int  getMirrorAxis() const {return mirrorAxis;}
+
     SimTK_DOWNCAST(EllipsoidImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Ellipsoid;
     Vec3 defaultRadii;    // used for visualization only
     Quaternion defaultQ;  // the default orientation
+    int mirrorAxis;       // -1 unless this mobilizer is mirrored
 };
 
 class MobilizedBody::TranslationImpl : public MobilizedBodyImpl {

@@ -1,0 +1,743 @@
+<!doctype html>
+<!-- ---------------------------------------------------------------------- -->
+<!-- Interactive figure for MobilizedBody::Ellipsoid, embedded in the class    -->
+<!-- documentation and shipped with the Doxygen output via HTML_EXTRA_FILES.  -->
+<!--                                                                          -->
+<!-- IMPORTANT: this page must stay entirely self-contained. The generated    -->
+<!-- API documentation is installed and read offline, so it must not load any -->
+<!-- script, stylesheet, font, or image from a network location. The 3D view  -->
+<!-- below is plain SVG driven by the projection code at the bottom of this   -->
+<!-- file; please do not introduce a rendering library.                       -->
+<!--                                                                          -->
+<!-- The layout is FIXED at 900 x 650 so the <iframe> in                       -->
+<!-- MobilizedBody_Ellipsoid.h can match it exactly and never scroll.          -->
+<!--      stage 598 + 2 border + gap 12 + panel 260 + padding 2*14 =  900 wide -->
+<!--      stage 670 + 2 border + body padding 2*14                   =  700 tall -->
+<!--                                                                          -->
+<!-- The camera fits the scene's bounding sphere to the tighter screen half-  -->
+<!-- angle, so the view scales with the stage HEIGHT; width past about the    -->
+<!-- height only adds side margin. 900 needs a window about 1436 wide, which  -->
+<!-- fits a typical laptop. The 670 stage height is bounded below by the      -->
+<!-- ~600px control panel beside it:                                          -->
+<!-- Doxygen 1.14 flanks the content                                          -->
+<!-- with a 250px #side-nav and a 250px #page-nav plus 6px drag bars, and     -->
+<!-- div.contents adds 12px margins, so the usable column is roughly          -->
+<!-- (viewport - 536), so on a narrower window max-width:100% shrinks the     -->
+<!-- frame and the page scrolls horizontally inside it.                        -->
+<!--                                                                          -->
+<!-- The SVG is drawn 1:1 with its viewBox, so drawing units are pixels and   -->
+<!-- the panel is about 600 tall, leaving the stage height to set the page    -->
+<!-- height. If you add panel controls, raise both heights together.          -->
+<!-- ---------------------------------------------------------------------- -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simbody: Ellipsoid mobilizer mirroring</title>
+<style>
+:root {
+  --bg:     #ffffff;
+  --panel:  #f7f8fa;
+  --rule:   #c4cdd6;
+  --ink:    #1b2733;
+  --muted:  #5c6b7a;
+  --stage:  #eef1f5;
+  --ax-x:   #c4342f;
+  --ax-y:   #1f8a4c;
+  --ax-z:   #2a5fc9;
+  --shell:  #7b94a8;
+  --plane:  #4f6b80;
+  --body:   #3b4855;
+  --motion: #b86400;
+  --accent: #b0127a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#15191e; --panel:#1d232a; --rule:#333d47; --ink:#e2e8ee; --muted:#95a3b1;
+    --stage:#0e1216; --ax-x:#ef6b66; --ax-y:#4cc46a; --ax-z:#6d97f5;
+    --shell:#8fa8bb; --plane:#9ab4c8; --body:#c3ced8; --motion:#f2a541; --accent:#f06ac2;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 14px;
+  background: var(--bg); color: var(--ink);
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+/* Fixed layout: 600 stage (598 + 2 border) + 12 gap + 260 panel = 872. */
+.bench { width: 872px; display: grid; grid-template-columns: 600px 260px; gap: 12px; }
+.stage {
+  position: relative; width: 600px; height: 672px;
+  border: 1px solid var(--rule); border-radius: 8px;
+  background: var(--stage); overflow: hidden;
+}
+svg { display: block; touch-action: none; cursor: grab; }
+svg.dragging { cursor: grabbing; }
+.hint {
+  position: absolute; left: 15px; bottom: 11px;
+  font-size: 12px; color: var(--muted); pointer-events: none;
+}
+.stage-tools { position: absolute; right: 11px; top: 11px; }
+.stage-tools button { background: var(--bg); font-size: 12px; padding: 6px 9px; border-radius: 5px; }
+.legend {
+  position: absolute; right: 11px; bottom: 11px;
+  display: flex; gap: 12px; font-size: 12px; color: var(--muted);
+  pointer-events: none;
+}
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sw { width: 13px; height: 3px; border-radius: 2px; display: inline-block; }
+
+.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.group { border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); padding: 9px 11px; }
+.group h2 {
+  margin: 0 0 7px; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); }
+button {
+  font: 500 13px/1 inherit; color: var(--ink); background: transparent;
+  border: 1px solid var(--rule); padding: 7px 4px; cursor: pointer;
+}
+.seg button { border-radius: 0; margin-left: -1px; }
+.seg button:first-child { border-radius: 5px 0 0 5px; margin-left: 0; }
+.seg button:last-child  { border-radius: 0 5px 5px 0; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: grid; grid-template-columns: 34px minmax(0,1fr) 56px; gap: 8px; align-items: center; }
+.row + .row { margin-top: 5px; }
+.row label, .row output {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px;
+}
+.row label i { font-style: normal; color: var(--muted); font-size: 11px; }
+.row output { text-align: right; font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--ink); margin: 0; }
+.btns { display: flex; flex-wrap: wrap; gap: 5px; }
+.btns button { border-radius: 5px; padding: 6px 8px; font-size: 12px; }
+
+dl.readout {
+  margin: 0; display: grid; grid-template-columns: auto minmax(0,1fr);
+  gap: 1px 10px; line-height: 1.35;
+}
+dl.readout dt { font-size: 12px; color: var(--muted); white-space: nowrap; }
+dl.readout dd {
+  margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; font-variant-numeric: tabular-nums; white-space: pre;
+}
+</style>
+</head>
+<body>
+<div class="bench">
+  <div class="stage">
+    <svg id="view" width="598" height="670" viewBox="0 0 598 670" role="img"
+         aria-label="Three-dimensional view of a mirrored Ellipsoid mobilizer beside its unmirrored counterpart"></svg>
+    <div class="stage-tools"><button type="button" id="reset">Reset view</button></div>
+    <div class="hint">Drag to orbit &middot; scroll to zoom</div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--body)"></i>body</span>
+      <span><i class="sw" style="background:var(--motion)"></i>&omega; at F, v at M</span>
+      <span><i class="sw" style="background:var(--plane)"></i>mirror plane</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="group">
+      <h2>Mirror axis</h2>
+      <div class="seg" role="group" aria-label="Mirror axis">
+        <button type="button" data-k="-1" aria-pressed="false">Off</button>
+        <button type="button" data-k="0"  aria-pressed="true">F<sub>x</sub></button>
+        <button type="button" data-k="1"  aria-pressed="false">F<sub>y</sub></button>
+        <button type="button" data-k="2"  aria-pressed="false">F<sub>z</sub></button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Motion</h2>
+      <div class="btns" role="group" aria-label="Motion presets">
+        <button type="button" data-mode="lat">q&#8321; latitude</button>
+        <button type="button" data-mode="lon">q&#8322; longitude</button>
+        <button type="button" data-mode="spin">q&#8323; spin</button>
+        <button type="button" data-mode="wander">Wander</button>
+        <button type="button" id="stop">Stop</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Shared coordinates q (x-y-z)</h2>
+      <div class="row"><label for="q0">q&#8321;</label><input type="range" id="q0" min="-180" max="180" step="0.1"><output id="q0o"></output></div>
+      <div class="row"><label for="q1">q&#8322;</label><input type="range" id="q1" min="-89"  max="89"  step="0.1"><output id="q1o"></output></div>
+      <div class="row"><label for="q2">q&#8323;</label><input type="range" id="q2" min="-180" max="180" step="0.1"><output id="q2o"></output></div>
+    </div>
+
+    <div class="group">
+      <h2>Semi-axes in F</h2>
+      <div class="row"><label for="ra">a<i> x</i></label><input type="range" id="ra" min="0.3" max="2" step="0.01"><output id="rao"></output></div>
+      <div class="row"><label for="rb">b<i> y</i></label><input type="range" id="rb" min="0.3" max="2" step="0.01"><output id="rbo"></output></div>
+      <div class="row"><label for="rc">c<i> z</i></label><input type="range" id="rc" min="0.3" max="2" step="0.01"><output id="rco"></output></div>
+    </div>
+
+    <div class="group">
+      <h2>State</h2>
+      <dl class="readout">
+        <dt>diag(S)</dt>        <dd id="rS"></dd>
+        <dt>diag(&minus;S)</dt> <dd id="rNS"></dd>
+        <dt>p_FM</dt>           <dd id="rP"></dd>
+        <dt>S&middot;p_FM</dt>  <dd id="rPM"></dd>
+        <dt>u</dt>              <dd id="rU"></dd>
+        <dt>&minus;S&middot;u</dt><dd id="rW"></dd>
+      </dl>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var DEG = Math.PI / 180;
+  var svg = $("view");
+  // Drawing units are pixels: the SVG is drawn 1:1 with its viewBox.
+  var W = 598, H = 670, FOCAL = (H/2)/Math.tan(16*DEG);
+
+  /* ---------- small vector helpers ---------- */
+  function dot(a, b)   { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+  function cross(a, b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+  function unit(a)     { var n = Math.sqrt(dot(a,a)) || 1; return [a[0]/n, a[1]/n, a[2]/n]; }
+  function norm(a)     { return Math.sqrt(dot(a,a)); }
+  function scale(a, s) { return [a[0]*s, a[1]*s, a[2]*s]; }
+  function add(a, o)   { return o ? [a[0]+o[0], a[1]+o[1], a[2]+o[2]] : a; }
+  function wrap(a) { a = (a + Math.PI) % (2*Math.PI); if (a < 0) a += 2*Math.PI; return a - Math.PI; }
+
+  /* ---------- kinematics (matches RigidBodyNodeSpec_Ellipsoid.h) ---------- */
+  // R = Rx(q1) Ry(q2) Rz(q3), stored row-major.
+  function rotXYZ(q) {
+    var ca=Math.cos(q[0]), sa=Math.sin(q[0]), cb=Math.cos(q[1]),
+        sb=Math.sin(q[1]), cc=Math.cos(q[2]), sc=Math.sin(q[2]);
+    return [[ cb*cc,            -cb*sc,             sb    ],
+            [ sa*sb*cc + ca*sc, -sa*sb*sc + ca*cc, -sa*cb ],
+            [-ca*sb*cc + sa*sc,  ca*sb*sc + sa*cc,  ca*cb ]];
+  }
+  function col(R, j) { return [R[0][j], R[1][j], R[2][j]]; }
+
+  // diag(S): all +1 except -1 on the mirrored axis. k < 0 means "not mirrored".
+  function sDiag(k) { var s = [1,1,1]; if (k >= 0) s[k] = -1; return s; }
+  // R -> S R S: element (i,j) is scaled by s[i]*s[j].
+  function mirrorR(R, k) {
+    var s = sDiag(k);
+    return [0,1,2].map(function (i) {
+      return [0,1,2].map(function (j) { return R[i][j]*s[i]*s[j]; });
+    });
+  }
+  // v -> S v for a linear quantity measured in F.
+  function mirrorLin(v, k) { var s = sDiag(k); return [s[0]*v[0], s[1]*v[1], s[2]*v[2]]; }
+  // w -> -S w for an angular quantity measured in F.
+  function mirrorAng(v, k) { var s = sDiag(k); return [-s[0]*v[0], -s[1]*v[1], -s[2]*v[2]]; }
+
+  // Generalized speeds of the standard joint from qdot: u = w_FM is
+  // qdot1 about Fx, plus qdot2 about Rx(q1)*y, plus qdot3 about Mz.
+  function speeds(q, qd, n) {
+    var c1 = Math.cos(q[0]), s1 = Math.sin(q[0]);
+    return [qd[0] + qd[2]*n[0], qd[1]*c1 + qd[2]*n[1], qd[1]*s1 + qd[2]*n[2]];
+  }
+
+  // The full state of one joint at the shared coordinates q and speeds u.
+  // v_FM is the linear part of H_FM*u = diag(a,b,c)*(u x n), i.e. d/dt p_FM.
+  function solve(q, qd, semi, k) {
+    var R = rotXYZ(q), n = col(R, 2);
+    var p = [semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]];
+    var u = speeds(q, qd, n);
+    var c = cross(u, n);
+    var v = [semi[0]*c[0], semi[1]*c[1], semi[2]*c[2]];
+    return k < 0 ? {R: R, p: p, u: u, w: u, v: v}
+                 : {R: mirrorR(R, k), p: mirrorLin(p, k),
+                    u: u, w: mirrorAng(u, k), v: mirrorLin(v, k)};
+  }
+
+  /* ---------- state ---------- */
+  var st   = { q: [35*DEG, 28*DEG, 0], qd: [0,0,0], semi: [0.8, 1.5, 1.0], k: 0 };
+  var view = { az: -2.25, el: 0.46, dist: 6 };
+  var HOME = { az: -2.25, el: 0.46 };
+
+  function fLen(i)  { return st.semi[i]*1.35 + 0.25; }
+  // Separation of each joint from the mirror plane, opened out by 25% so the
+  // two shells read as a pair rather than a single cluster.
+  function gap()    { return (fLen(st.k) + 0.16)*1.25; }
+  // Farthest any drawn feature gets from a single joint's F origin. Bounding
+  // the scene by a sphere keeps the framing stable while the view is orbited.
+  function jointReach() {
+    var s = st.semi;
+    return Math.max(fLen(0), fLen(1), fLen(2),        // F axes
+                    Math.max(s[0], s[1], s[2]) + 0.6, // shell, M axes, body
+                    s[2] + 0.6);                      // caption below the shell
+  }
+  function sceneRadius() { return st.k >= 0 ? gap() + jointReach() : jointReach(); }
+
+  // Fit the bounding sphere to whichever of the two half-angles is tighter.
+  // The bound has to be orientation independent: the view can be orbited
+  // freely after framing, and anything tighter (fitting the pair's actual
+  // extent at one orientation, say) clips once the mirror axis swings toward
+  // the short screen axis. Note the consequence -- the scene always spans
+  // about H/1.12 pixels, so a wider stage adds margin rather than scale.
+  function frameCamera() {
+    var tanV = Math.tan(16*DEG), tanH = (W/H)*tanV;
+    view.dist = sceneRadius()/Math.min(tanV, tanH)*1.12;
+  }
+
+
+  /* ---------- projection ---------- */
+  function camera() {
+    var ce = Math.cos(view.el), se = Math.sin(view.el);
+    var dir = [ce*Math.cos(view.az), ce*Math.sin(view.az), se]; // origin -> camera
+    var right = unit(cross(dir, [0,0,1]));
+    return {dir: dir, right: right, up: cross(right, dir), pos: scale(dir, view.dist)};
+  }
+  function project(P, C) {
+    var v = [P[0]-C.pos[0], P[1]-C.pos[1], P[2]-C.pos[2]];
+    var z = -dot(v, C.dir);                 // depth in front of the camera
+    if (z < 0.05) z = 0.05;
+    var f = FOCAL / z;
+    return [W/2 + dot(v, C.right)*f, H/2 - dot(v, C.up)*f];
+  }
+
+  /* ---------- svg emitters (o is an optional world-space offset) ---------- */
+  function fmt(n) { return Math.round(n*10)/10; }
+  function polyline(pts, C, o, stroke, width, opacity, dash) {
+    var d = pts.map(function (P) { var s = project(add(P, o), C); return fmt(s[0]) + "," + fmt(s[1]); });
+    return '<polyline points="' + d.join(" ") + '" fill="none" stroke="' + stroke
+         + '" stroke-width="' + width + '" opacity="' + opacity + '"'
+         + (dash ? ' stroke-dasharray="' + dash + '"' : "") + ' stroke-linecap="round"/>';
+  }
+  function segment(A, B, C, o, stroke, width, opacity, dash) {
+    return polyline([A, B], C, o, stroke, width, opacity, dash);
+  }
+  // Text is clamped to the canvas: axis tips and shell captions can project
+  // past the edge on a stage this narrow, and an SVG has no overflow to spill
+  // into. 13px monospace advances about 0.6em per character.
+  function label(P, C, o, text, fill, dx, dy, anchor) {
+    var s = project(add(P, o), C), w = text.length*7.8;
+    var lo = (anchor === "middle") ? w/2 + 4 : 4;
+    var hi = (anchor === "middle") ? W - w/2 - 4 : W - w - 4;
+    var x = Math.min(Math.max(s[0] + (dx||0), lo), hi);
+    var y = Math.min(Math.max(s[1] + (dy||0), 13), H - 4);
+    return '<text x="' + fmt(x) + '" y="' + fmt(y) + '" fill="' + fill
+         + '" font-size="13" text-anchor="' + (anchor || "start")
+         + '" font-family="ui-monospace,Menlo,Consolas,monospace">' + text + '</text>';
+  }
+  function marker(P, C, o, fill, r) {
+    var s = project(add(P, o), C);
+    return '<circle cx="' + fmt(s[0]) + '" cy="' + fmt(s[1]) + '" r="' + r + '" fill="' + fill + '"/>';
+  }
+  // Shaft plus a head built in screen space, so it reads at any orientation.
+  function arrow(A, B, C, o, stroke, width) {
+    var a = project(add(A, o), C), b = project(add(B, o), C);
+    var dx = b[0]-a[0], dy = b[1]-a[1], L = Math.sqrt(dx*dx + dy*dy);
+    if (L < 4) return "";
+    var ux = dx/L, uy = dy/L, hl = Math.min(13, L*0.4), hw = hl*0.45;
+    var bx = b[0]-ux*hl, by = b[1]-uy*hl, px = -uy, py = ux;
+    return '<line x1="' + fmt(a[0]) + '" y1="' + fmt(a[1]) + '" x2="' + fmt(bx) + '" y2="' + fmt(by)
+         + '" stroke="' + stroke + '" stroke-width="' + width + '" stroke-linecap="round"/>'
+         + '<polygon points="' + fmt(b[0]) + ',' + fmt(b[1]) + ' '
+         + fmt(bx+px*hw) + ',' + fmt(by+py*hw) + ' '
+         + fmt(bx-px*hw) + ',' + fmt(by-py*hw) + '" fill="' + stroke + '"/>';
+  }
+
+  /* ---------- scene pieces ---------- */
+  var AXC = ["var(--ax-x)", "var(--ax-y)", "var(--ax-z)"], AXN = ["x", "y", "z"];
+
+  // The ellipsoid's surface, as front-facing quads under the gridlines. An
+  // ellipsoid is convex, so its front faces tile the silhouette without
+  // overlapping and need no depth sorting. Opacity follows the facing ratio
+  // n.v, which peaks at the centre of the silhouette and falls off at the rim
+  // -- that reads as roundness whichever way the light and dark palettes run.
+  // The range sits well above the gridline opacities (0.22 parallels, 0.15
+  // meridians) so the shell reads as the primary form and the grid as a
+  // reference overlay drawn on top of it.
+  // A matching hairline stroke closes the anti-aliasing seams between quads.
+  var SURF_NT = 14, SURF_NP = 22;     // mesh resolution in theta and phi
+  function surface(C, o) {
+    var s = st.semi, out = [], i, j, k;
+    var inv = [1/(s[0]*s[0]), 1/(s[1]*s[1]), 1/(s[2]*s[2])];
+    function at(th, ph) {
+      return [s[0]*Math.sin(th)*Math.cos(ph),
+              s[1]*Math.sin(th)*Math.sin(ph),
+              s[2]*Math.cos(th)];
+    }
+    for (i = 0; i < SURF_NT; i++) for (j = 0; j < SURF_NP; j++) {
+      var t0 = i/SURF_NT*Math.PI, t1 = (i+1)/SURF_NT*Math.PI;
+      var p0 = j/SURF_NP*2*Math.PI, p1 = (j+1)/SURF_NP*2*Math.PI;
+      var quad = [at(t0,p0), at(t1,p0), at(t1,p1), at(t0,p1)];
+      var c = [0,0,0];
+      for (k = 0; k < 4; k++) { c[0]+=quad[k][0]/4; c[1]+=quad[k][1]/4; c[2]+=quad[k][2]/4; }
+      // Outward normal of x^2/a^2+y^2/b^2+z^2/c^2=1 is proportional to
+      // (x/a^2, y/b^2, z/c^2); compare it with the direction to the camera.
+      var n = unit([c[0]*inv[0], c[1]*inv[1], c[2]*inv[2]]);
+      var cc = add(c, o);
+      var lam = dot(n, unit([C.pos[0]-cc[0], C.pos[1]-cc[1], C.pos[2]-cc[2]]));
+      if (lam <= 0.02) continue;                       // back face
+      var op = (0.18 + 0.34*lam).toFixed(3);
+      var d = quad.map(function (P) {
+        var sp = project(add(P, o), C); return fmt(sp[0]) + "," + fmt(sp[1]);
+      });
+      out.push('<polygon points="' + d.join(" ") + '" fill="var(--shell)" fill-opacity="'
+             + op + '" stroke="var(--shell)" stroke-opacity="' + op + '" stroke-width="1"/>');
+    }
+    return out.join("");
+  }
+
+  // The ellipsoid fixed in F, drawn as a wireframe of parallels and meridians.
+  function shell(C, o) {
+    var s = st.semi, out = [], i, j, pts, th, ph;
+    for (i = 1; i <= 5; i++) {
+      th = i*30*DEG; pts = [];
+      for (j = 0; j <= 48; j++) {
+        ph = j/48*2*Math.PI;
+        pts.push([s[0]*Math.sin(th)*Math.cos(ph), s[1]*Math.sin(th)*Math.sin(ph), s[2]*Math.cos(th)]);
+      }
+      out.push(polyline(pts, C, o, "var(--shell)", 1, 0.22));
+    }
+    for (i = 0; i < 12; i++) {
+      ph = i*30*DEG; pts = [];
+      for (j = 0; j <= 36; j++) {
+        th = j/36*Math.PI;
+        pts.push([s[0]*Math.sin(th)*Math.cos(ph), s[1]*Math.sin(th)*Math.sin(ph), s[2]*Math.cos(th)]);
+      }
+      out.push(polyline(pts, C, o, "var(--shell)", 1, 0.15));
+    }
+    return out.join("");
+  }
+
+  function frameF(C, o, withLabels) {
+    var out = [];
+    for (var i = 0; i < 3; i++) {
+      var e = [0,0,0]; e[i] = fLen(i);
+      out.push(segment([0,0,0], e, C, o, AXC[i], 2, 0.95));
+      if (withLabels) out.push(label(e, C, o, "F" + AXN[i], AXC[i], 6, -4));
+    }
+    return out.join("");
+  }
+
+  function frameM(X, C, o) {
+    var out = [segment([0,0,0], X.p, C, o, "var(--muted)", 1.5, 0.7, "4 3")];
+    for (var j = 0; j < 3; j++) {
+      var a = col(X.R, j), len = j === 2 ? 0.5 : 0.36;
+      out.push(segment(X.p, [X.p[0]+a[0]*len, X.p[1]+a[1]*len, X.p[2]+a[2]*len],
+                       C, o, AXC[j], 3, 1));
+    }
+    out.push(marker(X.p, C, o, "var(--ink)", 3.5));
+    return out.join("");
+  }
+
+  // The outboard body: a block fixed in M, sitting on the ellipsoid with its
+  // base in M's xy plane, so it slides over the surface as q changes. The
+  // proportions follow the follower plate that MobilizedBody::Ellipsoid draws
+  // as default geometry. Drawn solid: a box is convex, so culling its back
+  // faces leaves the visible ones tiling the silhouette with no depth sorting,
+  // exactly as for the ellipsoid surface above.
+  //                     -x       +x       -y       +y       -z       +z
+  var BODY_FACES = [[0,2,6,4],[1,3,7,5],[0,1,5,4],[2,3,7,6],[0,1,3,2],[4,5,7,6]];
+  var BODY_AXIS  = [   0,        0,        1,        1,        2,        2   ];
+  var BODY_SIGN  = [  -1,        1,       -1,        1,       -1,        1   ];
+  function bodyBlock(X, C, o) {
+    var s = st.semi, minr = Math.min(s[0], Math.min(s[1], s[2]));
+    var hx = minr/3, hy = hx*2/3, hz = hx/4, out = [], pts = [], i, f, j;
+    for (i = 0; i < 8; i++) {
+      var lx = (i & 1) ? hx : -hx, ly = (i & 2) ? hy : -hy, lz = (i & 4) ? 2*hz : 0;
+      pts.push([X.p[0] + X.R[0][0]*lx + X.R[0][1]*ly + X.R[0][2]*lz,
+                X.p[1] + X.R[1][0]*lx + X.R[1][1]*ly + X.R[1][2]*lz,
+                X.p[2] + X.R[2][0]*lx + X.R[2][1]*ly + X.R[2][2]*lz]);
+    }
+    for (f = 0; f < 6; f++) {
+      var face = BODY_FACES[f], c = [0,0,0];
+      for (j = 0; j < 4; j++) {
+        c[0] += pts[face[j]][0]/4; c[1] += pts[face[j]][1]/4; c[2] += pts[face[j]][2]/4;
+      }
+      // Face normal is the corresponding M axis; compare with the direction
+      // to the camera to drop the three faces pointing away from it.
+      var n = scale(col(X.R, BODY_AXIS[f]), BODY_SIGN[f]);
+      var cc = add(c, o);
+      var lam = dot(n, unit([C.pos[0]-cc[0], C.pos[1]-cc[1], C.pos[2]-cc[2]]));
+      if (lam <= 0) continue;
+      var d = face.map(function (k) {
+        var sp = project(add(pts[k], o), C); return fmt(sp[0]) + "," + fmt(sp[1]);
+      });
+      out.push('<polygon points="' + d.join(" ") + '" fill="var(--body)" fill-opacity="'
+             + (0.62 + 0.33*lam).toFixed(3)
+             + '" stroke="var(--body)" stroke-width="1.2" stroke-linejoin="round"/>');
+    }
+    return out.join("");
+  }
+
+  // Angular velocity drawn at F's origin, linear velocity at the M origin.
+  // The length scales with magnitude but has a floor, so nudging a slider a
+  // tenth of a degree still shows which way things are moving instead of a
+  // sub-pixel stub; the panel readout carries the actual magnitudes.
+  function velocity(X, C, o) {
+    var wl = norm(X.w), vl = norm(X.v), r = jointReach(), out = [];
+    if (wl < 0.004) return "";
+    out.push(arrow([0,0,0], scale(unit(X.w), clampLen(0.42*wl, r*0.10, r*0.80)),
+                   C, o, "var(--motion)", 2.5));
+    if (vl > 0.004)
+      out.push(arrow(X.p, add(X.p, scale(unit(X.v), clampLen(0.42*vl, r*0.08, r*0.60))),
+                     C, o, "var(--motion)", 2));
+    return out.join("");
+  }
+  function clampLen(len, lo, hi) { return Math.min(Math.max(len, lo), hi); }
+
+  // The plane the pair is reflected through: normal to axis k, through F's origin.
+  function mirrorPlane(C) {
+    var s = st.semi, L = Math.max(s[0], s[1], s[2])*1.25 + 0.3;
+    var a = (st.k + 1) % 3, b = (st.k + 2) % 3, quad = [];
+    [[1,1],[1,-1],[-1,-1],[-1,1]].forEach(function (c) {
+      var P = [0,0,0]; P[a] = c[0]*L; P[b] = c[1]*L; quad.push(P);
+    });
+    var d = quad.map(function (P) { var q = project(P, C); return fmt(q[0]) + "," + fmt(q[1]); });
+    return '<polygon points="' + d.join(" ") + '" fill="var(--plane)" opacity="0.10"/>'
+         + '<polygon points="' + d.join(" ") + '" fill="none" stroke="var(--plane)"'
+         + ' stroke-width="1" opacity="0.5"/>';
+  }
+
+  function caption(C, o, text) {
+    return label([0, 0, -(st.semi[2] + 0.42)], C, o, text, "var(--ink)", 0, 0, "middle");
+  }
+
+  function joint(X, C, o, withLabels) {
+    return surface(C, o) + shell(C, o) + frameF(C, o, withLabels) + frameM(X, C, o)
+         + bodyBlock(X, C, o) + velocity(X, C, o);
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    var C = camera(), parts = [];
+    var std = solve(st.q, st.qd, st.semi, -1);
+
+    if (st.k < 0) {
+      parts.push(joint(std, C, null, true));
+    } else {
+      var o = [0,0,0]; o[st.k] = gap();
+      var neg = scale(o, -1);
+      var mir = solve(st.q, st.qd, st.semi, st.k);
+      parts.push(mirrorPlane(C));
+      // Mirrored joint on the -F_k side, unmirrored one on the +F_k side.
+      parts.push(joint(mir, C, neg, true));
+      parts.push(joint(std, C, o, false));
+      parts.push(caption(C, neg, "mirrored about F" + AXN[st.k]));
+      parts.push(caption(C, o, "unmirrored"));
+    }
+    $("view").innerHTML = parts.join("");
+
+    var s = sDiag(st.k);
+    var v3 = function (v) {
+      return v.map(function (x) {
+        return (x < 0 ? "-" : " ") + Math.abs(x).toFixed(2);
+      }).join(" ");
+    };
+    var sgn = function (v) { return v.map(function (x) { return x > 0 ? " +1" : " -1"; }).join(" "); };
+    $("rS").textContent  = sgn(s);
+    $("rNS").textContent = sgn(s.map(function (x) { return -x; }));
+    $("rP").textContent  = v3(std.p);
+    $("rPM").textContent = v3(mirrorLin(std.p, st.k));
+    $("rU").textContent  = v3(std.u);
+    $("rW").textContent  = v3(mirrorAng(std.u, st.k));
+  }
+
+  /* ---------- motion ---------- */
+  // Dragging a q slider should show velocity too, so estimate qdot from how
+  // fast the slider is being moved and let it decay once the user stops.
+  var slide = { t: 0, timer: 0, rate: 0, axis: -1 };
+  var SMOOTH_TAU = 0.05;   // seconds of history in the slider rate filter
+  // Sub-millisecond where available: Date.now()'s 1 ms granularity is a ~6%
+  // error on a 16 ms interval, which is visible as arrow-length jitter.
+  var clock = (typeof performance !== "undefined" && performance.now)
+            ? function () { return performance.now(); }
+            : function () { return Date.now(); };
+  function releaseSlide() {
+    if (slide.timer) { clearTimeout(slide.timer); slide.timer = 0; }
+    slide.t = 0; slide.rate = 0; slide.axis = -1;
+  }
+
+  var anim = { mode: null, tau: 0, base: null, t: 0, phase: 0, last: 0, raf: 0 };
+
+  // Preset drive functions, with their exact derivatives. Differencing q
+  // between frames would fold the browser's frame-time jitter straight into
+  // the velocity arrows, so each preset reports qdot analytically instead.
+  var LAT_A = 70*DEG, LAT_W = 0.8;            // q1 = base + A sin(W tau)
+  var LON_A = 75*DEG, LON_W = 0.8;            // q2 = A sin(W tau + phase)
+  var SPIN_R = 70*DEG;                        // q3 = base + R tau
+  var WA = [55*DEG, 50*DEG, 35*DEG],          // wander amplitudes,
+      WK = [0.53, 0.71, 0.37],                //   rates,
+      WP = [0, 0.6, 0];                       //   and phases
+  // Smoothstep and its derivative, used to ease the wander in from q(0).
+  function smooth(x)    { x = Math.max(0, Math.min(1, x)); return x*x*(3 - 2*x); }
+  function smoothDot(x) { return (x <= 0 || x >= 1) ? 0 : 6*x*(1 - x); }
+
+  function advance(dt) {
+    anim.tau += dt;
+    var b = anim.base, q = st.q, qd = [0, 0, 0], i;
+    if (anim.mode === "lat") {
+      q[0]  = wrap(b[0] + LAT_A*Math.sin(LAT_W*anim.tau));
+      qd[0] = LAT_A*LAT_W*Math.cos(LAT_W*anim.tau);
+    } else if (anim.mode === "lon") {
+      q[1]  = LON_A*Math.sin(LON_W*anim.tau + anim.phase);
+      qd[1] = LON_A*LON_W*Math.cos(LON_W*anim.tau + anim.phase);
+    } else if (anim.mode === "spin") {
+      q[2]  = wrap(b[2] + SPIN_R*anim.tau);
+      qd[2] = SPIN_R;
+    } else if (anim.mode === "wander") {
+      anim.t += dt;
+      var x = anim.tau/1.2, f = smooth(x), fd = smoothDot(x)/1.2;
+      for (i = 0; i < 3; i++) {
+        var w  = WA[i]*Math.sin(WK[i]*anim.t + WP[i]);
+        var wd = WA[i]*WK[i]*Math.cos(WK[i]*anim.t + WP[i]);
+        var d  = wrap(w - b[i]);
+        q[i]  = wrap(b[i] + d*f);
+        qd[i] = wd*f + d*fd;           // product rule on d(t)*f(tau)
+      }
+    }
+    st.qd = qd;
+  }
+  function tick(now) {
+    anim.raf = 0;
+    if (!anim.mode) return;
+    var dt = anim.last ? Math.min((now - anim.last)/1000, 0.05) : 1/60;
+    anim.last = now;
+    advance(dt);                        // sets both st.q and st.qd
+    syncQ();
+    render();
+    anim.raf = requestAnimationFrame(tick);
+  }
+  function startAnim(m) {
+    releaseSlide();
+    anim.mode = m; anim.tau = 0; anim.base = st.q.slice(); anim.last = 0;
+    if (m === "lon")
+      anim.phase = Math.asin(Math.max(-1, Math.min(1, anim.base[1]/(75*DEG))));
+    if (m === "wander") anim.t = 0;
+    syncMotion();
+    if (!anim.raf) anim.raf = requestAnimationFrame(tick);
+  }
+  function stopAnim() {
+    anim.mode = null; st.qd = [0,0,0];
+    syncMotion(); render();
+  }
+
+  /* ---------- controls ---------- */
+  var QIDS = ["q0", "q1", "q2"], RIDS = ["ra", "rb", "rc"];
+  function syncQ() {
+    QIDS.forEach(function (id, i) {
+      var d = (st.q[i]/DEG).toFixed(1);
+      $(id).value = d; $(id + "o").textContent = d + "°";
+    });
+  }
+  function syncSemi() {
+    RIDS.forEach(function (id, i) {
+      $(id).value = st.semi[i]; $(id + "o").textContent = st.semi[i].toFixed(2);
+    });
+  }
+  var modeBtns = document.querySelectorAll("[data-mode]");
+  function syncMotion() {
+    Array.prototype.forEach.call(modeBtns, function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === anim.mode));
+    });
+  }
+
+  var kBtns = document.querySelectorAll("[data-k]");
+  Array.prototype.forEach.call(kBtns, function (b) {
+    b.addEventListener("click", function () {
+      st.k = parseInt(b.getAttribute("data-k"), 10);
+      Array.prototype.forEach.call(kBtns, function (o) {
+        o.setAttribute("aria-pressed", String(parseInt(o.getAttribute("data-k"), 10) === st.k));
+      });
+      frameCamera();   // the pair needs more room than a single joint
+      render();
+    });
+  });
+
+  Array.prototype.forEach.call(modeBtns, function (b) {
+    b.addEventListener("click", function () {
+      var m = b.getAttribute("data-mode");
+      if (anim.mode === m) stopAnim(); else startAnim(m);
+    });
+  });
+  $("stop").addEventListener("click", stopAnim);
+
+  QIDS.forEach(function (id, i) {
+    $(id).addEventListener("input", function () {
+      if (anim.mode) { anim.mode = null; syncMotion(); }
+      var now = clock(), prev = st.q[i];
+      st.q[i] = parseFloat(this.value)*DEG;
+      $(id + "o").textContent = parseFloat(this.value).toFixed(1) + "°";
+
+      // Only this coordinate is moving, so qdot has a single nonzero element.
+      // Skip the first event of a drag (no interval yet) and any long pause.
+      var dt = slide.t ? (now - slide.t)/1000 : 0;
+      slide.t = now;
+      // Clearing the axis as well makes the next event seed the filter with
+      // the measured rate, so a drag after a pause starts at full length.
+      if (dt <= 0 || dt >= 0.4) { st.qd = [0, 0, 0]; slide.rate = 0; slide.axis = -1; }
+      else {
+        // Input events arrive irregularly, so low-pass the instantaneous rate
+        // with a fixed time constant. SMOOTH_TAU seconds of history, framed so
+        // the result does not depend on how often the events happen to fire.
+        var rate = wrap(st.q[i] - prev)/dt;
+        var a = 1 - Math.exp(-dt/SMOOTH_TAU);
+        slide.rate = slide.axis === i ? slide.rate + a*(rate - slide.rate) : rate;
+        slide.axis = i;
+        st.qd = [0, 0, 0];
+        st.qd[i] = slide.rate;
+      }
+
+      if (slide.timer) clearTimeout(slide.timer);
+      slide.timer = setTimeout(function () {
+        slide.timer = 0; slide.t = 0; slide.rate = 0; slide.axis = -1;
+        st.qd = [0,0,0]; render();
+      }, 180);
+      render();
+    });
+  });
+
+  RIDS.forEach(function (id, i) {
+    $(id).addEventListener("input", function () {
+      st.semi[i] = parseFloat(this.value);
+      $(id + "o").textContent = st.semi[i].toFixed(2);
+      frameCamera();
+      render();
+    });
+  });
+
+  $("reset").addEventListener("click", function () {
+    view.az = HOME.az; view.el = HOME.el; frameCamera(); render();
+  });
+
+  /* ---------- orbit / zoom ---------- */
+  var drag = null;
+  svg.addEventListener("pointerdown", function (e) {
+    drag = {x: e.clientX, y: e.clientY};
+    svg.setPointerCapture(e.pointerId);
+    svg.classList.add("dragging");
+  });
+  svg.addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    view.az -= (e.clientX - drag.x)*0.008;
+    view.el += (e.clientY - drag.y)*0.008;
+    view.el = Math.max(-1.45, Math.min(1.45, view.el)); // keep away from the poles
+    drag.x = e.clientX; drag.y = e.clientY;
+    render();
+  });
+  function endDrag(e) {
+    if (!drag) return;
+    drag = null; svg.classList.remove("dragging");
+    if (e && e.pointerId !== undefined && svg.hasPointerCapture(e.pointerId))
+      svg.releasePointerCapture(e.pointerId);
+  }
+  svg.addEventListener("pointerup", endDrag);
+  svg.addEventListener("pointercancel", endDrag);
+  svg.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    var r = sceneRadius();
+    view.dist = Math.max(r*1.4, Math.min(r*9, view.dist*(1 + Math.sign(e.deltaY)*0.08)));
+    render();
+  }, {passive: false});
+
+  syncQ(); syncSemi(); syncMotion(); frameCamera(); render();
+}());
+</script>
+</body>
+</html>

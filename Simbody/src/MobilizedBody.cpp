@@ -2018,10 +2018,78 @@ MobilizedBody::Ellipsoid::Ellipsoid
                                                    *this);
 }
 
+MobilizedBody::Ellipsoid::Ellipsoid
+   (MobilizedBody& parent, const Body& body, const Vec3& radii,
+    const CoordinateAxis& mirrorAxis, Direction d)
+:   MobilizedBody(new EllipsoidImpl(d)) {
+    setBody(body);
+    setDefaultRadii(radii);
+    updImpl().setMirrorAxis(mirrorAxis);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(
+            parent.getMobilizedBodyIndex(), *this);
+}
+
+MobilizedBody::Ellipsoid::Ellipsoid
+   (MobilizedBody& parent, const Transform& inbFrame,
+    const Body& body,      const Transform& outbFrame,
+    const Vec3& radii,     const CoordinateAxis& mirrorAxis, Direction d)
+:   MobilizedBody(new EllipsoidImpl(d)) {
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+    setDefaultRadii(radii);
+    updImpl().setMirrorAxis(mirrorAxis);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(
+            parent.getMobilizedBodyIndex(), *this);
+}
+
 MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::
 setDefaultRadii(const Vec3& r) {
     updImpl().setDefaultRadii(r);
     return *this;
+}
+
+bool MobilizedBody::Ellipsoid::isMirrored() const {
+    return getImpl().isMirrored();
+}
+
+CoordinateAxis MobilizedBody::Ellipsoid::getMirrorAxis() const {
+    SimTK_ERRCHK_ALWAYS(isMirrored(),
+        "MobilizedBody::Ellipsoid::getMirrorAxis()",
+        "This Ellipsoid mobilizer is not mirrored, so it has no mirror axis.");
+    return CoordinateAxis(getImpl().getMirrorAxis());
+}
+
+MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::
+setDefaultRotation(const Rotation& R_FM) {
+    Rotation R_F0M0 = R_FM;
+    // Unmirror the provided rotation, since the coordinates parameterize an
+    // unmirrored rotation.
+    if (isMirrored()) {
+        const int k = getImpl().getMirrorAxis();
+        Mat33 R = R_F0M0.asMat33();
+        for (int i=0; i < 3; ++i)
+            if (i != k) {R(k,i) = -R(k,i); R(i,k) = -R(i,k);}
+        R_F0M0.setRotationFromMat33TrustMe(R);
+    }
+    return setDefaultQ(R_F0M0.convertRotationToQuaternion());
+}
+
+Rotation MobilizedBody::Ellipsoid::getDefaultRotation() const {
+    Rotation R_FM(getDefaultQ());
+    // The reverse of setDefaultRotation(): mirror the rotation created from the
+    // default Q's so it matches the orientation of the mobilizer in the default
+    // state.
+    if (isMirrored()) {
+        const int k = getImpl().getMirrorAxis();
+        Mat33 R = R_FM.asMat33();
+        for (int i=0; i < 3; ++i)
+            if (i != k) {R(k,i) = -R(k,i); R(i,k) = -R(i,k);}
+        R_FM.setRotationFromMat33TrustMe(R);
+    }
+    return R_FM;
 }
 
 const Vec3& MobilizedBody::Ellipsoid::getDefaultRadii() const {

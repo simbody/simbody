@@ -8,6 +8,15 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* `MobilizedBody::Ellipsoid` can now be constructed as the mirror image of the
+  standard joint about an axis of its inboard frame F, which can be useful for
+  building left/right joint pairs (e.g., shoulder joints) driven by the same
+  coordinates.
+* `MobilizedBody::Ellipsoid::setQToFitTranslation()` (and therefore
+  `setQToFitTransform()`) now aims the M frame's Z-axis at the requested
+  direction exactly, instead of using a small-angle approximation that was
+  accurate only near +Fz and degenerated for requested directions with a
+  negative Z component.
 * Added support for variable mobilizer inboard and outboard frames (PR #859)
 * `MobilizedBody::Translation` "lone particle" support has been removed  (PR #859)
 * Add MobilizedBody::CantileverFreeBeam, a mobilizer for modeling spinal joints and
