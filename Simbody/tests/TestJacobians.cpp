@@ -28,7 +28,8 @@ using namespace SimTK;
 namespace {
 
     // A branched multibody of bodies containing various mobilizers of different
-    // types including Pin, Ellipsoid, and CantileverFreeBeam mobilizers.
+    // types including Pin, Gimbal, Weld, Free, Ellipsoid, and
+    // CantileverFreeBeam mobilizers.
     class BranchedSystem {
     public:
         enum MobilizerType {Ground=0, Pin=1, Ellipsoid=2, CantileverFreeBeam=3,
@@ -190,6 +191,15 @@ void testMultiplyByPositionJacobianWrtInboardFramePositions() {
                                     .getBodyTransform(pert).p();
         SimTK_TEST_EQ_TOL(dp_GB[ib], (p1 - p0) / h, 1e-10);
     }
+
+    // Test noncontiguous input and output vectors using the rows of a Matrix,
+    // which are noncontiguous.
+    Matrix_<Row3> dp_PFmat(3, nb), dp_GBmat(3, nb);
+    dp_PFmat.setToNaN(); dp_GBmat.setToNaN();
+    dp_PFmat[1] = ~dp_PF;
+    sys.m_matter.multiplyByPositionJacobianWrtInboardFramePositions(
+            state, ~dp_PFmat[1], ~dp_GBmat[1]);
+    SimTK_TEST_EQ(dp_GBmat[1], ~dp_GB);
 }
 
 void testMultiplyByPositionJacobianWrtInboardFramePositionsTranspose() {
@@ -205,14 +215,18 @@ void testMultiplyByPositionJacobianWrtInboardFramePositionsTranspose() {
         dp_PF[b] = Vec3( 0.1*(b+1), -0.2*(b+1),  0.3*(b+1));
         g_GB[b]  = Vec3(-0.5*(b+1),  0.7*(b+1), -0.9*(b+1));
     }
-    dp_PF[0] = Vec3(0);
-    g_GB[0]  = Vec3(0);
 
     Vector_<Vec3> dp_GB, g_PF;
     sys.m_matter.multiplyByPositionJacobianWrtInboardFramePositions(
             state, dp_PF, dp_GB);
     sys.m_matter.multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
             state, g_GB, g_PF);
+
+    // The ground node should not have moved.
+    SimTK_TEST_EQ(dp_GB[0], Vec3(0));
+
+    // The ground node has no inboard frame, so g_PF[0] should be zero.
+    SimTK_TEST_EQ(g_PF[0], Vec3(0));
 
     // <JpF*dp_PF, g_GB> = <dp_PF, ~JpF*g_GB>
     Real lhs = 0, rhs = 0;
@@ -221,6 +235,15 @@ void testMultiplyByPositionJacobianWrtInboardFramePositionsTranspose() {
         rhs += dot(dp_PF[b], g_PF[b]);
     }
     SimTK_TEST_EQ_TOL(lhs, rhs, 1e-10);
+
+    // Test noncontiguous input and output vectors using the rows of a Matrix,
+    // which are noncontiguous.
+    Matrix_<Row3> g_GBmat(3, nb), g_PFmat(3, nb);
+    g_GBmat.setToNaN(); g_PFmat.setToNaN();
+    g_GBmat[1] = ~g_GB;
+    sys.m_matter.multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
+            state, ~g_GBmat[1], ~g_PFmat[1]);
+    SimTK_TEST_EQ(g_PFmat[1], ~g_PF);
 }
 
 void testMultiplyByPositionJacobianWrtOutboardFramePositions() {
@@ -263,6 +286,15 @@ void testMultiplyByPositionJacobianWrtOutboardFramePositions() {
                                     .getBodyTransform(pert).p();
         SimTK_TEST_EQ_TOL(dp_GB[ib], (p1 - p0) / h, 1e-10);
     }
+
+    // Test noncontiguous input and output vectors using the rows of a Matrix,
+    // which are noncontiguous.
+    Matrix_<Row3> dp_BMmat(3, nb), dp_GBmat(3, nb);
+    dp_BMmat.setToNaN(); dp_GBmat.setToNaN();
+    dp_BMmat[1] = ~dp_BM;
+    sys.m_matter.multiplyByPositionJacobianWrtOutboardFramePositions(
+            state, ~dp_BMmat[1], ~dp_GBmat[1]);
+    SimTK_TEST_EQ(dp_GBmat[1], ~dp_GB);
 }
 
 void testMultiplyByPositionJacobianWrtOutboardFramePositionsTranspose() {
@@ -278,14 +310,18 @@ void testMultiplyByPositionJacobianWrtOutboardFramePositionsTranspose() {
         dp_BM[b] = Vec3( 0.2*(b+1), -0.4*(b+1),  0.6*(b+1));
         g_GB[b]  = Vec3(-0.3*(b+1),  0.9*(b+1), -0.5*(b+1));
     }
-    dp_BM[0] = Vec3(0);
-    g_GB[0]  = Vec3(0);
 
     Vector_<Vec3> dp_GB, g_BM;
     sys.m_matter.multiplyByPositionJacobianWrtOutboardFramePositions(
             state, dp_BM, dp_GB);
     sys.m_matter.multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
             state, g_GB, g_BM);
+
+    // The ground node should not have moved.
+    SimTK_TEST_EQ(dp_GB[0], Vec3(0));
+
+    // The ground node has no outboard frame, so g_BM[0] should be zero.
+    SimTK_TEST_EQ(g_BM[0], Vec3(0));
 
     // <JpM*dp_BM, g_GB> = <dp_BM, ~JpM*g_GB>
     Real lhs = 0, rhs = 0;
@@ -294,6 +330,15 @@ void testMultiplyByPositionJacobianWrtOutboardFramePositionsTranspose() {
         rhs += dot(dp_BM[b], g_BM[b]);
     }
     SimTK_TEST_EQ_TOL(lhs, rhs, 1e-10);
+
+    // Test noncontiguous input and output vectors using the rows of a Matrix,
+    // which are noncontiguous.
+    Matrix_<Row3> g_GBmat(3, nb), g_BMmat(3, nb);
+    g_GBmat.setToNaN(); g_BMmat.setToNaN();
+    g_GBmat[1] = ~g_GB;
+    sys.m_matter.multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
+            state, ~g_GBmat[1], ~g_BMmat[1]);
+    SimTK_TEST_EQ(g_BMmat[1], ~g_BM);
 }
 
 int main() {

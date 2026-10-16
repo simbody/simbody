@@ -1224,6 +1224,29 @@ SpatialVec calcBiasForFrameJacobian(const State&         state,
     return JFDotu[0];
 }
 
+/**@}**/
+
+//==============================================================================
+/** @name     Jacobians With Respect To Mobilizer Frame Positions
+
+These methods perform calculations involving Jacobians of body origin positions
+(p_GB) with respect to the positions of mobilizer inboard (p_PF) and outboard
+frames (p_BM). Jacobians with respect to inboard frame (F) positions are denoted
+JpF, Jacobians with respect to outboard frame (M) positions are denoted JpM.
+
+The forward operators (e.g., JpF*dp_PF) are useful for calculating how changes
+in mobilizer frame propagate to changes in body position. The tranpose operators
+(e.g., ~JpF*g_PF) are useful for gradient based optimization methods where,
+given a gradient g_GB with respect to body positions (e.g., inverse kinematics
+position errors), you can obtain a gradient with respect to mobilizer frame
+positions (e.g., g_PF).
+
+Similar to system Jacobian methods, we provides fast O(n) operators for
+matrix-vector products like JpF*dp_PF or ~JpF*g_PF without forming JpF
+explicitly. **/
+
+/**@{**/
+
 /** Calculate the product of the body position Jacobian with respect to
 inboard frame positions, JpF, with a vector of nb position-like quantities,
 dp_PF. If dp_PF is a vector of perturbations in mobilizer inboard frame (F)
