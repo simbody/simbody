@@ -59,6 +59,9 @@ set(SUBDIR_EXAMPLES
 
 # There is a top-level "examples" directory in the Windows install,
 # but examples go under "doc" elsewhere.
+# Note: EXAMPLES_INSTALL_BIN and EXAMPLES_INSTALL_SRC end with "/", so append
+# to them directly (e.g. ${EXAMPLES_INSTALL_SRC}${EX_NAME}); adding another
+# "/" produces non-normalized install paths that newer CMake warns about.
 if(WIN32)
   set(EXAMPLES_INSTALL_BIN examples/bin/)
   set(EXAMPLES_INSTALL_SRC examples/src/)

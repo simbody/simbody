@@ -39,15 +39,15 @@ foreach(extradir models)
     configure_file(${xfile}
         ${CMAKE_CURRENT_BINARY_DIR}/${extradir}/${xfile_name} COPYONLY)
     install(FILES ${xfile} DESTINATION 
-            ${EXAMPLES_INSTALL_SRC}/${EX_NAME}/${extradir})
+            ${EXAMPLES_INSTALL_SRC}${EX_NAME}/${extradir})
   endforeach()
 endforeach()
 
 # install source for example
 install(FILES ${source_files} ${header_files}
-        DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME})
+        DESTINATION ${EXAMPLES_INSTALL_SRC}${EX_NAME})
 
 # install the installed version of CMakeLists.txt
 install(FILES InstalledCMakeLists.txt 
-        DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME}
+        DESTINATION ${EXAMPLES_INSTALL_SRC}${EX_NAME}
         RENAME CMakeLists.txt)

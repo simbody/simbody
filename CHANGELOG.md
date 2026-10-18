@@ -20,6 +20,13 @@ PRs and issues that were included in a particular release.
 * Fixed an out-of-bounds warning/error emitted by overloads of SimTK::Mat accessing
   out-of-bounds rows.
 * Breaking: constants in `Scalar.h` are now `inline constexpr` (header-defined) rather than exported library symbols; code that relied on the constants being a single exported symbol (e.g., comparing addresses across shared-library boundaries) may be affected.
+* Breaking (build): removed the CMake options deprecated in 3.8: `BUILD_DYNAMIC_LIBRARIES`,
+  `BUILD_STATIC_LIBRARIES`, `BUILD_UNVERSIONED_LIBRARIES`, `BUILD_TESTS_AND_EXAMPLES_SHARED`
+  and `BUILD_TESTS_AND_EXAMPLES_STATIC`. Use `SIMBODY_BUILD_SHARED_LIBS` and
+  `BUILD_VERSIONED_LIBRARIES` instead; the old options are now ignored.
+* Simbody now configures without warnings under current CMake (tested with 4.4). The
+  installed examples' `CMakeLists.txt` now requires CMake 3.21 (it previously declared 2.8,
+  which CMake 4 rejects) and no longer forces C++11.
 
 
 3.8 (May 2025)
