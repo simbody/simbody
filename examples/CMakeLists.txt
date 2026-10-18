@@ -69,8 +69,9 @@ else()
   set(EXAMPLES_INSTALL_BIN ${CMAKE_INSTALL_LIBDIR}/simbody/examples/) # if this changes, change the corresponding
                                                                       # FULL version in file(RELATIVE_PATH ) command
   set(EXAMPLES_INSTALL_SRC ${CMAKE_INSTALL_DOCDIR}/examples/src/)
-  # Use full paths for the following as it will be used to create a symlink
-  # The symlink itself will be a relative path, so the package will be relocatable
+  # Full paths are used only to compute the relative target of the
+  # examples/bin symlink (see below); the link itself is relative, so the
+  # installation stays relocatable.
   set(EXAMPLES_SYMLINK_BIN ${CMAKE_INSTALL_FULL_DOCDIR}/examples)
   file(RELATIVE_PATH EXAMPLE_INSTALL_BIN_REL_TO_DOC
       ${EXAMPLES_SYMLINK_BIN}
@@ -173,6 +174,21 @@ install(FILES InstalledCMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_SRC}
     RENAME CMakeLists.txt)
 
 if(NOT WIN32)
-  install(CODE "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
-          ${EXAMPLE_INSTALL_BIN_REL_TO_DOC} ${EXAMPLES_SYMLINK_BIN}/bin)")
+  # Create the relative symlink <docdir>/examples/bin -> <libdir>/simbody/examples.
+  # The link's location is computed at install time so that it honors
+  # `cmake --install --prefix` and DESTDIR like the rest of the install, and
+  # the link is added to install_manifest.txt so `uninstall` removes it.
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_DOCDIR}")
+    set(examples_symlink_dir "${CMAKE_INSTALL_DOCDIR}/examples")
+  else()
+    set(examples_symlink_dir
+        "\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR}/examples")
+  endif()
+  install(CODE "
+    set(examples_bin_link \"${examples_symlink_dir}/bin\")
+    message(STATUS \"Installing: \$ENV{DESTDIR}\${examples_bin_link}\")
+    file(CREATE_LINK \"${EXAMPLE_INSTALL_BIN_REL_TO_DOC}\"
+         \"\$ENV{DESTDIR}\${examples_bin_link}\" SYMBOLIC)
+    list(APPEND CMAKE_INSTALL_MANIFEST_FILES \"\${examples_bin_link}\")
+  ")
 endif()

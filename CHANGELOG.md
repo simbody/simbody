@@ -27,6 +27,9 @@ PRs and issues that were included in a particular release.
 * Simbody now configures without warnings under current CMake (tested with 4.4). The
   installed examples' `CMakeLists.txt` now requires CMake 3.21 (it previously declared 2.8,
   which CMake 4 rejects) and no longer forces C++11.
+* `cmake --install --prefix` and `DESTDIR` installs now place `simbody-visualizer` and the
+  `examples/bin` symlink under the requested location (both previously used the configure-time
+  prefix), and `uninstall` now removes the symlink.
 
 
 3.8 (May 2025)
