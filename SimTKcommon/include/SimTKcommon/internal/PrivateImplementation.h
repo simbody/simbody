@@ -153,21 +153,22 @@ public:
     PIMPLHandle& referenceAssign(const HANDLE& source);
 
     /// This is real copy assignment, with ordinary C++ object ("value") semantics.
-    /// Deletes the current implementation if owned; then replaces with a new
-    /// copy of the source implementation, of which this handle will be the owner.
-    /// This is the default copy and assignment behavior for normal handle objects,
+    /// Deletes the current implementation if owned; then replaces with a copy-constructed
+    /// instance of the source implementation, of which this handle will be the owner.
+    /// This is the default copy-construct and assignment behavior for normal handle objects,
     /// that is, those that let the PTR template argument default or set it to
     /// false explicitly. Use referenceAssign() to make a handle refer to an
-    /// existing implementation rather than creating a new copy.
+    /// existing implementation rather than copy-constructing a new instance.
     /// @see referenceAssign()
     PIMPLHandle& copyAssign(const HANDLE& source);
 
-    /// Move assignment either does a shallow copy of PTR handle objects
-    /// or a move assignment for non-PTR handle objects. The logic is similar
-    /// to either referenceAssign() for PTR handles or copyAssign() for PTR handles.
-    /// The difference is that moveAssign does not increment reference count and
-    /// invalidates the handle implementation pointer of the source object.
-    /// @see copyAssign()
+    /// This is real move assignment, with ordinary C++ object ("value") semantics.
+    /// Deletes the current implementation if owned; then replaces with a move-constructed
+    /// instance of the source implementation, of which this handle will be the owner.
+    /// This is the default move-construct and assignment behavior for normal handle objects,
+    /// that is, those that let the PTR template argument default or set it to
+    /// false explicitly. Use referenceAssign() to make a handle refer to an
+    /// existing implementation rather than move-construcing a new instance.
     /// @see referenceAssign()
     PIMPLHandle& moveAssign(HANDLE&& source) noexcept;
 
@@ -216,12 +217,13 @@ protected:
     /// @see copyAssign
     PIMPLHandle(const PIMPLHandle& source);
 
-    /// The move constructor calls moveAssign function to do either
-    /// a shallow copy for PTR handle objects or move for non-PTR
-    /// handle objects. Note that the move constructor must be noexcept-qualified
-    /// to get proper move constructs of STL containers.
+    /// The move constructor makes either a deep (value) or shallow (reference) instance
+    /// from the supplied source PIMPL object, based on whether this is a "pointer
+    /// semantics" (PTR=true) or "object (value) semantics" (PTR=false, default)
+    /// class.
+    /// @see referenceAssign
     /// @see moveAssign
-    PIMPLHandle(PIMPLHandle &&source) noexcept;
+    PIMPLHandle(PIMPLHandle&& source) noexcept;
 
     /// Copy assignment makes the current handle either a deep (value) or shallow
     /// (reference) copy of the supplied source PIMPL object, based on whether this
@@ -235,9 +237,15 @@ protected:
     /// @see copyAssign
     PIMPLHandle& operator=(const PIMPLHandle& source);
 
-    /// Move assignment operator delegates the move operation to moveAssign.
-    /// Note that the move assignment operator must be noexcept-qualified
-    /// to get proper move assignments of STL containers.
+    /// Move assignment makes the current handle either a deep (value) or shallow
+    /// (reference) instance from the supplied source PIMPL object, based on whether this
+    /// is a "pointer semantics" (PTR=true) or "object (value) semantics (PTR=false,
+    /// default) class. In the case of a pointer semantics class, an owner handle
+    /// can <em>not</em> be the target of an assignment. You can call moveAssign()
+    /// directly if you want to make a fresh instance from the source, or you can clear
+    /// this handle first with clearHandle() and then use operator=() or referenceAssign()
+    /// to turn this handle into a mere reference to the source.
+    /// @see referenceAssign
     /// @see moveAssign
     PIMPLHandle& operator=(PIMPLHandle&& source) noexcept;
 
