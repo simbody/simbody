@@ -1,20 +1,15 @@
-// vim: expandtab ts=4 sts=4 sw=4 :
-
+#include "SimTKcommon.h"
 #include "SimTKcommon/internal/PrivateImplementation_Defs.h"
-
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
 class ValueFish;
 class PointerFish;
 
 static const std::string CHK_STR{"I am a fish"};
 
-#define CHKVAL(fish) ASSERT(fish.getS() == CHK_STR)
-
 class FishImpl {
 public:
     FishImpl() :
-        m_s{"I am a fish"}
+        m_s("I am a fish")
     {}
 
     const std::string & getS() const { return m_s; }
@@ -33,7 +28,7 @@ public:
 class ValueFish : public SimTK::PIMPLHandle<ValueFish, ValueFishRep, false> {
 public:
     ValueFish() :
-        HandleBase(new ValueFishRep{})
+        HandleBase(new ValueFishRep())
     {}
 
     const std::string & getS() const { return getImpl().getS(); }
@@ -51,7 +46,7 @@ public:
 class PointerFish : public SimTK::PIMPLHandle<PointerFish, PointerFishRep, true> {
 public:
     PointerFish() :
-        HandleBase(new PointerFishRep{})
+        HandleBase(new PointerFishRep())
     {}
 
     const std::string & getS() const { return getImpl().getS(); }
@@ -66,16 +61,22 @@ void testValuePIMPL()
     ValueFish fishCCopy{fish};
     ValueFish fishMove = std::move(fish);
 
-    ASSERT(fishCopy.isMovedAway() == false)
-    ASSERT(fishCCopy.isMovedAway() == false)
-    ASSERT(fishMove.isMovedAway() == false)
-    ASSERT(fish.isMovedAway() == true)
-    ASSERT(fishCopy.refCount() == 1); CHKVAL(fishCopy)
-    ASSERT(fishCCopy.refCount() == 1); CHKVAL(fishCCopy)
-    ASSERT(fishMove.refCount() == 1); CHKVAL(fishMove)
+    SimTK_TEST(fishCopy.isMovedAway() == false);
+    SimTK_TEST(fishCCopy.isMovedAway() == false);
+    SimTK_TEST(fishMove.isMovedAway() == false);
+    SimTK_TEST(fish.isMovedAway() == true);
+
+    SimTK_TEST(fishCopy.refCount() == 1);
+    SimTK_TEST(fishCopy.getS() == CHK_STR);
+
+    SimTK_TEST(fishCCopy.refCount() == 1);
+    SimTK_TEST(fishCCopy.getS() == CHK_STR);
+
+    SimTK_TEST(fishMove.refCount() == 1);
+    SimTK_TEST(fishMove.getS() == CHK_STR);
 
     ValueFish fishCMove{std::move(fishCopy)};
-    ASSERT(fishCopy.isMovedAway() == true)
+    SimTK_TEST(fishCopy.isMovedAway() == true);
 }
 
 void testPointerPIMPL()
@@ -84,24 +85,42 @@ void testPointerPIMPL()
     PointerFish pFishCopy = pFish;
     PointerFish pFishCCopy{pFish};
 
-    ASSERT(pFish.isMovedAway() == false)
-    ASSERT(pFishCopy.isMovedAway() == false)
-    ASSERT(pFishCCopy.isMovedAway() == false)
-    ASSERT(pFish.refCount() == 3); CHKVAL(pFish)
-    ASSERT(pFishCopy.refCount() == 3); CHKVAL(pFishCopy)
-    ASSERT(pFishCCopy.refCount() == 3); CHKVAL(pFishCCopy)
+    SimTK_TEST(pFish.isMovedAway() == false);
+    SimTK_TEST(pFishCopy.isMovedAway() == false);
+    SimTK_TEST(pFishCCopy.isMovedAway() == false);
+
+    SimTK_TEST(pFish.refCount() == 3);
+    SimTK_TEST(pFish.getS() == CHK_STR);
+
+    SimTK_TEST(pFishCopy.refCount() == 3);
+    SimTK_TEST(pFishCopy.getS() == CHK_STR);
+
+    SimTK_TEST(pFishCCopy.refCount() == 3);
+    SimTK_TEST(pFishCCopy.getS() == CHK_STR);
 
     PointerFish pFishMove = std::move(pFish);
-    ASSERT(pFish.isMovedAway() == true);
-    ASSERT(pFishCopy.refCount() == 3); CHKVAL(pFishCopy)
-    ASSERT(pFishCCopy.refCount() == 3); CHKVAL(pFishCCopy);
-    ASSERT(pFishMove.refCount() == 3); CHKVAL(pFishMove);
+    SimTK_TEST(pFish.isMovedAway() == true);
+
+    SimTK_TEST(pFishCopy.refCount() == 3);
+    SimTK_TEST(pFishCopy.getS() == CHK_STR);
+
+    SimTK_TEST(pFishCCopy.refCount() == 3);
+    SimTK_TEST(pFishCCopy.getS() == CHK_STR);
+
+    SimTK_TEST(pFishMove.refCount() == 3);
+    SimTK_TEST(pFishMove.getS() == CHK_STR);
 
     PointerFish pFishCMove(std::move(pFishCopy));
-    ASSERT(pFishCopy.isMovedAway() == true)
-    ASSERT(pFishCCopy.refCount() == 3); CHKVAL(pFishCCopy)
-    ASSERT(pFishMove.refCount() == 3); CHKVAL(pFishMove);
-    ASSERT(pFishCMove.refCount() == 3); CHKVAL(pFishCMove);
+    SimTK_TEST(pFishCopy.isMovedAway() == true);
+
+    SimTK_TEST(pFishCCopy.refCount() == 3);
+    SimTK_TEST(pFishCCopy.getS() == CHK_STR);
+
+    SimTK_TEST(pFishMove.refCount() == 3);
+    SimTK_TEST(pFishMove.getS() == CHK_STR);
+
+    SimTK_TEST(pFishCMove.refCount() == 3);
+    SimTK_TEST(pFishCMove.getS() == CHK_STR);
 }
 
 int main()
