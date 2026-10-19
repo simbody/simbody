@@ -32,7 +32,7 @@ public:
 class ValueFish : public SimTK::PIMPLHandle<ValueFish, ValueFishRep, false> {
 public:
     ValueFish() :
-        HandleBase{ new ValueFishRep{} }
+        HandleBase(new ValueFishRep{})
     {}
 
     const std::string & getS() const { return getImpl().getS(); }
@@ -49,7 +49,7 @@ public:
 class PointerFish : public SimTK::PIMPLHandle<PointerFish, PointerFishRep, true> {
 public:
     PointerFish() :
-        HandleBase{ new PointerFishRep{} }
+        HandleBase(new PointerFishRep{})
     {}
 
     const std::string & getS() const { return getImpl().getS(); }
