@@ -59,9 +59,6 @@ set(SUBDIR_EXAMPLES
 
 # There is a top-level "examples" directory in the Windows install,
 # but examples go under "doc" elsewhere.
-# Note: EXAMPLES_INSTALL_BIN and EXAMPLES_INSTALL_SRC end with "/", so append
-# to them directly (e.g. ${EXAMPLES_INSTALL_SRC}${EX_NAME}); adding another
-# "/" produces non-normalized install paths that newer CMake warns about.
 if(WIN32)
   set(EXAMPLES_INSTALL_BIN examples/bin/)
   set(EXAMPLES_INSTALL_SRC examples/src/)
@@ -158,8 +155,9 @@ foreach(one_shared_file ${SHARED_FILES})
        ${CMAKE_CURRENT_BINARY_DIR}/shared/${one_shared_file} COPYONLY)
 endforeach()
 
+cmake_path(APPEND EXAMPLES_INSTALL_SRC shared OUTPUT_VARIABLE shared_src_dest)
 install(DIRECTORY shared/
-        DESTINATION ${EXAMPLES_INSTALL_SRC}shared) # already has "/"
+        DESTINATION ${shared_src_dest})
 
 # install .txt files except CMakeLists.txt
 file(GLOB TXT_FILES "*.txt")
@@ -178,6 +176,8 @@ if(NOT WIN32)
   # The link's location is computed at install time so that it honors
   # `cmake --install --prefix` and DESTDIR like the rest of the install, and
   # the link is added to install_manifest.txt so `uninstall` removes it.
+  # The link is only a convenience, so if it can't be created (e.g. the
+  # filesystem doesn't support symlinks) we warn rather than fail the install.
   if(IS_ABSOLUTE "${CMAKE_INSTALL_DOCDIR}")
     set(examples_symlink_dir "${CMAKE_INSTALL_DOCDIR}/examples")
   else()
@@ -188,7 +188,11 @@ if(NOT WIN32)
     set(examples_bin_link \"${examples_symlink_dir}/bin\")
     message(STATUS \"Installing: \$ENV{DESTDIR}\${examples_bin_link}\")
     file(CREATE_LINK \"${EXAMPLE_INSTALL_BIN_REL_TO_DOC}\"
-         \"\$ENV{DESTDIR}\${examples_bin_link}\" SYMBOLIC)
-    list(APPEND CMAKE_INSTALL_MANIFEST_FILES \"\${examples_bin_link}\")
+         \"\$ENV{DESTDIR}\${examples_bin_link}\" RESULT link_result SYMBOLIC)
+    if(link_result STREQUAL \"0\")
+      list(APPEND CMAKE_INSTALL_MANIFEST_FILES \"\${examples_bin_link}\")
+    else()
+      message(WARNING \"Could not create symlink \$ENV{DESTDIR}\${examples_bin_link}: \${link_result}\")
+    endif()
   ")
 endif()

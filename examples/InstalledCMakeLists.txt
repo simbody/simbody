@@ -36,9 +36,6 @@ if(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
         FORCE)
 endif()
 
-# No C++ standard flags are needed here: the imported Simbody targets carry
-# their required C++ standard (cxx_std_20) as a usage requirement.
-
 # CMAKE_CURRENT_SOURCE_DIR is an absolute path.
 add_definitions(
     "-DSIMBODY_EXAMPLES_INSTALL_SRC=\"${CMAKE_CURRENT_SOURCE_DIR}/\"")
