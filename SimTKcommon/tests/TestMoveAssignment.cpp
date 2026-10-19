@@ -25,6 +25,7 @@ private:
 
 class ValueFishRep : public SimTK::PIMPLImplementation<ValueFish, ValueFishRep>, public FishImpl {
 public:
+    ValueFishRep() = default;
     ValueFishRep* clone() const { return new ValueFishRep(); }
     int refCount() const { return getHandleCount(); }
 };
@@ -42,6 +43,7 @@ public:
 
 class PointerFishRep : public SimTK::PIMPLImplementation<PointerFish, PointerFishRep>, public FishImpl {
 public:
+    PointerFishRep() = default;
     PointerFishRep* clone() const { return new PointerFishRep(); }
     int refCount() const { return getHandleCount(); }
 };
