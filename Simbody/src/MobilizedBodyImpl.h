@@ -853,6 +853,15 @@ public:
     bool isMirrored()    const {return mirrorAxis >= 0;}
     int  getMirrorAxis() const {return mirrorAxis;}
 
+    void mirrorRotation(Rotation& R_FM) const {
+        if (!isMirrored()) return;
+        const int k = mirrorAxis;
+        Mat33 R = R_FM.asMat33();
+        for (int i=0; i < 3; ++i)
+            if (i != k) {R(k,i) = -R(k,i); R(i,k) = -R(i,k);}
+        R_FM.setRotationFromMat33TrustMe(R);
+    }
+
     SimTK_DOWNCAST(EllipsoidImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Ellipsoid;
@@ -1072,7 +1081,7 @@ public:
 private:
     friend class MobilizedBody::CantileverFreeBeam;
     Real defaultLength; // used for visualization only
-    Vec3 defaultQ;      // the default orientation
+    Vec3 defaultQ{0};   // the default orientation
 };
 
 /////////////////////////////////////////////////

@@ -1,34 +1,57 @@
 <!doctype html>
-<!-- ---------------------------------------------------------------------- -->
-<!-- Interactive figure for MobilizedBody::Ellipsoid, embedded in the class    -->
-<!-- documentation and shipped with the Doxygen output via HTML_EXTRA_FILES.  -->
-<!--                                                                          -->
-<!-- IMPORTANT: this page must stay entirely self-contained. The generated    -->
-<!-- API documentation is installed and read offline, so it must not load any -->
-<!-- script, stylesheet, font, or image from a network location. The 3D view  -->
-<!-- below is plain SVG driven by the projection code at the bottom of this   -->
-<!-- file; please do not introduce a rendering library.                       -->
-<!--                                                                          -->
-<!-- The layout is FIXED at 900 x 650 so the <iframe> in                       -->
-<!-- MobilizedBody_Ellipsoid.h can match it exactly and never scroll.          -->
-<!--      stage 598 + 2 border + gap 12 + panel 260 + padding 2*14 =  900 wide -->
-<!--      stage 670 + 2 border + body padding 2*14                   =  700 tall -->
-<!--                                                                          -->
-<!-- The camera fits the scene's bounding sphere to the tighter screen half-  -->
-<!-- angle, so the view scales with the stage HEIGHT; width past about the    -->
-<!-- height only adds side margin. 900 needs a window about 1436 wide, which  -->
-<!-- fits a typical laptop. The 670 stage height is bounded below by the      -->
-<!-- ~600px control panel beside it:                                          -->
-<!-- Doxygen 1.14 flanks the content                                          -->
-<!-- with a 250px #side-nav and a 250px #page-nav plus 6px drag bars, and     -->
-<!-- div.contents adds 12px margins, so the usable column is roughly          -->
-<!-- (viewport - 536), so on a narrower window max-width:100% shrinks the     -->
-<!-- frame and the page scrolls horizontally inside it.                        -->
-<!--                                                                          -->
-<!-- The SVG is drawn 1:1 with its viewBox, so drawing units are pixels and   -->
-<!-- the panel is about 600 tall, leaving the stage height to set the page    -->
-<!-- height. If you add panel controls, raise both heights together.          -->
-<!-- ---------------------------------------------------------------------- -->
+<!-- -------------------------------------------------------------------------- -->
+<!--                               Simbody(tm)                                  -->
+<!-- -------------------------------------------------------------------------- -->
+<!-- This is part of the SimTK biosimulation toolkit originating from           -->
+<!-- Simbios, the NIH National Center for Physics-Based Simulation of           -->
+<!-- Biological Structures at Stanford, funded under the NIH Roadmap for        -->
+<!-- Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  -->
+<!--                                                                            -->
+<!-- Portions copyright (c) 2005-26 Stanford University and the Authors.        -->
+<!-- Authors: Nicholas Bianco                                                   -->
+<!-- Contributors:                                                              -->
+<!--                                                                            -->
+<!-- Licensed under the Apache License, Version 2.0 (the "License"); you may    -->
+<!-- not use this file except in compliance with the License. You may obtain a  -->
+<!-- copy of the License at http://www.apache.org/licenses/LICENSE-2.0.         -->
+<!--                                                                            -->
+<!-- Unless required by applicable law or agreed to in writing, software        -->
+<!-- distributed under the License is distributed on an "AS IS" BASIS,          -->
+<!-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   -->
+<!-- See the License for the specific language governing permissions and        -->
+<!-- limitations under the License.                                             -->
+<!-- -------------------------------------------------------------------------- -->
+
+<!--
+Interactive figure for MobilizedBody::Ellipsoid, embedded in the class
+documentation and shipped with the Doxygen output via HTML_EXTRA_FILES.
+
+IMPORTANT: this page must stay entirely self-contained. The generated API
+documentation is installed and read offline, so it must not load any script,
+stylesheet, font, or image from a network location. The 3D view below is plain
+SVG driven by the projection code at the bottom of this file; please do not
+introduce a rendering library.
+
+The layout is FIXED at 900 x 700 so the <iframe> in
+MobilizedBody_Ellipsoid.h can match it exactly and never scroll.
+    stage 598 + 2 border + gap 12 + panel 260 + padding 2*14 =  900 wide
+    stage 670 + 2 border + body padding 2*14                 =  700 tall
+
+The camera fits the scene's bounding sphere to the tighter screen half-
+angle, so the view scales with the stage HEIGHT; width past about the
+height only adds side margin. 900 needs a window about 1436 wide, which
+fits a typical laptop: Doxygen 1.14 flanks the content with a 250px
+#side-nav and a 250px #page-nav plus 6px drag bars, and div.contents
+adds 12px margins, so the usable column is roughly (viewport - 536). On
+a narrower window max-width:100% shrinks the frame and the page scrolls
+horizontally inside it. The 670 stage height is bounded below by the
+~600px control panel beside it.
+
+The SVG is drawn 1:1 with its viewBox, so drawing units are pixels and
+the panel is about 600 tall, leaving the stage height to set the page
+height. If you add panel controls, raise both heights together.
+-->
+
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -178,12 +201,12 @@ dl.readout dd {
     <div class="group">
       <h2>State</h2>
       <dl class="readout">
-        <dt>diag(S)</dt>        <dd id="rS"></dd>
-        <dt>diag(&minus;S)</dt> <dd id="rNS"></dd>
-        <dt>p_FM</dt>           <dd id="rP"></dd>
-        <dt>S&middot;p_FM</dt>  <dd id="rPM"></dd>
-        <dt>u</dt>              <dd id="rU"></dd>
-        <dt>&minus;S&middot;u</dt><dd id="rW"></dd>
+        <dt class="mir">diag(S)</dt>        <dd class="mir" id="rS"></dd>
+        <dt class="mir">diag(&minus;S)</dt> <dd class="mir" id="rNS"></dd>
+        <dt>p_FM</dt>                       <dd id="rP"></dd>
+        <dt class="mir">S&middot;p_FM</dt>  <dd class="mir" id="rPM"></dd>
+        <dt>u</dt>                          <dd id="rU"></dd>
+        <dt class="mir">&minus;S&middot;u</dt><dd class="mir" id="rW"></dd>
       </dl>
     </div>
   </div>
@@ -222,15 +245,22 @@ dl.readout dd {
   function sDiag(k) { var s = [1,1,1]; if (k >= 0) s[k] = -1; return s; }
   // R -> S R S: element (i,j) is scaled by s[i]*s[j].
   function mirrorR(R, k) {
+    if (k < 0) return R;
     var s = sDiag(k);
     return [0,1,2].map(function (i) {
       return [0,1,2].map(function (j) { return R[i][j]*s[i]*s[j]; });
     });
   }
   // v -> S v for a linear quantity measured in F.
-  function mirrorLin(v, k) { var s = sDiag(k); return [s[0]*v[0], s[1]*v[1], s[2]*v[2]]; }
+  function mirrorLin(v, k) {
+    if (k < 0) return v;
+    var s = sDiag(k); return [s[0]*v[0], s[1]*v[1], s[2]*v[2]];
+  }
   // w -> -S w for an angular quantity measured in F.
-  function mirrorAng(v, k) { var s = sDiag(k); return [-s[0]*v[0], -s[1]*v[1], -s[2]*v[2]]; }
+  function mirrorAng(v, k) {
+    if (k < 0) return v;   // not -v: with no mirroring the map is identity
+    var s = sDiag(k); return [-s[0]*v[0], -s[1]*v[1], -s[2]*v[2]];
+  }
 
   // Generalized speeds of the standard joint from qdot: u = w_FM is
   // qdot1 about Fx, plus qdot2 about Rx(q1)*y, plus qdot3 about Mz.
@@ -247,9 +277,8 @@ dl.readout dd {
     var u = speeds(q, qd, n);
     var c = cross(u, n);
     var v = [semi[0]*c[0], semi[1]*c[1], semi[2]*c[2]];
-    return k < 0 ? {R: R, p: p, u: u, w: u, v: v}
-                 : {R: mirrorR(R, k), p: mirrorLin(p, k),
-                    u: u, w: mirrorAng(u, k), v: mirrorLin(v, k)};
+    return {R: mirrorR(R, k), p: mirrorLin(p, k),
+            u: u, w: mirrorAng(u, k), v: mirrorLin(v, k)};
   }
 
   /* ---------- state ---------- */
@@ -287,8 +316,8 @@ dl.readout dd {
   function camera() {
     var ce = Math.cos(view.el), se = Math.sin(view.el);
     var dir = [ce*Math.cos(view.az), ce*Math.sin(view.az), se]; // origin -> camera
-    var right = unit(cross(dir, [0,0,1]));
-    return {dir: dir, right: right, up: cross(right, dir), pos: scale(dir, view.dist)};
+    var right = unit(cross([0,0,1], dir));
+    return {dir: dir, right: right, up: cross(dir, right), pos: scale(dir, view.dist)};
   }
   function project(P, C) {
     var v = [P[0]-C.pos[0], P[1]-C.pos[1], P[2]-C.pos[2]];
@@ -531,6 +560,9 @@ dl.readout dd {
       }).join(" ");
     };
     var sgn = function (v) { return v.map(function (x) { return x > 0 ? " +1" : " -1"; }).join(" "); };
+    Array.prototype.forEach.call(mirRows, function (el) {
+      el.style.display = st.k < 0 ? "none" : "";
+    });
     $("rS").textContent  = sgn(s);
     $("rNS").textContent = sgn(s.map(function (x) { return -x; }));
     $("rP").textContent  = v3(std.p);
@@ -554,7 +586,8 @@ dl.readout dd {
     slide.t = 0; slide.rate = 0; slide.axis = -1;
   }
 
-  var anim = { mode: null, tau: 0, base: null, t: 0, phase: 0, last: 0, raf: 0 };
+  var anim = { mode: null, tau: 0, base: null, t: 0, phase: 0, shift: null,
+               last: 0, raf: 0 };
 
   // Preset drive functions, with their exact derivatives. Differencing q
   // between frames would fold the browser's frame-time jitter straight into
@@ -565,9 +598,15 @@ dl.readout dd {
   var WA = [55*DEG, 50*DEG, 35*DEG],          // wander amplitudes,
       WK = [0.53, 0.71, 0.37],                //   rates,
       WP = [0, 0.6, 0];                       //   and phases
-  // Smoothstep and its derivative, used to ease the wander in from q(0).
-  function smooth(x)    { x = Math.max(0, Math.min(1, x)); return x*x*(3 - 2*x); }
-  function smoothDot(x) { return (x <= 0 || x >= 1) ? 0 : 6*x*(1 - x); }
+  // Smootherstep, 6x^5 - 15x^4 + 10x^3, and its derivative 30x^2(x-1)^2, used
+  // to ease the wander in from q(0). Both the first and second derivatives
+  // vanish at x = 0 and x = 1, so the eased motion has continuous position,
+  // velocity and acceleration at both ends. Plain smoothstep, 3x^2 - 2x^3,
+  // would leave f'' jumping by 6 at each end, which puts a kink in qdot's
+  // slope just as the ease starts and finishes.
+  function smooth(x)    { x = Math.max(0, Math.min(1, x));
+                          return x*x*x*(x*(6*x - 15) + 10); }
+  function smoothDot(x) { return (x <= 0 || x >= 1) ? 0 : 30*x*x*(x - 1)*(x - 1); }
 
   function advance(dt) {
     anim.tau += dt;
@@ -587,7 +626,7 @@ dl.readout dd {
       for (i = 0; i < 3; i++) {
         var w  = WA[i]*Math.sin(WK[i]*anim.t + WP[i]);
         var wd = WA[i]*WK[i]*Math.cos(WK[i]*anim.t + WP[i]);
-        var d  = wrap(w - b[i]);
+        var d  = w - b[i] + anim.shift[i];   // winding fixed in startAnim()
         q[i]  = wrap(b[i] + d*f);
         qd[i] = wd*f + d*fd;           // product rule on d(t)*f(tau)
       }
@@ -609,7 +648,20 @@ dl.readout dd {
     anim.mode = m; anim.tau = 0; anim.base = st.q.slice(); anim.last = 0;
     if (m === "lon")
       anim.phase = Math.asin(Math.max(-1, Math.min(1, anim.base[1]/(75*DEG))));
-    if (m === "wander") anim.t = 0;
+    if (m === "wander") {
+      anim.t = 0;
+      // Pick the 2*pi winding once, from the wander target at t = 0.
+      // Re-wrapping w - b[i] every frame lets it switch branches partway
+      // through the ease-in, which steps the orientation by 2*pi*f while qdot
+      // stays finite -- so the motion and the velocity arrows disagree. Adding
+      // a fixed shift instead keeps d continuous, at the cost of letting
+      // b[i] + d*f leave [-pi,pi]; the outer wrap on q[i] handles that, and a
+      // 2*pi shift in any of the angles is the same orientation anyway.
+      anim.shift = [0,1,2].map(function (i) {
+        var raw = WA[i]*Math.sin(WP[i]) - anim.base[i];   // target at t = 0
+        return wrap(raw) - raw;
+      });
+    }
     syncMotion();
     if (!anim.raf) anim.raf = requestAnimationFrame(tick);
   }
@@ -631,6 +683,7 @@ dl.readout dd {
       $(id).value = st.semi[i]; $(id + "o").textContent = st.semi[i].toFixed(2);
     });
   }
+  var mirRows  = document.querySelectorAll(".mir");
   var modeBtns = document.querySelectorAll("[data-mode]");
   function syncMotion() {
     Array.prototype.forEach.call(modeBtns, function (b) {

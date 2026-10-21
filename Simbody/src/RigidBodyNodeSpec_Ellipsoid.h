@@ -64,7 +64,8 @@
 //     angles, that is, angles defined about F rather than M axes.)
 //
 // Generalized speeds are:
-//   * angular velocity w_FM as a vector expressed in the F frame.
+//   * angular velocity w_FM as a vector expressed in the F frame (unless
+//     mirrored, then w_FM = -S u, see below).
 //
 // Thus rotational qdots have to be derived from the generalized speeds to
 // be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
@@ -231,15 +232,20 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector
     Vec3 p_F0M0 = p_FM;
     mirrorLinear(p_F0M0, mirrorAxis);
 
-     // The direction from F origin towards the desired M origin.
-    const UnitVec3 e(p_F0M0);
+    // The M origin sits at p_FM = diag(a,b,c)*Mz, so the Mz that puts it on
+    // the requested ray is the normalized diag(1/a,1/b,1/c)*p_FM. The p_FM
+    // that results is then exactly parallel to the request, with its distance
+    // along that ray fixed by the surface.
+    const UnitVec3 e(p_F0M0[0]/semi[0], p_F0M0[1]/semi[1], p_F0M0[2]/semi[2]);
 
-    // Point Mz towards e. Mz is the third column of Rx(q1)Ry(q2)Rz(q3), namely
+    // Point Mz along e. Mz is the third column of Rx(q1)Ry(q2)Rz(q3), namely
     // (sin q2, -sin q1 cos q2, cos q1 cos q2), so inverting that for q1 and q2
-    // aims it exactly, for e anywhere on the sphere. Valid for both standard
-    // and mirrored joints.
+    // aims it exactly, for e anywhere on the unit sphere. Taking q2 from atan2
+    // against sqrt(e[1]^2+e[2]^2) rather than from asin(e[0]) needs no
+    // clamping and stays well conditioned as e[0] approaches +/-1. Valid for
+    // both standard and mirrored joints.
     const Real q1 = std::atan2(-e[1], e[2]);
-    const Real q2 = std::asin(clamp(-1, e[0], 1));
+    const Real q2 = std::atan2(e[0], std::sqrt(e[1]*e[1] + e[2]*e[2]));
 
     // Calculate the current value of q3.
     Real q3;
@@ -270,35 +276,35 @@ void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q, con
     this->toU(u) = w_F0M0;
 }
 
-// We can't do general linear velocity with this rotation-only mobilizer, but 
-// we can express any velocity which is tangent to the ellipsoid surface. So 
-// we'll find the current surface normal (Mz) and ignore any component of the 
-// requested velocity which is along that direction. (The resulting vz won't 
-// be zero, though, but it is completely determined by vx,vy.)
+// We can't do general linear velocity with this rotation-only mobilizer, but we
+// can produce any velocity that keeps the M origin on the ellipsoid, that is,
+// any velocity tangent to the surface at the current contact point. Therefore,
+// given a requested velocity we reproduce exactly the part tangent to the
+// surface and discard the rest.
 void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
 {
     Transform X_FM;
     this->calcAcrossJointTransform(sbs,q,X_FM);
 
-    // Undo the mirroring of both the transform and the requested velocity since
-    // the u's represent an unmirrored joint.
+    // Work with the standard joint, since the u's represent an unmirrored one:
+    // recover its Mz as in calcAcrossJointVelocityJacobian(), and undo the
+    // mirroring of the requested velocity.
+    Vec3 n = X_FM.z();
+    mirrorLinear(n, mirrorAxis);
+    if (mirrorAxis == ZAxis) n = -n;
     Vec3 v_F0M0 = v_FM;
-    mirrorTransform(X_FM, mirrorAxis);
     mirrorLinear(v_F0M0, mirrorAxis);
 
-    const Vec3 v_FM_M    = ~X_FM.R()*v_F0M0; // we can only do vx and vy in M
-    const Vec3 r_FM_M    = ~X_FM.R()*X_FM.p(); 
-    const Vec3 wnow_FM_M = ~X_FM.R()*this->fromU(u); // preserve z component
+    // v_FM is the linear part of H_FM*u, namely diag(a,b,c)*(u X Mz), so we
+    // need u X Mz == diag(1/a,1/b,1/c)*v_FM =: w. Only the part of w
+    // perpendicular to Mz is reachable, and u = Mz X w delivers exactly that,
+    // since (Mz X w) X Mz == w - Mz*(Mz.w). Adding any multiple of Mz leaves
+    // v_FM alone, so carry the current spin over.
+    const Vec3 w(v_F0M0[0]/semi[0], v_F0M0[1]/semi[1], v_F0M0[2]/semi[2]);
+    const Vec3 u_now = this->fromU(u);
 
-    // Now vx can only result from angular velocity about y, vy from x.
-    // TODO: THIS IS ONLY RIGHT FOR A SPHERE!!!
-    const Real wx = -v_FM_M[1]/r_FM_M[2];
-    const Real wy = v_FM_M[0]/r_FM_M[2];
-    const Vec3 w_FM_M(wx, wy, wnow_FM_M[2]);
-    const Vec3 w_FM = X_FM.R()*w_FM_M;
-
-    this->toU(u) = w_FM;
+    this->toU(u) = n % w + dot(n, u_now)*n;
 }
 
 // When we're using Euler angles, we're going to want to cache cos and sin for
@@ -439,8 +445,10 @@ void calcQDot(const SBStateDigest& sbs, const Real* u,
 
     const SBModelVars& mv = sbs.getModelVars();
 
-    // Generalized speeds are the same in either mode -- angular velocity
-    // of F in M (or B in P), expressed in F (fixed on parent) frame.
+    // Generalized speeds are the angular velocity of F in M (or B in P),
+    // expressed in F (fixed on parent) frame, unless the mobilizer is mirrored,
+    // then w_FM = -S u. However, qdot=N(q)*u whether the mobilizer is mirrored
+    // or not, so we perform no mirroring here.
     const Vec3& w_FM = Vec3::getAs(u);
 
     if (this->getUseEulerAngles(mv)) {

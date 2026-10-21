@@ -38,17 +38,17 @@ The generalized coordinates q are the same as for a Ball (Orientation)
 mobilizer, that is, a quaternion or an x-y-z body-fixed Euler sequence depending 
 on the "use Euler angles" modeling option. The three generalized speeds u for 
 this mobilizer are also the same as for a Ball mobilizer, that is
-the three measure numbers of the angular velocity vector w_FM, the
-relative angular velocity of the outboard M frame in the inboard F frame,
-expressed in the F frame. That is unchanged by setting the "use Euler
-angles" modeling option. Note that qdot != u for this mobilizer.
+the three measure numbers of the angular velocity vector w_FM (unless the
+mobilizer is mirrored, see \ref mirroring below), the relative angular
+velocity of the outboard M frame in the inboard F frame, expressed in the F
+frame. That is unchanged by setting the "use Euler angles" modeling option. Note
+that qdot != u for this mobilizer.
 
-<h3>Mirroring</h3>
+\subsection mirroring Mirroring
 
-This mobilizer can optionally be constructed as the mirror image of the standard
-joint about one of the axes of the inboard frame F, which is useful for building
-a left/right pair of joints (e.g., a pair of shoulders) that are driven by the
-same coordinates.
+This mobilizer can optionally be mirrored about the plane normal to one of the
+axes of the inboard frame F, which is useful for building a left/right pair of
+joints (e.g., a pair of shoulders) that are driven by the same coordinates.
 
 We define S as the reflection that reverses an axis k, that is, sₖ = −1 and
 sᵢ = 1 otherwise. For example, if mirroring about the Y-axis then s = [1 −1 1]
@@ -189,8 +189,10 @@ public:
     /** Provide a default orientation for this mobilizer if you don't want to
     start with the identity rotation (that is, alignment of the F and M 
     frames). This is the orientation the mobilizer will have in the default
-    state for the containing System. The supplied Rotation will be converted
-    to a quaternion and used as the four generalized coordinates q. **/
+    state for the containing System. If this mobilizer is mirrored, provided the
+    mirrored rotation, i.e., S*R_FM*S, here. The supplied Rotation will be
+    converted to a quaternion and used as the four generalized coordinates q.
+    **/
     Ellipsoid& setDefaultRotation(const Rotation& R_FM);
     /** Get the value for the default orientation of this mobilizer; unless
     changed by setDefaultRotation() it will be the identity rotation. **/
@@ -217,8 +219,18 @@ public:
 
 
     // Generic default state Topology methods.
+
+    /** Get the default coordinates. */
     const Quaternion& getDefaultQ() const;
+    /** Update the default coordinates. The provided coordinates should be the
+    same whether the mobilizer is mirrored or not. In other words, the q's that
+    produce the rotation R_FM in a standard mobilizer will produce S*R_FM*S in
+    a mirrored mobilizer. */
     Quaternion& updDefaultQ();
+    /** Set the default coordinates. The provided coordinates should be the
+    same whether the mobilizer is mirrored or not. In other words, the q's that
+    produce the rotation R_FM in a standard mobilizer will produce S*R_FM*S in
+    a mirrored mobilizer. */
     Ellipsoid& setDefaultQ(const Quaternion& q) {updDefaultQ()=q; return *this;}
 
     const Vec4& getQ(const State&) const;

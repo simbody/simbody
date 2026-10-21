@@ -2064,31 +2064,19 @@ CoordinateAxis MobilizedBody::Ellipsoid::getMirrorAxis() const {
 
 MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::
 setDefaultRotation(const Rotation& R_FM) {
-    Rotation R_F0M0 = R_FM;
     // Unmirror the provided rotation, since the coordinates parameterize an
     // unmirrored rotation.
-    if (isMirrored()) {
-        const int k = getImpl().getMirrorAxis();
-        Mat33 R = R_F0M0.asMat33();
-        for (int i=0; i < 3; ++i)
-            if (i != k) {R(k,i) = -R(k,i); R(i,k) = -R(i,k);}
-        R_F0M0.setRotationFromMat33TrustMe(R);
-    }
+    Rotation R_F0M0 = R_FM;
+    getImpl().mirrorRotation(R_F0M0);
     return setDefaultQ(R_F0M0.convertRotationToQuaternion());
 }
 
 Rotation MobilizedBody::Ellipsoid::getDefaultRotation() const {
-    Rotation R_FM(getDefaultQ());
     // The reverse of setDefaultRotation(): mirror the rotation created from the
     // default Q's so it matches the orientation of the mobilizer in the default
-    // state.
-    if (isMirrored()) {
-        const int k = getImpl().getMirrorAxis();
-        Mat33 R = R_FM.asMat33();
-        for (int i=0; i < 3; ++i)
-            if (i != k) {R(k,i) = -R(k,i); R(i,k) = -R(i,k);}
-        R_FM.setRotationFromMat33TrustMe(R);
-    }
+    // state. Mirroring is an involution, so it is the same operation.
+    Rotation R_FM(getDefaultQ());
+    getImpl().mirrorRotation(R_FM);
     return R_FM;
 }
 

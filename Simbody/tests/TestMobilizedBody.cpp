@@ -117,12 +117,6 @@ void testCalculationMethods() {
 
 void testFittingMethods() {
 
-    // Define an empty system.
-    MultibodySystem system;
-    SimbodyMatterSubsystem matter(system);
-    GeneralForceSubsystem forces(system);
-    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
-
     // Define zero and arbitrary transforms and velocities.
     Transform X_FM_zero(Vec3(0));
     SpatialVec V_FM_zero(Vec3(0), Vec3(0));
@@ -131,6 +125,11 @@ void testFittingMethods() {
 
     // MobilizedBody::Free
     {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        GeneralForceSubsystem forces(system);
+        Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+
         MobilizedBody::Free mobod(matter.updGround(), body);
         system.realizeTopology();
         State state = system.getDefaultState();
@@ -156,6 +155,11 @@ void testFittingMethods() {
 
     // MobilizedBody::CantileverFreeBeam
     {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        GeneralForceSubsystem forces(system);
+        Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+
         Real length = 1.23;
         MobilizedBody::CantileverFreeBeam mobod(matter.updGround(),
             body, length);
@@ -250,6 +254,11 @@ void testFittingMethods() {
 
     // Mirrored MobilizedBody::Ellipsoid.
     for (int k = 0; k < 3; ++k) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        GeneralForceSubsystem forces(system);
+        Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+
         const Vec3 radii(0.8, 1.5, 1.0);
         MobilizedBody::Ellipsoid standard(matter.updGround(), body, radii);
         MobilizedBody::Ellipsoid mirrored(matter.updGround(), body, radii,
@@ -273,8 +282,8 @@ void testFittingMethods() {
         system.realize(state, Stage::Position);
         SimTK_TEST_EQ(mirrored.getMobilizerTransform(state).R(), X_FM.R());
 
-        // These fits are approximate, so instead compared that mirrored and
-        // standard joints produced identical coordinates.
+        // Check that mirrored and standard joints produced identical
+        // coordinates.
         standard.setQToFitTransform(state, X_FM);
         mirrored.setQToFitTransform(state, mirrorTransform(X_FM, k));
         standard.setUToFitVelocity(state, V_FM);
@@ -287,6 +296,78 @@ void testFittingMethods() {
             mirrorTransform(standard.getMobilizerTransform(state), k));
         SimTK_TEST_EQ(mirrored.getMobilizerVelocity(state),
             mirrorVelocity(standard.getMobilizerVelocity(state), k));
+    }
+
+    // Check that setQToFitTranslation() aims M's z axis at a requested
+    // direction for an unmirrored ellipsoid. Also, check that
+    // setUToFitLinearVelocity() can fit exactly the component of a target
+    // velocity that is tangent to the ellipsoid.
+    {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        GeneralForceSubsystem forces(system);
+        Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+
+        // Use directions that can caused fitting errors previous to changes in
+        // PR #875: anything with z < 0, where its second atan2 landed in the
+        // wrong branch and anything near +/-Fx, where the second angle passed
+        // through +/-90 degrees.
+        const Vec3 dirs[6] = {Vec3( 0.3,-0.5,  0.8), Vec3( 0.3, -0.5, -0.8),
+                              Vec3( 0.0, 0.0, -1.0), Vec3( 0.98, 0.1,  0.17),
+                              Vec3(-0.98, 0.1,-0.17), Vec3( 1.0,  0.0,  0.0)};
+
+        // Test both a spherical joint and a true ellipsoid joint.
+        const Vec3 shapes[2] = {Vec3(1, 1, 1), Vec3(0.8, 1.5, 1.0)};
+        for (int sh = 0; sh < 2; ++sh) {
+            const Vec3& radii = shapes[sh];
+            MobilizedBody::Ellipsoid mobod(matter.updGround(), body, radii);
+            system.realizeTopology();
+            State state = system.getDefaultState();
+            system.realizeModel(state);
+
+            for (int d = 0; d < 6; ++d) {
+                // Test setQToFitTranslation()
+                // ---------------------------
+                const UnitVec3 want(dirs[d]);
+                mobod.setQToFitTranslation(state, dirs[d]);
+                system.realize(state, Stage::Position);
+                const Transform& X_FM = mobod.getMobilizerTransform(state);
+                const Vec3& p = X_FM.p();
+
+                // The M origin lands on the requested ray, whatever the shape.
+                SimTK_TEST_EQ(UnitVec3(p).asVec3(), want.asVec3());
+
+                // Its distance along that ray is set by the surface.
+                SimTK_TEST_EQ(square(p[0]/radii[0]) + square(p[1]/radii[1])
+                            + square(p[2]/radii[2]), Real(1));
+
+                // Test setUToFitLinearVelocity()
+                // ------------------------------
+                // setUToFitLinearVelocity() must reproduce any velocity the
+                // joint can actually produce for either shape. First, create a
+                // target linear velocity.
+                mobod.setU(state, Vec3(1.3, -0.7, 0.9));
+                system.realize(state, Stage::Velocity);
+                const Vec3 vTarget = mobod.getMobilizerVelocity(state)[1];
+
+                // Set a new set of generalized speeds and calculate the spin
+                // and Mz.
+                mobod.setU(state, Vec3(-0.2, 0.5, -1.1));
+                system.realize(state, Stage::Velocity);
+                const Vec3 Mz(X_FM.z());
+                const Real spin = dot(mobod.getU(state), Mz);
+
+                // Check that we can use setUToFitLinearVelocity() to reproduce
+                // the target velocity.
+                mobod.setUToFitLinearVelocity(state, vTarget);
+                system.realize(state, Stage::Velocity);
+                SimTK_TEST_EQ(mobod.getMobilizerVelocity(state)[1], vTarget);
+
+                // The spin should not have change since it should have no
+                // effect on the linear velocity, v_FM.
+                SimTK_TEST_EQ(dot(mobod.getU(state), Mz), spin);
+            }
+        }
     }
 }
 
@@ -778,12 +859,12 @@ void testMirroredEllipsoid() {
         standard.setUToFitAngularVelocity(state, Vec3(-3, .4, -.7));
         const int nq = standard.getNumQ(state);
         const int nu = standard.getNumU(state);
-        const QIndex qf = standard.getFirstQIndex(state);
-        const QIndex qt = mirrored.getFirstQIndex(state);
-        const UIndex uf = standard.getFirstUIndex(state);
-        const UIndex ut = mirrored.getFirstUIndex(state);
-        for (int i = 0; i < nq; ++i) state.updQ()[qt+i] = state.getQ()[qf+i];
-        for (int i = 0; i < nu; ++i) state.updU()[ut+i] = state.getU()[uf+i];
+        const QIndex qs = standard.getFirstQIndex(state);
+        const QIndex qm = mirrored.getFirstQIndex(state);
+        const UIndex us = standard.getFirstUIndex(state);
+        const UIndex um = mirrored.getFirstUIndex(state);
+        for (int i = 0; i < nq; ++i) state.updQ()[qm+i] = state.getQ()[qs+i];
+        for (int i = 0; i < nu; ++i) state.updU()[um+i] = state.getU()[us+i];
         system.realize(state, Stage::Velocity);
 
         // Compare transforms and spatial velocities.
@@ -801,15 +882,12 @@ void testMirroredEllipsoid() {
 
         // The generalized speeds remain those of the standard joint, so the
         // mirrored joint's actual angular velocity is -S*u.
-        const UIndex ui = mirrored.getFirstUIndex(state);
-        const Vec3 u = Vec3::getAs(&state.getU()[ui]);
+        const Vec3 u = Vec3::getAs(&state.getU()[um]);
         SimTK_TEST_EQ(V_FM_std[0], u);
         SimTK_TEST_EQ(V_FM_mir[0], mirrorAngular(u, k));
 
         // N(q) is unaffected by mirroring, so with identical q and u the two
         // joints must produce identical qdot.
-        const QIndex qs = standard.getFirstQIndex(state);
-        const QIndex qm = mirrored.getFirstQIndex(state);
         for (int i = 0; i < standard.getNumQ(state); ++i)
             SimTK_TEST_EQ(state.getQDot()[qm+i], state.getQDot()[qs+i]);
     }
