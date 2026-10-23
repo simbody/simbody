@@ -2018,10 +2018,66 @@ MobilizedBody::Ellipsoid::Ellipsoid
                                                    *this);
 }
 
+MobilizedBody::Ellipsoid::Ellipsoid
+   (MobilizedBody& parent, const Body& body, const Vec3& radii,
+    const CoordinateAxis& mirrorAxis, Direction d)
+:   MobilizedBody(new EllipsoidImpl(d)) {
+    setBody(body);
+    setDefaultRadii(radii);
+    updImpl().setMirrorAxis(mirrorAxis);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(
+            parent.getMobilizedBodyIndex(), *this);
+}
+
+MobilizedBody::Ellipsoid::Ellipsoid
+   (MobilizedBody& parent, const Transform& inbFrame,
+    const Body& body,      const Transform& outbFrame,
+    const Vec3& radii,     const CoordinateAxis& mirrorAxis, Direction d)
+:   MobilizedBody(new EllipsoidImpl(d)) {
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+    setDefaultRadii(radii);
+    updImpl().setMirrorAxis(mirrorAxis);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(
+            parent.getMobilizedBodyIndex(), *this);
+}
+
 MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::
 setDefaultRadii(const Vec3& r) {
     updImpl().setDefaultRadii(r);
     return *this;
+}
+
+bool MobilizedBody::Ellipsoid::isMirrored() const {
+    return getImpl().isMirrored();
+}
+
+CoordinateAxis MobilizedBody::Ellipsoid::getMirrorAxis() const {
+    SimTK_ERRCHK_ALWAYS(isMirrored(),
+        "MobilizedBody::Ellipsoid::getMirrorAxis()",
+        "This Ellipsoid mobilizer is not mirrored, so it has no mirror axis.");
+    return CoordinateAxis(getImpl().getMirrorAxis());
+}
+
+MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::
+setDefaultRotation(const Rotation& R_FM) {
+    // Unmirror the provided rotation, since the coordinates parameterize an
+    // unmirrored rotation.
+    Rotation R_F0M0 = R_FM;
+    getImpl().mirrorRotation(R_F0M0);
+    return setDefaultQ(R_F0M0.convertRotationToQuaternion());
+}
+
+Rotation MobilizedBody::Ellipsoid::getDefaultRotation() const {
+    // The reverse of setDefaultRotation(): mirror the rotation created from the
+    // default Q's so it matches the orientation of the mobilizer in the default
+    // state. Mirroring is an involution, so it is the same operation.
+    Rotation R_FM(getDefaultQ());
+    getImpl().mirrorRotation(R_FM);
+    return R_FM;
 }
 
 const Vec3& MobilizedBody::Ellipsoid::getDefaultRadii() const {

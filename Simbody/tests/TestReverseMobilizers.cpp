@@ -374,7 +374,7 @@ void testPlanar() {
 // tests the reverse HDot terms which involve the forward
 // HDot terms (those don't matter if forward HDot==0).
 
-void testEllipsoid() {
+void testEllipsoid(int mirrorAxis) {
     MultibodySystem forward;
     SimbodyMatterSubsystem fwdMatter(forward);
     GeneralForceSubsystem fwdForces(forward);
@@ -393,8 +393,19 @@ void testEllipsoid() {
     MobilizedBody::Free fwdA (fwdMatter.Ground(),  Vec3(0), body, X_AM);
     MobilizedBody::Free rev2B(rev2Matter.Ground(), Vec3(0), body, X_BM);
 
-    MobilizedBody::Ellipsoid fwdB (fwdA,  X_AM, body, X_BM, Vec3(1,2,3));
-    MobilizedBody::Ellipsoid rev2A(rev2B, X_BM, body, X_AM, Vec3(1,2,3), MobilizedBody::Reverse);
+    // Define the Ellipsoid mobilizers: standard or mirrored.
+    MobilizedBody::Ellipsoid fwdB, rev2A;
+    if (mirrorAxis < 0) {
+        fwdB  = MobilizedBody::Ellipsoid(fwdA,  X_AM, body, X_BM, Vec3(1,2,3));
+        rev2A = MobilizedBody::Ellipsoid(rev2B, X_BM, body, X_AM, Vec3(1,2,3),
+                                         MobilizedBody::Reverse);
+    } else {
+        SimTK::CoordinateAxis axis(mirrorAxis);
+        fwdB  = MobilizedBody::Ellipsoid(fwdA,  X_AM, body, X_BM, Vec3(1,2,3),
+                                         axis);
+        rev2A = MobilizedBody::Ellipsoid(rev2B, X_BM, body, X_AM, Vec3(1,2,3),
+                                         axis, MobilizedBody::Reverse);
+    }
 
     // The generalized speeds should mean the same things, so the generalized
     // forces should too.
@@ -1067,7 +1078,10 @@ int main() {
     SimTK_START_TEST("TestReverseMobilizers");
         SimTK_SUBTEST(testPin);
         SimTK_SUBTEST(testPlanar);
-        SimTK_SUBTEST(testEllipsoid);
+        SimTK_SUBTEST1(testEllipsoid, -1);
+        SimTK_SUBTEST1(testEllipsoid, 0);
+        SimTK_SUBTEST1(testEllipsoid, 1);
+        SimTK_SUBTEST1(testEllipsoid, 2);
         SimTK_SUBTEST(testFree);
         SimTK_SUBTEST(testGimbal);
         SimTK_SUBTEST(testBushing);
