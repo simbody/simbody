@@ -145,6 +145,13 @@ PIMPLHandle<HANDLE,IMPL,PTR>::PIMPLHandle(const PIMPLHandle& src) : impl(0) {
     else     copyAssign(src.downcastToHandle());
 }                   
 
+// move constructor
+template <class HANDLE, class IMPL, bool PTR>
+PIMPLHandle<HANDLE,IMPL,PTR>::PIMPLHandle(PIMPLHandle&& src) noexcept : impl(0) {
+    if (PTR) referenceAssign(std::move(src).updDowncastToHandle());
+    else     moveAssign(std::move(src).updDowncastToHandle());
+}
+
 // copy assignment
 template <class HANDLE, class IMPL, bool PTR>
 PIMPLHandle<HANDLE,IMPL,PTR>& PIMPLHandle<HANDLE,IMPL,PTR>::
@@ -153,6 +160,15 @@ operator=(const PIMPLHandle& src) {
     else     copyAssign(src.downcastToHandle());
     return *this;
 } 
+
+// move assignment
+template <class HANDLE, class IMPL, bool PTR>
+PIMPLHandle<HANDLE,IMPL,PTR>& PIMPLHandle<HANDLE,IMPL,PTR>::
+operator=(PIMPLHandle&& src) noexcept {
+    if (PTR) referenceAssign(std::move(src).updDowncastToHandle());
+    else     moveAssign(std::move(src).updDowncastToHandle());
+    return *this;
+}
 
 template <class HANDLE, class IMPL, bool PTR>
 bool PIMPLHandle<HANDLE,IMPL,PTR>::isOwnerHandle() const {
@@ -185,7 +201,7 @@ disown(HANDLE& newOwner) {
 }
 
 // Reference assignment:
-//   - if target (this) is an owner handle, throw an exception; we don't allow that
+//   - if target (this) is an owner handle, abort: we don't allow that
 //   - if source and target have same implementation, there is nothing to do
 //   - otherwise, clear the handle, then set implementation and bump handle count
 template <class HANDLE, class IMPL, bool PTR>
@@ -197,6 +213,22 @@ referenceAssign(const HANDLE& src) {
         impl = src.impl;
         if (impl)
             impl->incrementHandleCount();
+    }
+    return *this;
+}
+
+// Reference assignment (rvalues):
+//   - if target (this) is an owner handle, abort: we don't allow that
+//   - if source and target have same implementation, there is nothing to do
+//   - otherwise, clear the handle, then move `source`'s pointer to this
+template <class HANDLE, class IMPL, bool PTR>
+PIMPLHandle<HANDLE,IMPL,PTR>& PIMPLHandle<HANDLE,IMPL,PTR>::
+referenceAssign(HANDLE&& src) noexcept {
+    assert(!isOwnerHandle()); // owner can't be target of a reference assign
+    if (!hasSameImplementation(src)) {
+        clearHandle();
+        impl = src.impl;
+        src.impl = nullptr;  // pointer stolen (rvalue semantics)
     }
     return *this;
 }
@@ -215,6 +247,34 @@ copyAssign(const HANDLE& src) {
         impl->setOwnerHandle(updDowncastToHandle()); // bumps ref count (to 1)
         assert(impl->getHandleCount() == 1);
     }
+    return *this;
+}
+
+// Move assignment (value semantics):
+//   - if same handle, nothing to do
+//   - clear this handle, decrementing ref count and deleting implementation if necessary
+//   - if source is an owner handle, steal its implementation pointer;
+//     otherwise (aliasing handle), clone the source implementation
+template <class HANDLE, class IMPL, bool PTR>
+PIMPLHandle<HANDLE,IMPL,PTR>& PIMPLHandle<HANDLE,IMPL,PTR>::
+moveAssign(HANDLE&& src) noexcept {
+    if (isSameHandle(src)) return *this; // that was easy!
+    clearHandle();
+    if (src.impl) {
+        if (src.isOwnerHandle()) {
+            // `src` isn't aliasing, so we can steal its ownership
+            // (rvalue semantics).
+            impl = src.impl;
+            src.impl = nullptr;
+            impl->replaceOwnerHandle(updDowncastToHandle());
+        } else {
+            // `src` is an aliasing handle, an independent copy must be made
+            impl = src.impl->clone();  // NOTE: instantiation requires definition of IMPL class
+            impl->setOwnerHandle(updDowncastToHandle());  // bumps ref count (to 1)
+        }
+        assert(impl->getHandleCount() == 1);
+    }
+    // else: `src` is an empty handle, this is clear, so we're good to go
     return *this;
 }
 

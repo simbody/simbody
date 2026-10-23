@@ -142,7 +142,7 @@ public:
     /// implementation. It is not allowed for an <em>owner</em> handle
     /// to be the target of a reference assignment; clear the handle explicitly
     /// first with clearHandle() if you want to do that.
-    /// This is the default copy and assignment behavior for pointer semantics handle
+    /// This is the default assignment behavior for pointer semantics handle
     /// classes (that is, those which set the PTR template argument to true).
     /// Caution: although the PIMPLHandle is taken const here, we obtain
     /// a writable pointer to the implementation, meaning that it can
@@ -152,15 +152,38 @@ public:
     /// @see clearHandle()
     PIMPLHandle& referenceAssign(const HANDLE& source);
 
+    /// "Move" assignment but with shallow (pointer) semantics. As long as
+    /// this is not an owner handle already, make it reference the source
+    /// implementation. It is not allowed for an <em>owner</em> handle
+    /// to be the target of a reference assignment; clear the handle explicitly
+    /// first with clearHandle() if you want to do that.
+    /// This is the default assignment behavior for pointer semantics handle
+    /// classes (that is, those which set the PTR template argument to true).
+    /// @see moveAssign()
+    /// @see operator=()
+    /// @see clearHandle()
+    PIMPLHandle& referenceAssign(HANDLE&& source) noexcept;
+
     /// This is real copy assignment, with ordinary C++ object ("value") semantics.
-    /// Deletes the current implementation if owned; then replaces with a new
-    /// copy of the source implementation, of which this handle will be the owner.
-    /// This is the default copy and assignment behavior for normal handle objects,
+    /// Deletes the current implementation if owned; then replaces with a copy-constructed
+    /// instance of the source implementation, of which this handle will be the owner.
+    /// This is the default copy-construct and assignment behavior for normal handle objects,
     /// that is, those that let the PTR template argument default or set it to
     /// false explicitly. Use referenceAssign() to make a handle refer to an
-    /// existing implementation rather than creating a new copy.
+    /// existing implementation rather than copy-constructing a new instance.
     /// @see referenceAssign()
     PIMPLHandle& copyAssign(const HANDLE& source);
+
+    /// This is real move assignment, with ordinary C++ object ("value") semantics.
+    /// Deletes the current implementation if owned; then replaces either by stealing
+    /// the source implementation pointer (if it is an owner handle), or by cloning
+    /// the source implementation (if source is an aliasing handle).
+    /// This is the default move-construct and assignment behavior for normal handle objects,
+    /// that is, those that let the PTR template argument default or set it to
+    /// false explicitly. Use referenceAssign() to make a handle refer to an
+    /// existing implementation rather than move-construcing a new instance.
+    /// @see referenceAssign()
+    PIMPLHandle& moveAssign(HANDLE&& source) noexcept;
 
     /// Make this an empty handle, deleting the implementation object if
     /// this handle is the owner of it. A call to isEmptyHandle() will return
@@ -207,6 +230,14 @@ protected:
     /// @see copyAssign
     PIMPLHandle(const PIMPLHandle& source);
 
+    /// The move constructor makes either a deep (value) or shallow (reference) instance
+    /// from the supplied source PIMPL object, based on whether this is a "pointer
+    /// semantics" (PTR=true) or "object (value) semantics" (PTR=false, default)
+    /// class.
+    /// @see referenceAssign
+    /// @see moveAssign
+    PIMPLHandle(PIMPLHandle&& source) noexcept;
+
     /// Copy assignment makes the current handle either a deep (value) or shallow
     /// (reference) copy of the supplied source PIMPL object, based on whether this
     /// is a "pointer sematics" (PTR=true) or "object (value) semantics" (PTR=false,
@@ -218,6 +249,18 @@ protected:
     /// @see referenceAssign
     /// @see copyAssign
     PIMPLHandle& operator=(const PIMPLHandle& source);
+
+    /// Move assignment makes the current handle either a deep (value) or shallow
+    /// (reference) instance from the supplied source PIMPL object, based on whether this
+    /// is a "pointer semantics" (PTR=true) or "object (value) semantics (PTR=false,
+    /// default) class. In the case of a pointer semantics class, an owner handle
+    /// can <em>not</em> be the target of an assignment. You can call moveAssign()
+    /// directly if you want to steal/clone a fresh instance from the source, or you can clear
+    /// this handle first with clearHandle() and then use operator=() or referenceAssign()
+    /// to turn this handle into a mere reference to the source.
+    /// @see referenceAssign
+    /// @see moveAssign
+    PIMPLHandle& operator=(PIMPLHandle&& source) noexcept;
 
     /// Set the implementation for this empty handle. This may result in either
     /// an owner or reference handle, depending on the owner handle reference
@@ -232,7 +275,8 @@ protected:
 
 private:
     const HANDLE& downcastToHandle() const {return static_cast<const HANDLE&>(*this);}
-    HANDLE& updDowncastToHandle() {return static_cast<HANDLE&>(*this);}
+    HANDLE&  updDowncastToHandle() &  {return static_cast<HANDLE& >(*this);}
+    HANDLE&& updDowncastToHandle() && {return static_cast<HANDLE&&>(*this);}
 };
 
 /**
