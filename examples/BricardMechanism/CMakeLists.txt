@@ -28,6 +28,9 @@ if(SIMBODY_BUILD_SHARED_LIBS) # Don't install static examples
         CONFIGURATIONS Release RelWithDebInfo MinSizeRel)
 endif()
 
+# Where this example's source and data files are installed.
+cmake_path(APPEND EXAMPLES_INSTALL_SRC ${EX_NAME} OUTPUT_VARIABLE example_src_dest)
+
 # Copy geometry to the binary directory that will 
 # be the working directory when the example is run from a source build;
 # and install it in the examples installation.
@@ -38,15 +41,15 @@ foreach(extradir geometry)
     configure_file(${xfile}
         ${CMAKE_CURRENT_BINARY_DIR}/${extradir}/${xfile_name} COPYONLY)
     install(FILES ${xfile} DESTINATION 
-            ${EXAMPLES_INSTALL_SRC}/${EX_NAME}/${extradir})
+            ${example_src_dest}/${extradir})
   endforeach()
 endforeach()
 
 # install source for example
 install(FILES ${source_files} ${header_files}
-        DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME})
+        DESTINATION ${example_src_dest})
 
 # install the installed version of CMakeLists.txt
 install(FILES InstalledCMakeLists.txt 
-        DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME}
+        DESTINATION ${example_src_dest}
         RENAME CMakeLists.txt)

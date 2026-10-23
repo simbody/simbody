@@ -9,7 +9,7 @@
 # For multi-configuration generators (e.g. Visual Studio or Xcode), the
 # executables will be in configuration subdirectories like Release/.
 #
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.21)
 project(SimbodyExamples)
 
 # All subdirectory examples must be listed here.  A subdirectory is needed
@@ -34,35 +34,6 @@ include_directories(${Simbody_INCLUDE_DIR})
 if(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build"
         FORCE)
-endif()
-
-# Default to building with the C++11 ABI; user must change this if
-# the installed libraries were built with C++03.
-if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
-   ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-
-    # If using either of these compilers, provide the option of
-    # compiling using the c++11 standard.
-    option(SIMBODY_STANDARD_11
-        "Compile using the C++11 standard, if using GCC or Clang." ON)
-
-    if(${SIMBODY_STANDARD_11})
-        # Using C++11 on OSX requires using libc++ instead of libstd++.
-        # libc++ is an implementation of the C++ standard library for OSX.
-        if(APPLE)
-            if(XCODE)
-                set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
-                set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
-            else()
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-                if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-                endif()
-            endif()
-        else() # not APPLE
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-        endif()
-    endif()
 endif()
 
 # CMAKE_CURRENT_SOURCE_DIR is an absolute path.

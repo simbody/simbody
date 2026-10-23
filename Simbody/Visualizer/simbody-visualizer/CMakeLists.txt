@@ -116,12 +116,15 @@ else()
         endif()
     endif()
 
-    # SIMBODY_VISUALIZER_INSTALL_DIR is set in the root CMakeLists.txt
+    # SIMBODY_VISUALIZER_REL_INSTALL_DIR is set in the root CMakeLists.txt.
+    # Use the path relative to the install prefix (rather than the absolute
+    # SIMBODY_VISUALIZER_INSTALL_DIR) so that `cmake --install --prefix`,
+    # DESTDIR and CPack relocate the visualizer along with everything else.
     install(TARGETS simbody-visualizer
             PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                                 GROUP_READ GROUP_WRITE GROUP_EXECUTE
                                 WORLD_READ WORLD_EXECUTE
-            DESTINATION ${SIMBODY_VISUALIZER_INSTALL_DIR})
+            DESTINATION ${SIMBODY_VISUALIZER_REL_INSTALL_DIR})
 
     if(WIN32)
         # on Windows we also have to copy and later install the glut32.dll
