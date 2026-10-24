@@ -136,10 +136,12 @@ public:
                 });
 
             // Draw the Frenet frames at the geodesic boundary points.
-            decorations.push_back(DecorativeFrame(0.2).setTransform(
-                m_cable.calcCurveSegmentInitialFrenetFrame(state, ix)));
-            decorations.push_back(DecorativeFrame(0.2).setTransform(
-                m_cable.calcCurveSegmentFinalFrenetFrame(state, ix)));
+            if (isInContactWithSurface) {
+                decorations.push_back(DecorativeFrame(0.2).setTransform(
+                    m_cable.calcCurveSegmentInitialFrenetFrame(state, ix)));
+                decorations.push_back(DecorativeFrame(0.2).setTransform(
+                    m_cable.calcCurveSegmentFinalFrenetFrame(state, ix)));
+            }
         }
 
         for (CableSpanViaPointIndex ix(0); ix < m_cable.getNumViaPoints();
