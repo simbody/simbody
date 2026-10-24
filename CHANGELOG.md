@@ -9,7 +9,9 @@ PRs and issues that were included in a particular release.
 3.9 (in development)
 --------------------
 * `CableSpan::calcResampledDecorativePathPoints()` and `CableSpan::calcCurveSegmentResampledPoints()` now
-  always draw decorative points whether or not a curve segment is in contact with an obstacle (PR #872).
+  always emit decorative points whether or not a curve segment is in contact with an obstacle, so that the
+  number of emitted points is constant. Previously they emitted NaN points, or read out of bounds, for
+  obstacles that were not in contact (PR #872).
 * `MobilizedBody::Ellipsoid` can now be mirrored about the plane normal to one
   axis of its inboard frame F, which can be useful for building left/right joint
   pairs (e.g., shoulder joints) driven by the same coordinates. (PR #875)

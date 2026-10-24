@@ -861,7 +861,9 @@ void testTouchdownAndLiftoff()
     auto createCable =
         [&](const std::function<ContactGeometry*()>& createSurface,
             const Transform& X_BS,
-            const Transform& sceneOffset)
+            const Transform& sceneOffset,
+            bool useWarmStart            = true,
+            const Vec3& contactPointHint = Vec3(NaN))
     {
         // Mobilizer for path origin.
         MobilizedBody::Translation cableOriginBody(
@@ -885,11 +887,20 @@ void testTouchdownAndLiftoff()
             Vec3{0.});
         cable.setCurveSegmentAccuracy(1e-12);
         cable.setSmoothnessTolerance(1e-6);
+        cable.setUseWarmStart(useWarmStart);
 
-        cable.addObstacle(
-            matter.Ground(),
-            sceneOffset.compose(X_BS),
-            std::shared_ptr<ContactGeometry>(createSurface()));
+        if (contactPointHint.isFinite()) {
+            cable.addObstacle(
+                matter.Ground(),
+                sceneOffset.compose(X_BS),
+                std::shared_ptr<ContactGeometry>(createSurface()),
+                contactPointHint);
+        } else {
+            cable.addObstacle(
+                matter.Ground(),
+                sceneOffset.compose(X_BS),
+                std::shared_ptr<ContactGeometry>(createSurface()));
+        }
     };
 
     // Create a cable with a torus obstacle.
@@ -916,6 +927,19 @@ void testTouchdownAndLiftoff()
         Transform(Vec3{0., -2., 0.}),
         Transform(Vec3(0., -6., 0.)));
 
+    // Create a cable with a sphere obstacle, this time using a contact point
+    // hint and no warm start. Without a warm start the path is recomputed from
+    // the contact point hint at every realization, so liftoff is detected anew
+    // each time the cable is out of contact. This is the configuration in which
+    // a lifted curve segment is most likely to report a tracking point that is
+    // still on the obstacle's surface rather than on the cable.
+    createCable(
+        [&]() { return new ContactGeometry::Sphere(1.5); },
+        Transform(Vec3{0., -1.5, 0.}),
+        Transform(Vec3(0., -10., 0.)),
+        false,
+        Vec3(0., 1.5, 0.));
+
     // Optionally visualize the system.
     system.setUseUniformBackground(true); // no ground plane in display
     std::unique_ptr<Visualizer> viz(show ? new Visualizer(system) : nullptr);
@@ -933,7 +957,7 @@ void testTouchdownAndLiftoff()
     State s = system.getDefaultState();
 
     SimTK_ASSERT1_ALWAYS(
-        cables.getNumCables() == 4,
+        cables.getNumCables() == 5,
         "Unexpected number of cables (=%i)",
         cables.getNumCables());
 
@@ -984,15 +1008,38 @@ void testTouchdownAndLiftoff()
             cables.getCable(cableIx).calcDecorativePathPoints(s,
                 assertPointIsFinite);
 
-            // The number or resampled points should remain the same, whether or
-            // not the obstacle is in contact with the cable.
+            // The number of resampled points should remain the same, whether
+            // or not the obstacle is in contact with the cable.
             constexpr int numSamples = 5;
             numPoints = 0;
+            Array_<Vec3> resampledPoints;
             cables.getCable(cableIx).calcResampledDecorativePathPoints(s,
-                numSamples, assertPointIsFinite);
+                numSamples, [&](Vec3 point_G) {
+                    assertPointIsFinite(point_G);
+                    resampledPoints.push_back(point_G);
+                });
             SimTK_ASSERT3_ALWAYS(numPoints == numSamples + 2,
                 "Cable %i expected %i resampled decorative path points, but "
                 "got %i", cableIx, numSamples + 2, numPoints);
+
+            // Each cable spans a single obstacle, so when that obstacle is out
+            // of contact the cable is straight: every resampled point must lie
+            // on the line connecting the origin and termination point.
+            if (!gotContactStatus) {
+                const Vec3 origin_G      = resampledPoints.front();
+                const Vec3 line_G        = resampledPoints.back() - origin_G;
+                const Real lineLengthSqr = line_G.normSqr();
+                for (const Vec3& point_G : resampledPoints) {
+                    const Real t =
+                        dot(point_G - origin_G, line_G) / lineLengthSqr;
+                    const Real distanceFromCable =
+                        (point_G - (origin_G + t * line_G)).norm();
+                    SimTK_ASSERT3_ALWAYS(distanceFromCable < 1e-9,
+                        "Cable %i resampled decorative path point lies %g off "
+                        "the cable at yCoord = %f",
+                        cableIx, distanceFromCable, yCoord);
+                }
+            }
         }
 
         if (viz) {

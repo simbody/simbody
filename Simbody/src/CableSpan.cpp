@@ -2227,6 +2227,12 @@ public:
         int numCurveSegmentSamples,
         const std::function<void(Vec3 point_G)>& sink) const
     {
+        SimTK_ERRCHK1_ALWAYS(
+            numCurveSegmentSamples >= 2,
+            "CableSpan::calcResampledDecorativePathPoints",
+            "Number of resampling points must be larger or equal to 2, "
+            "but got %i", numCurveSegmentSamples);
+
         // Write the initial path point.
         const CableSpanData::Position& dataPos = getDataPos(state);
         sink(dataPos.originPoint_G);
@@ -4293,13 +4299,26 @@ void CurveSegment::calcResampledPoints(
     const CurveSegmentData::Position& dataPos  = getDataPos(state);
     const ContactGeometry& geometry            = getContactGeometry();
 
-    // If the curve is not in contact with the ground, place all sample points
-    // at the point on the cable segment closest to the surface.
+    // If the curve is not in contact with the surface, place all sample points
+    // at the point on the cable segment closest to the surface. Note that we
+    // can't use the tracking point from the cache directly, since if liftoff
+    // was just detected, this point may be the last contact point on the
+    // obstacle surface. Therefore, we'll project the point onto the line
+    // segment manually here so the sample points are always visualized
+    // correctly.
     if (!isInContactWithSurface(state)) {
         const Vec3 trackingPoint_G = dataPos.X_GS.shiftFrameStationToBase(
             dataInst.trackingPointOnLine_S);
+        const Vec3 prevPoint_G = findPrevPathPoint_G(state);
+        const Vec3 line_G      = findNextPathPoint_G(state) - prevPoint_G;
+        const Real lineLengthSqr = line_G.normSqr();
+        const Real t = lineLengthSqr > 0.
+            ? clamp(0., dot(trackingPoint_G - prevPoint_G, line_G) /
+                lineLengthSqr, 1.)
+            : 0.;
+        const Vec3 point_G = prevPoint_G + t * line_G;
         for (int i = 0; i < numSamples; ++i) {
-            sink(trackingPoint_G);
+            sink(point_G);
         }
         return;
     }
