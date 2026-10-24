@@ -123,12 +123,6 @@ public:
                 DecorativePoint(X_GS.shiftFrameStationToBase(x_PS))
                     .setColor(Orange));
 
-            // Only draw curve segment related decorations if the cable is in
-            // contact with the corresponding obstacle.
-            if (!isInContactWithSurface) {
-                continue;
-            }
-
             // Draw a fixed number of sphere points per curve segment.
             const int numDecorativePoints = 4;
             m_cable.calcCurveSegmentResampledPoints(
@@ -142,10 +136,12 @@ public:
                 });
 
             // Draw the Frenet frames at the geodesic boundary points.
-            decorations.push_back(DecorativeFrame(0.2).setTransform(
-                m_cable.calcCurveSegmentInitialFrenetFrame(state, ix)));
-            decorations.push_back(DecorativeFrame(0.2).setTransform(
-                m_cable.calcCurveSegmentFinalFrenetFrame(state, ix)));
+            if (isInContactWithSurface) {
+                decorations.push_back(DecorativeFrame(0.2).setTransform(
+                    m_cable.calcCurveSegmentInitialFrenetFrame(state, ix)));
+                decorations.push_back(DecorativeFrame(0.2).setTransform(
+                    m_cable.calcCurveSegmentFinalFrenetFrame(state, ix)));
+            }
         }
 
         for (CableSpanViaPointIndex ix(0); ix < m_cable.getNumViaPoints();
