@@ -1051,7 +1051,7 @@ class MobilizedBody::CantileverFreeBeamImpl : public MobilizedBodyImpl {
 public:
     explicit CantileverFreeBeamImpl(Direction d)
     :   MobilizedBodyImpl(d), defaultLength(Real(0.5)),
-        defaultQ() { } // default is (0,0,0), the identity rotation
+        defaultQ(0) { } // default is (0,0,0), the identity rotation
     CantileverFreeBeamImpl* clone() const override {
         return new CantileverFreeBeamImpl(*this);
     }
@@ -1081,7 +1081,7 @@ public:
 private:
     friend class MobilizedBody::CantileverFreeBeam;
     Real defaultLength; // used for visualization only
-    Vec3 defaultQ{0};   // the default orientation
+    Vec3 defaultQ;      // the default orientation
 };
 
 /////////////////////////////////////////////////

@@ -39,19 +39,19 @@ mobilizer, that is, a quaternion or an x-y-z body-fixed Euler sequence depending
 on the "use Euler angles" modeling option. The three generalized speeds u for 
 this mobilizer are also the same as for a Ball mobilizer, that is
 the three measure numbers of the angular velocity vector w_FM (unless the
-mobilizer is mirrored, see \ref mirroring below), the relative angular
+mobilizer is mirrored, see \ref ellipsoid_mirroring below), the relative angular
 velocity of the outboard M frame in the inboard F frame, expressed in the F
 frame. That is unchanged by setting the "use Euler angles" modeling option. Note
 that qdot != u for this mobilizer.
 
-\subsection mirroring Mirroring
+\section ellipsoid_mirroring Mirroring
 
 This mobilizer can optionally be mirrored about the plane normal to one of the
 axes of the inboard frame F, which is useful for building a left/right pair of
 joints (e.g., a pair of shoulders) that are driven by the same coordinates.
 
-We define S as the reflection that reverses an axis k, that is, sₖ = −1 and
-sᵢ = 1 otherwise. For example, if mirroring about the Y-axis then s = [1 −1 1]
+We define S as the reflection that reverses an axis k, that is, s[k] = -1 and
+s[i] = 1 otherwise. For example, if mirroring about the Y-axis then s = [1 -1 1]
 and S = diag(s):
 
 <pre>
@@ -74,9 +74,8 @@ mirrored cross-mobilizer transform is defined as:
 The generalized coordinates parameterize an unmirrored rotation, and the
 generalized speeds are the angular velocity of the unmirrored joint, so that
 N(q) and thus qdot=N(q)*u are the same for a mirrored mobilizer as for an
-unmirrored one.
-In exchange, this means that u is no longer equal to w_FM for a mirrored
-mobilizer, but rather:
+unmirrored one. In exchange, this means that u is no longer equal to w_FM for a
+mirrored mobilizer, but rather:
 
 <pre>
     w_FM = -S u
@@ -99,7 +98,7 @@ where diag(-S,S) is a 6x6 block diagonal sign matrix:
                  [  0   S ]     S mirrors the linear (v_FM) rows
 </pre>
 
-<h3>Mirroring about F's Z-axis</h3>
+\subsection ellipsoid_mirroring_z Mirroring about F's Z-axis
 
 Note that when mirroring about F's Z-Axis, the normal vector Mz flips and points
 into the ellipsoid. Therefore, the position of M in F depends on a negated Mz
@@ -189,9 +188,11 @@ public:
     /** Provide a default orientation for this mobilizer if you don't want to
     start with the identity rotation (that is, alignment of the F and M 
     frames). This is the orientation the mobilizer will have in the default
-    state for the containing System. If this mobilizer is mirrored, provided the
-    mirrored rotation, i.e., S*R_FM*S, here. The supplied Rotation will be
-    converted to a quaternion and used as the four generalized coordinates q.
+    state for the containing System. If this mobilizer is mirrored, pass the
+    actual (mirrored) R_FM you want in the default state; it is converted
+    internally to the rotation of the equivalent unmirrored joint, S*R_FM*S.
+    The supplied Rotation will be converted to a quaternion and used as the
+    four generalized coordinates q.
     **/
     Ellipsoid& setDefaultRotation(const Rotation& R_FM);
     /** Get the value for the default orientation of this mobilizer; unless

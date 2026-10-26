@@ -9,7 +9,7 @@ PRs and issues that were included in a particular release.
 3.9 (in development)
 --------------------
 * `MobilizedBody::Ellipsoid` can now be mirrored about the plane normal to one
-  axes of its inboard frame F, which can be useful for building left/right joint
+  axis of its inboard frame F, which can be useful for building left/right joint
   pairs (e.g., shoulder joints) driven by the same coordinates. (PR #875)
 * `MobilizedBody::Ellipsoid::setQToFitTranslation()` (and therefore
   `setQToFitTransform()`) now places the M frame's origin exactly on the ray

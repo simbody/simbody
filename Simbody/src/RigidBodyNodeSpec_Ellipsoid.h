@@ -73,7 +73,10 @@
 // The mobilizer may optionally be mirrored about one of F's axes, which
 // replaces p_FM with S*p_FM and R_FM with S*R_FM*S for the reflection S of that
 // axis. See the mirroring methods below for more information including how the
-// hinge matrix H_FM and its time derivative HDot_FM are affected.
+// hinge matrix H_FM and its time derivative HDot_FM are affected. See the
+// "Mirroring" section in the MobilizedBody::Ellipsoid class documentation
+// (MobilizedBody_Ellipsoid.h) for the definitions of S and how X_FM, H_FM,
+// HDot_FM, and u are mirrored.
 //
 // This mobilizer was written by Ajay Seth and hacked somewhat by Sherm.
 
@@ -99,57 +102,7 @@ RBNodeEllipsoid(const MassProperties& mProps_B,
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
-    // MIRRORING //
-
-// This mobilizer can optionally be constructed as the mirror image of the
-// standard joint about one of the axes of the inboard frame F, which is useful
-// for building a left/right pair of joints (e.g., a pair of shoulders) that are
-// driven by the same coordinates.
-//
-// We define S as the reflection that reverses an axis k, that is, sₖ = −1 and
-// sᵢ = 1 otherwise. For example, if mirroring about the Y-axis then
-// s = [1 −1 1] and S = diag(s):
-//
-//       [ 1  0  0 ]
-//   S = [ 0 -1  0 ]
-//       [ 0  0  1 ]
-//
-// Mirroring about F's axis k replaces the cross-mobilizer position p_FM with
-// S*p_FM and the cross mobilizer rotation R_FM with S*R_FM*S. Therefore, the
-// mirrored cross-mobilizer transform is defined as:
-//
-//                     [              |        ]
-//     X_FM_mirrored = [   S*R_FM*S   | S*p_FM ]
-//                     [..............|........]
-//                     [ 0    0    0      1    ]
-//
-// The generalized coordinates parameterize an unmirrored rotation, and the
-// generalized speeds are the angular velocity of the unmirrored joint, so that
-// N(q) and thus qdot=N(q)*u are the same for a mirrored mobilizer as for an
-// unmirrored one. In exchange, this means that u is no longer equal to w_FM for
-// a mirrored mobilizer, but rather:
-//
-//     w_FM = -S u
-//
-// In general, angular quantities are mirrored via w' = -S*w and linear
-// quantities via v' = S*v. Therefore the hinge matrix H_FM and its time
-// derivative HDot_FM can be mirrored via the following operations:
-//
-//     H_FM_mirrored    = diag(-S,S)*H_FM
-//     HDot_FM_mirrored = diag(-S,S)*HDot_FM
-//
-// where diag(-S,S) is a 6x6 block diagonal sign matrix:
-//
-//                  [ -S   0 ]    -S mirrors the angular (w_FM) rows
-//     diag(-S,S) = [        ]
-//                  [  0   S ]     S mirrors the linear (v_FM) rows
-//
-// Note that when mirroring about F's Z-Axis, the normal vector Mz flips and
-// points into the ellipsoid. Therefore, the position of M in F depends on a
-// negated Mz vector:
-//
-//    p_FM = -diag(a,b,c)*Mz
-//
+    // MIRRORING HELPER FUNCTIONS //
 
 // v -> S*v for a linear quantity v measured in F. (1 flop)
 static void mirrorLinear(Vec3& v_F, int mirrorAxis) {
@@ -278,9 +231,11 @@ void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q, con
 
 // We can't do general linear velocity with this rotation-only mobilizer, but we
 // can produce any velocity that keeps the M origin on the ellipsoid, that is,
-// any velocity tangent to the surface at the current contact point. Therefore,
-// given a requested velocity we reproduce exactly the part tangent to the
-// surface and discard the rest.
+// any velocity tangent to the surface at the current contact point. A
+// requested velocity splits uniquely as v = v_t + lambda*p_FM with v_t tangent
+// to the surface; we reproduce v_t exactly and discard the component along
+// p_FM. Note that p_FM is radial, which is the surface normal only for a
+// sphere, so for a general ellipsoid v_t is not the nearest tangent velocity.
 void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
 {

@@ -253,6 +253,7 @@ void testFittingMethods() {
     }
 
     // Mirrored MobilizedBody::Ellipsoid.
+    for (int useEulerAngles = 0; useEulerAngles <= 1; ++useEulerAngles)
     for (int k = 0; k < 3; ++k) {
         MultibodySystem system;
         SimbodyMatterSubsystem matter(system);
@@ -274,6 +275,7 @@ void testFittingMethods() {
 
         system.realizeTopology();
         State state = system.getDefaultState();
+        matter.setUseEulerAngles(state, useEulerAngles != 0);
         system.realizeModel(state);
 
         // Rotations can be represented exactly by the q's, so R_FM must return
@@ -308,13 +310,14 @@ void testFittingMethods() {
         GeneralForceSubsystem forces(system);
         Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
 
-        // Use directions that can caused fitting errors previous to changes in
+        // Use directions that caused fitting errors previous to changes in
         // PR #875: anything with z < 0, where its second atan2 landed in the
         // wrong branch and anything near +/-Fx, where the second angle passed
         // through +/-90 degrees.
-        const Vec3 dirs[6] = {Vec3( 0.3,-0.5,  0.8), Vec3( 0.3, -0.5, -0.8),
-                              Vec3( 0.0, 0.0, -1.0), Vec3( 0.98, 0.1,  0.17),
-                              Vec3(-0.98, 0.1,-0.17), Vec3( 1.0,  0.0,  0.0)};
+        const Vec3 dirs[] = {Vec3( 0.3, -0.5,  0.8), Vec3( 0.3, -0.5, -0.8),
+                             Vec3( 0.0,  0.0, -1.0), Vec3( 0.98, 0.1,  0.17),
+                             Vec3(-0.98, 0.1, -0.17), Vec3( 1.0, 0.0,  0.0),
+                             Vec3( 1.0,  0.0, 1e-9), Vec3(-1.0, 0.0, 1e-9)};
 
         // Test both a spherical joint and a true ellipsoid joint.
         const Vec3 shapes[2] = {Vec3(1, 1, 1), Vec3(0.8, 1.5, 1.0)};
@@ -325,11 +328,11 @@ void testFittingMethods() {
             State state = system.getDefaultState();
             system.realizeModel(state);
 
-            for (int d = 0; d < 6; ++d) {
+            for (const Vec3& dir : dirs) {
                 // Test setQToFitTranslation()
                 // ---------------------------
-                const UnitVec3 want(dirs[d]);
-                mobod.setQToFitTranslation(state, dirs[d]);
+                const UnitVec3 want(dir);
+                mobod.setQToFitTranslation(state, dir);
                 system.realize(state, Stage::Position);
                 const Transform& X_FM = mobod.getMobilizerTransform(state);
                 const Vec3& p = X_FM.p();
@@ -363,7 +366,7 @@ void testFittingMethods() {
                 system.realize(state, Stage::Velocity);
                 SimTK_TEST_EQ(mobod.getMobilizerVelocity(state)[1], vTarget);
 
-                // The spin should not have change since it should have no
+                // The spin should not have changed since it should have no
                 // effect on the linear velocity, v_FM.
                 SimTK_TEST_EQ(dot(mobod.getU(state), Mz), spin);
             }
