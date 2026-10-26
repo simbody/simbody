@@ -64,40 +64,100 @@
 //     angles, that is, angles defined about F rather than M axes.)
 //
 // Generalized speeds are:
-//   * angular velocity w_FM as a vector expressed in the F frame.
+//   * angular velocity w_FM as a vector expressed in the F frame (unless
+//     mirrored, then w_FM = -S u, see below).
 //
 // Thus rotational qdots have to be derived from the generalized speeds to
 // be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
 //
+// The mobilizer may optionally be mirrored about one of F's axes, which
+// replaces p_FM with S*p_FM and R_FM with S*R_FM*S for the reflection S of that
+// axis. See the mirroring methods below for more information including how the
+// hinge matrix H_FM and its time derivative HDot_FM are affected. See the
+// "Mirroring" section in the MobilizedBody::Ellipsoid class documentation
+// (MobilizedBody_Ellipsoid.h) for the definitions of S and how X_FM, H_FM,
+// HDot_FM, and u are mirrored.
+//
 // This mobilizer was written by Ajay Seth and hacked somewhat by Sherm.
 
 class RBNodeEllipsoid : public RigidBodyNodeSpec<3, false> {
-    Vec3 semi; // semi axis dimensions in x,y,z resp.
+    Vec3 semi;       // semi axis dimensions in x,y,z resp.
+    int  mirrorAxis; // 0,1,2 for x,y,z; -1 means not mirrored
 public:
 
 typedef typename RigidBodyNodeSpec<3, false>::HType HType;
 virtual const char* type() { return "ellipsoid"; }
 
 RBNodeEllipsoid(const MassProperties& mProps_B,
-              const Vec3&           radii, // x,y,z
+              const Vec3&           radii,      // x,y,z
+              int                   mirrorAxis, // -1 if not mirrored
               bool                  isReversed,
               UIndex&               nextUSlot,
               USquaredIndex&        nextUSqSlot,
               QIndex&               nextQSlot)
   : RigidBodyNodeSpec<3, false>(mProps_B,nextUSlot,nextUSqSlot,nextQSlot,
                          RigidBodyNode::QDotMayDifferFromU, RigidBodyNode::QuaternionMayBeUsed, isReversed),
-    semi(radii)
+    semi(radii), mirrorAxis(mirrorAxis)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+}
+
+    // MIRRORING HELPER FUNCTIONS //
+
+// v -> S*v for a linear quantity v measured in F. (1 flop)
+static void mirrorLinear(Vec3& v_F, int mirrorAxis) {
+    if (mirrorAxis < 0) return;
+    v_F[mirrorAxis] = -v_F[mirrorAxis];
+}
+
+// w -> -S*w for an angular quantity w measured in F. (2 flops)
+static void mirrorAngular(Vec3& w_F, int mirrorAxis) {
+    if (mirrorAxis < 0) return;
+    for (int i=0; i < 3; ++i)
+        if (i != mirrorAxis) w_F[i] = -w_F[i];
+}
+
+// R -> S*R*S for a rotation matrix R. (4 flops)
+static void mirrorRotation(Rotation& R_FM, int mirrorAxis) {
+    if (mirrorAxis < 0) return;
+    const int k = mirrorAxis;
+    Mat33 R = R_FM.asMat33();
+    // Element (i,j) is scaled by s[i]*s[j], so this negates the row and column
+    // for the mirrored axis k. The sign of the diagonal element (k,k) remains
+    // unchanged.
+    for (int i=0; i < 3; ++i)
+        if (i != k) {R(k,i) = -R(k,i); R(i,k) = -R(i,k);}
+    R_FM.setRotationFromMat33TrustMe(R);
+}
+
+// A helper for mirroring the rotation and translation for a transform X
+// together. (5 flops)
+static void mirrorTransform(Transform& X_FM, int mirrorAxis) {
+    mirrorRotation(X_FM.updR(), mirrorAxis);
+    mirrorLinear(X_FM.updP(), mirrorAxis);
+}
+
+// H -> diag(-S,S)*H for a hinge matrix H or its time derivative HDot. (9 flops)
+static void mirrorH(HType& H_F0M0, int mirrorAxis) {
+    if (mirrorAxis < 0) return;
+    for (int j=0; j < 3; ++j) {
+        mirrorAngular(H_F0M0(j)[0], mirrorAxis);
+        mirrorLinear(H_F0M0(j)[1], mirrorAxis);
+    }
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
                        Vector& q) const 
 {
+    // The coordinates are associated with an unmirrored rotation, so apply the
+    // mirroring operation before extracting the q's.
+    Rotation R_F0M0 = R_FM;
+    mirrorRotation(R_F0M0, mirrorAxis);
+
     if (this->getUseEulerAngles(sbs.getModelVars()))
-        this->toQ(q)    = R_FM.convertRotationToBodyFixedXYZ();
+        this->toQ(q)    = R_F0M0.convertRotationToBodyFixedXYZ();
     else
-        this->toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
+        this->toQuat(q) = R_F0M0.convertRotationToQuaternion().asVec4();
 }
 
 // We can't hope to represent arbitrary translations with a joint that has 
@@ -120,61 +180,86 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
     if (p_FM.norm() < Eps) return;
 
-    const UnitVec3 e(p_FM); // direction from F origin towards desired M origin
-    const Real latitude  = std::atan2(-e[1],e[2]); // project onto F's yz plane
-    const Real longitude = std::atan2( e[0],e[2]); // project onto F's xz plane
+    // The coordinates are associated with an unmirrored rotation, so apply the
+    // mirroring operation before extracting the q's.
+    Vec3 p_F0M0 = p_FM;
+    mirrorLinear(p_F0M0, mirrorAxis);
 
-    // Calculate the current value of the spin coordinate (3rd Euler angle).
-    Real spin;
+    // The M origin sits at p_FM = diag(a,b,c)*Mz, so the Mz that puts it on
+    // the requested ray is the normalized diag(1/a,1/b,1/c)*p_FM. The p_FM
+    // that results is then exactly parallel to the request, with its distance
+    // along that ray fixed by the surface.
+    const UnitVec3 e(p_F0M0[0]/semi[0], p_F0M0[1]/semi[1], p_F0M0[2]/semi[2]);
+
+    // Point Mz along e. Mz is the third column of Rx(q1)Ry(q2)Rz(q3), namely
+    // (sin q2, -sin q1 cos q2, cos q1 cos q2), so inverting that for q1 and q2
+    // aims it exactly, for e anywhere on the unit sphere. Taking q2 from atan2
+    // against sqrt(e[1]^2+e[2]^2) rather than from asin(e[0]) needs no
+    // clamping and stays well conditioned as e[0] approaches +/-1. Valid for
+    // both standard and mirrored joints.
+    const Real q1 = std::atan2(-e[1], e[2]);
+    const Real q2 = std::atan2(e[0], std::sqrt(e[1]*e[1] + e[2]*e[2]));
+
+    // Calculate the current value of q3.
+    Real q3;
     if (this->getUseEulerAngles(sbs.getModelVars())){
-        spin = this->fromQ(q)[2];
+        q3 = this->fromQ(q)[2];
     } else {
-        const Rotation R_FM_now(Quaternion(this->fromQuat(q)));
-        spin = R_FM_now.convertRotationToBodyFixedXYZ()[2];
+        const Rotation R_F0M0_now(Quaternion(this->fromQuat(q)));
+        q3 = R_F0M0_now.convertRotationToBodyFixedXYZ()[2];
     }
 
-    // Calculate the desired rotation, which is a space-fixed 1-2 sequence for
-    // latitude and longitude, followed by a body fixed rotation for spin.
-    const Rotation R_FM = Rotation( SpaceRotationSequence, latitude, XAxis, longitude, YAxis ) * Rotation(spin,ZAxis);
-
+    // Apply the fitted sequence to the coordinate values.
+    const Vec3 q123(q1, q2, q3);
     if (this->getUseEulerAngles(sbs.getModelVars())) {
-        const Vec3 q123 = R_FM.convertRotationToBodyFixedXYZ();
         this->toQ(q) = q123;
     } else {
-        const Quaternion quat = R_FM.convertRotationToQuaternion();
-        this->toQuat(q) = quat.asVec4();
+        Rotation R_F0M0;
+        R_F0M0.setRotationToBodyFixedXYZ(q123);
+        this->toQuat(q) = R_F0M0.convertRotationToQuaternion().asVec4();
     }
 }
 
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
                               Vector& u) const
 {
-        this->toU(u) = w_FM; // relative ang. vel. always used as generalized speeds
+    // If mirrored, u = -S*w_FM.
+    Vec3 w_F0M0 = w_FM;
+    mirrorAngular(w_F0M0, mirrorAxis);
+    this->toU(u) = w_F0M0;
 }
 
-// We can't do general linear velocity with this rotation-only mobilizer, but 
-// we can express any velocity which is tangent to the ellipsoid surface. So 
-// we'll find the current surface normal (Mz) and ignore any component of the 
-// requested velocity which is along that direction. (The resulting vz won't 
-// be zero, though, but it is completely determined by vx,vy.)
+// We can't do general linear velocity with this rotation-only mobilizer, but we
+// can produce any velocity that keeps the M origin on the ellipsoid, that is,
+// any velocity tangent to the surface at the current contact point. A
+// requested velocity splits uniquely as v = v_t + lambda*p_FM with v_t tangent
+// to the surface; we reproduce v_t exactly and discard the component along
+// p_FM. Note that p_FM is radial, which is the surface normal only for a
+// sphere, so for a general ellipsoid v_t is not the nearest tangent velocity.
 void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
 {
     Transform X_FM;
     this->calcAcrossJointTransform(sbs,q,X_FM);
 
-    const Vec3 v_FM_M    = ~X_FM.R()*v_FM; // we can only do vx and vy in this frame
-    const Vec3 r_FM_M    = ~X_FM.R()*X_FM.p(); 
-    const Vec3 wnow_FM_M = ~X_FM.R()*this->fromU(u); // preserve z component
+    // Work with the standard joint, since the u's represent an unmirrored one:
+    // recover its Mz as in calcAcrossJointVelocityJacobian(), and undo the
+    // mirroring of the requested velocity.
+    Vec3 n = X_FM.z();
+    mirrorLinear(n, mirrorAxis);
+    if (mirrorAxis == ZAxis) n = -n;
+    Vec3 v_F0M0 = v_FM;
+    mirrorLinear(v_F0M0, mirrorAxis);
 
-    // Now vx can only result from angular velocity about y, vy from x.
-    // TODO: THIS IS ONLY RIGHT FOR A SPHERE!!!
-    const Real wx = -v_FM_M[1]/r_FM_M[2];
-    const Real wy = v_FM_M[0]/r_FM_M[2];
-    const Vec3 w_FM_M(wx, wy, wnow_FM_M[2]);
-    const Vec3 w_FM = X_FM.R()*w_FM_M;
+    // v_FM is the linear part of H_FM*u, namely diag(a,b,c)*(u X Mz), so we
+    // need u X Mz == diag(1/a,1/b,1/c)*v_FM =: w. Only the part of w
+    // perpendicular to Mz is reachable, and u = Mz X w delivers exactly that,
+    // since (Mz X w) X Mz == w - Mz*(Mz.w). Adding any multiple of Mz leaves
+    // v_FM alone, so carry the current spin over.
+    const Vec3 w(v_F0M0[0]/semi[0], v_F0M0[1]/semi[1], v_F0M0[2]/semi[2]);
+    const Vec3 u_now = this->fromU(u);
 
-    this->toU(u) = w_FM;
+    this->toU(u) = n % w + dot(n, u_now)*n;
 }
 
 // When we're using Euler angles, we're going to want to cache cos and sin for
@@ -215,7 +300,8 @@ void performQPrecalculations(const SBStateDigest& sbs,
 }
 
 // Because of the precalculations above we can calculate the cross-mobilizer
-// transform in 21 flops (Euler angles) or 36 flops (quaternions).
+// transform in 21 flops (Euler angles) or 36 flops (quaternions); mirroring
+// adds 5, giving 26 or 41.
 void calcX_FM(const SBStateDigest& sbs,
               const Real* q,      int nq,
               const Real* qCache, int nQCache,
@@ -237,10 +323,15 @@ void calcX_FM(const SBStateDigest& sbs,
     // Translation.
     const Vec3& n = X_F0M0.z(); // just calculated above
     X_F0M0.updP() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
+
+    // Apply mirroring, if any. (5 flops)
+    mirrorTransform(X_F0M0, mirrorAxis);
 }
 
-// Generalized speeds are the angular velocity expressed in F, so they
-// cause rotations around F x,y,z axes respectively. (9 flops)
+// Generalized speeds are the angular velocity expressed in F, so they cause
+// rotations around F x,y,z axes respectively -- but only for an unmirrored
+// mobilizer. When mirrored, w_FM = -S*u instead; see the mirroring methods
+// above. (9 flops, or 19 mirrored about F's x or y axis and 22 about its z)
 void calcAcrossJointVelocityJacobian(
     const SBStateDigest& sbs,
     HType&               H_FM) const
@@ -250,14 +341,24 @@ void calcAcrossJointVelocityJacobian(
     // The normal is M's z axis, expressed in F but only in the frames we
     // used to *define* this mobilizer, not necessarily the ones used after
     // handling mobilizer reversal.
-    const Vec3 n = this->findX_F0M0(pc).z();
+    Vec3 n = this->findX_F0M0(pc).z();
+
+    // We want the normal of the unmirrored joint. If the mirror is about the
+    // Z-axis, then the mirrored normal will point into the ellipsoid, which
+    // requires an additional negation.
+    mirrorLinear(n, mirrorAxis);      // 1 flop
+    if (mirrorAxis == ZAxis) n = -n;  // 3 flops
 
     H_FM(0) = SpatialVec( Vec3(1,0,0), Vec3(      0,      -n[2]*semi[1], n[1]*semi[2]) );
     H_FM(1) = SpatialVec( Vec3(0,1,0), Vec3( n[2]*semi[0],       0,     -n[0]*semi[2]) );
     H_FM(2) = SpatialVec( Vec3(0,0,1), Vec3(-n[1]*semi[0], n[0]*semi[1],       0     ) );
+
+    // Apply mirroring, if any. (9 flops)
+    mirrorH(H_FM, mirrorAxis);
 }
 
-// Calculate time derivative of H_FM, which is *not* constant. (18 flops)
+// Calculate time derivative of H_FM, which is *not* constant. (18 flops, or
+// 30 mirrored about F's x or y axis and 33 about its z axis)
 void calcAcrossJointVelocityJacobianDot(
     const SBStateDigest& sbs,
     HType&               HDot_FM) const
@@ -268,13 +369,24 @@ void calcAcrossJointVelocityJacobianDot(
     // We need the normal and cross-joint velocity in the frames we're 
     // using to *define* the mobilizer, not necessarily the frames we're 
     // using to compute it it (if it has been reversed).
-    const Vec3       n      = this->findX_F0M0(pc).z();
-    const Vec3       w_F0M0 = this->find_w_F0M0(pc, vc);
+    Vec3             n      = this->findX_F0M0(pc).z();
+    Vec3             w_F0M0 = this->find_w_F0M0(pc, vc);
+
+    // As in calcAcrossJointVelocityJacobian(), undo any mirroring in the normal
+    // vector. Also, undo mirroring in the angular velocity so we can calculate
+    // ndot.
+    mirrorLinear(n, mirrorAxis);       // 1 flop
+    if (mirrorAxis == ZAxis) n = -n;   // 3 flops
+    mirrorAngular(w_F0M0, mirrorAxis); // 2 flops
+
     const Vec3       ndot   = w_F0M0 % n; // w_FM x n (9 flops)
 
     HDot_FM(0) = SpatialVec( Vec3(0), Vec3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
     HDot_FM(1) = SpatialVec( Vec3(0), Vec3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
     HDot_FM(2) = SpatialVec( Vec3(0), Vec3(-ndot[1]*semi[0], ndot[0]*semi[1],       0        ) );
+
+    // Apply mirroring, if any. (9 flops)
+    mirrorH(HDot_FM, mirrorAxis);
 }
 
 // Calculate qdot=N(q)*u. Precalculations make this fast in Euler angle
@@ -288,8 +400,10 @@ void calcQDot(const SBStateDigest& sbs, const Real* u,
 
     const SBModelVars& mv = sbs.getModelVars();
 
-    // Generalized speeds are the same in either mode -- angular velocity
-    // of F in M (or B in P), expressed in F (fixed on parent) frame.
+    // Generalized speeds are the angular velocity of F in M (or B in P),
+    // expressed in F (fixed on parent) frame, unless the mobilizer is mirrored,
+    // then w_FM = -S u. However, qdot=N(q)*u whether the mobilizer is mirrored
+    // or not, so we perform no mirroring here.
     const Vec3& w_FM = Vec3::getAs(u);
 
     if (this->getUseEulerAngles(mv)) {

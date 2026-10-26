@@ -105,8 +105,7 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
 
 // We can't represent arbitrary translations with a joint that has only
 // rotational coordinates, but we can find a set of rotations to obtain a
-// translation in the direction of the requested translation. Based on the
-// implementation from RigidBodyNodeSpec_Ellipsoid.h.
+// translation in the direction of the requested translation.
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
                               Vector& q) const override {
    if (p_FM.norm() < Eps) return;
