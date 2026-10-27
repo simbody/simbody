@@ -8,6 +8,11 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* Added `SimbodyMatterSubsystem` operators for the Jacobians of mobilized body
+  origin positions with respect to mobilizer inboard and outboard frame
+  positions: `multiplyByPositionJacobianWrtInboardFramePositions()`,
+  `multiplyByPositionJacobianWrtOutboardFramePositions()`, and the
+  corresponding transpose operators. (PR #866)
 * `MobilizedBody::Ellipsoid` can now be mirrored about the plane normal to one
   axis of its inboard frame F, which can be useful for building left/right joint
   pairs (e.g., shoulder joints) driven by the same coordinates. (PR #875)
