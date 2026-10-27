@@ -520,6 +520,7 @@ void multiplyByPositionJacobianWrtInboardFramePosition(
         const Vec3*                 dp_PF,
         Vec3*                       dp_GB) const {
 
+    assert(parent);
     dp_GB[nodeNum] = dp_GB[parent->getNodeNum()] +
                      getX_GP(pc).R() * dp_PF[nodeNum];
 }
@@ -533,6 +534,7 @@ void multiplyByPositionJacobianWrtInboardFramePositionTranspose(
         const Vec3*                 g_GB,
         Vec3*                       g_PF) const {
 
+    assert(parent);
     Vec3& sum = zTmp[nodeNum];
     sum = g_GB[nodeNum];
     for (unsigned i = 0; i < children.size(); ++i) {
@@ -551,6 +553,7 @@ void multiplyByPositionJacobianWrtOutboardFramePosition(
         const Vec3*                 dp_BM,
         Vec3*                       dp_GB) const {
 
+    assert(parent);
     dp_GB[nodeNum] = dp_GB[parent->getNodeNum()] -
                      getX_GB(pc).R() * dp_BM[nodeNum];
 }

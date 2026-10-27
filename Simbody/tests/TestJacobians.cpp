@@ -149,6 +149,28 @@ namespace {
                     Vec3(0.25, -0.26, 0.27))};
     };
 
+    // Form the matrices of a forward operator and of its transpose operator,
+    // column by column, by applying each to the 3*nb unit vectors. Then, verify
+    // that the second is the transpose of the first.
+    template <class ForwardOp, class TransposeOp>
+    void checkTranspose(int nb, ForwardOp fwd, TransposeOp transpose) {
+        const int n = 3*nb;
+        Matrix J(n, n), Jt(n, n);
+        for (int c = 0; c < n; ++c) {
+            Vector_<Vec3> e(nb, Vec3(0));
+            e[c/3][c%3] = 1;
+
+            Vector_<Vec3> Je, Jte;
+            fwd(e, Je);
+            transpose(e, Jte);
+            for (int r = 0; r < n; ++r) {
+                J(r, c)  = Je[r/3][r%3];
+                Jt(r, c) = Jte[r/3][r%3];
+            }
+        }
+        SimTK_TEST_EQ(J, ~Jt);
+    }
+
 }
 
 void testMultiplyByPositionJacobianWrtInboardFramePositions() {
@@ -158,7 +180,7 @@ void testMultiplyByPositionJacobianWrtInboardFramePositions() {
     sys.m_system.realize(state, Stage::Position);
 
     const int nb = sys.m_matter.getNumBodies();
-    const Real h = 1e-5;
+    const Real h = 1e-2;
 
     Vector_<Vec3> dp_PF(nb);
     for (int b = 0; b < nb; ++b) {
@@ -236,6 +258,18 @@ void testMultiplyByPositionJacobianWrtInboardFramePositionsTranspose() {
     }
     SimTK_TEST_EQ_TOL(lhs, rhs, 1e-10);
 
+    // Check that ~JpF is the transpose of JpF.
+    checkTranspose(nb,
+        [&](const Vector_<Vec3>& in, Vector_<Vec3>& out) {
+            sys.m_matter.multiplyByPositionJacobianWrtInboardFramePositions(
+                    state, in, out);
+        },
+        [&](const Vector_<Vec3>& in, Vector_<Vec3>& out) {
+            sys.m_matter
+               .multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
+                    state, in, out);
+        });
+
     // Test noncontiguous input and output vectors using the rows of a Matrix,
     // which are noncontiguous.
     Matrix_<Row3> g_GBmat(3, nb), g_PFmat(3, nb);
@@ -253,7 +287,7 @@ void testMultiplyByPositionJacobianWrtOutboardFramePositions() {
     sys.m_system.realize(state, Stage::Position);
 
     const int nb = sys.m_matter.getNumBodies();
-    const Real h = 1e-5;
+    const Real h = 1e-2;
 
     Vector_<Vec3> dp_BM(nb);
     for (int b = 0; b < nb; ++b) {
@@ -330,6 +364,18 @@ void testMultiplyByPositionJacobianWrtOutboardFramePositionsTranspose() {
         rhs += dot(dp_BM[b], g_BM[b]);
     }
     SimTK_TEST_EQ_TOL(lhs, rhs, 1e-10);
+
+    // Check that ~JpM is the transpose of JpM.
+    checkTranspose(nb,
+        [&](const Vector_<Vec3>& in, Vector_<Vec3>& out) {
+            sys.m_matter.multiplyByPositionJacobianWrtOutboardFramePositions(
+                    state, in, out);
+        },
+        [&](const Vector_<Vec3>& in, Vector_<Vec3>& out) {
+            sys.m_matter
+               .multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
+                    state, in, out);
+        });
 
     // Test noncontiguous input and output vectors using the rows of a Matrix,
     // which are noncontiguous.

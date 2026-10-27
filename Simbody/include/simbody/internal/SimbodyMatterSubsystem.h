@@ -1231,8 +1231,9 @@ SpatialVec calcBiasForFrameJacobian(const State&         state,
 
 These methods perform calculations involving Jacobians of body origin positions
 (p_GB) with respect to the positions of mobilizer inboard (p_PF) and outboard
-frames (p_BM). Jacobians with respect to inboard frame (F) positions are denoted
-JpF, and Jacobians with respect to outboard frame (M) positions are denoted JpM.
+frames (p_BM) for a fixed set of generalized coordinates, q. Jacobians with
+respect to inboard frame (F) positions are denoted JpF, and Jacobians with
+respect to outboard frame (M) positions are denoted JpM.
 
 The forward operators (e.g., JpF*dp_PF) are useful for calculating how changes
 in mobilizer frame position propagate to changes in body position. The transpose
