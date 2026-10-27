@@ -2041,6 +2041,12 @@ void SimbodyMatterSubsystem::multiplyByPositionJacobianWrtInboardFramePositions(
         "The number of inboard frame perturbations, dp_PF (%d), and number of "
         "bodies (%d) must be the same.",
         dp_PF.size(), nb);
+    SimTK_APIARGCHECK2_ALWAYS(dp_GB.size() == 0 || dp_GB.size() == nb,
+        "SimbodyMatterSubsystem",
+        "multiplyByPositionJacobianWrtInboardFramePositions",
+        "The output vector dp_GB must be empty or have length equal to the "
+        "number of bodies (%d), but its length is %d.",
+        nb, dp_GB.size());
 
     const bool dp_PFIsContig = dp_PF.hasContiguousData();
     const bool dp_GBIsContig = dp_GB.hasContiguousData();
@@ -2076,6 +2082,12 @@ multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
         "The length of g_GB (%d) and the number of bodies (%d) must be the "
         "same.",
         g_GB.size(), nb);
+    SimTK_APIARGCHECK2_ALWAYS(g_PF.size() == 0 || g_PF.size() == nb,
+        "SimbodyMatterSubsystem",
+        "multiplyByPositionJacobianWrtInboardFramePositionsTranspose",
+        "The output vector g_PF must be empty or have length equal to the "
+        "number of bodies (%d), but its length is %d.",
+        nb, g_PF.size());
 
     const bool g_GBIsContig = g_GB.hasContiguousData();
     const bool g_PFIsContig = g_PF.hasContiguousData();
@@ -2110,6 +2122,12 @@ void SimbodyMatterSubsystem::multiplyByPositionJacobianWrtOutboardFramePositions
         "The number of outboard frame perturbations, dp_BM (%d), and number of "
         "bodies (%d) must be the same.",
         dp_BM.size(), nb);
+    SimTK_APIARGCHECK2_ALWAYS(dp_GB.size() == 0 || dp_GB.size() == nb,
+        "SimbodyMatterSubsystem",
+        "multiplyByPositionJacobianWrtOutboardFramePositions",
+        "The output vector dp_GB must be empty or have length equal to the "
+        "number of bodies (%d), but its length is %d.",
+        nb, dp_GB.size());
 
     const bool dp_BMIsContig = dp_BM.hasContiguousData();
     const bool dp_GBIsContig = dp_GB.hasContiguousData();
@@ -2145,6 +2163,12 @@ multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
         "The length of g_GB (%d) and the number of bodies (%d) must be the "
         "same.",
         g_GB.size(), nb);
+    SimTK_APIARGCHECK2_ALWAYS(g_BM.size() == 0 || g_BM.size() == nb,
+        "SimbodyMatterSubsystem",
+        "multiplyByPositionJacobianWrtOutboardFramePositionsTranspose",
+        "The output vector g_BM must be empty or have length equal to the "
+        "number of bodies (%d), but its length is %d.",
+        nb, g_BM.size());
 
     const bool g_GBIsContig = g_GB.hasContiguousData();
     const bool g_BMIsContig = g_BM.hasContiguousData();

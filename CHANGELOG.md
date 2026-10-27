@@ -8,6 +8,11 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* Added `SimbodyMatterSubsystem` operators for the Jacobians of mobilized body
+  origin positions with respect to mobilizer inboard and outboard frame
+  positions: `multiplyByPositionJacobianWrtInboardFramePositions()`,
+  `multiplyByPositionJacobianWrtOutboardFramePositions()`, and the
+  corresponding transpose operators. (PR #866)
 * Added `Rotation::mirror()`, a method for mirroring a Rotation about a coordinate axis. (PR #879)
 * `CableSpan::calcResampledDecorativePathPoints()` and `CableSpan::calcCurveSegmentResampledPoints()` now
   always emit decorative points whether or not a curve segment is in contact with an obstacle, so that the
