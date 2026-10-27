@@ -12,6 +12,16 @@ PRs and issues that were included in a particular release.
   always emit decorative points whether or not a curve segment is in contact with an obstacle, so that the
   number of emitted points is constant. Previously they emitted NaN points, or read out of bounds, for
   obstacles that were not in contact (PR #872).
+* `MobilizedBody::Ellipsoid` can now be mirrored about the plane normal to one
+  axis of its inboard frame F, which can be useful for building left/right joint
+  pairs (e.g., shoulder joints) driven by the same coordinates. (PR #875)
+* `MobilizedBody::Ellipsoid::setQToFitTranslation()` (and therefore
+  `setQToFitTransform()`) now places the M frame's origin exactly on the ray
+  towards the requested translation, for any semi-axes. Similarly,
+  `MobilizedBody::Ellipsoid::setUToFitLinearVelocity()` (and
+  `setUToFitVelocity()`) now reproduces any velocity the joint can produce, for
+  any semi-axes. Previously, both methods relied on calculations assuming the
+  choice of semi-axes represented a sphere. (PR #875)
 * Added support for variable mobilizer inboard and outboard frames (PR #859)
 * `MobilizedBody::Translation` "lone particle" support has been removed  (PR #859)
 * Add MobilizedBody::CantileverFreeBeam, a mobilizer for modeling spinal joints and
@@ -24,6 +34,16 @@ PRs and issues that were included in a particular release.
 * Fixed an out-of-bounds warning/error emitted by overloads of SimTK::Mat accessing
   out-of-bounds rows.
 * Breaking: constants in `Scalar.h` are now `inline constexpr` (header-defined) rather than exported library symbols; code that relied on the constants being a single exported symbol (e.g., comparing addresses across shared-library boundaries) may be affected.
+* Breaking (build): removed the CMake options deprecated in 3.8: `BUILD_DYNAMIC_LIBRARIES`,
+  `BUILD_STATIC_LIBRARIES`, `BUILD_UNVERSIONED_LIBRARIES`, `BUILD_TESTS_AND_EXAMPLES_SHARED`
+  and `BUILD_TESTS_AND_EXAMPLES_STATIC`. Use `SIMBODY_BUILD_SHARED_LIBS` and
+  `BUILD_VERSIONED_LIBRARIES` instead; the old options are now ignored.
+* Simbody now configures without warnings under current CMake (tested with 4.4). The
+  installed examples' `CMakeLists.txt` now requires CMake 3.21 (it previously declared 2.8,
+  which CMake 4 rejects) and no longer forces C++11.
+* `cmake --install --prefix` and `DESTDIR` installs now place `simbody-visualizer` and the
+  `examples/bin` symlink under the requested location (both previously used the configure-time
+  prefix), and `uninstall` now removes the symlink.
 
 
 3.8 (May 2025)

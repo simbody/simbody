@@ -38,38 +38,6 @@ option(SIMBODY_BUILD_SHARED_LIBS
     "Build dynamic (shared) Simbody libraries. Defaults to ON or the value of BUILD_SHARED_LIBS if defined."
     ${shared_lib_default})
 
-# TODO: Remove after this version cycle?
-option(BUILD_DYNAMIC_LIBRARIES
-    "[DEPRECATED] Build dynamic (shared) Simbody libraries."
-    OFF)
-mark_as_advanced(BUILD_DYNAMIC_LIBRARIES)
-if(BUILD_DYNAMIC_LIBRARIES)
-    message(DEPRECATION "The BUILD_DYNAMIC_LIBRARIES build option is deprecated and will be \
-ignored in future versions of Simbody. Please set SIMBODY_BUILD_SHARED_LIBS=ON instead.")
-    if(NOT SIMBODY_BUILD_SHARED_LIBS)
-        set(SIMBODY_BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
-        unset(BUILD_DYNAMIC_LIBRARIES CACHE)
-    endif()
-endif()
-
-# TODO: Remove after this version cycle?
-option(BUILD_STATIC_LIBRARIES
-    "[DEPRECATED] Build static Simbody libraries."
-    OFF)
-mark_as_advanced(BUILD_STATIC_LIBRARIES)
-if(BUILD_STATIC_LIBRARIES)
-    message(DEPRECATION "The BUILD_STATIC_LIBRARIES build option is deprecated and will be \
-ignored in future versions of Simbody. Please set SIMBODY_BUILD_SHARED_LIBS=OFF instead.")
-    if(SIMBODY_BUILD_SHARED_LIBS)
-        set(SIMBODY_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-        unset(BUILD_STATIC_LIBRARIES CACHE)
-    endif()
-endif()
-if(BUILD_DYNAMIC_LIBRARIES AND BUILD_STATIC_LIBRARIES)
-    message(FATAL_ERROR "Simultaneous static and shared library builds are no longer supported. \
-Please see the README for instructions to produce similar builds.")
-endif()
-
 option(BUILD_VISUALIZER
     "Build and install the Simbody visualizer."
     ON)
@@ -100,26 +68,9 @@ libraries like 'libns_SimTKmath.so' on Unix).")
 mark_as_advanced(BUILD_USING_NAMESPACE)
 
 option(BUILD_VERSIONED_LIBRARIES
-    "Add a version suffix to Simbody libraries (e.g. library names like 'libSimTKMath_3.8.so')"
+    "Add a version suffix to Simbody libraries (e.g. library names like 'libSimTKmath_X.Y.Z.so')"
     OFF)
 mark_as_advanced(BUILD_VERSIONED_LIBRARIES)
-
-# TODO: Remove after this version cycle?
-option(BUILD_UNVERSIONED_LIBRARIES
-    "[DEPRECATED] Opposite of BUILD_VERSIONED_LIBRARIES. Will be ignored in future versions of Simbody"
-    OFF)
-mark_as_advanced(BUILD_UNVERSIONED_LIBRARIES)
-if(BUILD_UNVERSIONED_LIBRARIES)
-    message(DEPRECATION "The BUILD_UNVERSIONED_LIBRARIES build option is deprecated and will be \
-ignored in future versions of Simbody. Please set BUILD_VERSIONED_LIBRARIES=OFF instead.")
-    set(BUILD_VERSIONED_LIBRARIES OFF CACHE BOOL "" FORCE)
-    unset(BUILD_UNVERSIONED_LIBRARIES CACHE)
-endif()
-
-if(BUILD_VERSIONED_LIBRARIES AND BUILD_UNVERSIONED_LIBRARIES)
-    message(FATAL_ERROR "Simultaneous versioned and unversioned library builds are no longer supported. \
-Please see the README for instructions to produce similar builds.")
-endif()
 
 set(SIMBODY_STATIC_LIBRARIES_POSTFIX "" CACHE STRING
     "Add a postfix to static Simbody libraries (e.g. library names like 'libSimTKMath_static.dll'). \
@@ -149,23 +100,6 @@ separated by semicolons (full paths or paths that are on the (DY)LD_LIBRARY_PATH
 (UNIX) or PATH (Windows)). (e.g. BUILD_USING_OTHER_LAPACK='mkl_intel_c_dll;\
 mkl_sequential_dll;mkl_core_dll' to use Intel MKL on Windows).")
 mark_as_advanced(BUILD_USING_OTHER_LAPACK)
-
-### Deprecated and ignored build options:
-#----------------------------------------
-
-if(DEFINED BUILD_TESTS_AND_EXAMPLES_STATIC)
-    message(DEPRECATION "The BUILD_TESTS_AND_EXAMPLES_STATIC is deprecated. Only one set \
-of Simbody libraries are built now (shared or static is set by SIMBODY_BUILD_SHARED_LIBS), \
-and examples and tests are linked against these libraries.")
-    unset(BUILD_TESTS_AND_EXAMPLES_STATIC CACHE)
-endif()
-
-if(DEFINED BUILD_TESTS_AND_EXAMPLES_SHARED)
-    message(DEPRECATION "The BUILD_TESTS_AND_EXAMPLES_SHARED is deprecated. Only one set \
-of Simbody libraries are built now (shared or static is set by SIMBODY_BUILD_SHARED_LIBS), \
-and examples and tests are linked against these libraries.")
-    unset(BUILD_TESTS_AND_EXAMPLES_SHARED CACHE)
-endif()
 
 #-------------------------------------------------------------------------------
 
@@ -589,7 +523,7 @@ endif()
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
-    IMMEDIATE @ONLY)
+    @ONLY)
 add_custom_target(uninstall
     "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake")
 
