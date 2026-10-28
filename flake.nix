@@ -1,5 +1,5 @@
 {
-  description = "A very basic flake";
+  description = "High-performance C++ multibody dynamics/physics library for simulating articulated biomechanical and mechanical systems like vehicles, robots, and the human skeleton";
 
   inputs = {
     nixpkgs.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst";
@@ -7,9 +7,9 @@
 
   outputs = inputs: {
     packages = builtins.mapAttrs (system: pkgs: {
-      hello = pkgs.hello;
+      simbody = pkgs.callPackage ./package.nix { };
 
-      default = inputs.self.packages.${system}.hello;
+      default = inputs.self.packages.${system}.simbody;
     }) inputs.nixpkgs.legacyPackages;
   };
 }
