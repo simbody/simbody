@@ -152,6 +152,23 @@ jobs:
           name: simbody-${{ steps.commithash.outputs.hash }}-linux-${{ matrix.compiler }}-${{ matrix.build_type }}
           path: simbody-${{ steps.commithash.outputs.hash }}.zip
 
+  nix:
+    name: Nix
+
+    runs-on: "${{ matrix.os }}-latest"
+
+    strategy:
+      matrix:
+        os:
+          - ubuntu
+          - macos
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: nixbuild/nix-quick-install-action@v35
+
+      - run: nix build -L
 
   style:
     name: Style
