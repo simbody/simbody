@@ -152,6 +152,28 @@ jobs:
           name: simbody-${{ steps.commithash.outputs.hash }}-linux-${{ matrix.compiler }}-${{ matrix.build_type }}
           path: simbody-${{ steps.commithash.outputs.hash }}.zip
 
+  nix:
+    name: Nix
+    # Informational: builds with nixpkgs-unstable (newest GCC, nixpkgs BLAS).
+    # Not a required check; a failure here does not fail the workflow.
+    continue-on-error: true
+    timeout-minutes: 60
+
+    runs-on: "${{ matrix.os }}-latest"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu
+          - macos
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+
+      - run: nix build -L
 
   style:
     name: Style
