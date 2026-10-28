@@ -98,6 +98,7 @@ bool  exhaustiveTestofQuaternions();
 
 bool testRotationFromTwoGivenAxes( const Vec3& vi, const CoordinateAxis& ai, const Vec3& vj, const CoordinateAxis& aj);
 bool testReexpressSymMat33();
+bool testMirror();
 
 //-------------------------------------------------------------------
 bool  doRequiredTasks( ) {
@@ -314,6 +315,9 @@ bool  doRequiredTasks( ) {
 
     // Test out special code for rotating symmetric matrices.
     test = test && testReexpressSymMat33();
+
+    // Test mirroring of a rotation about a coordinate axis.
+    test = test && testMirror();
 
     return test;
 }
@@ -777,6 +781,39 @@ bool testReexpressSymMat33() {
     const Mat<3,3,Complex> SC(SC1*SC2);
     const Mat<3,3,Complex> MC(MC1*MC2);
     SimTK_TEST_EQ(SC, MC);
+
+    return test;
+}
+
+//-------------------------------------------------------------------
+// Mirroring R_AB about the plane normal to A's axis k should produce S*R_AB*S
+// for the reflection S=diag(s) with s[k]=-1 and s[i]=1 otherwise. Here we form
+// that product explicitly as an independent check on Rotation::mirror().
+bool testMirror() {
+    bool test = true;
+
+    const Rotation R_AB(Test::randRotation());
+
+    for (int k=0; k < 3; ++k) {
+        const CoordinateAxis axis(k);
+
+        Vec3 s(1,1,1); s[k] = -1;
+        const Mat33 S(s[0],    0,    0,
+                         0, s[1],    0,
+                         0,    0, s[2]);
+
+        const Rotation R_AB_mir = R_AB.mirror(axis);
+        const Mat33 expected = S * R_AB.asMat33() * S;
+        test = test && (R_AB_mir.asMat33()-expected).norm() <= SignificantReal;
+
+        // The two reflections cancel, so the result is still a rotation.
+        SimTK_TEST_EQ(det(R_AB_mir.asMat33()), Real(1));
+        SimTK_TEST_EQ(R_AB_mir*~R_AB_mir, Rotation());
+
+        // Mirroring is an involution.
+        test = test && (R_AB_mir.mirror(axis).asMat33()
+                        - R_AB.asMat33()).norm() <= SignificantReal;
+    }
 
     return test;
 }

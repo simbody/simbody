@@ -376,6 +376,18 @@ const InverseRotation_<P>& invert() const
 InverseRotation_<P>& updInvert()     
 { return *reinterpret_cast<InverseRotation_<P>*>(this); }
 
+/** Return this rotation mirrored about the plane normal to one of the
+coordinate axes of the "from" frame. If this rotation is R_AB and \a axis is A's
+axis k, the result is S*R_AB*S, where S is the reflection that reverses axis k,
+that is, S=diag(s) with s[k]=-1 and s[i]=1 otherwise. Cost is 4 flops. **/
+Rotation_ mirror(const CoordinateAxis& axis) const {
+    const int k = axis;
+    Mat33P R = asMat33();
+    for (int i=0; i < 3; ++i)
+        if (i != k) {R(k,i) = -R(k,i); R(i,k) = -R(i,k);}
+    return Rotation_(R, true);
+}
+
 /** In-place composition of Rotation matrices. **/
 inline Rotation_&  operator*=( const Rotation_<P>& R );
 /** In-place composition of Rotation matrices. **/

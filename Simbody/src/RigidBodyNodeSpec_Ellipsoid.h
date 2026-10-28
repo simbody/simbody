@@ -120,14 +120,7 @@ static void mirrorAngular(Vec3& w_F, int mirrorAxis) {
 // R -> S*R*S for a rotation matrix R. (4 flops)
 static void mirrorRotation(Rotation& R_FM, int mirrorAxis) {
     if (mirrorAxis < 0) return;
-    const int k = mirrorAxis;
-    Mat33 R = R_FM.asMat33();
-    // Element (i,j) is scaled by s[i]*s[j], so this negates the row and column
-    // for the mirrored axis k. The sign of the diagonal element (k,k) remains
-    // unchanged.
-    for (int i=0; i < 3; ++i)
-        if (i != k) {R(k,i) = -R(k,i); R(i,k) = -R(i,k);}
-    R_FM.setRotationFromMat33TrustMe(R);
+    R_FM = R_FM.mirror(CoordinateAxis(mirrorAxis));
 }
 
 // A helper for mirroring the rotation and translation for a transform X
