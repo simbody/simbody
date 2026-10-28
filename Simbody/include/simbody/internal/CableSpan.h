@@ -555,11 +555,17 @@ public:
     /** Compute `numCurveSegmentSamples` equally-spaced points for each curve
     segment along the path spanned by this cable and emit them to `sink`.
     This can be useful for visualization purposes, where it can be important to
-    limit the amount of visualized path points for performance reasons.
+    limit the amount of visualized path points for performance reasons. When an
+    obstacle is not in contact with the cable its decorative path points are
+    emitted at the point on the cable closest to that obstacle. Therefore, the
+    number of emitted points remains constant: the origin and termination
+    points, the via points, and the number of obstacles times
+    `numCurveSegmentSamples`.
+
     State must be realized to Stage::Position.
     @param state System State.
     @param numCurveSegmentSamples The number of samples to take per curve
-                                  segment.
+                                  segment (minimum is 2).
     @param sink Where the path points (in ground frame) will be written to. **/
     void calcResampledDecorativePathPoints(
         const State& state,
@@ -627,8 +633,10 @@ public:
     using Hermite interpolation, generally resulting in a good approximation of
     the point at the requested arc lengths.
 
-    This function throws an exception if the obstacle is not in contact with
-    the cable. Check isInContactWithObstacle() before calling this function.
+    When the curve segment is not in contact with the obstacle there is no
+    geodesic to sample. In that case all `numSamples` points are emitted
+    coincident at the point on the straight cable segment that lies closest to
+    the obstacle, so that the number of emitted points stays constant.
 
     @param state State of the system.
     @param ix The index of the obstacle in this CableSpan.
