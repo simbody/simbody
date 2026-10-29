@@ -28,6 +28,7 @@
 Define the SimTK::Vector_ class that is part of Simbody's BigMatrix toolset. **/
 
 #include <initializer_list>
+
 namespace SimTK {
 
 //==============================================================================
@@ -92,8 +93,8 @@ public:
     provided; make sure you have supplied enough of them. **/
     Vector_(int m, const ELT* cppInitialValues) : Base(m, cppInitialValues) {}
 
-    Vector_(std::initializer_list<ELT> init) 
-    :   Base(static_cast<int>(init.size()), init.begin()) {}
+    Vector_(std::initializer_list<ELT> init)
+        : Base(static_cast<int>(init.size()), init.data()) {}
 
     /** Construct an owner %Vector_ of a given size \a m and initialize all the
     elements to the given ELT value \a initialValue. **/

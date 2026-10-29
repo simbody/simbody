@@ -29,6 +29,7 @@ Define the SimTK::VectorBase class that is part of Simbody's BigMatrix
 toolset. **/
 
 #include <initializer_list>
+
 namespace SimTK {
 
 //==============================================================================
@@ -87,8 +88,8 @@ public:
     VectorBase(int m, const ELT* cppInitialValues)
     :   Base(MatrixCommitment::Vector(),m,1,cppInitialValues) {}
 
-    VectorBase(std::initializer_list<ELT> init) 
-    :   VectorBase(static_cast<int>(init.size()), init.begin()) {}
+    VectorBase(std::initializer_list<ELT> init)
+    :   VectorBase(static_cast<int>(init.size()), init.data()) {}
     /// @}
 
     //  ------------------------------------------------------------------------
