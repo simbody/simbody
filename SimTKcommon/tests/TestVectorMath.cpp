@@ -348,16 +348,17 @@ int main() {
         testVector(median(symmat), Vec2(0.5, -0.5));
         ASSERT_EQUAL(median(Vec6(6, 1, 5, 2, 4, 3)), 3.5);
 
-        // Test initializer lists for vector types
-        Vec<5> expected(-1,2,-3,4,-5);
-        Vector init_list_vector{-1,2,-3,4,-5};
-        testVector(init_list_vector, expected);
- 
-        Vec3 expected_vec3;
-        expected_vec3[0] = -1;
-        expected_vec3[1] = 3;
-        expected_vec3[2] = 100;
-        testVector(Vec3{-1,3,100}, expected_vec3);
+        { // Test initializer lists for vector types
+            Vec<5> expected(-1,2,-3,4,-5);
+            Vector initListVector{-1,2,-3,4,-5};
+            testVector(initListVector, expected);
+    
+            Vec3 expectedVec;
+            expectedVec[0] = -1;
+            expectedVec[1] = 3;
+            expectedVec[2] = 100;
+            testVector(Vec3{-1.f, 3.f, 100.f}, expectedVec);
+        }
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
