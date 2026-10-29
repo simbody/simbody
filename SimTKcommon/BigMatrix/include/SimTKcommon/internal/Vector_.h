@@ -94,7 +94,7 @@ public:
     Vector_(int m, const ELT* cppInitialValues) : Base(m, cppInitialValues) {}
 
     Vector_(std::initializer_list<ELT> init)
-        : Base(static_cast<int>(init.size()), init.data()) {}
+        : Base(static_cast<int>(init.size()), init.begin()) {}
 
     /** Construct an owner %Vector_ of a given size \a m and initialize all the
     elements to the given ELT value \a initialValue. **/

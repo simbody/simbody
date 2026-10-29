@@ -89,7 +89,7 @@ public:
     :   Base(MatrixCommitment::Vector(),m,1,cppInitialValues) {}
 
     VectorBase(std::initializer_list<ELT> init)
-    :   VectorBase(static_cast<int>(init.size()), init.data()) {}
+    :   VectorBase(static_cast<int>(init.size()), init.begin()) {}
     /// @}
 
     //  ------------------------------------------------------------------------
