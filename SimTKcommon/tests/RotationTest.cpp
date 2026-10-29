@@ -794,10 +794,11 @@ bool testMirror() {
 
     const Rotation R_AB(Test::randRotation());
 
-    for (int k=0; k < 3; ++k) {
+    for (int k = 0; k < 3; ++k) {
         const CoordinateAxis axis(k);
 
-        Vec3 s(1,1,1); s[k] = -1;
+        Vec3 s(1,1,1);
+        s[k] = -1;
         const Mat33 S(s[0],    0,    0,
                          0, s[1],    0,
                          0,    0, s[2]);
@@ -813,7 +814,23 @@ bool testMirror() {
         // Mirroring is an involution.
         test = test && (R_AB_mir.mirror(axis).asMat33()
                         - R_AB.asMat33()).norm() <= SignificantReal;
+
+        // Mirroring commutes with inversion.
+        SimTK_TEST_EQ(Rotation(~R_AB).mirror(axis), Rotation(~R_AB_mir));
     }
+
+    // Mirroring about axis k reverses a rotation about either of the other two
+    // axes.
+    const Real a = 0.3;
+    const Rotation Rx(a, XAxis), Ry(a, YAxis), Rz(a, ZAxis);
+    SimTK_TEST_EQ(Rz.mirror(XAxis), Rotation(-a, ZAxis));
+    SimTK_TEST_EQ(Rx.mirror(YAxis), Rotation(-a, XAxis));
+
+    // Mirroring leaves a rotation about axis k itself unchanged.
+    SimTK_TEST_EQ(Ry.mirror(YAxis), Ry);
+
+    // Mirroring commutes with composition.
+    SimTK_TEST_EQ((Rz*Ry).mirror(XAxis), Rz.mirror(XAxis)*Ry.mirror(XAxis));
 
     return test;
 }

@@ -2066,8 +2066,7 @@ MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::
 setDefaultRotation(const Rotation& R_FM) {
     // Unmirror the provided rotation, since the coordinates parameterize an
     // unmirrored rotation.
-    Rotation R_F0M0 = R_FM;
-    if (isMirrored()) R_F0M0 = R_FM.mirror(getMirrorAxis());
+    const Rotation R_F0M0 = isMirrored() ? R_FM.mirror(getMirrorAxis()) : R_FM;
     return setDefaultQ(R_F0M0.convertRotationToQuaternion());
 }
 
