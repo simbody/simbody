@@ -376,6 +376,24 @@ const InverseRotation_<P>& invert() const
 InverseRotation_<P>& updInvert()     
 { return *reinterpret_cast<InverseRotation_<P>*>(this); }
 
+/** Return this rotation mirrored about the plane normal to one of the
+coordinate axes. If this rotation is R_AB and \a axis is k, the result is
+S*R_AB*S, where S=diag(s) with s[k]=-1 and s[i]=1 otherwise. Geometrically,
+the axes of B are reflected through the plane normal to A's axis k, and then
+B's axis k is negated to restore a right-handed frame; equivalently, row k and
+column k of R_AB are negated except for the diagonal element. Mirroring is an
+involution and commutes with inversion and composition. Cost is 4 flops. **/
+Rotation_ mirror(const CoordinateAxis& axis) const {
+    const int k = axis;
+    Mat33P R = asMat33();
+    // Element (i,j) is scaled by s[i]*s[j], so this negates the row and column
+    // for the mirrored axis k. The sign of the diagonal element (k,k) remains
+    // unchanged.
+    for (int i = 0; i < 3; ++i)
+        if (i != k) { R(k,i) = -R(k,i); R(i,k) = -R(i,k); }
+    return Rotation_(R, true);
+}
+
 /** In-place composition of Rotation matrices. **/
 inline Rotation_&  operator*=( const Rotation_<P>& R );
 /** In-place composition of Rotation matrices. **/

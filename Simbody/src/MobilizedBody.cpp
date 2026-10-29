@@ -2066,8 +2066,7 @@ MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::
 setDefaultRotation(const Rotation& R_FM) {
     // Unmirror the provided rotation, since the coordinates parameterize an
     // unmirrored rotation.
-    Rotation R_F0M0 = R_FM;
-    getImpl().mirrorRotation(R_F0M0);
+    const Rotation R_F0M0 = isMirrored() ? R_FM.mirror(getMirrorAxis()) : R_FM;
     return setDefaultQ(R_F0M0.convertRotationToQuaternion());
 }
 
@@ -2076,7 +2075,7 @@ Rotation MobilizedBody::Ellipsoid::getDefaultRotation() const {
     // default Q's so it matches the orientation of the mobilizer in the default
     // state. Mirroring is an involution, so it is the same operation.
     Rotation R_FM(getDefaultQ());
-    getImpl().mirrorRotation(R_FM);
+    if (isMirrored()) R_FM = R_FM.mirror(getMirrorAxis());
     return R_FM;
 }
 
