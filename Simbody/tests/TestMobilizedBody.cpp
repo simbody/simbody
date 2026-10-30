@@ -850,6 +850,14 @@ void testMirroredEllipsoid() {
         SimTK_TEST(mirrored.isMirrored());
         SimTK_TEST(mirrored.getMirrorAxis() == CoordinateAxis(k));
 
+        // setMirrorAxis() and clearMirrorAxis() must report the same mirroring
+        // state as the constructors.
+        standard.setMirrorAxis(CoordinateAxis(k));
+        SimTK_TEST(standard.isMirrored());
+        SimTK_TEST(standard.getMirrorAxis() == CoordinateAxis(k));
+        standard.clearMirrorAxis();
+        SimTK_TEST(!standard.isMirrored());
+
         // Initialize the system.
         system.realizeTopology();
         State state = system.getDefaultState();

@@ -2024,7 +2024,7 @@ MobilizedBody::Ellipsoid::Ellipsoid
 :   MobilizedBody(new EllipsoidImpl(d)) {
     setBody(body);
     setDefaultRadii(radii);
-    updImpl().setMirrorAxis(mirrorAxis);
+    setMirrorAxis(mirrorAxis);
 
     parent.updMatterSubsystem().adoptMobilizedBody(
             parent.getMobilizedBodyIndex(), *this);
@@ -2039,7 +2039,7 @@ MobilizedBody::Ellipsoid::Ellipsoid
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
     setDefaultRadii(radii);
-    updImpl().setMirrorAxis(mirrorAxis);
+    setMirrorAxis(mirrorAxis);
 
     parent.updMatterSubsystem().adoptMobilizedBody(
             parent.getMobilizedBodyIndex(), *this);
@@ -2048,6 +2048,17 @@ MobilizedBody::Ellipsoid::Ellipsoid
 MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::
 setDefaultRadii(const Vec3& r) {
     updImpl().setDefaultRadii(r);
+    return *this;
+}
+
+MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::
+setMirrorAxis(const CoordinateAxis& mirrorAxis) {
+    updImpl().setMirrorAxis(mirrorAxis);
+    return *this;
+}
+
+MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::clearMirrorAxis() {
+    updImpl().setMirrorAxis(-1); // -1 means not mirrored
     return *this;
 }
 
