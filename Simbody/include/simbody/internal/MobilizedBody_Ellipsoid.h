@@ -178,12 +178,23 @@ public:
     during construction or via setDefaultRadii(). **/
     const Vec3& getDefaultRadii() const;
 
-    /** Return true if this mobilizer was constructed as the mirror image of
-    the standard %Ellipsoid joint. **/
+    /** Make this mobilizer the mirror image of the standard %Ellipsoid joint,
+    reflected about the plane normal to \a mirrorAxis of the inboard frame F.
+    Calling this method invalidates the %MobilizedBody's topology, so the
+    containing System's realizeTopology() method must be called again. **/
+    Ellipsoid& setMirrorAxis(const CoordinateAxis& mirrorAxis);
+    /** Return true if this mobilizer is the mirror image of the standard
+    %Ellipsoid joint, as specified during construction or via
+    setMirrorAxis(). **/
     bool isMirrored() const;
     /** Get the axis of the inboard frame F that this mobilizer is mirrored
     about. This method is only valid if isMirrored() returns true. **/
     CoordinateAxis getMirrorAxis() const;
+    /** Remove any mirroring from this mobilizer, restoring the standard
+    %Ellipsoid joint, so that isMirrored() returns false afterwards. Calling
+    this method invalidates the %MobilizedBody's topology, so the containing
+    System's realizeTopology() method must be called again. **/
+    Ellipsoid& clearMirrorAxis();
 
     /** Provide a default orientation for this mobilizer if you don't want to
     start with the identity rotation (that is, alignment of the F and M 
