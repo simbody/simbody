@@ -1355,6 +1355,24 @@ void testUseWarmStart() {
             m_system.realize(s, Stage::Position);
         }
 
+        void assertConvergedForwardPath(const State& s) {
+            SimTK_ASSERT_ALWAYS(
+                m_cable.getSmoothness(s) < m_cable.getSmoothnessTolerance(),
+                "The pendulum cable path should converge.");
+            const Transform frame = m_cable.calcCurveSegmentFinalFrenetFrame(
+                    s, CableSpanObstacleIndex(0));
+            const Vec3 outgoingDirection = Vec3(0., 1.5, 0.) - frame.p();
+            SimTK_ASSERT_ALWAYS(dot(frame.x(), outgoingDirection) > 0.,
+                "The final wrap tangent should point toward the cable endpoint.");
+            const Transform initialFrame =
+                m_cable.calcCurveSegmentInitialFrenetFrame(
+                    s, CableSpanObstacleIndex(0));
+            const Vec3 incomingDirection =
+                initialFrame.p() - m_pendulum.getBodyTransform(s).p();
+            SimTK_ASSERT_ALWAYS(dot(initialFrame.x(), incomingDirection) > 0.,
+                "The initial wrap tangent should point away from the cable origin.");
+        }
+
     private:
         MultibodySystem m_system;
         SimbodyMatterSubsystem m_matter;
@@ -1375,13 +1393,23 @@ void testUseWarmStart() {
     // the same regardless of the default angle since the path solver should
     // always compute the path from the same initial point (i.e., the contact
     // hint).
-    auto calcInitialCurvePoint = [](bool useWarmStart, Real defaultAngle)
+    auto calcInitialCurvePoint = [](bool useWarmStart, Real defaultAngle,
+            Real hintZ = 0.)
             -> Vec3 {
-        PendulumSystem pendulumSystem(useWarmStart, defaultAngle);
+        PendulumSystem pendulumSystem(useWarmStart, defaultAngle,
+                Vec3(0.01, 0.2, hintZ));
         State s = pendulumSystem.getDefaultState();
         pendulumSystem.realizePosition(s);
+        pendulumSystem.assertConvergedForwardPath(s);
         pendulumSystem.setPendulumAngle(s, 2.0*SimTK::Pi);
         pendulumSystem.realizePosition(s);
+        pendulumSystem.assertConvergedForwardPath(s);
+        const Real radius = 0.1;
+        const Real expectedLength = 2. * std::sqrt(0.25 - radius * radius)
+                + 2. * radius * std::asin(radius / 0.5);
+        SimTK_ASSERT_ALWAYS(
+            std::abs(pendulumSystem.getCableLength(s) - expectedLength) < 1e-6,
+            "The pendulum cable should follow the short, forward-facing wrap.");
         return pendulumSystem.getInitialCurvePoint(s);
     };
 
@@ -1414,6 +1442,15 @@ void testUseWarmStart() {
         auto secondPoint = calcInitialCurvePoint(false, 1.95*SimTK::Pi);
         SimTK_ASSERT_ALWAYS((firstPoint - secondPoint).norm() < tol,
             "Warm start disabled: initial wrap points do not match.");
+    }
+
+    // Tiny out-of-plane perturbations must not send the warm-started path
+    // toward the unstable semicircular wrap with a reversed terminal tangent.
+    for (bool useWarmStart : {false, true}) {
+        const Vec3 point = calcInitialCurvePoint(useWarmStart, 1.95*SimTK::Pi,
+                1e-8);
+        SimTK_ASSERT_ALWAYS(std::abs(point[2]) < tol,
+            "A perturbed contact hint should converge to the planar wrap.");
     }
 
     // With no solver iterations, the initial point should be the nearest
