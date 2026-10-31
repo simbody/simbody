@@ -724,7 +724,7 @@ template<> struct XorOpType<FalseType,TrueType>  {typedef TrueType  Result;};
 template<> struct XorOpType<TrueType, FalseType> {typedef TrueType  Result;};
 template<> struct XorOpType<TrueType, TrueType>  {typedef FalseType Result;};
 
-/** Compile-time type test: is this one of the built-in integral types?. **/
+/** Compile-time type test: is this one of the built-in integral types? **/
 template <class T> struct IsIntegralType {
     /** This typedef is TrueType if the template type T is an integral type;
     otherwise it is FalseType. **/
@@ -755,7 +755,7 @@ SimTK_SPECIALIZE_INTEGRAL_TYPE(unsigned long);
 SimTK_SPECIALIZE_INTEGRAL_TYPE(long long);
 SimTK_SPECIALIZE_INTEGRAL_TYPE(unsigned long long);
 
-/** Compile-time type test: is this one of the built-in floating point types?. **/
+/** Compile-time type test: is this one of the built-in floating point types? **/
 template <class T> struct IsFloatingType {
     /** This typedef is TrueType if the template type T is a floating point type;
     otherwise it is FalseType. **/
@@ -773,7 +773,7 @@ types to specialize the IsFloatingType struct template for those types. **/
 SimTK_SPECIALIZE_FLOATING_TYPE(float); 
 SimTK_SPECIALIZE_FLOATING_TYPE(double); 
 
-/** Compile-time type test: is this the void type?. **/
+/** Compile-time type test: is this the void type? **/
 template <class T> struct IsVoidType {
     /** This typedef is TrueType if the template type T is "void";
     otherwise it is FalseType. **/

@@ -526,7 +526,7 @@ Impl*       impl; // This is the lone data member.
 /** Output a "pretty printed" textual representation of the given Xml::Document
 to an std::ostream, using the document's current indent string for
 formatting. @see Xml::Document::setIndentString()
-@relates Xml::Document **/
+@relates SimTK::Xml::Document **/
 // Do this inline so we don't have to pass the ostream through the API.
 inline std::ostream& operator<<(std::ostream& o, const Document& doc) {
     String output;
@@ -631,7 +631,7 @@ TiXmlAttribute* tiAttr; // this is the lone data member
 /** Output a textual representation of the given Xml::Attribute to an
 std::ostream. This will be in the form the Attribute would appear in an XML
 file; that is, name="value" or name='value' with entity substituion for odd
-characters, without surrounding blanks. @relates Xml::Attribute **/
+characters, without surrounding blanks. @relates SimTK::Xml::Attribute **/
 // Do this inline so we don't have to pass the ostream through the API.
 inline std::ostream& operator<<(std::ostream& o, const  Attribute& attr) {
     String output;
@@ -890,7 +890,7 @@ TiXmlNode*      tiNode; // the lone data member
 node (and all its contents) to an std::ostream. Pretty printing uses the
 indent string from the Node's containing Xml::Document, if this Node is in a
 document, otherwise the default of four spaces for each indent level is used.
-@relates Xml::Node **/
+@relates SimTK::Xml::Node **/
 // Do this inline so we don't have to pass the ostream through the API.
 inline std::ostream& operator<<(std::ostream& o, const Node& xmlNode) {
     String output;
