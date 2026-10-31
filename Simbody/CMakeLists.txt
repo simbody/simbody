@@ -117,10 +117,10 @@ set_target_properties(SimTKsimbody PROPERTIES
 
 # Create a relative path from lib dir to dir containing simbody-visualizer;
 # this is used in VisualizerProtocol.cpp (though, only useful on non-Windows).
-file(RELATIVE_PATH lib_dir_to_install_dir
-    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" "${CMAKE_INSTALL_PREFIX}")
-set(lib_dir_to_viz_dir
-    "${lib_dir_to_install_dir}${SIMBODY_VISUALIZER_REL_INSTALL_DIR}")
+# Use the FULL (absolute) dirs so this also works when the install dirs were
+# given as absolute paths.
+file(RELATIVE_PATH lib_dir_to_viz_dir
+    "${CMAKE_INSTALL_FULL_LIBDIR}" "${SIMBODY_VISUALIZER_INSTALL_DIR}")
 
 set(shared_lib "$<BOOL:${BUILD_SHARED_LIBS}>")
 set(static_lib "$<NOT:${shared_lib}>")
