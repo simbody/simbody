@@ -101,10 +101,10 @@ Dependencies
 Simbody depends on the following:
 
 * cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 3.21 or later.
-* compiler: [Visual Studio](http://www.visualstudio.com) 2015, 2017, or 2019 (Windows only), [gcc](http://gcc.gnu.org/) 4.9.0 or later (typically on Linux), [Clang](http://clang.llvm.org/) 3.4 or later, or Apple Clang (Xcode) 8 or later.
+* compiler with C++20 support: [Visual Studio](https://visualstudio.microsoft.com) 2019 version 16.11 or later; 2022 or later recommended (Windows only), [gcc](https://gcc.gnu.org/) 11 or later (typically on Linux), [Clang](https://clang.llvm.org/) 15 or later, or Apple Clang (Xcode) 15 or later.
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) 3.6.0 or later and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
-* API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.8.6 or later; we recommend at least 1.8.8.
+* API documentation (optional): [Doxygen](https://www.doxygen.nl/) 1.8.6 or later; we recommend at least 1.8.8.
 
 
 Using Simbody
@@ -141,9 +141,8 @@ Windows using Visual Studio
 
 All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies.
 
-1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version [2015](https://www.visualstudio.com/vs/older-downloads/), 2017, or 2019. The Community edition is free and sufficient.
-  * 2015: By default, Visual Studio 2015 does not provide C++ support; when installing, be sure to select *Custom*, and check *Programming Languages > Visual C++ > Common Tools for Visual C++ 2015*. If you have already installed Visual Studio without C++ support, simply re-run the installer and select *Modify*.
-  * 2017 and later: In the installer, select the *Desktop development with C++* workload.
+1. Download and install [Microsoft Visual Studio](https://visualstudio.microsoft.com), version 2022 or later (2019 version 16.11 is the minimum). The Community edition is free and sufficient.
+  * In the installer, select the *Desktop development with C++* workload.
   * Any other C++ code you plan to use with Simbody should be compiled with the
     same compiler as used for Simbody.
 2. Download and install [CMake](http://www.cmake.org/download), version 3.21 or higher.
@@ -162,7 +161,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
     2. Clone the github repository into `C:/Simbody-source`. Run the following in a Git Bash / Git Shell, or find a way to run the equivalent commands in a GUI client:
 
             $ git clone https://github.com/simbody/simbody.git C:/Simbody-source
-            $ git checkout Simbody-3.8
+            $ git checkout Simbody-3.9
 
     3. In the last line above, we assumed you want to build a released version.
        Feel free to change the version you want to build.
@@ -182,7 +181,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
 3. In the **Preset** dropdown, choose `Default MSVC build configuration`. Presets specify a set of standard build variables. The `Default MSVC build configuration` is the recommended build preset for most users. Preset build directories are located at `${simbody-source-dir}/out/build/${preset-name}`.
     - If desired, custom build settings can be applied after choosing a preset.
 4. Click the **Configure** button.
-    1. When prompted to select a *generator*, in the dropdown for *Optional platform for generator*, choose **x64** to build 64-bit binaries or leave blank to build 32-bit binaries. In older versions of CMake, select a generator ending with **Win64** to build 64-bit binaries (e.g., **Visual Studio 14 2015 Win64** or **Visual Studio 15 2017 Win64**), or select one *without* **Win64** to build 32-bit binaries (e.g., **Visual Studio 14 2015** or **Visual Studio 15 2017**).
+    1. When prompted to select a *generator*, in the dropdown for *Optional platform for generator*, choose **x64** to build 64-bit binaries or leave blank to build 32-bit binaries. For example, choose the generator **Visual Studio 17 2022** or **Visual Studio 18 2026** with platform **x64**.
     2. Click **Finish**.
 5. Where do you want to install Simbody on your computer? Set this by changing the `CMAKE_INSTALL_PREFIX` variable. We'll assume you set it to `C:/Simbody`. If you choose a different installation location, make sure to use *yours* where we use `C:/Simbody` below.
 6. Play around with the other build options:
@@ -296,7 +295,7 @@ There are two ways to get the source code.
     2. Clone the github repository into `~/simbody-source`.
 
             $ git clone https://github.com/simbody/simbody.git ~/simbody-source
-            $ git checkout Simbody-3.8
+            $ git checkout Simbody-3.9
 
     3. In the last line above, we assumed you want to build a released version.
        Feel free to change the version you want to build.

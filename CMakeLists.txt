@@ -103,28 +103,35 @@ mark_as_advanced(BUILD_USING_OTHER_LAPACK)
 
 #-------------------------------------------------------------------------------
 
-# Check compiler version
+# Check compiler version. Simbody requires C++20; these are the oldest
+# compilers known to handle the C++20 features Simbody uses (e.g., consteval,
+# std::bit_cast, and constrained member functions). See README.md.
 if(MSVC)
-    if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
-        message(FATAL_ERROR "\nMSVC does not support C++ 2011 features, for "
-                            "example 'constexpr'. Update to at least MSVC 2015 "
-                            "or use a MinGW version on Windows.\nLook at the "
-                            "README.md for more information.\nIf you have the"
-                            " 'Visual C++ Compiler Nov 2013 CTP (CTP_Nov2013)'"
-                            " comment this test and configure normally.")
+    if(MSVC_VERSION LESS 1929)
+        message(FATAL_ERROR "\nSimbody requires C++20 support from at least "
+                            "Visual Studio 2019 version 16.11 (MSVC 19.29); "
+                            "Visual Studio 2022 or later is recommended.\nLook "
+                            "at the README.md for more information.")
     endif()
     if(SIMBODY_COVERAGE)
         message(FATAL_ERROR "Code coverage is not possible with MSVC.")
     endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-    set(SIMBODY_REQUIRED_GCC_VERSION 4.9.0)
+    set(SIMBODY_REQUIRED_GCC_VERSION 11)
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS ${SIMBODY_REQUIRED_GCC_VERSION})
         message(FATAL_ERROR "GNU GCC/G++ version is too old to compile Simbody.\n"
                             "Simbody requires at least version : "
                             "${SIMBODY_REQUIRED_GCC_VERSION}")
     endif()
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
+    set(SIMBODY_REQUIRED_APPLECLANG_VERSION 15)
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS ${SIMBODY_REQUIRED_APPLECLANG_VERSION})
+        message(FATAL_ERROR "Apple Clang version is too old to compile Simbody.\n"
+                            "Simbody requires at least version : "
+                            "${SIMBODY_REQUIRED_APPLECLANG_VERSION} (Xcode 15)")
+    endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-    set(SIMBODY_REQUIRED_CLANG_VERSION 3.4)
+    set(SIMBODY_REQUIRED_CLANG_VERSION 15)
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS ${SIMBODY_REQUIRED_CLANG_VERSION})
         message(FATAL_ERROR "Clang version is too old to compile Simbody.\n"
                             "Simbody requires at least version : "
