@@ -141,7 +141,7 @@ target_compile_definitions(SimTKcommon
         SimTK_SimTKCOMMON_AUTHORS="${SimTKCOMMON_AUTHORS}")
 # -DSimTKcommon_EXPORTS defined automatically when Windows DLL build is being done.
 
-# Setting as PUBLIC means that the cxx_std_11 requirement will be propagated to dependents
+# Setting as PUBLIC means that the cxx_std_20 requirement will be propagated to dependents
 # (maintaining intent of previous behavior, but more universally applied and effective)
 # See https://cmake.org/cmake/help/latest/manual/cmake-compile-features.7.html#language-standard-flags
 # for info re: ordering of the compiler flag(s) for language standards and CMAKE_<LANG>_FLAGS
