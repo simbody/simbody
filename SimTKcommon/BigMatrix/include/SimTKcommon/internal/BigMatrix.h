@@ -40,10 +40,10 @@
  * <pre>
  *      ------------            ------------
  *     |  Handle<E> | -------> |            |
- *      ------------  <------- | Helper<S>  |
+ *      ------------  <------- | Helper\<S\>  |
  *                             |            |
  *                             |            |          --------~ ~--
- *                             |            | ------> | Data<S> ... |
+ *                             |            | ------> | Data\<S\> ... |
  *                              ------------           --------~ ~--
  * </pre>
  * The handle is the object actually appearing in SimTK API user programs.
@@ -118,7 +118,7 @@
  *
  * Here are the classes and short descriptions:
  * <pre>
- *   MatrixHelper<S>  interface to the opaque implementation, templatized
+ *   MatrixHelper\<S\>  interface to the opaque implementation, templatized
  *                      by scalar type only
  *   MatrixBase<CNT>  fully templatized client, contains a MatrixHelper
  * </pre>

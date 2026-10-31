@@ -52,7 +52,7 @@ class MatrixCommitment;
 
 //  ------------------------------ MatrixHelper --------------------------------
 
-/// Here we define class MatrixHelper<S>, the scalar-type templatized helper
+/// Here we define class MatrixHelper\<S\>, the scalar-type templatized helper
 /// class for the more general, composite numerical type-templatized 
 /// class MatrixBase<ELT>. The helper class is not intended to appear
 /// directly in user programs; it is client-side code used by the client-side
@@ -73,7 +73,7 @@ class MatrixCommitment;
 /// contain garbage initially.
 /// 
 /// Note that this is just a templatized handle class. The implementation
-/// is private, in the undefined class MatrixHelperRep<S>.
+/// is private, in the undefined class MatrixHelperRep\<S\>.
 
 //  ----------------------------------------------------------------------------
 template <class S> 

@@ -441,7 +441,12 @@ private:
     std::string  subtestName;
 };
 
+/// @}
+
 } // namespace SimTK
+
+/// @addtogroup RegressionTesting
+/// @{
 
 /// Invoke this macro before anything else in your test's main().
 #define SimTK_START_TEST(testName)      \

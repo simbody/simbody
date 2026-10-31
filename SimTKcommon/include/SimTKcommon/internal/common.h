@@ -865,7 +865,7 @@ inline std::string decodeXMLTypeName(const std::string& xmlTypeName)
 
 /** Obtain human-readable and XML-usable names for arbitrarily-complicated
 C++ types. Three methods `name()`, `namestr()`, and `xmlstr()` are provided
-giving respectively the compiler-dependent output from `typeid(T).%name()`, 
+giving respectively the compiler-dependent output from `typeid(T).name()`, 
 a canonicalized human-readable string, and the canonicalized string with
 XML-forbidden angle brackets replaced by curly braces. The default 
 implementation is usable for most types, but if you don't like the result you 
@@ -880,7 +880,7 @@ The output of `namestr()` is typically used for error messages and testing;
 `xmlstr()` is used for type tags in XML for use in deserializing. **/
 template <class T> struct NiceTypeName {
     /** The default implementation of name() here returns the raw result from
-    `typeid(T).%name()` which will be fast but may be a mangled name in some 
+    `typeid(T).name()` which will be fast but may be a mangled name in some 
     compilers (gcc and clang included). **/
     static const char* name() {return typeid(T).name();}
     /** The default implementation of namestr() attempts to return a nicely

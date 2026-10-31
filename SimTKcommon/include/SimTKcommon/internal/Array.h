@@ -3661,7 +3661,7 @@ std::istream& operator>>(std::istream& in, ArrayView_<T,X>& out)
 /**@name                    Comparison operators
 These operators permit lexicographical comparisons between two comparable
 Array_ objects, possibly with differing element and index types, and between 
-an Array_ object and a comparable std::vector object. @relates Array_ **/
+an Array_ object and a comparable std::vector object. **/
 /*@{*/
 
 /** Two Array_ objects are equal if and only if they are the same size() and 
