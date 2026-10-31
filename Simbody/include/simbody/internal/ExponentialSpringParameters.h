@@ -281,7 +281,7 @@ public:
     the instantaneous value of μₖ during the course of a simulation.
     @param muk Initial kinetic coefficient of friction (μₖ). It's default
     value is 0.5 (unitless). 0.0 ≤ μₖ ≤ μₛ. If μₖ > μₛ, μₛ is set to μₖ.*/
-    void setInitialMuKinetic(Real mus);
+    void setInitialMuKinetic(Real muk);
 
     /** Get the initial value of the kinetic coefficient of friction (μₖ).
     @returns Initial μₖ. */

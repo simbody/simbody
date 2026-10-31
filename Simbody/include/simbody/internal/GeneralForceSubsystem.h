@@ -138,7 +138,7 @@ public:
         correspondence, you must call methods of MobilizedBody; there is no
         hint here.  **/
     void calcForceContributionsSum(
-        const State& s, const Array_<ForceIndex>& forceIndexes, 
+        const State& state, const Array_<ForceIndex>& forceIndexes, 
         Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
 
     /** Every Subsystem is owned by a System; a GeneralForceSubsystem expects

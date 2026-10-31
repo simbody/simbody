@@ -40,7 +40,7 @@ This is a unique integer type for quickly identifying specific cables for fast
 lookup purposes. These begin at zero for each CableSubsystem. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CableSpanIndex);
 
-/** @enum SimTK::CableSpanAlgorithm
+/** @enum CableSpanAlgorithm
 These are the different solver options for computing the optimal path of a
 CableSpan. These options change the cost function and the computed descending
 direction for reaching the optimal path.
