@@ -1281,7 +1281,9 @@ are disabled. **/
 void testUseWarmStart() {
     class PendulumSystem {
     public:
-        PendulumSystem(bool useWarmStart, Real defaultAngle) :
+        PendulumSystem(bool useWarmStart, Real defaultAngle,
+                Vec3 contactPointHint = Vec3(0.01, 0.2, 0.),
+                int solverMaxIterations = 100) :
                 m_matter(m_system), m_cables(m_system) {
 
             // Pendulum bodies.
@@ -1321,13 +1323,13 @@ void testUseWarmStart() {
                 Transform(Rotation(), Vec3(0, -0.5, 0)),
                 std::shared_ptr<ContactGeometry>(
                     new ContactGeometry::Ellipsoid(Vec3(0.1, 0.1, 0.5))),
-                Vec3(0.01, 0.2, 0.));
+                contactPointHint);
 
             // Configure the solver.
             m_cable.setUseWarmStart(useWarmStart);
             m_cable.setCurveSegmentAccuracy(1e-12);
             m_cable.setSmoothnessTolerance(1e-8);
-            m_cable.setSolverMaxIterations(100);
+            m_cable.setSolverMaxIterations(solverMaxIterations);
             m_cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
         }
 
@@ -1412,6 +1414,22 @@ void testUseWarmStart() {
         auto secondPoint = calcInitialCurvePoint(false, 1.95*SimTK::Pi);
         SimTK_ASSERT_ALWAYS((firstPoint - secondPoint).norm() < tol,
             "Warm start disabled: initial wrap points do not match.");
+    }
+
+    // With no solver iterations, the initial point should be the nearest
+    // surface projection of the hint, not the geodesic integrator's projection.
+    const Vec3 hint(0.01, 0.2, 0.1);
+    const ContactGeometry::Ellipsoid ellipsoid(Vec3(0.1, 0.1, 0.5));
+    const Vec3 projectedHint_G =
+        ellipsoid.projectDownhillToNearestPoint(hint) + Vec3(0., 1., 0.);
+    for (bool useWarmStart : {false, true}) {
+        PendulumSystem pendulumSystem(useWarmStart, 0.05*SimTK::Pi, hint, 0);
+        State s = pendulumSystem.getDefaultState();
+        pendulumSystem.realizePosition(s);
+        SimTK_ASSERT_ALWAYS(
+            (pendulumSystem.getInitialCurvePoint(s) - projectedHint_G).norm() < tol,
+            "The initial wrap point should use the nearest surface "
+            "projection of the contact hint.");
     }
 }
 

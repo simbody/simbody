@@ -1172,7 +1172,7 @@ public:
         const Vec3 prevPoint_S = findPrevPathPoint_S(state);
         const Vec3 nextPoint_S = findNextPathPoint_S(state);
         shootNewGeodesic(
-            getContactPointHint(),     // = location
+            getDataInst(state).X_SP.p(), // = projected contact point
             nextPoint_S - prevPoint_S, // = tangent
             0.,                        // = arc length
             getDataInst(state).integratorInitialStepSize,
