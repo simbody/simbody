@@ -1281,7 +1281,9 @@ are disabled. **/
 void testUseWarmStart() {
     class PendulumSystem {
     public:
-        PendulumSystem(bool useWarmStart, Real defaultAngle) :
+        PendulumSystem(bool useWarmStart, Real defaultAngle,
+                Vec3 contactPointHint = Vec3(0.01, 0.2, 0.),
+                int solverMaxIterations = 100) :
                 m_matter(m_system), m_cables(m_system) {
 
             // Pendulum bodies.
@@ -1321,13 +1323,13 @@ void testUseWarmStart() {
                 Transform(Rotation(), Vec3(0, -0.5, 0)),
                 std::shared_ptr<ContactGeometry>(
                     new ContactGeometry::Ellipsoid(Vec3(0.1, 0.1, 0.5))),
-                Vec3(0.01, 0.2, 0.));
+                contactPointHint);
 
             // Configure the solver.
             m_cable.setUseWarmStart(useWarmStart);
             m_cable.setCurveSegmentAccuracy(1e-12);
             m_cable.setSmoothnessTolerance(1e-8);
-            m_cable.setSolverMaxIterations(100);
+            m_cable.setSolverMaxIterations(solverMaxIterations);
             m_cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
         }
 
@@ -1353,6 +1355,24 @@ void testUseWarmStart() {
             m_system.realize(s, Stage::Position);
         }
 
+        void assertConvergedForwardPath(const State& s) {
+            SimTK_ASSERT_ALWAYS(
+                m_cable.getSmoothness(s) < m_cable.getSmoothnessTolerance(),
+                "The pendulum cable path should converge.");
+            const Transform frame = m_cable.calcCurveSegmentFinalFrenetFrame(
+                    s, CableSpanObstacleIndex(0));
+            const Vec3 outgoingDirection = Vec3(0., 1.5, 0.) - frame.p();
+            SimTK_ASSERT_ALWAYS(dot(frame.x(), outgoingDirection) > 0.,
+                "The final wrap tangent should point toward the cable endpoint.");
+            const Transform initialFrame =
+                m_cable.calcCurveSegmentInitialFrenetFrame(
+                    s, CableSpanObstacleIndex(0));
+            const Vec3 incomingDirection =
+                initialFrame.p() - m_pendulum.getBodyTransform(s).p();
+            SimTK_ASSERT_ALWAYS(dot(initialFrame.x(), incomingDirection) > 0.,
+                "The initial wrap tangent should point away from the cable origin.");
+        }
+
     private:
         MultibodySystem m_system;
         SimbodyMatterSubsystem m_matter;
@@ -1373,13 +1393,23 @@ void testUseWarmStart() {
     // the same regardless of the default angle since the path solver should
     // always compute the path from the same initial point (i.e., the contact
     // hint).
-    auto calcInitialCurvePoint = [](bool useWarmStart, Real defaultAngle)
+    auto calcInitialCurvePoint = [](bool useWarmStart, Real defaultAngle,
+            Real hintZ = 0.)
             -> Vec3 {
-        PendulumSystem pendulumSystem(useWarmStart, defaultAngle);
+        PendulumSystem pendulumSystem(useWarmStart, defaultAngle,
+                Vec3(0.01, 0.2, hintZ));
         State s = pendulumSystem.getDefaultState();
         pendulumSystem.realizePosition(s);
+        pendulumSystem.assertConvergedForwardPath(s);
         pendulumSystem.setPendulumAngle(s, 2.0*SimTK::Pi);
         pendulumSystem.realizePosition(s);
+        pendulumSystem.assertConvergedForwardPath(s);
+        const Real radius = 0.1;
+        const Real expectedLength = 2. * std::sqrt(0.25 - radius * radius)
+                + 2. * radius * std::asin(radius / 0.5);
+        SimTK_ASSERT_ALWAYS(
+            std::abs(pendulumSystem.getCableLength(s) - expectedLength) < 1e-6,
+            "The pendulum cable should follow the short, forward-facing wrap.");
         return pendulumSystem.getInitialCurvePoint(s);
     };
 
@@ -1413,6 +1443,80 @@ void testUseWarmStart() {
         SimTK_ASSERT_ALWAYS((firstPoint - secondPoint).norm() < tol,
             "Warm start disabled: initial wrap points do not match.");
     }
+
+    // Tiny out-of-plane perturbations must not send the warm-started path
+    // toward the unstable semicircular wrap with a reversed terminal tangent.
+    for (bool useWarmStart : {false, true}) {
+        const Vec3 point = calcInitialCurvePoint(useWarmStart, 1.95*SimTK::Pi,
+                1e-8);
+        SimTK_ASSERT_ALWAYS(std::abs(point[2]) < tol,
+            "A perturbed contact hint should converge to the planar wrap.");
+    }
+
+    // With no solver iterations, the initial point should be the nearest
+    // surface projection of the hint, not the geodesic integrator's projection.
+    const Vec3 hint(0.01, 0.2, 0.1);
+    const ContactGeometry::Ellipsoid ellipsoid(Vec3(0.1, 0.1, 0.5));
+    const Vec3 projectedHint_G =
+        ellipsoid.projectDownhillToNearestPoint(hint) + Vec3(0., 1., 0.);
+    for (bool useWarmStart : {false, true}) {
+        PendulumSystem pendulumSystem(useWarmStart, 0.05*SimTK::Pi, hint, 0);
+        State s = pendulumSystem.getDefaultState();
+        pendulumSystem.realizePosition(s);
+        SimTK_ASSERT_ALWAYS(
+            (pendulumSystem.getInitialCurvePoint(s) - projectedHint_G).norm() < tol,
+            "The initial wrap point should use the nearest surface "
+            "projection of the contact hint.");
+    }
+}
+
+void testWarmStartNormalRestartDirection()
+{
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+    Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+    MobilizedBody::Free termination(
+        matter.Ground(), Transform(), body, Transform());
+    termination.setDefaultTranslation(Vec3(1., -2., 0.));
+    CableSpan cable(cables, matter.Ground(), Vec3(-2., 1., 0.),
+            termination, Vec3(0.));
+    cable.addObstacle(matter.Ground(), Transform(),
+        std::shared_ptr<ContactGeometry>(
+            new ContactGeometry::Ellipsoid(Vec3(1., 1., 2.))),
+        Vec3(0., 1., 0.));
+    cable.setCurveSegmentAccuracy(1e-12);
+    cable.setSmoothnessTolerance(1e-8);
+    cable.setSolverMaxIterations(100);
+    cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
+
+    system.realizeTopology();
+    State s = system.getDefaultState();
+    system.realize(s, Stage::Position);
+    const CableSpanObstacleIndex obsIx(0);
+    SimTK_ASSERT_ALWAYS(
+        (cable.calcCurveSegmentInitialFrenetFrame(s, obsIx).p()
+            - Vec3(0., 1., 0.)).norm() < 1e-6,
+        "The initial cable should start its wrap at the top of the ellipsoid.");
+    SimTK_ASSERT_ALWAYS(
+        (cable.calcCurveSegmentFinalFrenetFrame(s, obsIx).p()
+            - Vec3(1., 0., 0.)).norm() < 1e-6,
+        "The initial cable should end its wrap at the side of the ellipsoid.");
+
+    // Reverse the outgoing tangent while making next-minus-prev parallel
+    // to the surface normal at the retained initial wrap point.
+    cable.setSolverMaxIterations(0);
+    const Transform initialFrame =
+        cable.calcCurveSegmentInitialFrenetFrame(s, obsIx);
+    termination.setQToFitTranslation(s,
+        Vec3(-2., 1., 0.) + 2. * initialFrame.y());
+    system.realize(s, Stage::Position);
+    SimTK_ASSERT_ALWAYS(std::isfinite(cable.calcLength(s)),
+        "A normal restart direction must not produce an invalid cable path.");
+    const Transform restartedFrame =
+        cable.calcCurveSegmentInitialFrenetFrame(s, obsIx);
+    SimTK_ASSERT_ALWAYS(dot(restartedFrame.x(), Vec3(1., 0., 0.)) > 0.99,
+        "A normal restart direction should retain the finite initial tangent.");
 }
 
 int main()
@@ -1425,4 +1529,5 @@ int main()
     testSolverOptimum();
     testRobustInitialPath();
     testUseWarmStart();
+    testWarmStartNormalRestartDirection();
 }

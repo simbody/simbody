@@ -902,6 +902,8 @@ public:
 
     bool getUseWarmStart() const;
 
+    bool usesMinimumLengthAlgorithm() const;
+
     //--------------------------------------------------------------------------
     // Utility functions.
     //--------------------------------------------------------------------------
@@ -1172,7 +1174,7 @@ public:
         const Vec3 prevPoint_S = findPrevPathPoint_S(state);
         const Vec3 nextPoint_S = findNextPathPoint_S(state);
         shootNewGeodesic(
-            getContactPointHint(),     // = location
+            getDataInst(state).X_SP.p(), // = projected contact point
             nextPoint_S - prevPoint_S, // = tangent
             0.,                        // = arc length
             getDataInst(state).integratorInitialStepSize,
@@ -1331,6 +1333,38 @@ public:
             // If not in contact with obstacle: detect touching down.
             calcCurveTouchdownIfNeeded(state);
             break;
+        }
+
+        // Antiparallel tangents satisfy the normal/binormal constraints but
+        // do not form a smooth cable path. Restart a backward-facing wrap at
+        // its current initial point before the optimizer tests convergence.
+        // Preserving that point retains the side selected by the warm start.
+        const CurveSegmentData::Instance& dataInst = getDataInst(state);
+        if (usesMinimumLengthAlgorithm() &&
+                dataInst.wrappingStatus ==
+                    ObstacleWrappingStatus::InContactWithSurface &&
+                dataInst.arcLength > 0.) {
+            const Vec3 prevPoint_S = findPrevPathPoint_S(state);
+            const Vec3 nextPoint_S = findNextPathPoint_S(state);
+            if (dot(getTangent(dataInst.X_SP),
+                        dataInst.X_SP.p() - prevPoint_S) < 0. ||
+                    dot(getTangent(dataInst.X_SQ),
+                        nextPoint_S - dataInst.X_SQ.p()) < 0.) {
+                const Vec3 restartDirection = nextPoint_S - prevPoint_S;
+                const UnitVec3& normal = getNormal(dataInst.X_SP);
+                Vec3 restartTangent =
+                    restartDirection - dot(restartDirection, normal) * normal;
+                // Nearly normal directions cannot define a reliable tangent.
+                if (restartTangent.norm() <= SqrtEps * restartDirection.norm()) {
+                    restartTangent = getTangent(dataInst.X_SP).asVec3();
+                }
+                shootNewGeodesic(
+                    dataInst.X_SP.p(),
+                    restartTangent,
+                    0.,
+                    dataInst.integratorInitialStepSize,
+                    updDataInst(state));
+            }
         }
 
         markDataInstRealized(state);
@@ -2587,6 +2621,12 @@ const IntegratorTolerances& CurveSegment::getIntegratorTolerances() const
 bool CurveSegment::getUseWarmStart() const
 {
     return getCable().getParameters().useWarmStart;
+}
+
+bool CurveSegment::usesMinimumLengthAlgorithm() const
+{
+    return getCable().getParameters().algorithm ==
+        CableSpanAlgorithm::MinimumLength;
 }
 
 ObstacleIndex CurveSegment::findPrevObstacleInContactWithCable(
