@@ -1350,9 +1350,17 @@ public:
                         dataInst.X_SP.p() - prevPoint_S) < 0. ||
                     dot(getTangent(dataInst.X_SQ),
                         nextPoint_S - dataInst.X_SQ.p()) < 0.) {
+                const Vec3 restartDirection = nextPoint_S - prevPoint_S;
+                const UnitVec3& normal = getNormal(dataInst.X_SP);
+                Vec3 restartTangent =
+                    restartDirection - dot(restartDirection, normal) * normal;
+                // Nearly normal directions cannot define a reliable tangent.
+                if (restartTangent.norm() <= SqrtEps * restartDirection.norm()) {
+                    restartTangent = getTangent(dataInst.X_SP).asVec3();
+                }
                 shootNewGeodesic(
                     dataInst.X_SP.p(),
-                    nextPoint_S - prevPoint_S,
+                    restartTangent,
                     0.,
                     dataInst.integratorInitialStepSize,
                     updDataInst(state));

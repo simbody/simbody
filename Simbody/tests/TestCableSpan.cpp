@@ -1470,6 +1470,55 @@ void testUseWarmStart() {
     }
 }
 
+void testWarmStartNormalRestartDirection()
+{
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+    Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+    MobilizedBody::Free termination(
+        matter.Ground(), Transform(), body, Transform());
+    termination.setDefaultTranslation(Vec3(1., -2., 0.));
+    CableSpan cable(cables, matter.Ground(), Vec3(-2., 1., 0.),
+            termination, Vec3(0.));
+    cable.addObstacle(matter.Ground(), Transform(),
+        std::shared_ptr<ContactGeometry>(
+            new ContactGeometry::Ellipsoid(Vec3(1., 1., 2.))),
+        Vec3(0., 1., 0.));
+    cable.setCurveSegmentAccuracy(1e-12);
+    cable.setSmoothnessTolerance(1e-8);
+    cable.setSolverMaxIterations(100);
+    cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
+
+    system.realizeTopology();
+    State s = system.getDefaultState();
+    system.realize(s, Stage::Position);
+    const CableSpanObstacleIndex obsIx(0);
+    SimTK_ASSERT_ALWAYS(
+        (cable.calcCurveSegmentInitialFrenetFrame(s, obsIx).p()
+            - Vec3(0., 1., 0.)).norm() < 1e-6,
+        "The initial cable should start its wrap at the top of the ellipsoid.");
+    SimTK_ASSERT_ALWAYS(
+        (cable.calcCurveSegmentFinalFrenetFrame(s, obsIx).p()
+            - Vec3(1., 0., 0.)).norm() < 1e-6,
+        "The initial cable should end its wrap at the side of the ellipsoid.");
+
+    // Reverse the outgoing tangent while making next-minus-prev parallel
+    // to the surface normal at the retained initial wrap point.
+    cable.setSolverMaxIterations(0);
+    const Transform initialFrame =
+        cable.calcCurveSegmentInitialFrenetFrame(s, obsIx);
+    termination.setQToFitTranslation(s,
+        Vec3(-2., 1., 0.) + 2. * initialFrame.y());
+    system.realize(s, Stage::Position);
+    SimTK_ASSERT_ALWAYS(std::isfinite(cable.calcLength(s)),
+        "A normal restart direction must not produce an invalid cable path.");
+    const Transform restartedFrame =
+        cable.calcCurveSegmentInitialFrenetFrame(s, obsIx);
+    SimTK_ASSERT_ALWAYS(dot(restartedFrame.x(), Vec3(1., 0., 0.)) > 0.99,
+        "A normal restart direction should retain the finite initial tangent.");
+}
+
 int main()
 {
     testSimpleCable();
@@ -1480,4 +1529,5 @@ int main()
     testSolverOptimum();
     testRobustInitialPath();
     testUseWarmStart();
+    testWarmStartNormalRestartDirection();
 }
