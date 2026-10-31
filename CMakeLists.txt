@@ -419,8 +419,24 @@ else()
     # global build folder
     set(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/simbody)
 endif()
-set(SIMBODY_VISUALIZER_INSTALL_DIR
-    ${CMAKE_INSTALL_PREFIX}/${SIMBODY_VISUALIZER_REL_INSTALL_DIR})
+if(IS_ABSOLUTE ${SIMBODY_INCLUDE_INSTALL_DIR})
+    set(SIMBODY_PKGCONFIG_INCLUDEDIR ${SIMBODY_INCLUDE_INSTALL_DIR})
+else()
+    set(SIMBODY_PKGCONFIG_INCLUDEDIR \${prefix}/${SIMBODY_INCLUDE_INSTALL_DIR})
+endif()
+if(IS_ABSOLUTE ${CMAKE_INSTALL_LIBDIR})
+    set(SIMBODY_PKGCONFIG_LIBDIR ${CMAKE_INSTALL_LIBDIR})
+else()
+    set(SIMBODY_PKGCONFIG_LIBDIR \${prefix}/${CMAKE_INSTALL_LIBDIR})
+endif()
+# The install dirs may be absolute (e.g., Nix passes absolute
+# CMAKE_INSTALL_LIBEXECDIR); don't prepend the prefix in that case.
+if(IS_ABSOLUTE "${SIMBODY_VISUALIZER_REL_INSTALL_DIR}")
+    set(SIMBODY_VISUALIZER_INSTALL_DIR "${SIMBODY_VISUALIZER_REL_INSTALL_DIR}")
+else()
+    set(SIMBODY_VISUALIZER_INSTALL_DIR
+        "${CMAKE_INSTALL_PREFIX}/${SIMBODY_VISUALIZER_REL_INSTALL_DIR}")
+endif()
 
 add_subdirectory( Platform )
 # PLATFORM_INCLUDE_DIRECTORIES now set; 'blas' and 'lapack' targets defined on Windows
@@ -561,7 +577,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigForInstall.cmake
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
-    VERSION "${SIMBODY_VERSION}"
+    VERSION "${PROJECT_VERSION}"
     COMPATIBILITY SameMajorVersion)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
