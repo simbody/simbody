@@ -80,7 +80,7 @@ namespace SimTK {
     // MATTER SUBSYSTEM-GLOBAL INDEX TYPES
 
 
-/** @class SimTK::MobilizedBodyIndex    
+/** @class SimTK::MobilizedBodyIndex
 This is for arrays indexed by mobilized body number within a subsystem
 (typically the SimbodyMatterSubsystem).\ It is assigned when a MobilizedBody is
 added to a subsystem.\ You can abbreviate this as MobodIndex if you prefer.
@@ -100,7 +100,7 @@ its index is always zero.
 @ingroup UniqueIndexTypes **/
 static const MobilizedBodyIndex GroundIndex(0);
 
-/** @class SimTK::ConstraintIndex    
+/** @class SimTK::ConstraintIndex
 This is for arrays indexed by constraint number within a subsystem (typically
 the SimbodyMatterSubsystem).\ It is assigned when a Constraint is added to the
 subsystem.
@@ -156,14 +156,14 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(PresForcePoolIndex);
 
     // PER-MOBILIZER INDEX TYPES
 
-/** @class SimTK::MobilizerQIndex 
+/** @class SimTK::MobilizerQIndex
 The Mobilizer associated with each MobilizedBody, once modeled, has a specific number
 of generalized coordinates \e q (0-7) and generalized speeds (mobilities) 
 \e u (0-6).\ This is the index type for the small array of Mobilizer-local \e q's. 
 @see MobilizerUIndex, QIndex 
 @ingroup UniqueIndexTypes **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizerQIndex);
-/** @class SimTK::MobilizerUIndex 
+/** @class SimTK::MobilizerUIndex
 The Mobilizer associated with each MobilizedBody, once modeled, has a specific number
 of generalized coordinates \e q (0-7) and generalized speeds (mobilities) 
 \e u (0-6).\ This is the index type for the small array of Mobilizer-local \e u's. 

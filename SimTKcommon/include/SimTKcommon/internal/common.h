@@ -724,7 +724,7 @@ template<> struct XorOpType<FalseType,TrueType>  {typedef TrueType  Result;};
 template<> struct XorOpType<TrueType, FalseType> {typedef TrueType  Result;};
 template<> struct XorOpType<TrueType, TrueType>  {typedef FalseType Result;};
 
-/** Compile-time type test: is this one of the built-in integral types?. **/
+/** Compile-time type test: is this one of the built-in integral types? **/
 template <class T> struct IsIntegralType {
     /** This typedef is TrueType if the template type T is an integral type;
     otherwise it is FalseType. **/
@@ -755,7 +755,7 @@ SimTK_SPECIALIZE_INTEGRAL_TYPE(unsigned long);
 SimTK_SPECIALIZE_INTEGRAL_TYPE(long long);
 SimTK_SPECIALIZE_INTEGRAL_TYPE(unsigned long long);
 
-/** Compile-time type test: is this one of the built-in floating point types?. **/
+/** Compile-time type test: is this one of the built-in floating point types? **/
 template <class T> struct IsFloatingType {
     /** This typedef is TrueType if the template type T is a floating point type;
     otherwise it is FalseType. **/
@@ -773,7 +773,7 @@ types to specialize the IsFloatingType struct template for those types. **/
 SimTK_SPECIALIZE_FLOATING_TYPE(float); 
 SimTK_SPECIALIZE_FLOATING_TYPE(double); 
 
-/** Compile-time type test: is this the void type?. **/
+/** Compile-time type test: is this the void type? **/
 template <class T> struct IsVoidType {
     /** This typedef is TrueType if the template type T is "void";
     otherwise it is FalseType. **/
@@ -865,7 +865,7 @@ inline std::string decodeXMLTypeName(const std::string& xmlTypeName)
 
 /** Obtain human-readable and XML-usable names for arbitrarily-complicated
 C++ types. Three methods `name()`, `namestr()`, and `xmlstr()` are provided
-giving respectively the compiler-dependent output from `typeid(T).%name()`, 
+giving respectively the compiler-dependent output from `typeid(T).name()`, 
 a canonicalized human-readable string, and the canonicalized string with
 XML-forbidden angle brackets replaced by curly braces. The default 
 implementation is usable for most types, but if you don't like the result you 
@@ -880,7 +880,7 @@ The output of `namestr()` is typically used for error messages and testing;
 `xmlstr()` is used for type tags in XML for use in deserializing. **/
 template <class T> struct NiceTypeName {
     /** The default implementation of name() here returns the raw result from
-    `typeid(T).%name()` which will be fast but may be a mangled name in some 
+    `typeid(T).name()` which will be fast but may be a mangled name in some 
     compilers (gcc and clang included). **/
     static const char* name() {return typeid(T).name();}
     /** The default implementation of namestr() attempts to return a nicely

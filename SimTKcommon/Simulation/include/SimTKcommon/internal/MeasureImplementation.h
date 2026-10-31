@@ -672,6 +672,7 @@ inline Measure_< Vector >::One::One(Subsystem& sub, int size)
 template <class T>
 class Measure_<T>::Time::Implementation {};
 
+/** @cond **/ // Hide from Doxygen.
 template <>
 class Measure_<Real>::Time::Implementation 
 :   public Measure_<Real>::Implementation 
@@ -700,6 +701,7 @@ public:
     int getNumTimeDerivativesVirtual() const override 
     {   return std::numeric_limits<int>::max(); }
 };
+/** @endcond **/
 
 
 
