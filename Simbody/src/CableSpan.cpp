@@ -3375,7 +3375,7 @@ void calcCurveCorrectionStepSize(
         for (int i = 0; i < w.ncol(); ++i) {
             const Real wAbsMax = max(w.col(i).abs());
             maxAngularDisplacement =
-                std::max(maxAngularDisplacement, wAbsMax * c(i));
+                std::max(maxAngularDisplacement, wAbsMax * std::abs(c(i)));
         }
         return maxAngularDisplacement;
     };
