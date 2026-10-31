@@ -429,8 +429,14 @@ if(IS_ABSOLUTE ${CMAKE_INSTALL_LIBDIR})
 else()
     set(SIMBODY_PKGCONFIG_LIBDIR \${prefix}/${CMAKE_INSTALL_LIBDIR})
 endif()
-set(SIMBODY_VISUALIZER_INSTALL_DIR
-    ${CMAKE_INSTALL_PREFIX}/${SIMBODY_VISUALIZER_REL_INSTALL_DIR})
+# The install dirs may be absolute (e.g., Nix passes absolute
+# CMAKE_INSTALL_LIBEXECDIR); don't prepend the prefix in that case.
+if(IS_ABSOLUTE "${SIMBODY_VISUALIZER_REL_INSTALL_DIR}")
+    set(SIMBODY_VISUALIZER_INSTALL_DIR "${SIMBODY_VISUALIZER_REL_INSTALL_DIR}")
+else()
+    set(SIMBODY_VISUALIZER_INSTALL_DIR
+        "${CMAKE_INSTALL_PREFIX}/${SIMBODY_VISUALIZER_REL_INSTALL_DIR}")
+endif()
 
 add_subdirectory( Platform )
 # PLATFORM_INCLUDE_DIRECTORIES now set; 'blas' and 'lapack' targets defined on Windows

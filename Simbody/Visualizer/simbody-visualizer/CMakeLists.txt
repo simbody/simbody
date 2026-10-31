@@ -94,17 +94,16 @@ else()
         # @executable_path only makes sense on OSX, so if we use RPATH on
         # Linux we'll have to revisit.
 
-        # vis_dir_to_install_dir is most likely "../"
+        # vis_dir_to_lib_dir is most likely "../../lib" (Linux) or "../../../../../lib" (macOS app bundle)
         if (APPLE)
             set(vis_install_dir
                     "${SIMBODY_VISUALIZER_INSTALL_DIR}/simbody-visualizer.app/Contents/MacOS")
         else()
             set(vis_install_dir "${SIMBODY_VISUALIZER_INSTALL_DIR}")
         endif()
-        file(RELATIVE_PATH vis_dir_to_install_dir
+        file(RELATIVE_PATH vis_dir_to_lib_dir
                 "${vis_install_dir}"
-                "${CMAKE_INSTALL_PREFIX}")
-        set(vis_dir_to_lib_dir "${vis_dir_to_install_dir}${CMAKE_INSTALL_LIBDIR}")
+                "${CMAKE_INSTALL_FULL_LIBDIR}")
         if(APPLE)
             set_target_properties(simbody-visualizer PROPERTIES
                 INSTALL_RPATH "@executable_path/${vis_dir_to_lib_dir}"
