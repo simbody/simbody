@@ -1402,11 +1402,11 @@ public:
     // too far around the surface.
     //
     // A fold of a curve with nonzero length is undone by trimming the
-    // geodesic to the part between the point where it heads most directly
-    // away from the previous path point, and the point where it heads most
-    // directly toward the next path point. This keeps the side of the
-    // obstacle that the curve wraps over, as well as the part of the wrap that
-    // is still useful.
+    // geodesic at each folded end, to the nearest part of the curve that
+    // heads away from the previous path point (at the initial end), or
+    // toward the next path point (at the final end). This keeps the side of
+    // the obstacle that the curve wraps over, as well as the part of the wrap
+    // that is still useful, including any full windings.
     //
     // If nothing useful is left after trimming, or the curve has zero length,
     // the curve is replaced by a zero-length geodesic whose tangent is aligned
@@ -1447,26 +1447,36 @@ public:
                 "samples");
             const int numSamples = static_cast<int>(samples.size());
 
-            // Find the sample, at or after sample begin, at which the curve
-            // tangent is best aligned with the given direction. Returns the
-            // sample index and the cosine of the angle between the two.
-            auto findBestAlignedSample =
-                [&](int begin,
-                    const std::function<Vec3(const Vec3& point_S)>& direction)
+            // Walk the samples from sample begin towards sample end
+            // (inclusive), and find the first run of consecutive samples at
+            // which the curve tangent points forward, i.e. makes an acute
+            // angle with the given direction. Returns the index of the sample
+            // in that run at which the tangent is best aligned with the
+            // direction, or -1 if there is no such run.
+            //
+            // Taking the run nearest to the folded end of the curve, rather
+            // than the best aligned sample of the whole curve, only removes
+            // the folded part, and keeps any full windings of the curve
+            // around the obstacle (see the CableSpan class documentation).
+            auto findNearestForwardSample =
+                [&](int begin, int end, const auto& calcDirection) -> int
             {
-                int bestIx     = begin;
-                Real bestAlign = -Infinity;
-                for (int i = begin; i < numSamples; ++i) {
-                    const Vec3 d    = direction(samples[i].point);
+                const int step = end >= begin ? 1 : -1;
+                int bestIx     = -1;
+                Real bestAlign = 0.;
+                for (int i = begin; i != end + step; i += step) {
+                    const Vec3 d    = calcDirection(samples[i].point);
                     const Real norm = d.norm();
                     const Real align =
                         norm > 0. ? dot(samples[i].tangent, d) / norm : -1.;
                     if (align > bestAlign) {
                         bestAlign = align;
                         bestIx    = i;
+                    } else if (bestIx >= 0 && align <= 0.) {
+                        break; // End of the first forward-facing run.
                     }
                 }
-                return std::make_pair(bestIx, bestAlign);
+                return bestIx;
             };
 
             // The new start and end of the curve.
@@ -1474,31 +1484,30 @@ public:
             int last           = numSamples - 1;
             bool foundForwards = true;
             if (foldsAtP) {
-                const auto best = findBestAlignedSample(
+                first = findNearestForwardSample(
                     0,
+                    numSamples - 1,
                     [&](const Vec3& point_S) { return point_S - prevPoint_S; });
-                first         = best.first;
-                foundForwards = best.second > 0.;
+                foundForwards = first >= 0;
             }
             if (foundForwards) {
                 restartPoint_S = samples[first].point;
                 if (foldsAtQ) {
-                    const auto best = findBestAlignedSample(
+                    last = findNearestForwardSample(
+                        numSamples - 1,
                         first,
                         [&](const Vec3& point_S)
                         { return nextPoint_S - point_S; });
-                    last          = best.first;
-                    foundForwards = best.second > 0.;
+                    foundForwards = last >= 0;
                 }
             }
 
-            const Real trimmedLength =
-                samples[last].arcLength - samples[first].arcLength;
-            if (foundForwards && trimmedLength > 0.) {
+            if (foundForwards &&
+                samples[last].arcLength > samples[first].arcLength) {
                 shootNewGeodesic(
                     samples[first].point,
                     samples[first].tangent,
-                    trimmedLength,
+                    samples[last].arcLength - samples[first].arcLength,
                     dataInst.integratorInitialStepSize,
                     updDataInst(state));
                 return;

@@ -1667,6 +1667,80 @@ void testFoldRecoveryAfterLargeMotion()
     std::cout << "PASSED TEST: testFoldRecoveryAfterLargeMotion" << std::endl;
 }
 
+/** CableSpan fold recovery test for a cable that winds around an obstacle
+multiple times.
+
+A cable is wound more than once around a cylinder, by moving its termination
+point around the cylinder in small steps. Then the termination point is moved
+back far in one step, and the path is recomputed from the previous solution
+(warm start). The previous geodesic now wraps too far around the cylinder, and
+folds back at its final contact point. Undoing that fold must only unwind the
+folded part, and keep the remaining full windings.
+
+All points lie in the plane z=0, and the termination point stays at the same
+distance from the cylinder axis, so the cable length changes by the angle that
+the termination point moves (for a unit radius). **/
+void testFoldRecoveryKeepsWindings()
+{
+    const Vec3 origin(1., -2., 0.);
+    const Real terminationRadius = 2.;
+    auto calcTermination = [&](Real angle) -> Vec3
+    {
+        return terminationRadius * Vec3(std::cos(angle), std::sin(angle), 0.);
+    };
+
+    for (CableSpanAlgorithm algorithm :
+            {CableSpanAlgorithm::MinimumLength,
+             CableSpanAlgorithm::Scholz2015}) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        CableSubsystem cables(system);
+        Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+        MobilizedBody::Translation termination(
+            matter.Ground(), Transform(), body, Transform());
+        Real angle = 0.4 * Pi;
+        termination.setDefaultQ(calcTermination(angle));
+
+        CableSpan cable(cables, matter.Ground(), origin, termination, Vec3(0.));
+        cable.addObstacle(matter.Ground(), Transform(),
+            std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
+            Vec3(1., 0., 0.));
+        cable.setCurveSegmentAccuracy(1e-12);
+        cable.setSmoothnessTolerance(1e-8);
+        cable.setSolverMaxIterations(100);
+        cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
+
+        system.realizeTopology();
+        State s = system.getDefaultState();
+        system.realize(s, Stage::Position);
+
+        // Wind the cable around the cylinder, counterclockwise, until it
+        // wraps about 3.2 pi.
+        while (angle < 3.5 * Pi) {
+            angle += 5. / 180. * Pi;
+            termination.setQ(s, calcTermination(angle));
+            system.realize(s, Stage::Position);
+            SimTK_ASSERT_ALWAYS(
+                cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+                "The cable should converge while winding around the cylinder.");
+        }
+        const Real woundLength = cable.calcLength(s);
+
+        // Unwind by 0.9 pi in one step. More than two full windings remain.
+        const Real unwindAngle = 0.9 * Pi;
+        cable.setAlgorithm(algorithm);
+        termination.setQ(s, calcTermination(angle - unwindAngle));
+        system.realize(s, Stage::Position);
+        SimTK_ASSERT_ALWAYS(
+            cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+            "The unwound cable path should converge.");
+        SimTK_ASSERT_ALWAYS(
+            std::abs(cable.calcLength(s) - (woundLength - unwindAngle)) < 1e-6,
+            "Undoing the fold should keep the remaining windings.");
+    }
+    std::cout << "PASSED TEST: testFoldRecoveryKeepsWindings" << std::endl;
+}
+
 int main()
 {
     testSimpleCable();
@@ -1679,4 +1753,5 @@ int main()
     testUseWarmStart();
     testWarmStartNormalRestartDirection();
     testFoldRecoveryAfterLargeMotion();
+    testFoldRecoveryKeepsWindings();
 }
