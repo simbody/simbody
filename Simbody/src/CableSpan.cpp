@@ -964,12 +964,24 @@ public:
     // coordinates.
     Vec3 findNextPathPoint_G(const State& state) const;
 
+    // Find the path point before this segment, in surface frame coordinates,
+    // without checking that it lies outside the surface.
+    Vec3 findPrevPathPointUnchecked_S(const State& state) const
+    {
+        return calcSurfaceFrameInGround(state).shiftBaseStationToFrame(
+            findPrevPathPoint_G(state));
+    }
+    // Find the path point after this segment, in surface frame coordinates,
+    // without checking that it lies outside the surface.
+    Vec3 findNextPathPointUnchecked_S(const State& state) const
+    {
+        return calcSurfaceFrameInGround(state).shiftBaseStationToFrame(
+            findNextPathPoint_G(state));
+    }
     // Find the path point before this segment, in surface frame coordinates.
     Vec3 findPrevPathPoint_S(const State& state) const
     {
-        const Vec3 prevPoint_S =
-            calcSurfaceFrameInGround(state).shiftBaseStationToFrame(
-                findPrevPathPoint_G(state));
+        const Vec3 prevPoint_S = findPrevPathPointUnchecked_S(state);
         SimTK_ERRCHK_ALWAYS(
             !isPointBelowSurface(getContactGeometry(), prevPoint_S),
             "CurveSegment::Impl::assertSurfaceBounds",
@@ -979,9 +991,7 @@ public:
     // Find the path point after this segment, in surface frame coordinates.
     Vec3 findNextPathPoint_S(const State& state) const
     {
-        const Vec3 nextPoint_S =
-            calcSurfaceFrameInGround(state).shiftBaseStationToFrame(
-                findNextPathPoint_G(state));
+        const Vec3 nextPoint_S = findNextPathPointUnchecked_S(state);
         SimTK_ERRCHK_ALWAYS(
             !isPointBelowSurface(getContactGeometry(), nextPoint_S),
             "CurveSegment::Impl::assertSurfaceBounds",
@@ -1423,8 +1433,17 @@ public:
             return;
         }
 
-        const Vec3 prevPoint_S = findPrevPathPoint_S(state);
-        const Vec3 nextPoint_S = findNextPathPoint_S(state);
+        // The path point before or after this curve can be the contact point
+        // of a neighboring obstacle, which may temporarily lie inside this
+        // surface while the solver iterates. Leave the curve as is then.
+        // (For a zero-length curve the liftoff check reports such a point as
+        // an error.)
+        const Vec3 prevPoint_S = findPrevPathPointUnchecked_S(state);
+        const Vec3 nextPoint_S = findNextPathPointUnchecked_S(state);
+        if (isPointBelowSurface(getContactGeometry(), prevPoint_S) ||
+            isPointBelowSurface(getContactGeometry(), nextPoint_S)) {
+            return;
+        }
         const bool foldsAtP =
             dot(getTangent(dataInst.X_SP), dataInst.X_SP.p() - prevPoint_S) <
             0.;
