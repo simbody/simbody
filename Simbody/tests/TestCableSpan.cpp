@@ -1790,6 +1790,57 @@ void testExactFold()
     std::cout << "PASSED TEST: testExactFold" << std::endl;
 }
 
+/** CableSpan fold restart test with a steeply inclined straight line segment.
+
+The cable starts with a zero-length curve on a cylinder, at a contact point
+hint that folds the path: the curve tangent, estimated from the end points,
+points backward along the steeply inclined incoming straight line segment. The
+fold is undone by restarting the curve with a tangent aligned with both straight
+line segments, after which the cable lifts off: the straight line between the
+end points does not touch the cylinder. **/
+void testFoldRestartWithSteepLine()
+{
+    const Vec3 origin(11., -1., 0.);
+    const Vec3 terminationPoint(1.5, -1.2, 1.732);
+
+    for (CableSpanAlgorithm algorithm :
+            {CableSpanAlgorithm::MinimumLength,
+             CableSpanAlgorithm::Scholz2015}) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        CableSubsystem cables(system);
+        Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+        MobilizedBody::Translation termination(
+            matter.Ground(), Transform(), body, Transform());
+        termination.setDefaultQ(terminationPoint);
+
+        CableSpan cable(cables, matter.Ground(), origin, termination, Vec3(0.));
+        cable.addObstacle(matter.Ground(), Transform(),
+            std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
+            Vec3(1., 0., 0.));
+        cable.setCurveSegmentAccuracy(1e-12);
+        cable.setSmoothnessTolerance(1e-8);
+        cable.setSolverMaxIterations(100);
+        cable.setAlgorithm(algorithm);
+
+        system.realizeTopology();
+        State s = system.getDefaultState();
+        system.realize(s, Stage::Position);
+
+        SimTK_ASSERT_ALWAYS(
+            cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+            "The cable path should converge.");
+        SimTK_ASSERT_ALWAYS(
+            !cable.isInContactWithObstacle(s, CableSpanObstacleIndex(0)),
+            "The cable should lift off the cylinder.");
+        SimTK_ASSERT_ALWAYS(
+            std::abs(cable.calcLength(s) - (terminationPoint - origin).norm())
+                < 1e-10,
+            "The cable should be the straight line between its end points.");
+    }
+    std::cout << "PASSED TEST: testFoldRestartWithSteepLine" << std::endl;
+}
+
 int main()
 {
     testSimpleCable();
@@ -1804,4 +1855,5 @@ int main()
     testFoldRecoveryAfterLargeMotion();
     testFoldRecoveryKeepsWindings();
     testExactFold();
+    testFoldRestartWithSteepLine();
 }

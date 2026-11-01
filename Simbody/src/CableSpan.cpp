@@ -1534,22 +1534,39 @@ public:
         }
 
         // Nothing useful is left: try a zero-length curve at the restart
-        // point, with its tangent along the (projected) bisector of the
-        // incoming and outgoing straight line segments.
-        const Vec3 incoming     = restartPoint_S - prevPoint_S;
-        const Vec3 outgoing     = nextPoint_S - restartPoint_S;
-        const Real incomingNorm = incoming.norm();
-        const Real outgoingNorm = outgoing.norm();
-        if (!(incomingNorm > 0. && outgoingNorm > 0.)) {
-            return;
-        }
+        // point, with its tangent along the bisector of the incoming and
+        // outgoing straight line segments, projected onto the surface's
+        // tangent plane. Each line is projected before it is normalized, so
+        // that a line that is steeply inclined to the surface cannot make the
+        // tangent point backward along it. A line along the surface normal
+        // does not constrain the tangent.
         const UnitVec3 normal =
             getContactGeometry().calcSurfaceUnitNormal(restartPoint_S);
-        Vec3 tangent = incoming / incomingNorm + outgoing / outgoingNorm;
-        tangent -= dot(tangent, normal) * normal;
-        // Only restart if that removes the fold.
-        if (!(tangent.norm() > SqrtEps && dot(tangent, incoming) > 0. &&
-              dot(tangent, outgoing) > 0.)) {
+        auto calcTangentialDirection = [&](const Vec3& line) -> Vec3
+        {
+            const Vec3 tangential = line - dot(line, normal) * normal;
+            const Real norm       = tangential.norm();
+            return norm > SqrtEps * line.norm() ? tangential / norm : Vec3(0.);
+        };
+        const Vec3 incoming =
+            calcTangentialDirection(restartPoint_S - prevPoint_S);
+        const Vec3 outgoing =
+            calcTangentialDirection(nextPoint_S - restartPoint_S);
+        const Vec3 tangent     = incoming + outgoing;
+        const Real tangentNorm = tangent.norm();
+        // Only restart if that clearly removes the fold. If the projected
+        // lines point in nearly opposite directions, their bisector is nearly
+        // perpendicular to both, and its direction is dominated by roundoff,
+        // e.g. pointing out of the plane of a planar path. Leave the curve as
+        // is then.
+        constexpr Real c_MinRestartAlignment = 0.1; // cos(~84 degrees)
+        auto isForward = [&](const Vec3& direction)
+        {
+            return direction == Vec3(0.) ||
+                   dot(tangent, direction) >
+                       c_MinRestartAlignment * tangentNorm;
+        };
+        if (!(tangentNorm > 0. && isForward(incoming) && isForward(outgoing))) {
             return;
         }
         shootNewGeodesic(
