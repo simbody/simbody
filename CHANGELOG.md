@@ -8,6 +8,10 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* Fixed `PolygonalMesh::loadObjFile()` discarding normals (while keeping dangling
+  face-vertex normal indices) when an OBJ file's normal count differed from its face count.
+  `PolygonalMesh::hasNormalsAtFaces()` now means every face vertex has a valid normal
+  index, rather than that the number of normals equals the number of faces. (PR #886)
 * Added `SimbodyMatterSubsystem` operators for the Jacobians of mobilized body
   origin positions with respect to mobilizer inboard and outboard frame
   positions: `multiplyByPositionJacobianWrtInboardFramePositions()`,
