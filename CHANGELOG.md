@@ -6,16 +6,92 @@ of the more notable ones. For a comprehensive history, see the
 [Simbody GitHub repo](https://github.com/simbody/simbody). You can use the release dates below to find all the
 PRs and issues that were included in a particular release.
 
-3.9 (in development)
---------------------
-* Added `Rotation::mirror()`, a method for mirroring a Rotation about a coordinate axis. (PR #879)
-* `CableSpan::calcResampledDecorativePathPoints()` and `CableSpan::calcCurveSegmentResampledPoints()` now
-  always emit decorative points whether or not a curve segment is in contact with an obstacle, so that the
-  number of emitted points is constant. Previously they emitted NaN points, or read out of bounds, for
-  obstacles that were not in contact (PR #872).
+3.9 (November 2026)
+-------------------
+This release requires C++20 and includes several changes that may require
+updates to code or build scripts that use Simbody; see "Breaking changes" below.
+It also includes the CableSpan improvements needed by OpenSim 4.6.
+
+**Breaking changes**
+* The required C++ level was increased from C++11 to C++20 (PRs #840 and #849).
+  Code that uses Simbody must also be compiled as C++20 or later. Building
+  Simbody requires at least GCC 11, Clang 15, Apple Clang (Xcode) 15, or
+  Visual Studio 2019 version 16.11.
+* Constants in `Scalar.h` (`NaN`, `Infinity`, `Eps`, `Pi`, etc.) are now
+  `inline constexpr` (defined in the header) rather than exported library
+  symbols, and the `NTraits<T>` getters are now `constexpr`. This eliminates
+  static initialization order problems when linking Simbody statically. The
+  predefined colors (`Black`, `Red`, ...) and the `XAxis`, `YAxis`, and `ZAxis`
+  coordinate axis constants are likewise now `constexpr`. Code that relied on
+  these constants being a single exported symbol (e.g., comparing addresses
+  across shared-library boundaries) may be affected. (PRs #852 and #860)
+* `MobilizedBody::Translation` "lone particle" support has been removed. (PR #859)
+* `SimTK::Value<T>` now always value-initializes its contained `T`, so a
+  default-constructed `Value<double>` (for example) holds zero rather than
+  uninitialized memory. (PR #853)
+* Removed the CMake options deprecated in 3.8: `BUILD_DYNAMIC_LIBRARIES`,
+  `BUILD_STATIC_LIBRARIES`, `BUILD_UNVERSIONED_LIBRARIES`,
+  `BUILD_TESTS_AND_EXAMPLES_SHARED` and `BUILD_TESTS_AND_EXAMPLES_STATIC`. Use
+  `SIMBODY_BUILD_SHARED_LIBS` and `BUILD_VERSIONED_LIBRARIES` instead; the old
+  options are now ignored. (PR #874)
+* When Simbody is built against user-supplied BLAS/LAPACK libraries (e.g.,
+  OpenBLAS via `BUILD_USING_OTHER_LAPACK`), the install step no longer copies
+  those libraries into the Simbody installation; only the vendored BLAS/LAPACK
+  are installed. (PR #861)
+
+**CableSpan** (used for muscle and ligament paths in OpenSim 4.6)
+* Added support for via points in a `CableSpan` path; see
+  `CableSpan::addViaPoint()`. Via points divide the cable into segments, each
+  of which is optimized independently. (PR #828)
+* `CableSpan` now implements the Subsystem position and velocity realization
+  methods, fixing erratic path behavior (jumping to invalid configurations)
+  during time-stepping simulations. (PR #832)
+* The `CableSpan` unit force calculation methods (`calcOriginUnitForce()`,
+  `calcTerminationUnitForce()`, `calcCurveSegmentUnitForce()`, and
+  `calcViaPointUnitForce()`) now ensure that the position-level cache is valid.
+  (PR #846)
+* Added `CableSpan::calcResampledDecorativePathPoints()`, which generates
+  decorative points along the whole path with curve segments resampled at equal
+  length intervals. (PR #855)
+* Added `CableSpan` methods for calculating path tangent directions at the
+  origin, termination, and via points (e.g.,
+  `calcOriginTangentDirection()`), to make it easier to apply cable tension as
+  a set of point forces. (PR #857)
+* Added `CableSpan::getUseWarmStart()` and `setUseWarmStart()` to control
+  whether the previous path solution is used as the starting point for the next
+  path solve. Disabling warm starts makes the path (and moment arms) depend only
+  on the current configuration and the contact point hints. (PR #858)
+* `CableSpan::calcResampledDecorativePathPoints()` and
+  `CableSpan::calcCurveSegmentResampledPoints()` now always emit decorative
+  points whether or not a curve segment is in contact with an obstacle, so that
+  the number of emitted points is constant. Previously they emitted NaN points,
+  or read out of bounds, for obstacles that were not in contact. (PR #872)
+* Fixed the `CableSpan` solver's per-iteration step size limit, which ignored
+  the sign of the angular displacement of the curve segment boundary frames, so
+  that large rotations in the negative direction were not limited. (PR #881)
+
+**Other new features and improvements**
+* Added support for variable mobilizer inboard and outboard frames. (PR #859)
+* Added `MobilizedBody::CantileverFreeBeam`, a mobilizer for modeling spinal
+  joints and other flexible structures. (PR #844)
 * `MobilizedBody::Ellipsoid` can now be mirrored about the plane normal to one
   axis of its inboard frame F, which can be useful for building left/right joint
-  pairs (e.g., shoulder joints) driven by the same coordinates. (PR #875)
+  pairs (e.g., shoulder joints) driven by the same coordinates. (PR #875) The
+  mirror axis can also be set or cleared after construction with
+  `setMirrorAxis()` and `clearMirrorAxis()`. (PR #880)
+* Added `Rotation::mirror()`, a method for mirroring a Rotation about a
+  coordinate axis. (PR #879)
+* Added LLT (Cholesky) factorization, `FactorLLT`. (PR #833)
+* Added quaternion multiplication (Hamilton product): `Quaternion::multiply()`
+  and `operator*`. (PR #830)
+* `Vector_<T>` can now be constructed from an initializer list, e.g.
+  `Vector v{1, 2, 3};`. (PR #871)
+* Added the `SimTK_NODISCARD` macro and applied it to non-mutating Simmatrix
+  operators (e.g., `normalize()`, `transpose()`) in `Vec`, `Mat`, `Row`,
+  `SymMat`, `Vector`, `Matrix`, and `RowVector`. Discarding the result of one of
+  these methods now produces a compiler warning. (PR #865)
+
+**Bug fixes**
 * `MobilizedBody::Ellipsoid::setQToFitTranslation()` (and therefore
   `setQToFitTransform()`) now places the M frame's origin exactly on the ray
   towards the requested translation, for any semi-axes. Similarly,
@@ -23,28 +99,46 @@ PRs and issues that were included in a particular release.
   `setUToFitVelocity()`) now reproduces any velocity the joint can produce, for
   any semi-axes. Previously, both methods relied on calculations assuming the
   choice of semi-axes represented a sphere. (PR #875)
-* Added support for variable mobilizer inboard and outboard frames (PR #859)
-* `MobilizedBody::Translation` "lone particle" support has been removed  (PR #859)
-* Add MobilizedBody::CantileverFreeBeam, a mobilizer for modeling spinal joints and
-  other flexible structures. (PR #844)
-* Fixed implementations of setUToFitAngularVelocityImpl for the gimbal and bushing
-  mobilizers. (PR #844)
-* Add LLT (Cholesky) factorization
-* Add quaternion multiplication (Hamilton product) 
-* Required C++ level was increased from C++11 to C++20
-* Fixed an out-of-bounds warning/error emitted by overloads of SimTK::Mat accessing
-  out-of-bounds rows.
-* Breaking: constants in `Scalar.h` are now `inline constexpr` (header-defined) rather than exported library symbols; code that relied on the constants being a single exported symbol (e.g., comparing addresses across shared-library boundaries) may be affected.
-* Breaking (build): removed the CMake options deprecated in 3.8: `BUILD_DYNAMIC_LIBRARIES`,
-  `BUILD_STATIC_LIBRARIES`, `BUILD_UNVERSIONED_LIBRARIES`, `BUILD_TESTS_AND_EXAMPLES_SHARED`
-  and `BUILD_TESTS_AND_EXAMPLES_STATIC`. Use `SIMBODY_BUILD_SHARED_LIBS` and
-  `BUILD_VERSIONED_LIBRARIES` instead; the old options are now ignored.
+* Fixed implementations of `setUToFitAngularVelocityImpl()` for the Gimbal and
+  Bushing mobilizers. (PR #844)
+* `CPodesIntegrator` now correctly returns `EndOfSimulation` after repeated
+  calls to `stepTo()` (issue #824). (PR #825)
+* Fixed a race condition in `simbody-visualizer` that could cause it to crash
+  on startup when menus or sliders were added while being drawn. (PR #838)
+* Fixed out-of-bounds accesses (and the resulting compiler warnings) in `Mat`
+  constructors and `Row`/`Vec` element layout. (PR #840)
+* Fixed a memory leak on copy assignment of `Factor` classes (`FactorLU`,
+  `FactorQTZ`, `FactorSVD`, `Eigen`, etc.); these now also support move
+  construction and assignment. (PR #841)
+* `ExponentialSpringForce` no longer retains a reference to the caller's
+  `MobilizedBody` handle, which could dangle or change the body the spring acts
+  on (issue #869). (PR #870)
+* The OBJ mesh file parser now accepts any whitespace (tabs, repeated spaces,
+  etc.) between the vertices of a face (`f`) record (issue #747). (PR #863)
+* Fixed an ambiguous comparison in a `CablePath` assert that failed to compile
+  with some compilers in Debug builds. (PR #851)
+
+**Build, packaging, and documentation**
+* Fixed the generated `simbody.pc` pkg-config file: its `Version:` field was
+  empty (also in 3.8), its `Cflags` no longer forces `-std=c++11`, and `libdir`
+  and `includedir` are now correct when the install directories are given as
+  absolute paths. The visualizer install location is also correct when
+  `CMAKE_INSTALL_LIBEXECDIR` is absolute. Added a Nix flake and Nix CI builds.
+  (PR #878)
+* Simbody can now be built as a CMake subproject (e.g., via
+  `add_subdirectory()`). (PR #721)
+* When building static libraries (`BUILD_SHARED_LIBS=OFF`), the vendored
+  BLAS/LAPACK libraries are now installed (previously they were omitted).
+  (PR #861)
+* `CMakePresets.json` no longer hard-codes a Visual Studio version, so the MSVC
+  presets work with any installed Visual Studio (e.g., 2022 or 2026). (PR #862)
 * Simbody now configures without warnings under current CMake (tested with 4.4). The
   installed examples' `CMakeLists.txt` now requires CMake 3.21 (it previously declared 2.8,
-  which CMake 4 rejects) and no longer forces C++11.
+  which CMake 4 rejects) and no longer forces C++11. (PR #874)
 * `cmake --install --prefix` and `DESTDIR` installs now place `simbody-visualizer` and the
   `examples/bin` symlink under the requested location (both previously used the configure-time
-  prefix), and `uninstall` now removes the symlink.
+  prefix), and `uninstall` now removes the symlink. (PR #874)
+* Added a "For New Contributors" section to CONTRIBUTING.md. (PR #755)
 
 
 3.8 (May 2025)
