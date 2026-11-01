@@ -290,7 +290,10 @@ void testFittingMethods() {
         mirrored.setQToFitTransform(state, mirrorTransform(X_FM, k));
         standard.setUToFitVelocity(state, V_FM);
         mirrored.setUToFitVelocity(state, mirrorVelocity(V_FM, k));
-        SimTK_TEST_EQ(mirrored.getQ(state), standard.getQ(state));
+        // Ellipsoid::getQ() returns a quaternion (Vec4) and asserts nq==4,
+        // so use the generic accessor which works for Euler angles too.
+        SimTK_TEST_EQ(mirrored.getQAsVector(state),
+                      standard.getQAsVector(state));
         SimTK_TEST_EQ(mirrored.getU(state), standard.getU(state));
 
         system.realize(state, Stage::Velocity);
