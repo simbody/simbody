@@ -209,6 +209,17 @@ struct MatrixWorkspace {
     Vector binormalPathError;
     /* The maximum of the normal and binormal path errors. */
     Real maxPathError = NaN;
+    /* The largest angle (in radians) between a straight line segment and the
+    curve tangent at the contact point where they meet, counting only contact
+    points where the two point in opposite directions, i.e. where the path
+    folds back on itself. This is zero if the path has no folds.
+
+    The normal and binormal path errors cannot detect a fold: dot(e, n) and
+    dot(e, b) vanish for e = -t as well as for e = t. */
+    Real maxFoldAngle = NaN;
+    /* The path smoothness: the maximum of maxPathError and maxFoldAngle. The
+    solver has converged when this is below the smoothness tolerance. */
+    Real smoothness = NaN;
     /* The Jacobian of the normal path error vector to the natural geodesic
     corrections of all active obstacles. */
     Matrix normalPathErrorJacobian;
@@ -902,8 +913,6 @@ public:
 
     bool getUseWarmStart() const;
 
-    bool usesMinimumLengthAlgorithm() const;
-
     //--------------------------------------------------------------------------
     // Utility functions.
     //--------------------------------------------------------------------------
@@ -1169,14 +1178,17 @@ public:
         // If we do have a contact point hint, initialize the path by shooting a
         // zero-length geodesic at that location.
 
-        // Shoot a zero length geodesic at the contact point with tangent
-        // directed from prevPoint to nextPoint:
+        // Shoot a zero length geodesic at the contact point hint, projected
+        // onto the surface, with tangent directed from prevPoint to nextPoint.
+        // The projection is redone here (rather than taken from the initial
+        // instance data) in case the hint was changed after realizeTopology().
         const Vec3 prevPoint_S = findPrevPathPoint_S(state);
         const Vec3 nextPoint_S = findNextPathPoint_S(state);
         shootNewGeodesic(
-            getDataInst(state).X_SP.p(), // = projected contact point
-            nextPoint_S - prevPoint_S, // = tangent
-            0.,                        // = arc length
+            getContactGeometry().projectDownhillToNearestPoint(
+                getContactPointHint()), // = location
+            nextPoint_S - prevPoint_S,  // = tangent
+            0.,                         // = arc length
             getDataInst(state).integratorInitialStepSize,
             updDataInst(state));
     }
@@ -1326,7 +1338,11 @@ public:
             calcInitCurve(state);
             break;
         case ObstacleWrappingStatus::InContactWithSurface:
-            // If in contact with obstacle: detect lifting off.
+            // If in contact with obstacle: undo any fold before the solver
+            // tests for convergence. This can shrink the curve to zero length,
+            // so check for liftoff only afterwards.
+            trimFoldedCurveIfNeeded(state);
+            // Detect lifting off.
             calcCurveLiftoffIfNeeded(state);
             break;
         case ObstacleWrappingStatus::LiftedFromSurface:
@@ -1335,40 +1351,185 @@ public:
             break;
         }
 
-        // Antiparallel tangents satisfy the normal/binormal constraints but
-        // do not form a smooth cable path. Restart a backward-facing wrap at
-        // its current initial point before the optimizer tests convergence.
-        // Preserving that point retains the side selected by the warm start.
+        markDataInstRealized(state);
+        return getDataInst(state);
+    }
+
+    // Sample the current geodesic from its initial to its final contact
+    // point, in the surface frame.
+    std::vector<ContactGeometry::GeodesicKnotPoint> sampleGeodesic(
+        const CurveSegmentData::Instance& dataInst) const
+    {
+        const ContactGeometry& geometry = getContactGeometry();
+        if (!geometry.isAnalyticFormAvailable()) {
+            // The knots computed by the geodesic integrator.
+            return dataInst.geodesicKnotPoints;
+        }
+
+        // Analytic surfaces do not store knots, so shoot the geodesic again
+        // with knots spaced by roughly 5 degrees of surface curvature (as is
+        // done for the decorative path points).
+        constexpr Real c_AngularSpacing = 0.087; // ~ 5 degrees
+        const Real maxCurvature = std::max(
+            max(abs(dataInst.curvatures_P)),
+            max(abs(dataInst.curvatures_Q)));
+        const Real numIntervals =
+            std::ceil(dataInst.arcLength * maxCurvature / c_AngularSpacing);
+        // Cap the number of samples for very long or very curved geodesics.
+        const int numKnots = std::isfinite(numIntervals) ?
+            static_cast<int>(std::min(numIntervals, Real(1000))) + 1 : 2;
+
+        std::vector<ContactGeometry::GeodesicKnotPoint> samples;
+        geometry.shootGeodesicInDirectionAnalytically(
+            dataInst.X_SP.p(),
+            getTangent(dataInst.X_SP),
+            dataInst.arcLength,
+            std::max(numKnots, 2),
+            [&](const ContactGeometry::GeodesicKnotPoint& q)
+            {
+                samples.push_back(q);
+            });
+        return samples;
+    }
+
+    // A curve segment folds when the straight line segment entering it at the
+    // initial contact point, or leaving it at the final contact point, runs
+    // in the opposite direction of the curve's tangent there. The normal and
+    // binormal path errors vanish for a fully reversed line, so the solver
+    // can converge to such a fold, or get stuck near one. This happens, for
+    // example, after a large change in the positions of the cable's
+    // neighboring path points, which leaves a warm-started geodesic wrapped
+    // too far around the surface.
+    //
+    // A fold of a curve with nonzero length is undone by trimming the
+    // geodesic to the part between the point where it heads most directly
+    // away from the previous path point, and the point where it heads most
+    // directly toward the next path point. This keeps the side of the
+    // obstacle that the curve wraps over, as well as the part of the wrap that
+    // is still useful.
+    //
+    // If nothing useful is left after trimming, or the curve has zero length,
+    // the curve is replaced by a zero-length geodesic whose tangent is aligned
+    // with both the incoming and the outgoing straight line segments. If no
+    // such tangent exists, the curve is left as is: the solver will not
+    // report the fold as converged (see calcMaxFoldAngle()), and may still
+    // find its way out of it, e.g. by lifting off.
+    void trimFoldedCurveIfNeeded(const State& state) const
+    {
         const CurveSegmentData::Instance& dataInst = getDataInst(state);
-        if (usesMinimumLengthAlgorithm() &&
-                dataInst.wrappingStatus ==
-                    ObstacleWrappingStatus::InContactWithSurface &&
-                dataInst.arcLength > 0.) {
-            const Vec3 prevPoint_S = findPrevPathPoint_S(state);
-            const Vec3 nextPoint_S = findNextPathPoint_S(state);
-            if (dot(getTangent(dataInst.X_SP),
-                        dataInst.X_SP.p() - prevPoint_S) < 0. ||
-                    dot(getTangent(dataInst.X_SQ),
-                        nextPoint_S - dataInst.X_SQ.p()) < 0.) {
-                const Vec3 restartDirection = nextPoint_S - prevPoint_S;
-                const UnitVec3& normal = getNormal(dataInst.X_SP);
-                Vec3 restartTangent =
-                    restartDirection - dot(restartDirection, normal) * normal;
-                // Nearly normal directions cannot define a reliable tangent.
-                if (restartTangent.norm() <= SqrtEps * restartDirection.norm()) {
-                    restartTangent = getTangent(dataInst.X_SP).asVec3();
+        if (dataInst.wrappingStatus !=
+                ObstacleWrappingStatus::InContactWithSurface ||
+            !(dataInst.arcLength >= 0.)) {
+            return;
+        }
+
+        const Vec3 prevPoint_S = findPrevPathPoint_S(state);
+        const Vec3 nextPoint_S = findNextPathPoint_S(state);
+        const bool foldsAtP =
+            dot(getTangent(dataInst.X_SP), dataInst.X_SP.p() - prevPoint_S) <
+            0.;
+        const bool foldsAtQ =
+            dot(getTangent(dataInst.X_SQ), nextPoint_S - dataInst.X_SQ.p()) <
+            0.;
+        if (!foldsAtP && !foldsAtQ) {
+            return;
+        }
+
+        // Where to place a zero-length curve if nothing is left of this one.
+        Vec3 restartPoint_S = dataInst.X_SP.p();
+
+        if (dataInst.arcLength > 0.) {
+            const std::vector<ContactGeometry::GeodesicKnotPoint> samples =
+                sampleGeodesic(dataInst);
+            SimTK_ASSERT_ALWAYS(
+                !samples.empty(),
+                "CurveSegment: cannot trim a fold of a geodesic without "
+                "samples");
+            const int numSamples = static_cast<int>(samples.size());
+
+            // Find the sample, at or after sample begin, at which the curve
+            // tangent is best aligned with the given direction. Returns the
+            // sample index and the cosine of the angle between the two.
+            auto findBestAlignedSample =
+                [&](int begin,
+                    const std::function<Vec3(const Vec3& point_S)>& direction)
+            {
+                int bestIx     = begin;
+                Real bestAlign = -Infinity;
+                for (int i = begin; i < numSamples; ++i) {
+                    const Vec3 d    = direction(samples[i].point);
+                    const Real norm = d.norm();
+                    const Real align =
+                        norm > 0. ? dot(samples[i].tangent, d) / norm : -1.;
+                    if (align > bestAlign) {
+                        bestAlign = align;
+                        bestIx    = i;
+                    }
                 }
+                return std::make_pair(bestIx, bestAlign);
+            };
+
+            // The new start and end of the curve.
+            int first          = 0;
+            int last           = numSamples - 1;
+            bool foundForwards = true;
+            if (foldsAtP) {
+                const auto best = findBestAlignedSample(
+                    0,
+                    [&](const Vec3& point_S) { return point_S - prevPoint_S; });
+                first         = best.first;
+                foundForwards = best.second > 0.;
+            }
+            if (foundForwards) {
+                restartPoint_S = samples[first].point;
+                if (foldsAtQ) {
+                    const auto best = findBestAlignedSample(
+                        first,
+                        [&](const Vec3& point_S)
+                        { return nextPoint_S - point_S; });
+                    last          = best.first;
+                    foundForwards = best.second > 0.;
+                }
+            }
+
+            const Real trimmedLength =
+                samples[last].arcLength - samples[first].arcLength;
+            if (foundForwards && trimmedLength > 0.) {
                 shootNewGeodesic(
-                    dataInst.X_SP.p(),
-                    restartTangent,
-                    0.,
+                    samples[first].point,
+                    samples[first].tangent,
+                    trimmedLength,
                     dataInst.integratorInitialStepSize,
                     updDataInst(state));
+                return;
             }
         }
 
-        markDataInstRealized(state);
-        return getDataInst(state);
+        // Nothing useful is left: try a zero-length curve at the restart
+        // point, with its tangent along the (projected) bisector of the
+        // incoming and outgoing straight line segments.
+        const Vec3 incoming     = restartPoint_S - prevPoint_S;
+        const Vec3 outgoing     = nextPoint_S - restartPoint_S;
+        const Real incomingNorm = incoming.norm();
+        const Real outgoingNorm = outgoing.norm();
+        if (!(incomingNorm > 0. && outgoingNorm > 0.)) {
+            return;
+        }
+        const UnitVec3 normal =
+            getContactGeometry().calcSurfaceUnitNormal(restartPoint_S);
+        Vec3 tangent = incoming / incomingNorm + outgoing / outgoingNorm;
+        tangent -= dot(tangent, normal) * normal;
+        // Only restart if that removes the fold.
+        if (!(tangent.norm() > SqrtEps && dot(tangent, incoming) > 0. &&
+              dot(tangent, outgoing) > 0.)) {
+            return;
+        }
+        shootNewGeodesic(
+            restartPoint_S,
+            tangent,
+            0.,
+            dataInst.integratorInitialStepSize,
+            updDataInst(state));
     }
 
     const CurveSegmentData::Position& calcDataPos(const State& state) const
@@ -2623,12 +2784,6 @@ bool CurveSegment::getUseWarmStart() const
     return getCable().getParameters().useWarmStart;
 }
 
-bool CurveSegment::usesMinimumLengthAlgorithm() const
-{
-    return getCable().getParameters().algorithm ==
-        CableSpanAlgorithm::MinimumLength;
-}
-
 ObstacleIndex CurveSegment::findPrevObstacleInContactWithCable(
     const State& state) const
 {
@@ -3047,6 +3202,50 @@ void calcPathErrorVector(
                 calcPathErrorElement(lines.at(lineIx), dataPos.X_GQ.R(), axis);
         }
     }
+}
+
+/* Compute the largest angle between a straight line segment and the curve
+tangent at the contact point where they meet, counting only contact points
+where the line runs backward along the curve (a fold). Returns zero if the path
+has no folds.
+
+A fold has zero normal and binormal path error, so without this check the
+solver would accept it as a smooth path. */
+Real calcMaxFoldAngle(
+    const CableSegment& cableSegment,
+    const State& s,
+    const std::vector<LineSegment>& lines)
+{
+    // Angle between line direction e and curve tangent t if they point in
+    // opposite directions, and zero otherwise.
+    auto calcFoldAngle = [](const UnitVec3& e, const FrenetFrame& X) -> Real
+    {
+        const Real cosAngle = dot(e, getTangent(X));
+        return cosAngle < 0. ? std::acos(std::max(cosAngle, Real(-1.)))
+                             : Real(0.);
+    };
+
+    Real maxFoldAngle = 0.;
+    // Index to a straight line segment.
+    int lineIx = 0;
+    const CableSpan::Impl& cable = cableSegment.getCable();
+    for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
+        const CurveSegment& curve = cable.getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(s)) {
+            continue;
+        }
+        const CurveSegmentData::Position& dataPos = curve.updDataPos(s);
+        // The line ending at the first contact point.
+        maxFoldAngle = std::max(
+            maxFoldAngle,
+            calcFoldAngle(lines.at(lineIx).direction, dataPos.X_GP));
+        ++lineIx;
+        // The line starting at the final contact point.
+        maxFoldAngle = std::max(
+            maxFoldAngle,
+            calcFoldAngle(lines.at(lineIx).direction, dataPos.X_GQ));
+    }
+    return maxFoldAngle;
 }
 
 } // namespace
@@ -3515,6 +3714,7 @@ void CableSpan::Impl::calcSolverStep(
         data.lineSegments);
 
     data.maxPathError = 0.; // Reset the max path error field.
+    data.maxFoldAngle = 0.;
     // Only compute the path errors if there are obstacles in contact with the
     // cable.
     if (data.numObstaclesInContact > 0) {
@@ -3533,11 +3733,18 @@ void CableSpan::Impl::calcSolverStep(
         data.maxPathError = std::max(
             data.normalPathError.normInf(),
             data.binormalPathError.normInf());
+        data.maxFoldAngle =
+            calcMaxFoldAngle(cableSegment, s, data.lineSegments);
     }
+    // A fold is never smooth, even though its normal and binormal path errors
+    // vanish. The fold angle only decides convergence when the path errors
+    // are small, i.e. when a line is (nearly) reversed. The path corrections
+    // below are still weighted by maxPathError alone.
+    data.smoothness = std::max(data.maxPathError, data.maxFoldAngle);
 
     // If the path error is small we have converged to the optimal solution,
     // and there is no need to compute the geodesic corrections.
-    data.converged = data.maxPathError <= getParameters().smoothnessTolerance;
+    data.converged = data.smoothness <= getParameters().smoothnessTolerance;
     if (data.converged) {
         return;
     }
@@ -3707,7 +3914,7 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
     {
         dataPos.cableLength += calcCableSegmentLength(
             s, cableSegment, workspace.lineSegments);
-        dataPos.smoothness = std::max(workspace.maxPathError,
+        dataPos.smoothness = std::max(workspace.smoothness,
             dataPos.smoothness);
         dataPos.loopIter += solverLoopCount;
 
