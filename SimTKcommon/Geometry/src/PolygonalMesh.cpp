@@ -100,7 +100,13 @@ bool PolygonalMesh::hasNormalsAtVertices() const {
 }
 
 bool PolygonalMesh::hasNormalsAtFaces() const {
-    return getNumFaces() == getImpl().normals.size();
+    // Face/vertex normals (e.g. from an OBJ file) are indexed separately for
+    // each face vertex, so the number of distinct normals need not match the
+    // number of faces. enforceMeshConsistency() guarantees that if
+    // faceVertexNormalIndex is non-empty, every entry is a valid normal index.
+    const auto& impl = getImpl();
+    return !impl.faceVertexNormalIndex.empty() &&
+           impl.faceVertexNormalIndex.size() == impl.faceVertexIndex.size();
 }
 
 bool PolygonalMesh::hasTextureCoordinates() const {
@@ -616,10 +622,23 @@ void PolygonalMesh::enforceMeshConsistency() {
             updImpl().faceVertexTextureIndex.clear();
         } 
     } else { // Assume meshInfo (normals, texture) available at faces/loops
-        int expected_size = getNumFaces();
-        if (expected_size != getImpl().normals.size()) {
+        // Normals are referenced per face vertex through faceVertexNormalIndex
+        // (OBJ "f v/vt/vn"), so any number of distinct normals is OK as long
+        // as every face vertex has a normal index and all indices are in
+        // range. Otherwise discard both arrays together so that we never keep
+        // indices that point into a cleared normals array.
+        const auto& impl = getImpl();
+        bool normalsOK = impl.faceVertexNormalIndex.size()
+                         == impl.faceVertexIndex.size();
+        for (int i = 0; normalsOK
+                        && i < (int)impl.faceVertexNormalIndex.size(); ++i) {
+            const int n = impl.faceVertexNormalIndex[i];
+            normalsOK = (0 <= n && n < (int)impl.normals.size());
+        }
+        if (!normalsOK) {
             // Wipe out normals to avoid downstream issues
             updImpl().normals.clear();
+            updImpl().faceVertexNormalIndex.clear();
         }
     }
 
