@@ -3748,7 +3748,8 @@ void CableSpan::Impl::calcSolverStep(
     // A fold is never smooth, even though its normal and binormal path errors
     // vanish. The fold angle only decides convergence when the path errors
     // are small, i.e. when a line is (nearly) reversed. The path corrections
-    // below are still weighted by maxPathError alone.
+    // below still use maxPathError, except for the regularization of the
+    // MinimumLength Hessian, which must remain positive at a fold.
     data.smoothness = std::max(data.maxPathError, data.maxFoldAngle);
 
     // If the path error is small we have converged to the optimal solution,
@@ -3867,8 +3868,10 @@ void CableSpan::Impl::calcSolverStep(
                 Real elt = 0.;
                 for (int i = 0; i < U.ncol(); ++i) {
                     // Add a small weight w to the singular values to make sure
-                    // the inverse exists.
-                    const Real weight = data.maxPathError;
+                    // the inverse exists. Use the smoothness rather than the
+                    // path error, since a fold that could not be undone has a
+                    // zero path error, but is not converged.
+                    const Real weight = data.smoothness;
                     elt += U(r, i) * U(c, i) / (sigma(i) + weight);
                 }
                 QInv(r, c) = elt;
@@ -3900,6 +3903,9 @@ void CableSpan::Impl::calcSolverStep(
     const Real stepSize =
         calcPathCorrectionStepSize(s, cableSegment, data.pathCorrection);
     data.pathCorrection *= stepSize;
+    SimTK_ASSERT(
+        std::isfinite(data.pathCorrection.normRMS()),
+        "CableSpan: the path correction is not finite");
 }
 
 const CableSpanData::Position& CableSpan::Impl::calcDataPos(

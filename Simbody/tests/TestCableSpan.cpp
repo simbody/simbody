@@ -1741,6 +1741,55 @@ void testFoldRecoveryKeepsWindings()
     std::cout << "PASSED TEST: testFoldRecoveryKeepsWindings" << std::endl;
 }
 
+/** CableSpan exact fold test.
+
+The cable starts with a zero-length curve on a cylinder whose straight line
+segments run exactly in opposite directions along the curve tangent. The path
+error of this fold is exactly zero, and the fold cannot be undone by restarting
+the curve. The solver must not compute an invalid path correction from it (this
+is checked by an assertion in Debug builds), and must either lift the cable off
+the cylinder or report the path as not smooth. **/
+void testExactFold()
+{
+    for (CableSpanAlgorithm algorithm :
+            {CableSpanAlgorithm::MinimumLength,
+             CableSpanAlgorithm::Scholz2015}) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        CableSubsystem cables(system);
+        Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+        MobilizedBody::Translation termination(
+            matter.Ground(), Transform(), body, Transform());
+        termination.setDefaultQ(Vec3(-1., 1., 0.));
+
+        CableSpan cable(
+            cables, matter.Ground(), Vec3(-2., 1., 0.), termination, Vec3(0.));
+        cable.addObstacle(matter.Ground(), Transform(),
+            std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
+            Vec3(0., 1., 0.));
+        cable.setCurveSegmentAccuracy(1e-12);
+        cable.setSmoothnessTolerance(1e-8);
+        cable.setSolverMaxIterations(20);
+        cable.setAlgorithm(algorithm);
+
+        system.realizeTopology();
+        State s = system.getDefaultState();
+        system.realize(s, Stage::Position);
+
+        const Real length = cable.calcLength(s);
+        SimTK_ASSERT_ALWAYS(std::isfinite(length),
+            "An exact fold must not produce an invalid cable path.");
+        if (cable.getSmoothness(s) < cable.getSmoothnessTolerance()) {
+            SimTK_ASSERT_ALWAYS(
+                !cable.isInContactWithObstacle(s, CableSpanObstacleIndex(0)) &&
+                    std::abs(length - 1.) < 1e-10,
+                "A smooth path must be the straight line between the end "
+                "points.");
+        }
+    }
+    std::cout << "PASSED TEST: testExactFold" << std::endl;
+}
+
 int main()
 {
     testSimpleCable();
@@ -1754,4 +1803,5 @@ int main()
     testWarmStartNormalRestartDirection();
     testFoldRecoveryAfterLargeMotion();
     testFoldRecoveryKeepsWindings();
+    testExactFold();
 }
