@@ -1939,6 +1939,18 @@ void testFoldRecoveryKeepsHelixWindings()
         SimTK_ASSERT_ALWAYS(windAngle > 4. * Pi && windAngle < 5. * Pi,
             "The cable should keep two windings around the cylinder.");
     }
+    // A helix wound 2 turns upward, with the termination point moved far
+    // below the origin. No part of the folded curve heads toward the new
+    // termination point, so neither trimming nor a zero-length restart can
+    // undo the fold without removing both windings. The curve must be left
+    // to the solver, which finds the downward helix with two turns. (Only
+    // MinimumLength is tested: Scholz2015 strongly penalizes changing the
+    // curve length when far from the solution, and unwinds the cable.)
+    const Real windAngle = calcHelixWindAngleAfterJump(
+        1., 4. * Pi, Vec3(1., 1., -10.), CableSpanAlgorithm::MinimumLength);
+    SimTK_ASSERT_ALWAYS(std::abs(windAngle - 4. * Pi) < 0.1,
+        "The cable should keep two windings around the cylinder.");
+
     std::cout << "PASSED TEST: testFoldRecoveryKeepsHelixWindings"
               << std::endl;
 }
