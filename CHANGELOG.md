@@ -8,6 +8,14 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* Fixed `CableSpan` path solutions that fold back on themselves (a straight
+  line segment running backward along a curve segment, so that the cable
+  doubles back on an obstacle). The path solver could converge to such a fold
+  with either algorithm and report it as smooth, e.g. after a large motion of
+  the cable's end points with warm starts enabled. Folds now count as not
+  smooth, and the solver undoes them by trimming or restarting the folded curve
+  segment. This also fixes a platform-dependent `TestCableSpan` failure
+  (issue #877).
 * Added `Rotation::mirror()`, a method for mirroring a Rotation about a coordinate axis. (PR #879)
 * `CableSpan::calcResampledDecorativePathPoints()` and `CableSpan::calcCurveSegmentResampledPoints()` now
   always emit decorative points whether or not a curve segment is in contact with an obstacle, so that the

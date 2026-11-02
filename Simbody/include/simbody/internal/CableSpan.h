@@ -472,9 +472,11 @@ public:
 
     /** Get the smoothness tolerance used to compute the optimal path.
     The (non) smoothness is defined as the angular discontinuity at the points
-    where straight- and curved-line segments meet, measured in radians. When
-    computing the optimal path this smoothness is optimized, and the solver
-    stops when reaching given tolerance.
+    where straight- and curved-line segments meet, measured in radians. A path
+    that folds back on itself, i.e. where a straight-line segment runs backward
+    along a curved-line segment, is therefore never smooth. When computing the
+    optimal path this smoothness is optimized, and the solver stops when
+    reaching given tolerance.
     **/
     Real getSmoothnessTolerance() const;
 

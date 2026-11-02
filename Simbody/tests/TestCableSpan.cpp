@@ -1281,7 +1281,11 @@ are disabled. **/
 void testUseWarmStart() {
     class PendulumSystem {
     public:
-        PendulumSystem(bool useWarmStart, Real defaultAngle) :
+        PendulumSystem(bool useWarmStart, Real defaultAngle,
+                Vec3 contactPointHint = Vec3(0.01, 0.2, 0.),
+                int solverMaxIterations = 100,
+                CableSpanAlgorithm algorithm =
+                    CableSpanAlgorithm::MinimumLength) :
                 m_matter(m_system), m_cables(m_system) {
 
             // Pendulum bodies.
@@ -1321,14 +1325,14 @@ void testUseWarmStart() {
                 Transform(Rotation(), Vec3(0, -0.5, 0)),
                 std::shared_ptr<ContactGeometry>(
                     new ContactGeometry::Ellipsoid(Vec3(0.1, 0.1, 0.5))),
-                Vec3(0.01, 0.2, 0.));
+                contactPointHint);
 
             // Configure the solver.
             m_cable.setUseWarmStart(useWarmStart);
             m_cable.setCurveSegmentAccuracy(1e-12);
             m_cable.setSmoothnessTolerance(1e-8);
-            m_cable.setSolverMaxIterations(100);
-            m_cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
+            m_cable.setSolverMaxIterations(solverMaxIterations);
+            m_cable.setAlgorithm(algorithm);
         }
 
         State getDefaultState() {
@@ -1353,6 +1357,31 @@ void testUseWarmStart() {
             m_system.realize(s, Stage::Position);
         }
 
+        void assertConvergedForwardPath(const State& s) {
+            SimTK_ASSERT_ALWAYS(
+                m_cable.getSmoothness(s) < m_cable.getSmoothnessTolerance(),
+                "The pendulum cable path should converge.");
+            const Transform frame = m_cable.calcCurveSegmentFinalFrenetFrame(
+                    s, CableSpanObstacleIndex(0));
+            const Vec3 outgoingDirection = Vec3(0., 1.5, 0.) - frame.p();
+            SimTK_ASSERT_ALWAYS(dot(frame.x(), outgoingDirection) > 0.,
+                "The final wrap tangent should point toward the cable "
+                "endpoint.");
+            const Transform initialFrame =
+                m_cable.calcCurveSegmentInitialFrenetFrame(
+                    s, CableSpanObstacleIndex(0));
+            const Vec3 incomingDirection =
+                initialFrame.p() - m_pendulum.getBodyTransform(s).p();
+            SimTK_ASSERT_ALWAYS(dot(initialFrame.x(), incomingDirection) > 0.,
+                "The initial wrap tangent should point away from the cable "
+                "origin.");
+        }
+
+        void setContactPointHint(const Vec3& hint) {
+            m_cable.setObstacleContactPointHint(CableSpanObstacleIndex(0),
+                hint);
+        }
+
     private:
         MultibodySystem m_system;
         SimbodyMatterSubsystem m_matter;
@@ -1373,46 +1402,572 @@ void testUseWarmStart() {
     // the same regardless of the default angle since the path solver should
     // always compute the path from the same initial point (i.e., the contact
     // hint).
-    auto calcInitialCurvePoint = [](bool useWarmStart, Real defaultAngle)
+    auto calcInitialCurvePoint = [](bool useWarmStart, Real defaultAngle,
+            Real hintZ, CableSpanAlgorithm algorithm)
             -> Vec3 {
-        PendulumSystem pendulumSystem(useWarmStart, defaultAngle);
+        PendulumSystem pendulumSystem(useWarmStart, defaultAngle,
+                Vec3(0.01, 0.2, hintZ), 100, algorithm);
         State s = pendulumSystem.getDefaultState();
         pendulumSystem.realizePosition(s);
+        pendulumSystem.assertConvergedForwardPath(s);
         pendulumSystem.setPendulumAngle(s, 2.0*SimTK::Pi);
         pendulumSystem.realizePosition(s);
+        pendulumSystem.assertConvergedForwardPath(s);
+        const Real radius = 0.1;
+        const Real expectedLength = 2. * std::sqrt(0.25 - radius * radius)
+                + 2. * radius * std::asin(radius / 0.5);
+        SimTK_ASSERT_ALWAYS(
+            std::abs(pendulumSystem.getCableLength(s) - expectedLength) < 1e-6,
+            "The pendulum cable should follow the short, forward-facing wrap.");
         return pendulumSystem.getInitialCurvePoint(s);
     };
 
 
-    // Warm start enabled. The path should have converged to similar solutions,
-    // but on opposite sides of the ellipsoid obstacle, so the initial wrap
-    // points should have equal magnitude but opposite sign in the x-direction
-    // and have equal y-components. The z-components should be zero.
+    // Both algorithms must find the same paths (see testSolverOptimum for a
+    // case where they differ by design).
     const Real tol = 1e-5;
-    {
-        auto firstPoint = calcInitialCurvePoint(true, 0.05*SimTK::Pi);
-        auto secondPoint = calcInitialCurvePoint(true, 1.95*SimTK::Pi);
-        SimTK_ASSERT_ALWAYS(std::abs(firstPoint[0] + secondPoint[0]) < tol,
-            "Warm start enabled: x-components of the initial wrap points "
-            "should have equal magnitude but opposite sign, but they do not.");
-        SimTK_ASSERT_ALWAYS(std::abs(firstPoint[1] - secondPoint[1]) < tol,
-             "Warm start enabled: y-components of the initial wrap points "
-             "should be equal, but they are not.");
-        SimTK_ASSERT_ALWAYS(std::abs(firstPoint[2]) < tol &&
-                            std::abs(secondPoint[2]) < tol,
-            "Warm start enabled: z-components of the initial wrap points "
-            "should be zero, but they are not.");
+    for (CableSpanAlgorithm algorithm :
+            {CableSpanAlgorithm::MinimumLength,
+             CableSpanAlgorithm::Scholz2015}) {
+        // Warm start enabled. The path should have converged to similar
+        // solutions, but on opposite sides of the ellipsoid obstacle, so the
+        // initial wrap points should have equal magnitude but opposite sign in
+        // the x-direction and have equal y-components. The z-components should
+        // be zero.
+        {
+            auto firstPoint =
+                calcInitialCurvePoint(true, 0.05*SimTK::Pi, 0., algorithm);
+            auto secondPoint =
+                calcInitialCurvePoint(true, 1.95*SimTK::Pi, 0., algorithm);
+            SimTK_ASSERT_ALWAYS(std::abs(firstPoint[0] + secondPoint[0]) < tol,
+                "Warm start enabled: x-components of the initial wrap points "
+                "should have equal magnitude but opposite sign, but they do "
+                "not.");
+            SimTK_ASSERT_ALWAYS(std::abs(firstPoint[1] - secondPoint[1]) < tol,
+                 "Warm start enabled: y-components of the initial wrap points "
+                 "should be equal, but they are not.");
+            SimTK_ASSERT_ALWAYS(std::abs(firstPoint[2]) < tol &&
+                                std::abs(secondPoint[2]) < tol,
+                "Warm start enabled: z-components of the initial wrap points "
+                "should be zero, but they are not.");
+        }
+
+        // Warm start disabled. The curve points should be equal since the
+        // path solver should be computing the path from the same initial point
+        // (i.e., the contact hint) in both case.
+        {
+            auto firstPoint =
+                calcInitialCurvePoint(false, 0.05*SimTK::Pi, 0., algorithm);
+            auto secondPoint =
+                calcInitialCurvePoint(false, 1.95*SimTK::Pi, 0., algorithm);
+            SimTK_ASSERT_ALWAYS((firstPoint - secondPoint).norm() < tol,
+                "Warm start disabled: initial wrap points do not match.");
+        }
+
+        // Tiny out-of-plane perturbations must not send the warm-started path
+        // toward the unstable semicircular wrap with a reversed terminal
+        // tangent.
+        for (bool useWarmStart : {false, true}) {
+            const Vec3 point = calcInitialCurvePoint(useWarmStart,
+                    1.95*SimTK::Pi, 1e-8, algorithm);
+            SimTK_ASSERT_ALWAYS(std::abs(point[2]) < tol,
+                "A perturbed contact hint should converge to the planar wrap.");
+        }
     }
 
-    // Warm start disabled. The curve points should be equal since the path
-    // solver should be computing the path from the same initial point (i.e.,
-    // the contact hint) in both case.
+    // With no solver iterations, the initial point should be the nearest
+    // surface projection of the hint, not the geodesic integrator's projection.
+    // This must also hold for a hint that is changed after realizeTopology().
+    const Vec3 hint(0.01, 0.2, 0.1);
+    const Vec3 changedHint(-0.01, 0.2, -0.1);
+    const ContactGeometry::Ellipsoid ellipsoid(Vec3(0.1, 0.1, 0.5));
+    auto calcProjectedHint_G = [&](const Vec3& contactPointHint)
     {
-        auto firstPoint = calcInitialCurvePoint(false, 0.05*SimTK::Pi);
-        auto secondPoint = calcInitialCurvePoint(false, 1.95*SimTK::Pi);
-        SimTK_ASSERT_ALWAYS((firstPoint - secondPoint).norm() < tol,
-            "Warm start disabled: initial wrap points do not match.");
+        return ellipsoid.projectDownhillToNearestPoint(contactPointHint) +
+               Vec3(0., 1., 0.);
+    };
+    for (bool useWarmStart : {false, true})
+    for (bool changeHint : {false, true}) {
+        PendulumSystem pendulumSystem(useWarmStart, 0.05*SimTK::Pi, hint, 0);
+        State s = pendulumSystem.getDefaultState();
+        if (changeHint) {
+            pendulumSystem.setContactPointHint(changedHint);
+        }
+        pendulumSystem.realizePosition(s);
+        const Vec3 expectedPoint_G =
+            calcProjectedHint_G(changeHint ? changedHint : hint);
+        SimTK_ASSERT_ALWAYS(
+            (pendulumSystem.getInitialCurvePoint(s) - expectedPoint_G).norm()
+                < tol,
+            "The initial wrap point should use the nearest surface "
+            "projection of the contact hint.");
     }
+}
+
+void testWarmStartNormalRestartDirection()
+{
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+    Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+    MobilizedBody::Free termination(
+        matter.Ground(), Transform(), body, Transform());
+    termination.setDefaultTranslation(Vec3(1., -2., 0.));
+    CableSpan cable(cables, matter.Ground(), Vec3(-2., 1., 0.),
+            termination, Vec3(0.));
+    cable.addObstacle(matter.Ground(), Transform(),
+        std::shared_ptr<ContactGeometry>(
+            new ContactGeometry::Ellipsoid(Vec3(1., 1., 2.))),
+        Vec3(0., 1., 0.));
+    cable.setCurveSegmentAccuracy(1e-12);
+    cable.setSmoothnessTolerance(1e-8);
+    cable.setSolverMaxIterations(100);
+    cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
+
+    system.realizeTopology();
+    State s = system.getDefaultState();
+    system.realize(s, Stage::Position);
+    const CableSpanObstacleIndex obsIx(0);
+    SimTK_ASSERT_ALWAYS(
+        (cable.calcCurveSegmentInitialFrenetFrame(s, obsIx).p()
+            - Vec3(0., 1., 0.)).norm() < 1e-6,
+        "The initial cable should start its wrap at the top of the ellipsoid.");
+    SimTK_ASSERT_ALWAYS(
+        (cable.calcCurveSegmentFinalFrenetFrame(s, obsIx).p()
+            - Vec3(1., 0., 0.)).norm() < 1e-6,
+        "The initial cable should end its wrap at the side of the ellipsoid.");
+
+    // Reverse the outgoing tangent while making next-minus-prev parallel
+    // to the surface normal at the initial wrap point. No part of the folded
+    // curve heads toward the new termination point, and no zero-length curve
+    // at the initial wrap point can be aligned with both straight line
+    // segments. The fold cannot be undone, so the curve must be left as is,
+    // and the path must be reported as not smooth.
+    cable.setSolverMaxIterations(0);
+    const Transform initialFrame =
+        cable.calcCurveSegmentInitialFrenetFrame(s, obsIx);
+    termination.setQToFitTranslation(s,
+        Vec3(-2., 1., 0.) + 2. * initialFrame.y());
+    system.realize(s, Stage::Position);
+    SimTK_ASSERT_ALWAYS(std::isfinite(cable.calcLength(s)),
+        "A normal restart direction must not produce an invalid cable path.");
+    SimTK_ASSERT_ALWAYS(cable.isInContactWithObstacle(s, obsIx),
+        "The folded curve should be left in contact with the obstacle.");
+    const Transform restartedFrame =
+        cable.calcCurveSegmentInitialFrenetFrame(s, obsIx);
+    SimTK_ASSERT_ALWAYS(dot(restartedFrame.x(), Vec3(1., 0., 0.)) > 0.99,
+        "A normal restart direction should retain the finite initial tangent.");
+    SimTK_ASSERT_ALWAYS(
+        cable.getSmoothness(s) > cable.getSmoothnessTolerance(),
+        "A folded cable path should not be reported as smooth.");
+}
+
+/** CableSpan fold recovery test.
+
+A cable is hooked under a cylinder: both end points lie above the cylinder, and
+the cable wraps more than 180 degrees around its underside. This is a valid
+(locally shortest) path. Then the termination point is moved far in one step,
+and the path is recomputed from the previous solution (warm start).
+
+The previous geodesic now wraps too far around the cylinder, so that the
+straight line leaving it runs backward along the curve. Such a fold has zero
+normal and binormal path error, and the solver used to converge to it, reporting
+it as a smooth path. The solver must instead find the hooked path through the
+new termination point, for both algorithms.
+
+All points lie in the plane z=0, so the expected path is a circular arc with
+tangent lines that can be computed in closed form. **/
+void testFoldRecoveryAfterLargeMotion()
+{
+    const Real radius = 1.;
+    const Vec3 origin(-0.5, 2., 0.);
+    const Vec3 initialTermination(0.5, 2., 0.);
+
+    // Length of the path that leaves the origin along the left side of the
+    // cylinder, wraps counterclockwise under it, and goes to the termination
+    // point from its right side.
+    auto calcHookedLength = [&](const Vec3& termination) -> Real
+    {
+        auto calcTangentPointAngle = [&](const Vec3& p, Real side) -> Real
+        {
+            return std::atan2(p[1], p[0]) + side * std::acos(radius / p.norm());
+        };
+        const Real angleIn = calcTangentPointAngle(origin, 1.);
+        const Real angleOut = calcTangentPointAngle(termination, -1.);
+        Real wrapAngle = std::fmod(angleOut - angleIn, 2. * Pi);
+        if (wrapAngle < 0.) {
+            wrapAngle += 2. * Pi;
+        }
+        return std::sqrt(origin.normSqr() - radius * radius) +
+               radius * wrapAngle +
+               std::sqrt(termination.normSqr() - radius * radius);
+    };
+
+    for (CableSpanAlgorithm algorithm :
+            {CableSpanAlgorithm::MinimumLength,
+             CableSpanAlgorithm::Scholz2015})
+    for (const Vec3& newTermination :
+            {Vec3(2., 0., 0.), Vec3(1.5, -1.5, 0.), Vec3(0., -2.5, 0.)}) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        CableSubsystem cables(system);
+        Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+        MobilizedBody::Translation termination(
+            matter.Ground(), Transform(), body, Transform());
+        termination.setDefaultQ(initialTermination);
+
+        CableSpan cable(cables, matter.Ground(), origin, termination, Vec3(0.));
+        // The contact point hint below the cylinder selects the hooked path.
+        cable.addObstacle(matter.Ground(), Transform(),
+            std::shared_ptr<ContactGeometry>(
+                new ContactGeometry::Cylinder(radius)),
+            Vec3(0., -1.5, 0.));
+        cable.setCurveSegmentAccuracy(1e-12);
+        cable.setSmoothnessTolerance(1e-8);
+        cable.setSolverMaxIterations(100);
+        // Scholz2015 cannot grow the initial zero-length curve into the
+        // hooked path, so always use MinimumLength to find the initial path.
+        cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
+
+        system.realizeTopology();
+        State s = system.getDefaultState();
+        const CableSpanObstacleIndex obsIx(0);
+
+        auto assertHookedPath = [&](const Vec3& terminationPoint)
+        {
+            system.realize(s, Stage::Position);
+            SimTK_ASSERT_ALWAYS(
+                cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+                "The hooked cable path should converge.");
+            SimTK_ASSERT_ALWAYS(cable.isInContactWithObstacle(s, obsIx),
+                "The hooked cable should remain in contact with the cylinder.");
+            const Transform X_GP =
+                cable.calcCurveSegmentInitialFrenetFrame(s, obsIx);
+            const Transform X_GQ =
+                cable.calcCurveSegmentFinalFrenetFrame(s, obsIx);
+            SimTK_ASSERT_ALWAYS(dot(X_GP.x(), X_GP.p() - origin) > 0.,
+                "The initial wrap tangent should point away from the origin.");
+            SimTK_ASSERT_ALWAYS(dot(X_GQ.x(), terminationPoint - X_GQ.p()) > 0.,
+                "The final wrap tangent should point toward the termination.");
+            SimTK_ASSERT_ALWAYS(
+                std::abs(cable.calcLength(s) -
+                         calcHookedLength(terminationPoint)) < 1e-6,
+                "The cable should follow the hooked path.");
+        };
+
+        // The initial hooked path.
+        assertHookedPath(initialTermination);
+
+        // Move the termination point in one step, and recompute the path from
+        // the previous solution, using the algorithm under test.
+        cable.setAlgorithm(algorithm);
+        termination.setQ(s, newTermination);
+        assertHookedPath(newTermination);
+    }
+    std::cout << "PASSED TEST: testFoldRecoveryAfterLargeMotion" << std::endl;
+}
+
+/** CableSpan fold recovery test for a cable that winds around an obstacle
+multiple times.
+
+A cable is wound more than once around a cylinder, by moving its termination
+point around the cylinder in small steps. Then the termination point is moved
+back far in one step, and the path is recomputed from the previous solution
+(warm start). The previous geodesic now wraps too far around the cylinder, and
+folds back at its final contact point. Undoing that fold must only unwind the
+folded part, and keep the remaining full windings.
+
+All points lie in the plane z=0, and the termination point stays at the same
+distance from the cylinder axis, so the cable length changes by the angle that
+the termination point moves (for a unit radius). **/
+void testFoldRecoveryKeepsWindings()
+{
+    const Vec3 origin(1., -2., 0.);
+    const Real terminationRadius = 2.;
+    auto calcTermination = [&](Real angle) -> Vec3
+    {
+        return terminationRadius * Vec3(std::cos(angle), std::sin(angle), 0.);
+    };
+
+    for (CableSpanAlgorithm algorithm :
+            {CableSpanAlgorithm::MinimumLength,
+             CableSpanAlgorithm::Scholz2015}) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        CableSubsystem cables(system);
+        Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+        MobilizedBody::Translation termination(
+            matter.Ground(), Transform(), body, Transform());
+        Real angle = 0.4 * Pi;
+        termination.setDefaultQ(calcTermination(angle));
+
+        CableSpan cable(cables, matter.Ground(), origin, termination, Vec3(0.));
+        cable.addObstacle(matter.Ground(), Transform(),
+            std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
+            Vec3(1., 0., 0.));
+        cable.setCurveSegmentAccuracy(1e-12);
+        cable.setSmoothnessTolerance(1e-8);
+        cable.setSolverMaxIterations(100);
+        cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
+
+        system.realizeTopology();
+        State s = system.getDefaultState();
+        system.realize(s, Stage::Position);
+
+        // Wind the cable around the cylinder, counterclockwise, until it
+        // wraps about 3.2 pi.
+        while (angle < 3.5 * Pi) {
+            angle += 5. / 180. * Pi;
+            termination.setQ(s, calcTermination(angle));
+            system.realize(s, Stage::Position);
+            SimTK_ASSERT_ALWAYS(
+                cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+                "The cable should converge while winding around the cylinder.");
+        }
+        const Real woundLength = cable.calcLength(s);
+
+        // Unwind by 0.9 pi in one step. More than two full windings remain.
+        const Real unwindAngle = 0.9 * Pi;
+        cable.setAlgorithm(algorithm);
+        termination.setQ(s, calcTermination(angle - unwindAngle));
+        system.realize(s, Stage::Position);
+        SimTK_ASSERT_ALWAYS(
+            cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+            "The unwound cable path should converge.");
+        SimTK_ASSERT_ALWAYS(
+            std::abs(cable.calcLength(s) - (woundLength - unwindAngle)) < 1e-6,
+            "Undoing the fold should keep the remaining windings.");
+    }
+    std::cout << "PASSED TEST: testFoldRecoveryKeepsWindings" << std::endl;
+}
+
+/** CableSpan exact fold test.
+
+The cable starts with a zero-length curve on a cylinder whose straight line
+segments run exactly in opposite directions along the curve tangent. The path
+error of this fold is exactly zero, and the fold cannot be undone by restarting
+the curve. The solver must not compute an invalid path correction from it (this
+is checked by an assertion in Debug builds), and must either lift the cable off
+the cylinder or report the path as not smooth. **/
+void testExactFold()
+{
+    for (CableSpanAlgorithm algorithm :
+            {CableSpanAlgorithm::MinimumLength,
+             CableSpanAlgorithm::Scholz2015}) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        CableSubsystem cables(system);
+        Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+        MobilizedBody::Translation termination(
+            matter.Ground(), Transform(), body, Transform());
+        termination.setDefaultQ(Vec3(-1., 1., 0.));
+
+        CableSpan cable(
+            cables, matter.Ground(), Vec3(-2., 1., 0.), termination, Vec3(0.));
+        cable.addObstacle(matter.Ground(), Transform(),
+            std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
+            Vec3(0., 1., 0.));
+        cable.setCurveSegmentAccuracy(1e-12);
+        cable.setSmoothnessTolerance(1e-8);
+        cable.setSolverMaxIterations(20);
+        cable.setAlgorithm(algorithm);
+
+        system.realizeTopology();
+        State s = system.getDefaultState();
+        system.realize(s, Stage::Position);
+
+        const Real length = cable.calcLength(s);
+        SimTK_ASSERT_ALWAYS(std::isfinite(length),
+            "An exact fold must not produce an invalid cable path.");
+        if (cable.getSmoothness(s) < cable.getSmoothnessTolerance()) {
+            SimTK_ASSERT_ALWAYS(
+                !cable.isInContactWithObstacle(s, CableSpanObstacleIndex(0)) &&
+                    std::abs(length - 1.) < 1e-10,
+                "A smooth path must be the straight line between the end "
+                "points.");
+        }
+    }
+    std::cout << "PASSED TEST: testExactFold" << std::endl;
+}
+
+/** CableSpan fold restart test with a steeply inclined straight line segment.
+
+The cable starts with a zero-length curve on a cylinder, at a contact point
+hint that folds the path: the curve tangent, estimated from the end points,
+points backward along the steeply inclined incoming straight line segment. The
+fold is undone by restarting the curve with a tangent aligned with both straight
+line segments, after which the cable lifts off: the straight line between the
+end points does not touch the cylinder. **/
+void testFoldRestartWithSteepLine()
+{
+    const Vec3 origin(11., -1., 0.);
+    const Vec3 terminationPoint(1.5, -1.2, 1.732);
+
+    for (CableSpanAlgorithm algorithm :
+            {CableSpanAlgorithm::MinimumLength,
+             CableSpanAlgorithm::Scholz2015}) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        CableSubsystem cables(system);
+        Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+        MobilizedBody::Translation termination(
+            matter.Ground(), Transform(), body, Transform());
+        termination.setDefaultQ(terminationPoint);
+
+        CableSpan cable(cables, matter.Ground(), origin, termination, Vec3(0.));
+        cable.addObstacle(matter.Ground(), Transform(),
+            std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
+            Vec3(1., 0., 0.));
+        cable.setCurveSegmentAccuracy(1e-12);
+        cable.setSmoothnessTolerance(1e-8);
+        cable.setSolverMaxIterations(100);
+        cable.setAlgorithm(algorithm);
+
+        system.realizeTopology();
+        State s = system.getDefaultState();
+        system.realize(s, Stage::Position);
+
+        SimTK_ASSERT_ALWAYS(
+            cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+            "The cable path should converge.");
+        SimTK_ASSERT_ALWAYS(
+            !cable.isInContactWithObstacle(s, CableSpanObstacleIndex(0)),
+            "The cable should lift off the cylinder.");
+        SimTK_ASSERT_ALWAYS(
+            std::abs(cable.calcLength(s) - (terminationPoint - origin).norm())
+                < 1e-10,
+            "The cable should be the straight line between its end points.");
+    }
+    std::cout << "PASSED TEST: testFoldRestartWithSteepLine" << std::endl;
+}
+
+/** CableSpan fold recovery tests for a cable that winds helically around a
+cylinder.
+
+The cable is wound around a unit cylinder along the helix
+H(t) = (cos t, sin t, pitch * t), by moving its termination point along the
+tangent line of the helix at H(t) in small steps. Then the termination point is
+moved far in one step, and the path is recomputed from the previous solution
+(warm start). The previous geodesic now folds back at its final contact point.
+Undoing that fold must keep the windings of the cable that are still valid. **/
+
+// Wind the cable along the helix up to t = windAngle, jump the termination
+// point to newTermination, and return the angle by which the resulting curve
+// segment winds around the cylinder axis.
+Real calcHelixWindAngleAfterJump(
+    Real pitch,
+    Real windAngle,
+    const Vec3& newTermination,
+    CableSpanAlgorithm algorithm,
+    int maxIterationsAfterJump = 100)
+{
+    auto calcHelixPoint = [&](Real t)
+    { return Vec3(std::cos(t), std::sin(t), pitch * t); };
+    auto calcHelixTangent = [&](Real t)
+    { return UnitVec3(-std::sin(t), std::cos(t), pitch); };
+    // Distance from the helix to the cable's end points.
+    const Real lineLength = 2. * std::sqrt(1. + pitch * pitch);
+    const Vec3 origin = calcHelixPoint(0.) - lineLength * calcHelixTangent(0.);
+    auto calcTermination = [&](Real t)
+    { return calcHelixPoint(t) + lineLength * calcHelixTangent(t); };
+
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+    Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+    MobilizedBody::Translation termination(
+        matter.Ground(), Transform(), body, Transform());
+    Real t = 0.3;
+    termination.setDefaultQ(calcTermination(t));
+
+    CableSpan cable(cables, matter.Ground(), origin, termination, Vec3(0.));
+    cable.addObstacle(matter.Ground(), Transform(),
+        std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
+        Vec3(1., 0., 0.1));
+    cable.setCurveSegmentAccuracy(1e-12);
+    cable.setSmoothnessTolerance(1e-8);
+    cable.setSolverMaxIterations(100);
+    cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
+
+    system.realizeTopology();
+    State s = system.getDefaultState();
+    system.realize(s, Stage::Position);
+
+    // Wind the cable along the helix.
+    while (t < windAngle) {
+        t = std::min(windAngle, t + 3. / 180. * Pi);
+        termination.setQ(s, calcTermination(t));
+        system.realize(s, Stage::Position);
+        SimTK_ASSERT_ALWAYS(
+            cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+            "The cable should converge while winding around the cylinder.");
+    }
+
+    // Jump to the new termination point.
+    cable.setAlgorithm(algorithm);
+    cable.setSolverMaxIterations(maxIterationsAfterJump);
+    termination.setQ(s, newTermination);
+    system.realize(s, Stage::Position);
+    SimTK_ASSERT_ALWAYS(
+        cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+        "The cable path should converge after the jump.");
+    const CableSpanObstacleIndex obsIx(0);
+    SimTK_ASSERT_ALWAYS(cable.isInContactWithObstacle(s, obsIx),
+        "The cable should remain in contact with the cylinder.");
+
+    // On a cylinder the curve segment is a helix, which winds by its arc
+    // length projected onto the plane normal to the cylinder axis.
+    const Vec3 P = cable.calcCurveSegmentInitialFrenetFrame(s, obsIx).p();
+    const Vec3 Q = cable.calcCurveSegmentFinalFrenetFrame(s, obsIx).p();
+    const Real arcLength =
+        cable.calcLength(s) - (P - origin).norm() - (newTermination - Q).norm();
+    const Real axialLength = Q[2] - P[2];
+    return std::sqrt(
+        std::max(0., arcLength * arcLength - axialLength * axialLength));
+}
+
+void testFoldRecoveryKeepsHelixWindings()
+{
+    for (CableSpanAlgorithm algorithm :
+            {CableSpanAlgorithm::MinimumLength,
+             CableSpanAlgorithm::Scholz2015}) {
+        // A steep helix wound 2.5 turns, with the termination point moved
+        // further along and around the cylinder. A forward-facing stretch
+        // of the folded curve spans more than a full turn here, and only the
+        // part beyond its nearest local alignment maximum may be trimmed: the
+        // cable must keep two full turns.
+        const Real windAngle = calcHelixWindAngleAfterJump(
+            3., 5. * Pi, Vec3(-1., 8., 15. * Pi), algorithm);
+        SimTK_ASSERT_ALWAYS(windAngle > 4. * Pi && windAngle < 5. * Pi,
+            "The cable should keep two windings around the cylinder.");
+    }
+    // A helix wound 2 turns upward, with the termination point moved far
+    // below the origin. No part of the folded curve heads toward the new
+    // termination point, so neither trimming nor a zero-length restart can
+    // undo the fold without removing both windings. The curve must be left
+    // to the solver, which finds the downward helix with two turns. (Only
+    // MinimumLength is tested: Scholz2015 strongly penalizes changing the
+    // curve length when far from the solution, and unwinds the cable.)
+    const Real windAngle = calcHelixWindAngleAfterJump(
+        1., 4. * Pi, Vec3(1., 1., -10.), CableSpanAlgorithm::MinimumLength);
+    SimTK_ASSERT_ALWAYS(std::abs(windAngle - 4. * Pi) < 0.1,
+        "The cable should keep two windings around the cylinder.");
+
+    // The same with a steep helix (pitch 5). Its tangent turns by less than
+    // half a turn over both windings, while the surface normal turns by two
+    // full turns, so the curve must again be left to the solver. Unfolding
+    // takes the solver about 190 iterations here.
+    const Real steepWindAngle = calcHelixWindAngleAfterJump(
+        5.,
+        4. * Pi,
+        Vec3(1., 2., -10.),
+        CableSpanAlgorithm::MinimumLength,
+        300);
+    SimTK_ASSERT_ALWAYS(std::abs(steepWindAngle - 4. * Pi) < 0.1,
+        "The cable should keep two windings around the steep helix.");
+
+    std::cout << "PASSED TEST: testFoldRecoveryKeepsHelixWindings"
+              << std::endl;
 }
 
 int main()
@@ -1425,4 +1980,10 @@ int main()
     testSolverOptimum();
     testRobustInitialPath();
     testUseWarmStart();
+    testWarmStartNormalRestartDirection();
+    testFoldRecoveryAfterLargeMotion();
+    testFoldRecoveryKeepsWindings();
+    testExactFold();
+    testFoldRestartWithSteepLine();
+    testFoldRecoveryKeepsHelixWindings();
 }
