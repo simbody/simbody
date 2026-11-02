@@ -1858,7 +1858,8 @@ Real calcHelixWindAngleAfterJump(
     Real pitch,
     Real windAngle,
     const Vec3& newTermination,
-    CableSpanAlgorithm algorithm)
+    CableSpanAlgorithm algorithm,
+    int maxIterationsAfterJump = 100)
 {
     auto calcHelixPoint = [&](Real t)
     { return Vec3(std::cos(t), std::sin(t), pitch * t); };
@@ -1904,6 +1905,7 @@ Real calcHelixWindAngleAfterJump(
 
     // Jump to the new termination point.
     cable.setAlgorithm(algorithm);
+    cable.setSolverMaxIterations(maxIterationsAfterJump);
     termination.setQ(s, newTermination);
     system.realize(s, Stage::Position);
     SimTK_ASSERT_ALWAYS(
@@ -1950,6 +1952,19 @@ void testFoldRecoveryKeepsHelixWindings()
         1., 4. * Pi, Vec3(1., 1., -10.), CableSpanAlgorithm::MinimumLength);
     SimTK_ASSERT_ALWAYS(std::abs(windAngle - 4. * Pi) < 0.1,
         "The cable should keep two windings around the cylinder.");
+
+    // The same with a steep helix (pitch 5). Its tangent turns by less than
+    // half a turn over both windings, while the surface normal turns by two
+    // full turns, so the curve must again be left to the solver. Unfolding
+    // takes the solver about 190 iterations here.
+    const Real steepWindAngle = calcHelixWindAngleAfterJump(
+        5.,
+        4. * Pi,
+        Vec3(1., 2., -10.),
+        CableSpanAlgorithm::MinimumLength,
+        300);
+    SimTK_ASSERT_ALWAYS(std::abs(steepWindAngle - 4. * Pi) < 0.1,
+        "The cable should keep two windings around the steep helix.");
 
     std::cout << "PASSED TEST: testFoldRecoveryKeepsHelixWindings"
               << std::endl;

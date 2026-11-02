@@ -1419,9 +1419,10 @@ public:
     // that is still useful, including any full windings.
     //
     // Trimming only looks for a forward-facing point within half a turn of
-    // the curve's tangent from a folded end, and a curve that turns by more
-    // than that is never replaced: either could remove a winding. If no such
-    // point is found on such a curve, the curve is left as is.
+    // the curve (of its tangent or the surface normal) from a folded end, and
+    // a curve that turns by more than that is never replaced: either could
+    // remove a winding. If no such point is found on such a curve, the curve
+    // is left as is.
     //
     // If nothing useful is left after trimming, or the curve has zero length,
     // the curve is replaced by a zero-length geodesic whose tangent is aligned
@@ -1471,18 +1472,38 @@ public:
                 "samples");
             const int numSamples = static_cast<int>(samples.size());
 
-            // The angle between two unit tangents.
+            // A curve that overshoots the point where it should leave the
+            // surface folds back by less than half a turn. Trimming more than
+            // that would remove a winding of the curve around the obstacle,
+            // and so would replacing a curve that turns more than that by a
+            // zero-length curve.
+            //
+            // How far the curve turns between two samples is measured by the
+            // larger of the angles that its tangent and the surface normal
+            // turn by. The tangent alone is not enough: on a steep helix
+            // around a cylinder it turns by much less than a full turn per
+            // winding, while the surface normal turns by a full turn.
+            constexpr Real c_MaxTrimTurning = Pi;
             auto calcAngle = [](const UnitVec3& a, const UnitVec3& b) -> Real
             {
                 return std::acos(
                     std::max(Real(-1.), std::min(dot(a, b), Real(1.))));
             };
-            // A curve that overshoots the point where it should leave the
-            // surface folds back by less than half a turn of its tangent.
-            // Trimming more than that would remove a winding of the curve
-            // around the obstacle, and so would replacing a curve that turns
-            // more than that by a zero-length curve.
-            constexpr Real c_MaxTrimTurning = Pi;
+            // The turning angle from sample i - 1 to sample i (zero for i = 0).
+            std::vector<Real> turningToSample(numSamples, 0.);
+            {
+                const ContactGeometry& geometry = getContactGeometry();
+                UnitVec3 prevNormal =
+                    geometry.calcSurfaceUnitNormal(samples[0].point);
+                for (int i = 1; i < numSamples; ++i) {
+                    const UnitVec3 normal =
+                        geometry.calcSurfaceUnitNormal(samples[i].point);
+                    turningToSample[i] = std::max(
+                        calcAngle(samples[i - 1].tangent, samples[i].tangent),
+                        calcAngle(prevNormal, normal));
+                    prevNormal = normal;
+                }
+            }
 
             // Walk the samples from sample begin towards sample end
             // (inclusive), and find the first sample at which the curve
@@ -1490,7 +1511,7 @@ public:
             // direction. Then keep walking while the tangent gets better
             // aligned with the direction. Returns the index of the sample at
             // this first local maximum of the alignment, or -1 if no sample
-            // points forward before the tangent has turned by more than
+            // points forward before the curve has turned by more than
             // c_MaxTrimTurning.
             //
             // Taking the local maximum nearest to the folded end of the curve,
@@ -1508,8 +1529,7 @@ public:
                 Real turning   = 0.;
                 for (int i = begin; i != end + step; i += step) {
                     if (i != begin) {
-                        turning += calcAngle(
-                            samples[i - step].tangent, samples[i].tangent);
+                        turning += turningToSample[std::max(i, i - step)];
                     }
                     if (bestIx < 0 && turning > c_MaxTrimTurning) {
                         break; // Trimming would remove a winding.
@@ -1567,9 +1587,8 @@ public:
             // solver will not report the fold as converged, and may still
             // unfold it without losing the winding.
             Real totalTurning = 0.;
-            for (int i = 1; i < numSamples; ++i) {
-                totalTurning +=
-                    calcAngle(samples[i - 1].tangent, samples[i].tangent);
+            for (Real turning : turningToSample) {
+                totalTurning += turning;
             }
             if (totalTurning > c_MaxTrimTurning) {
                 return;
