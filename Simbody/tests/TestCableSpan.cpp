@@ -1841,6 +1841,108 @@ void testFoldRestartWithSteepLine()
     std::cout << "PASSED TEST: testFoldRestartWithSteepLine" << std::endl;
 }
 
+/** CableSpan fold recovery tests for a cable that winds helically around a
+cylinder.
+
+The cable is wound around a unit cylinder along the helix
+H(t) = (cos t, sin t, pitch * t), by moving its termination point along the
+tangent line of the helix at H(t) in small steps. Then the termination point is
+moved far in one step, and the path is recomputed from the previous solution
+(warm start). The previous geodesic now folds back at its final contact point.
+Undoing that fold must keep the windings of the cable that are still valid. **/
+
+// Wind the cable along the helix up to t = windAngle, jump the termination
+// point to newTermination, and return the angle by which the resulting curve
+// segment winds around the cylinder axis.
+Real calcHelixWindAngleAfterJump(
+    Real pitch,
+    Real windAngle,
+    const Vec3& newTermination,
+    CableSpanAlgorithm algorithm)
+{
+    auto calcHelixPoint = [&](Real t)
+    { return Vec3(std::cos(t), std::sin(t), pitch * t); };
+    auto calcHelixTangent = [&](Real t)
+    { return UnitVec3(-std::sin(t), std::cos(t), pitch); };
+    // Distance from the helix to the cable's end points.
+    const Real lineLength = 2. * std::sqrt(1. + pitch * pitch);
+    const Vec3 origin = calcHelixPoint(0.) - lineLength * calcHelixTangent(0.);
+    auto calcTermination = [&](Real t)
+    { return calcHelixPoint(t) + lineLength * calcHelixTangent(t); };
+
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+    Body::Rigid body(MassProperties(1., Vec3(0.), Inertia(1.)));
+    MobilizedBody::Translation termination(
+        matter.Ground(), Transform(), body, Transform());
+    Real t = 0.3;
+    termination.setDefaultQ(calcTermination(t));
+
+    CableSpan cable(cables, matter.Ground(), origin, termination, Vec3(0.));
+    cable.addObstacle(matter.Ground(), Transform(),
+        std::shared_ptr<ContactGeometry>(new ContactGeometry::Cylinder(1.)),
+        Vec3(1., 0., 0.1));
+    cable.setCurveSegmentAccuracy(1e-12);
+    cable.setSmoothnessTolerance(1e-8);
+    cable.setSolverMaxIterations(100);
+    cable.setAlgorithm(CableSpanAlgorithm::MinimumLength);
+
+    system.realizeTopology();
+    State s = system.getDefaultState();
+    system.realize(s, Stage::Position);
+
+    // Wind the cable along the helix.
+    while (t < windAngle) {
+        t = std::min(windAngle, t + 3. / 180. * Pi);
+        termination.setQ(s, calcTermination(t));
+        system.realize(s, Stage::Position);
+        SimTK_ASSERT_ALWAYS(
+            cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+            "The cable should converge while winding around the cylinder.");
+    }
+
+    // Jump to the new termination point.
+    cable.setAlgorithm(algorithm);
+    termination.setQ(s, newTermination);
+    system.realize(s, Stage::Position);
+    SimTK_ASSERT_ALWAYS(
+        cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
+        "The cable path should converge after the jump.");
+    const CableSpanObstacleIndex obsIx(0);
+    SimTK_ASSERT_ALWAYS(cable.isInContactWithObstacle(s, obsIx),
+        "The cable should remain in contact with the cylinder.");
+
+    // On a cylinder the curve segment is a helix, which winds by its arc
+    // length projected onto the plane normal to the cylinder axis.
+    const Vec3 P = cable.calcCurveSegmentInitialFrenetFrame(s, obsIx).p();
+    const Vec3 Q = cable.calcCurveSegmentFinalFrenetFrame(s, obsIx).p();
+    const Real arcLength =
+        cable.calcLength(s) - (P - origin).norm() - (newTermination - Q).norm();
+    const Real axialLength = Q[2] - P[2];
+    return std::sqrt(
+        std::max(0., arcLength * arcLength - axialLength * axialLength));
+}
+
+void testFoldRecoveryKeepsHelixWindings()
+{
+    for (CableSpanAlgorithm algorithm :
+            {CableSpanAlgorithm::MinimumLength,
+             CableSpanAlgorithm::Scholz2015}) {
+        // A steep helix wound 2.5 turns, with the termination point moved
+        // further along and around the cylinder. A forward-facing stretch
+        // of the folded curve spans more than a full turn here, and only the
+        // part beyond its nearest local alignment maximum may be trimmed: the
+        // cable must keep two full turns.
+        const Real windAngle = calcHelixWindAngleAfterJump(
+            3., 5. * Pi, Vec3(-1., 8., 15. * Pi), algorithm);
+        SimTK_ASSERT_ALWAYS(windAngle > 4. * Pi && windAngle < 5. * Pi,
+            "The cable should keep two windings around the cylinder.");
+    }
+    std::cout << "PASSED TEST: testFoldRecoveryKeepsHelixWindings"
+              << std::endl;
+}
+
 int main()
 {
     testSimpleCable();
@@ -1856,4 +1958,5 @@ int main()
     testFoldRecoveryKeepsWindings();
     testExactFold();
     testFoldRestartWithSteepLine();
+    testFoldRecoveryKeepsHelixWindings();
 }

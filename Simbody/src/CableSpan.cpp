@@ -1467,16 +1467,19 @@ public:
             const int numSamples = static_cast<int>(samples.size());
 
             // Walk the samples from sample begin towards sample end
-            // (inclusive), and find the first run of consecutive samples at
-            // which the curve tangent points forward, i.e. makes an acute
-            // angle with the given direction. Returns the index of the sample
-            // in that run at which the tangent is best aligned with the
-            // direction, or -1 if there is no such run.
+            // (inclusive), and find the first sample at which the curve
+            // tangent points forward, i.e. makes an acute angle with the given
+            // direction. Then keep walking while the tangent gets better
+            // aligned with the direction. Returns the index of the sample at
+            // this first local maximum of the alignment, or -1 if no sample
+            // points forward.
             //
-            // Taking the run nearest to the folded end of the curve, rather
-            // than the best aligned sample of the whole curve, only removes
-            // the folded part, and keeps any full windings of the curve
-            // around the obstacle (see the CableSpan class documentation).
+            // Taking the local maximum nearest to the folded end of the curve,
+            // rather than the best aligned sample of the whole curve, only
+            // removes the folded part, and keeps any full windings of the
+            // curve around the obstacle (see the CableSpan class
+            // documentation). On a helix, for example, a forward-facing run of
+            // samples can span several windings.
             auto findNearestForwardSample =
                 [&](int begin, int end, const auto& calcDirection) -> int
             {
@@ -1491,8 +1494,8 @@ public:
                     if (align > bestAlign) {
                         bestAlign = align;
                         bestIx    = i;
-                    } else if (bestIx >= 0 && align <= 0.) {
-                        break; // End of the first forward-facing run.
+                    } else if (bestIx >= 0) {
+                        break; // First local maximum of the alignment.
                     }
                 }
                 return bestIx;
