@@ -1373,47 +1373,287 @@ void testUseWarmStart() {
     // the same regardless of the default angle since the path solver should
     // always compute the path from the same initial point (i.e., the contact
     // hint).
-    auto calcInitialCurvePoint = [](bool useWarmStart, Real defaultAngle)
-            -> Vec3 {
+    struct PathSolution {
+        Vec3 initialCurvePoint;
+        Real cableLength;
+    };
+    auto calcPathSolution = [](bool useWarmStart, Real defaultAngle)
+            -> PathSolution {
         PendulumSystem pendulumSystem(useWarmStart, defaultAngle);
         State s = pendulumSystem.getDefaultState();
         pendulumSystem.realizePosition(s);
         pendulumSystem.setPendulumAngle(s, 2.0*SimTK::Pi);
         pendulumSystem.realizePosition(s);
-        return pendulumSystem.getInitialCurvePoint(s);
+        return {pendulumSystem.getInitialCurvePoint(s),
+                pendulumSystem.getCableLength(s)};
     };
 
 
     // Warm start enabled. The path should have converged to similar solutions,
     // but on opposite sides of the ellipsoid obstacle, so the initial wrap
     // points should have equal magnitude but opposite sign in the x-direction
-    // and have equal y-components. The z-components should be zero.
+    // and have equal y-components. The z-components should be zero, and the
+    // two paths should be of equal length.
     const Real tol = 1e-5;
     {
-        auto firstPoint = calcInitialCurvePoint(true, 0.05*SimTK::Pi);
-        auto secondPoint = calcInitialCurvePoint(true, 1.95*SimTK::Pi);
-        SimTK_ASSERT_ALWAYS(std::abs(firstPoint[0] + secondPoint[0]) < tol,
+        auto first = calcPathSolution(true, 0.05*SimTK::Pi);
+        auto second = calcPathSolution(true, 1.95*SimTK::Pi);
+        SimTK_ASSERT_ALWAYS(
+            std::abs(first.initialCurvePoint[0]
+                     + second.initialCurvePoint[0]) < tol,
             "Warm start enabled: x-components of the initial wrap points "
             "should have equal magnitude but opposite sign, but they do not.");
-        SimTK_ASSERT_ALWAYS(std::abs(firstPoint[1] - secondPoint[1]) < tol,
+        SimTK_ASSERT_ALWAYS(
+            std::abs(first.initialCurvePoint[1]
+                     - second.initialCurvePoint[1]) < tol,
              "Warm start enabled: y-components of the initial wrap points "
              "should be equal, but they are not.");
-        SimTK_ASSERT_ALWAYS(std::abs(firstPoint[2]) < tol &&
-                            std::abs(secondPoint[2]) < tol,
+        SimTK_ASSERT_ALWAYS(std::abs(first.initialCurvePoint[2]) < tol &&
+                            std::abs(second.initialCurvePoint[2]) < tol,
             "Warm start enabled: z-components of the initial wrap points "
             "should be zero, but they are not.");
+        // The two solutions are mirror images of each other, so any difference
+        // in length means they are not the same path reflected. This catches a
+        // solution that wraps the obstacle correctly on one side but has
+        // folded back along the geodesic on the other: such a path can sit at
+        // very nearly the same wrap point, so the checks above can pass while
+        // the length is off by tens of percent.
+        SimTK_ASSERT2_ALWAYS(
+            std::abs(first.cableLength - second.cableLength) < tol,
+            "Warm start enabled: the two paths wrap opposite sides of the "
+            "obstacle and should be of equal length, but they are %g and %g.",
+            first.cableLength,
+            second.cableLength);
     }
 
     // Warm start disabled. The curve points should be equal since the path
     // solver should be computing the path from the same initial point (i.e.,
     // the contact hint) in both case.
     {
-        auto firstPoint = calcInitialCurvePoint(false, 0.05*SimTK::Pi);
-        auto secondPoint = calcInitialCurvePoint(false, 1.95*SimTK::Pi);
-        SimTK_ASSERT_ALWAYS((firstPoint - secondPoint).norm() < tol,
+        auto first = calcPathSolution(false, 0.05*SimTK::Pi);
+        auto second = calcPathSolution(false, 1.95*SimTK::Pi);
+        SimTK_ASSERT_ALWAYS(
+            (first.initialCurvePoint - second.initialCurvePoint).norm() < tol,
             "Warm start disabled: initial wrap points do not match.");
+        SimTK_ASSERT2_ALWAYS(
+            std::abs(first.cableLength - second.cableLength) < tol,
+            "Warm start disabled: the paths are computed from the same initial "
+            "point and should be of equal length, but they are %g and %g.",
+            first.cableLength,
+            second.cableLength);
     }
 }
+
+/** CableSpan tangential alignment test.
+
+At every contact point the straight line segment must run in the same direction
+as the geodesic it meets: writing e for the straight line direction and t, n, b
+for the geodesic's Frenet frame, a correct path has dot(e, t) = +1.
+
+The path error that the solver drives to zero measures only dot(e, n) and
+dot(e, b). Both of those vanish whenever e is parallel to t, which is true for
+the folded path dot(e, t) = -1 just as much as for the correct one, so the path
+error alone cannot tell the two apart. Two things keep folded paths out:
+
+  1. CurveSegment::calcInitCurve starts the path from a tangent that bisects
+     the two straight line directions, so both contact points begin aligned.
+     When the contact point hint admits no such tangent, the contact point is
+     placed by touchdown detection instead.
+
+  2. The path's smoothness is the angle between e and t, computed with atan2
+     so that it tends to Pi for a folded path rather than to zero. Since
+     convergence is decided on the smoothness, a folded path cannot be
+     reported as converged.
+
+This test checks the resulting invariants over hints placed all the way around
+a sphere, including hints that admit no smooth path at all. **/
+
+namespace {
+
+/* Compute the largest angle between a straight line segment and the geodesic
+tangent at the contact point where the two meet, over all contact points of a
+cable. This is the quantity CableSpan::getSmoothness should report. Returns NaN
+if the cable is not in contact with any obstacle. */
+Real calcMaxMisalignmentAngle(
+    const State& s,
+    const CableSpan& cable,
+    const Vec3& origin,
+    const Vec3& termination)
+{
+    Real maxAngle  = NaN;
+    Vec3 prevPoint = origin;
+    for (CableSpanObstacleIndex ix(0); ix < cable.getNumObstacles(); ++ix) {
+        if (!cable.isInContactWithObstacle(s, ix)) {
+            continue;
+        }
+        const Transform X_GP = cable.calcCurveSegmentInitialFrenetFrame(s, ix);
+        const Transform X_GQ = cable.calcCurveSegmentFinalFrenetFrame(s, ix);
+
+        // The point that the straight line segment leaving Q runs to: the next
+        // obstacle in contact, or the termination point.
+        Vec3 nextPoint = termination;
+        for (CableSpanObstacleIndex jx(ix + 1); jx < cable.getNumObstacles();
+             ++jx) {
+            if (cable.isInContactWithObstacle(s, jx)) {
+                nextPoint = cable.calcCurveSegmentInitialFrenetFrame(s, jx).p();
+                break;
+            }
+        }
+
+        // Decomposing e in the Frenet frame, the component along the tangent
+        // is the cosine of the angle and the magnitude of the remainder is its
+        // sine. The tangent is the X axis of the Frenet frame.
+        auto calcAngle = [](const UnitVec3& e, const Transform& X) -> Real
+        {
+            return std::atan2(cross(e, X.x()).norm(), dot(e, X.x()));
+        };
+        const Real angleAtP =
+            calcAngle(UnitVec3(X_GP.p() - prevPoint), X_GP);
+        const Real angleAtQ =
+            calcAngle(UnitVec3(nextPoint - X_GQ.p()), X_GQ);
+
+        const Real angle = std::max(angleAtP, angleAtQ);
+        maxAngle  = isNaN(maxAngle) ? angle : std::max(maxAngle, angle);
+        prevPoint = X_GQ.p();
+    }
+    return maxAngle;
+}
+
+} // namespace
+
+void testTangentialAlignment()
+{
+    const Real smoothnessTolerance = 1e-8;
+
+    // Counters used to confirm the sweep below is not vacuous.
+    int numInContact        = 0;
+    int numConvergedAligned  = 0;
+    int numLargeMisalignment = 0;
+
+    for (CableSpanAlgorithm algorithm :
+         {CableSpanAlgorithm::Scholz2015, CableSpanAlgorithm::MinimumLength}) {
+        for (Real gap : {0.02, 0.1, 0.5, 2.0}) {
+            for (Real separationDeg : {20., 60., 100., 150.}) {
+                // Sweep the contact point hint all the way around the sphere.
+                // Hints on the far side admit no smooth path; those must be
+                // reported as unconverged, never as a converged folded path.
+                for (Real hintDeg : {0., 45., 90., 135., 180., 225., 270.,
+                                     315.}) {
+                    const Real radius     = 1.;
+                    const Real halfAngle  = separationDeg / 2. / 180. * Pi;
+                    const Real hintAngle  = hintDeg / 180. * Pi;
+                    const Real attachment = radius + gap;
+
+                    const Vec3 origin(
+                        attachment * std::sin(-halfAngle),
+                        attachment * std::cos(halfAngle),
+                        0.);
+                    const Vec3 termination(
+                        attachment * std::sin(halfAngle),
+                        attachment * std::cos(halfAngle),
+                        0.);
+                    // Nudged out of the plane of the attachment points to
+                    // avoid an exactly degenerate initial path.
+                    const Vec3 hint(
+                        radius * std::sin(hintAngle),
+                        radius * std::cos(hintAngle),
+                        1e-3);
+
+                    MultibodySystem system;
+                    SimbodyMatterSubsystem matter(system);
+                    CableSubsystem cables(system);
+
+                    CableSpan cable(
+                        cables,
+                        matter.Ground(),
+                        origin,
+                        matter.Ground(),
+                        termination);
+                    cable.addObstacle(
+                        matter.Ground(),
+                        Transform(),
+                        std::shared_ptr<ContactGeometry>(
+                            new ContactGeometry::Sphere(radius)),
+                        hint);
+                    cable.setCurveSegmentAccuracy(1e-12);
+                    cable.setSmoothnessTolerance(smoothnessTolerance);
+                    cable.setSolverMaxIterations(200);
+                    cable.setAlgorithm(algorithm);
+
+                    system.realizeTopology();
+                    State s = system.getDefaultState();
+                    system.realize(s, Stage::Position);
+
+                    const Real measuredAngle = calcMaxMisalignmentAngle(
+                        s, cable, origin, termination);
+
+                    // Hints far from the attachment points can leave the cable
+                    // clear of the obstacle, which is correct behavior and
+                    // leaves nothing to check.
+                    if (isNaN(measuredAngle)) {
+                        continue;
+                    }
+                    ++numInContact;
+
+                    // The reported smoothness must be the actual misalignment
+                    // angle. This is what distinguishes a folded path from a
+                    // correct one: a smoothness built only from dot(e, n) and
+                    // dot(e, b) would read zero for both.
+                    const Real reportedSmoothness = cable.getSmoothness(s);
+                    SimTK_ASSERT4_ALWAYS(
+                        std::abs(reportedSmoothness - measuredAngle) < 1e-9,
+                        "Reported smoothness (%g) does not match the measured "
+                        "misalignment angle (%g) for gap=%g, hint=%g deg",
+                        reportedSmoothness,
+                        measuredAngle,
+                        gap,
+                        hintDeg);
+
+                    if (measuredAngle > 1.) {
+                        ++numLargeMisalignment;
+                    }
+
+                    // A path reported as converged must be aligned. Checked
+                    // against the independently measured angle so that this
+                    // does not just restate the convergence test.
+                    if (reportedSmoothness < smoothnessTolerance) {
+                        SimTK_ASSERT3_ALWAYS(
+                            measuredAngle < smoothnessTolerance,
+                            "A path was reported as converged while "
+                            "misaligned by %g rad, for gap=%g, hint=%g deg",
+                            measuredAngle,
+                            gap,
+                            hintDeg);
+                        ++numConvergedAligned;
+                    }
+                }
+            }
+        }
+    }
+
+    SimTK_ASSERT_ALWAYS(
+        numInContact > 0,
+        "No configuration in the tangential alignment test made contact with "
+        "the obstacle; the test is vacuous.");
+    SimTK_ASSERT_ALWAYS(
+        numConvergedAligned > 0,
+        "No configuration in the tangential alignment test produced a "
+        "converged, aligned path; the test is vacuous.");
+
+    // The smoothness check above only distinguishes the new angle-valued
+    // smoothness from the old dot(e, n) / dot(e, b) one on paths that are
+    // actually misaligned, so make sure at least one such path is present.
+    // Hints on the far side of the sphere currently provide them. If the
+    // solver is improved to the point where no configuration here ends up
+    // badly misaligned, this check should be re-pointed at one that does
+    // rather than simply removed.
+    SimTK_ASSERT_ALWAYS(
+        numLargeMisalignment > 0,
+        "No configuration in the tangential alignment test ended up badly "
+        "misaligned, so the smoothness check was never exercised on a folded "
+        "path.");
+}
+
 
 int main()
 {
@@ -1425,4 +1665,5 @@ int main()
     testSolverOptimum();
     testRobustInitialPath();
     testUseWarmStart();
+    testTangentialAlignment();
 }

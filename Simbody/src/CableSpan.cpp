@@ -51,6 +51,21 @@ namespace
 There are four: see NaturalGeodesicCorrections below. */
 constexpr int c_GeodesicDOF = 4;
 
+/* The smallest alignment dot(e, t) that the initial path produced from an
+obstacle's contact point hint is allowed to have before the contact point is
+placed by touchdown detection instead. See CurveSegment::calcInitCurve.
+
+This is deliberately tiny: it only rejects a hint at which no aligned tangent
+exists at all, rather than judging how good the hint is. The alignment is
+computed from the neighboring path points, which during initialization are
+still at their own provisional contact points, so for a cable crossing several
+obstacles it is not yet a meaningful measure of hint quality -- a perfectly
+good hint can score poorly simply because its neighbors have not been placed
+yet. Raising this to where it starts expressing a preference causes hints to be
+discarded in favor of touchdown placement, which loses the wrapping side the
+hint was there to select. */
+constexpr Real c_MinInitialAlignment = 0.01;
+
 //------------------------------------------------------------------------------
 //  Natural Geodesic Corrections
 //------------------------------------------------------------------------------
@@ -145,6 +160,9 @@ struct MatrixWorkspace {
 
         normalPathErrorJacobian = Matrix(nC, nQ, 0.);
 
+        tangentialAlignment         = Vector(nC, 0.);
+        tangentialAlignmentJacobian = Matrix(nC, nQ, 0.);
+
         A      = Matrix(nC, nC, 0.);
         b      = Vector(nC, 0.);
         lambda = Vector(nC, 0.);
@@ -207,8 +225,28 @@ struct MatrixWorkspace {
     Stacking all path error elements, of all active obstacles, gives the
     binormal path error vector. */
     Vector binormalPathError;
-    /* The maximum of the normal and binormal path errors. */
+    /* The maximum of the normal and binormal path errors. This is the norm
+    of the Newton residual that the solver drives to zero, and is used to
+    weight the solver's regularization. It is NOT used to decide convergence:
+    it vanishes for a folded path just as it does for the correct one, since
+    both dot(e, n) and dot(e, b) are zero when e is antiparallel to t. */
     Real maxPathError = NaN;
+    /* The largest angle between a straight line segment and the geodesic
+    tangent at the contact point where the two meet, over all contact points,
+    measured in radians. Unlike maxPathError this distinguishes the correctly
+    aligned path (angle 0) from the folded path (angle Pi), so it is the
+    quantity that is compared against the smoothness tolerance to decide
+    convergence, and the quantity reported as the path's smoothness. */
+    Real maxMisalignmentAngle = NaN;
+    /* The alignment dot(e, t) between each straight line segment and the
+    geodesic tangent at the contact point where the two meet. This is +1 for a
+    correctly aligned path and -1 for a path that has folded back along the
+    geodesic. Two elements are computed per active obstacle: one at the initial
+    and one at the final contact point. */
+    Vector tangentialAlignment;
+    /* The Jacobian of the tangential alignment vector to the natural geodesic
+    corrections. */
+    Matrix tangentialAlignmentJacobian;
     /* The Jacobian of the normal path error vector to the natural geodesic
     corrections of all active obstacles. */
     Matrix normalPathErrorJacobian;
@@ -479,6 +517,12 @@ struct CableSpanParameters final : IntegratorTolerances {
     // to a max allowed linear stepsize using the local radius of curvature
     // evaluated at each obstacle.
     Real solverMaxStepSize = 10. / 180. * Pi;
+    // The minimum allowed alignment dot(e, t) between a straight line segment
+    // and the geodesic tangent at the contact point where the two meet. The
+    // solver limits its stepsize such that this bound is never crossed, which
+    // confines it to the basin of the correctly aligned path. See
+    // calcAlignmentStepSize. Any value <= -1 disables this limit.
+    Real solverMinTangentialAlignment = 0.;
     // The algorithm used to compute the optimal path.
     CableSpanAlgorithm algorithm = CableSpanAlgorithm::MinimumLength;
     // Whether the solver uses the previously computed path as a warm start to
@@ -1153,6 +1197,80 @@ public:
         dataInst.trackingPointOnLine_S = trackingPoint_S;
     }
 
+    /* Compute the tangent direction to use when shooting a zero-length
+    geodesic at the given contact point, and report the best alignment it can
+    achieve.
+
+    Both straight line segments meet a zero-length geodesic at the same point,
+    so both have to align with this single tangent: the path must have
+    dot(e, t) > 0 at both contact points, or it lies in the basin of a folded
+    path. The path error measures only dot(e, n) and dot(e, b), which vanish
+    for a folded path just as they do for the correct one, so once the solver
+    starts in that basin it converges to the fold.
+
+    Writing e_P and e_Q for the two straight line directions and l_P and l_Q
+    for their lengths,
+        nextPoint - prevPoint = l_P * e_P + l_Q * e_Q,
+    that is, the chord between the neighboring path points is the
+    *length-weighted* sum of the two directions. Whenever one segment is much
+    shorter than the other, the longer one dominates that sum and the tangent
+    can come out anti-aligned with the shorter segment. The unweighted sum,
+    which bisects the two directions, has no such bias and is the direction
+    that maximizes the smaller of the two alignments.
+
+    Only the component of the tangent in the surface's tangent plane has any
+    effect on the geodesic, so the two directions are projected into that plane
+    before being bisected. Without that projection a segment running nearly
+    along the surface normal, whose in-plane component is small, would again be
+    dominated by the other one.
+
+    The best achievable alignment is reported in bestAlignment. For a unit
+    tangent t in the tangent plane,
+        dot(e, t) = dot(inPlane(e), t) = |inPlane(e)| cos(angle),
+    so the alignment is capped by the length of each line direction's in-plane
+    component: a segment arriving along the surface normal has nothing in the
+    tangent plane to align with, whichever tangent is chosen. The bisector
+    splits the in-plane angle theta evenly, leaving cos(theta/2) for both, so
+        bestAlignment = min(|inPlane(e_P)|, |inPlane(e_Q)|) cos(theta/2),
+    and since the bisector is a sum of two unit vectors its norm is
+    2 cos(theta/2). This correctly reports zero when either in-plane component
+    vanishes. A value near one means the hint lies on the chord and the
+    straight segments graze the surface there; a value near zero means they
+    double back on each other, or run into the surface. */
+    Vec3 calcZeroLengthGeodesicTangent_S(
+        const Vec3& contactPoint_S,
+        const Vec3& prevPoint_S,
+        const Vec3& nextPoint_S,
+        Real& bestAlignment) const
+    {
+        const UnitVec3 normal_S =
+            getContactGeometry().calcSurfaceUnitNormal(contactPoint_S);
+        auto calcInPlaneComponent = [&normal_S](const Vec3& v) -> Vec3
+        {
+            const UnitVec3 direction(v);
+            return Vec3(direction) - dot(direction, normal_S) * normal_S;
+        };
+        const Vec3 inPlaneToP =
+            calcInPlaneComponent(contactPoint_S - prevPoint_S);
+        const Vec3 inPlaneFromQ =
+            calcInPlaneComponent(nextPoint_S - contactPoint_S);
+
+        const Real inPlaneLengthP = inPlaneToP.norm();
+        const Real inPlaneLengthQ = inPlaneFromQ.norm();
+        const Vec3 bisector_S =
+            (inPlaneLengthP > 0. ? inPlaneToP / inPlaneLengthP : Vec3(0.)) +
+            (inPlaneLengthQ > 0. ? inPlaneFromQ / inPlaneLengthQ : Vec3(0.));
+
+        bestAlignment = std::min(inPlaneLengthP, inPlaneLengthQ)
+                        * bisector_S.norm() / 2.;
+
+        // If the bisector vanishes there is no aligned tangent to be had at
+        // this point; fall back to the chord so that a direction is still
+        // returned. The caller is expected to notice the zero alignment.
+        return bisector_S.norm() > SignificantReal ? bisector_S
+                                                   : nextPoint_S - prevPoint_S;
+    }
+
     // Helper function for initializing the path.
     void calcInitCurve(const State& state) const
     {
@@ -1166,15 +1284,33 @@ public:
         }
         // If we do have a contact point hint, initialize the path by shooting a
         // zero-length geodesic at that location.
-
-        // Shoot a zero length geodesic at the contact point with tangent
-        // directed from prevPoint to nextPoint:
         const Vec3 prevPoint_S = findPrevPathPoint_S(state);
         const Vec3 nextPoint_S = findNextPathPoint_S(state);
+        const Vec3 contactPoint_S =
+            getContactGeometry().projectDownhillToNearestPoint(
+                getContactPointHint());
+
+        Real bestAlignment = NaN;
+        const Vec3 tangent_S = calcZeroLengthGeodesicTangent_S(
+            contactPoint_S, prevPoint_S, nextPoint_S, bestAlignment);
+
+        // When the hint cannot give a comfortably aligned start, prefer a
+        // contact point that can. Treating the curve as lifted and running
+        // touchdown detection places the contact point on the chord between
+        // the neighboring path points, where the straight segments graze the
+        // surface and alignment is good by construction. The hint is kept as
+        // the starting guess for that search, so it still biases which part of
+        // the surface is found.
+        if (bestAlignment < c_MinInitialAlignment) {
+            liftCurveFromSurface(contactPoint_S, updDataInst(state));
+            calcCurveTouchdownIfNeeded(state);
+            return;
+        }
+
         shootNewGeodesic(
-            getContactPointHint(),     // = location
-            nextPoint_S - prevPoint_S, // = tangent
-            0.,                        // = arc length
+            contactPoint_S, // = location
+            tangent_S,      // = tangent
+            0.,             // = arc length
             getDataInst(state).integratorInitialStepSize,
             updDataInst(state));
     }
@@ -1211,11 +1347,20 @@ public:
             ContactGeometry::NearestPointOnLineResult::PointFallsBelowSurface;
 
         // In case of touchdown, shoot a zero-length geodesic at the touchdown
-        // point.
+        // point. The tangent is chosen by the same rule used to initialize the
+        // path, so that a curve touching down does not start out folded; see
+        // calcZeroLengthGeodesicTangent_S. There is no better contact point to
+        // fall back to here, so the reported alignment is not acted on.
         if (touchdownDetected) {
+            Real bestAlignment = NaN;
+            const Vec3 tangent_S = calcZeroLengthGeodesicTangent_S(
+                pointOnLineNearSurface_S,
+                prevPoint_S,
+                nextPoint_S,
+                bestAlignment);
             shootNewGeodesic(
                 pointOnLineNearSurface_S,
-                nextPoint_S - prevPoint_S,
+                tangent_S,
                 0.,
                 dataInst.integratorInitialStepSize,
                 updDataInst(state));
@@ -3395,13 +3540,90 @@ void calcCurveCorrectionStepSize(
     }
 }
 
+/* Compute the maximum allowed stepsize such that the alignment dot(e, t)
+between each straight line segment and the geodesic tangent of the curve
+segment it meets does not cross minAllowedAlignment.
+
+The normal and binormal path errors, dot(e, n) and dot(e, b), both vanish when
+e is parallel to t, which happens for e = +t as well as for the folded path
+e = -t. Both are therefore solutions of the path error equations, and the
+solver will happily converge to either one. The two cases are separated by the
+surface dot(e, t) = 0, so keeping every contact point strictly on the positive
+side of that surface confines the solver to the basin of the correctly aligned
+path. This is a globalization device only: a converged path has dot(e, t) = 1
+everywhere, so this bound is never active at a solution and cannot perturb the
+path that the solver converges to.
+
+The crossing is predicted using the alignment Jacobian, i.e. to first order in
+the correction. Since dot(e, t) is nonlinear in the corrections, the step is
+clipped to a fraction of the predicted distance to the bound rather than
+exactly onto it. */
+Real calcAlignmentStepSize(
+    const Vector& alignment,
+    const Matrix& alignmentJacobian,
+    const Vector& pathCorrection,
+    Real minAllowedAlignment)
+{
+    // The fraction of the predicted distance to the alignment bound that a
+    // single step is allowed to cover.
+    constexpr Real c_FractionToBound = 0.95;
+
+    // The alignment can never be less than -1, so such a bound is impossible
+    // to cross and the limit is effectively disabled.
+    if (minAllowedAlignment <= -1.) {
+        return 1.;
+    }
+
+    Real stepSize = 1.;
+    for (int i = 0; i < alignment.size(); ++i) {
+        const Real a = alignment[i];
+        // If the bound is already violated then the solver is outside the
+        // basin that this limit is meant to protect. Clipping the step cannot
+        // bring it back, and would only prevent it from recovering, so leave
+        // the step alone.
+        if (a <= minAllowedAlignment) {
+            continue;
+        }
+        // The predicted change in alignment for a full step.
+        Real da = 0.;
+        for (int j = 0; j < pathCorrection.size(); ++j) {
+            da += alignmentJacobian(i, j) * pathCorrection[j];
+        }
+        // The alignment is a dot product of two unit vectors, so it is
+        // confined to [-1, 1] and can never change by more than the width of
+        // that interval. A larger prediction than that is proof that the
+        // linearization is invalid here, which happens when a straight line
+        // segment is very short: the path error Jacobian carries a factor
+        // 1/length, so a small correction swings the line direction wildly.
+        // Clipping on such a prediction would shrink the step towards zero
+        // and stall the solver without actually bounding the alignment, so
+        // the limit is not applied.
+        constexpr Real c_AlignmentRange = 2.;
+        if (std::abs(da) > c_AlignmentRange) {
+            continue;
+        }
+        // Only a step that is predicted to cross the bound needs clipping.
+        if (a + da >= minAllowedAlignment) {
+            continue;
+        }
+        // Since a > minAllowedAlignment > a + da, the step to the bound,
+        // (minAllowedAlignment - a) / da, lies in (0, 1).
+        const Real allowedStepSize =
+            c_FractionToBound * (minAllowedAlignment - a) / da;
+        stepSize = std::min(stepSize, allowedStepSize);
+    }
+
+    return stepSize;
+}
+
 // Helper for computing the stepsize such that a given path correction vector
 // does not exceed the max allowed angular displacement at the boundary frames
-// of the curve segments.
+// of the curve segments, and does not fold any straight line segment back onto
+// the curve segment it meets.
 Real calcPathCorrectionStepSize(
     const State& s,
     const CableSegment& cableSegment,
-    const Vector& pathCorrection)
+    const MatrixWorkspace& data)
 {
     Real stepSize     = 1.;
     int activeCurveIx = 0; // Index of curve in all that are in contact.
@@ -3416,11 +3638,22 @@ Real calcPathCorrectionStepSize(
         calcCurveCorrectionStepSize(
             s,
             curve,
-            MatrixWorkspace::getCurveCorrection(pathCorrection, activeCurveIx),
+            MatrixWorkspace::getCurveCorrection(
+                data.pathCorrection, activeCurveIx),
             cable.getParameters().solverMaxStepSize,
             stepSize);
         ++activeCurveIx;
     }
+
+    // Limit the stepsize such that no contact point crosses to the folded side
+    // of the alignment bound.
+    stepSize = std::min(
+        stepSize,
+        calcAlignmentStepSize(
+            data.tangentialAlignment,
+            data.tangentialAlignmentJacobian,
+            data.pathCorrection,
+            cable.getParameters().solverMinTangentialAlignment));
 
     return stepSize;
 }
@@ -3475,6 +3708,7 @@ void CableSpan::Impl::calcSolverStep(
         data.lineSegments);
 
     data.maxPathError = 0.; // Reset the max path error field.
+    data.maxMisalignmentAngle = 0.;
     // Only compute the path errors if there are obstacles in contact with the
     // cable.
     if (data.numObstaclesInContact > 0) {
@@ -3490,14 +3724,41 @@ void CableSpan::Impl::calcSolverStep(
             data.lineSegments,
             {BinormalAxis},
             data.binormalPathError);
+        calcPathErrorVector<1>(
+            cableSegment,
+            s,
+            data.lineSegments,
+            {TangentAxis},
+            data.tangentialAlignment);
         data.maxPathError = std::max(
             data.normalPathError.normInf(),
             data.binormalPathError.normInf());
+
+        // Resolve the path errors into the actual angle between each straight
+        // line segment and the geodesic tangent it meets. Decomposing the
+        // straight line direction in the Frenet frame,
+        //     e = dot(e,t) t + dot(e,n) n + dot(e,b) b,
+        // the component along the tangent is the cosine of that angle and the
+        // magnitude of the remainder is its sine, so
+        //     angle = atan2(hypot(dot(e,n), dot(e,b)), dot(e,t)).
+        // Using atan2 keeps the angle meaningful over the whole range: it
+        // tends to Pi for a path that has folded back along the geodesic,
+        // where dot(e,n) and dot(e,b) both vanish and the path errors alone
+        // cannot tell the fold apart from the correct path.
+        for (int i = 0; i < data.normalPathError.size(); ++i) {
+            const Real misalignmentAngle = std::atan2(
+                std::hypot(data.normalPathError[i], data.binormalPathError[i]),
+                data.tangentialAlignment[i]);
+            data.maxMisalignmentAngle =
+                std::max(data.maxMisalignmentAngle, misalignmentAngle);
+        }
     }
 
-    // If the path error is small we have converged to the optimal solution,
-    // and there is no need to compute the geodesic corrections.
-    data.converged = data.maxPathError <= getParameters().smoothnessTolerance;
+    // If every straight line segment meets its geodesic within tolerance we
+    // have converged to the optimal solution, and there is no need to compute
+    // the geodesic corrections.
+    data.converged =
+        data.maxMisalignmentAngle <= getParameters().smoothnessTolerance;
     if (data.converged) {
         return;
     }
@@ -3640,9 +3901,19 @@ void CableSpan::Impl::calcSolverStep(
         SimTK_ASSERT(false, "Unknown CableSpanAlgorithm kind");
     }
 
+    // Compute the Jacobian of the alignment of the straight line segments with
+    // the curve segments they meet. The alignment itself was computed in step
+    // 1 above. Together these limit the stepsize below such that the solver
+    // cannot step over to a folded path.
+    calcPathErrorJacobian<1>(
+        cableSegment,
+        s,
+        data.lineSegments,
+        {TangentAxis},
+        data.tangentialAlignmentJacobian);
+
     // Compute the stepsize along the descending direction.
-    const Real stepSize =
-        calcPathCorrectionStepSize(s, cableSegment, data.pathCorrection);
+    const Real stepSize = calcPathCorrectionStepSize(s, cableSegment, data);
     data.pathCorrection *= stepSize;
 }
 
@@ -3667,7 +3938,7 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
     {
         dataPos.cableLength += calcCableSegmentLength(
             s, cableSegment, workspace.lineSegments);
-        dataPos.smoothness = std::max(workspace.maxPathError,
+        dataPos.smoothness = std::max(workspace.maxMisalignmentAngle,
             dataPos.smoothness);
         dataPos.loopIter += solverLoopCount;
 
@@ -4850,6 +5121,23 @@ Real CableSpan::getSmoothnessTolerance() const
 void CableSpan::setSmoothnessTolerance(Real tolerance)
 {
     updImpl().updParameters().smoothnessTolerance = tolerance;
+}
+
+Real CableSpan::getSolverMinTangentialAlignment() const
+{
+    return getImpl().getParameters().solverMinTangentialAlignment;
+}
+
+void CableSpan::setSolverMinTangentialAlignment(Real minAlignment)
+{
+    SimTK_ERRCHK1_ALWAYS(
+        minAlignment < 1.,
+        "CableSpan::setSolverMinTangentialAlignment",
+        "The minimum tangential alignment (%g) must be less than one: a"
+        " converged path has an alignment of exactly one, so a bound of one or"
+        " more can never be satisfied.",
+        minAlignment);
+    updImpl().updParameters().solverMinTangentialAlignment = minAlignment;
 }
 
 void CableSpan::setAlgorithm(CableSpanAlgorithm algorithm)

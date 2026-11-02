@@ -490,6 +490,29 @@ public:
     State must be realized to Stage::Position. **/
     Real getSmoothness(const State& state) const;
 
+    /** Get the minimum allowed alignment between a straight line segment and
+    the geodesic tangent at the contact point where the two meet.
+    See CableSpan::setSolverMinTangentialAlignment. **/
+    Real getSolverMinTangentialAlignment() const;
+
+    /** Set the minimum allowed alignment between a straight line segment and
+    the geodesic tangent at the contact point where the two meet, measured as
+    the dot product of the two directions.
+
+    A converged path has an alignment of +1 at every contact point. An
+    alignment of -1 describes a path whose straight line segment has folded
+    back along the geodesic; such a path satisfies the path error equations
+    just as well as the correct solution, and the solver can converge to it.
+    The two cases are separated by an alignment of zero, so the solver limits
+    its stepsize such that this bound is never crossed, keeping it in the
+    basin of the correctly aligned path. Because the alignment is +1 at any
+    solution, this bound is never active at convergence and so does not change
+    the path that is found.
+
+    The default is zero. Any value <= -1 disables the limit, which allows the
+    solver to converge to a folded path. **/
+    void setSolverMinTangentialAlignment(Real minAlignment);
+
     /** Set the algorithm used to compute the optimal path. **/
     void setAlgorithm(CableSpanAlgorithm algorithm);
 
