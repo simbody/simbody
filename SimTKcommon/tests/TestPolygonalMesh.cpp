@@ -136,6 +136,8 @@ void testLoadObjFileWithWhitespaceDelimitedFaces() {
     const Vec2 expectedTextureCoordinates[] = {Vec2(0, 0), Vec2(1, 0),
                                                Vec2(1, 1), Vec2(0, 1)};
     ASSERT(mesh.getNumFaces() == 2);
+    // A single "vn" shared by every face vertex is legal OBJ.
+    ASSERT(mesh.hasNormalsAtFaces());
     for (int face = 0; face < mesh.getNumFaces(); ++face) {
         ASSERT(mesh.getNumVerticesForFace(face) == 4);
         for (int vertex = 0; vertex < 4; ++vertex) {
