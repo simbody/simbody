@@ -51,6 +51,10 @@ namespace
 There are four: see NaturalGeodesicCorrections below. */
 constexpr int c_GeodesicDOF = 4;
 
+/* Number of tangent, normal, and binormal alignment residuals of a curve
+segment: one for each axis of the Frenet frame at both contact points. */
+constexpr int c_AlignmentResidualsPerCurve = 6;
+
 /* The smallest alignment between a curve geodesic and the adjacent straight
 line segments that the initial path produced from an obstacle's contact point
 hint can have before the contact point is placed by touchdown detection instead.
@@ -159,7 +163,7 @@ struct MatrixWorkspace {
 
         normalPathErrorJacobian = Matrix(nC, nQ, 0.);
 
-        tangentialAlignment = Vector(nC, 0.);
+        alignmentError = Vector(nC, 0.);
 
         A      = Matrix(nC, nC, 0.);
         b      = Vector(nC, 0.);
@@ -229,9 +233,14 @@ struct MatrixWorkspace {
     the angle between a straight line segment and the geodesic tangent at
     contact points. */
     Real maxAlignmentError = NaN;
-    /* The alignment, dot(e, t) ∈ [-1, 1], between each straight line segment
-    and the geodesic tangent for all contact points. */
-    Vector tangentialAlignment;
+    /* The alignment error at each contact point, see maxAlignmentError. */
+    Vector alignmentError;
+    /* The interleaved tangent, normal, and binormal residuals and their
+    Jacobian, augmented with diagonal regularization for AlignmentCost.
+    Allocated on first use by that algorithm, and reused across solver
+    iterations. */
+    Vector alignmentResidual;
+    Matrix alignmentJacobian;
     /* The Jacobian of the normal path error vector to the natural geodesic
     corrections of all active obstacles. */
     Matrix normalPathErrorJacobian;
@@ -3638,7 +3647,7 @@ void CableSpan::Impl::calcSolverStep(
             s,
             data.lineSegments,
             {TangentAxis},
-            data.tangentialAlignment);
+            data.alignmentError);
         data.maxPathError = std::max(
             data.normalPathError.normInf(),
             data.binormalPathError.normInf());
@@ -3655,13 +3664,14 @@ void CableSpan::Impl::calcSolverStep(
         //
         //     alignmentError = atan2(hypot(dot(e,n), dot(e,b)), dot(e,t)).
         //
+        // The alignmentError vector holds dot(e,t) on entry, and is converted
+        // to the alignment angle in place.
         for (int i = 0; i < data.normalPathError.size(); ++i) {
-            const Real alignmentError = std::atan2(
+            data.alignmentError[i] = std::atan2(
                 std::hypot(data.normalPathError[i], data.binormalPathError[i]),
-                data.tangentialAlignment[i]);
-            data.maxAlignmentError =
-                std::max(data.maxAlignmentError, alignmentError);
+                data.alignmentError[i]);
         }
+        data.maxAlignmentError = data.alignmentError.normInf();
     }
 
     // If every straight line segment meets its geodesic within tolerance we
@@ -3805,6 +3815,47 @@ void CableSpan::Impl::calcSolverStep(
 
         // Use a damped Newton step.
         q *= -0.5;
+        break;
+    }
+    case CableSpanAlgorithm::AlignmentCost: {
+        // In the moving Frenet frame, e-t has components
+        // (dot(e,t)-1, dot(e,n), dot(e,b)). Minimizing their squared norm
+        // distinguishes aligned and reversed tangents without rootfinding
+        // on the nonnegative scalar 1-dot(e,t).
+        const int nR = c_AlignmentResidualsPerCurve * data.numObstaclesInContact;
+        const int nQ = c_GeodesicDOF * data.numObstaclesInContact;
+        Vector& residual = data.alignmentResidual;
+        Matrix& J = data.alignmentJacobian;
+        if (J.nrow() != nR + nQ) {
+            residual.resize(nR + nQ);
+            J.resize(nR + nQ, nQ);
+        }
+        // Both helpers zero the trailing regularization rows.
+        calcPathErrorVector<3>(cableSegment, s, data.lineSegments,
+            {TangentAxis, NormalAxis, BinormalAxis}, residual);
+        for (int r = 0; r < nR; r += 3) {
+            residual[r] -= 1.;
+        }
+        calcPathErrorJacobian<3>(cableSegment, s, data.lineSegments,
+            {TangentAxis, NormalAxis, BinormalAxis}, J);
+
+        // Solve min ||residual + J*q||^2 + ||D*q||^2 using an augmented
+        // least-squares system. Column scaling respects the different units of
+        // the natural geodesic corrections. Reduce damping near alignment to
+        // retain fast local convergence, with an absolute floor for zero or
+        // nearly zero Jacobian columns.
+        for (int i = 0; i < data.numObstaclesInContact; ++i) {
+            // Each geodesic is damped by the alignment error at its own contact
+            // points.
+            const Real damping = 0.1 * std::min(1., std::max(
+                data.alignmentError[2 * i], data.alignmentError[2 * i + 1]));
+            for (int c = c_GeodesicDOF * i; c < c_GeodesicDOF * (i + 1); ++c) {
+                J(nR + c, c) = std::max(SqrtEps, damping * J.col(c).norm());
+            }
+        }
+        data.factor = J;
+        data.factor.solve(residual, data.pathCorrection);
+        data.pathCorrection *= -1.;
         break;
     }
     default:
@@ -4072,9 +4123,9 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 // applied perturbation.
                 std::vector<LineSegment> lineSegments(nActive + 1);
 
-                Vector pathError(nActive * c_GeodesicDOF, NaN);
+                Vector pathError(nActive * c_AlignmentResidualsPerCurve, NaN);
                 Matrix pathErrorJacobian(
-                    nActive * c_GeodesicDOF,
+                    nActive * c_AlignmentResidualsPerCurve,
                     nActive * c_GeodesicDOF,
                     NaN);
 
@@ -4090,17 +4141,17 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                     sCopy,
                     lineSegments);
 
-                calcPathErrorVector<2>(
+                calcPathErrorVector<3>(
                     cableSegment,
                     sCopy,
                     lineSegments,
-                    {NormalAxis, BinormalAxis},
+                    {TangentAxis, NormalAxis, BinormalAxis},
                     pathError);
-                calcPathErrorJacobian<2>(
+                calcPathErrorJacobian<3>(
                     cableSegment,
                     sCopy,
                     lineSegments,
-                    {NormalAxis, BinormalAxis},
+                    {TangentAxis, NormalAxis, BinormalAxis},
                     pathErrorJacobian);
 
                 length = calcCableSegmentLength(sCopy, cableSegment,
@@ -4168,17 +4219,17 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                     sCopy,
                     lineSegments);
 
-                calcPathErrorVector<2>(
+                calcPathErrorVector<3>(
                     cableSegment,
                     sCopy,
                     lineSegments,
-                    {NormalAxis, BinormalAxis},
+                    {TangentAxis, NormalAxis, BinormalAxis},
                     pathError);
-                calcPathErrorJacobian<2>(
+                calcPathErrorJacobian<3>(
                     cableSegment,
                     sCopy,
                     lineSegments,
-                    {NormalAxis, BinormalAxis},
+                    {TangentAxis, NormalAxis, BinormalAxis},
                     pathErrorJacobian);
 
                 length = calcCableSegmentLength(sCopy, cableSegment,
