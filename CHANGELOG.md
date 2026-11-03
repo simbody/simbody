@@ -8,7 +8,9 @@ PRs and issues that were included in a particular release.
 
 3.10 (in development)
 ---------------------
-
+* Added `CableSpanAlgorithm::AlignmentCost`, a path solver algorithm which
+  directly penalizes misalignment between straight segments and oriented geodesic
+  tangents, including reversed tangents.
 
 3.9 (November 2026)
 -------------------
