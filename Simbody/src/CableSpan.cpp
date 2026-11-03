@@ -51,6 +51,20 @@ namespace
 There are four: see NaturalGeodesicCorrections below. */
 constexpr int c_GeodesicDOF = 4;
 
+/* The smallest alignment between a curve geodesic and the adjacent straight
+line segments that the initial path produced from an obstacle's contact point
+hint can have before the contact point is placed by touchdown detection instead.
+
+The alignment is computed as the dot product between the straight line segment
+direction and the geodesic's tangent at the contact point, dot(e, t), which can
+take on values in [-1, 1]. However, the minimum initial alignment is restricted
+to the range [0, 1] since the tangent is constructed as a bisector of the two
+straight line segments at the contact point in the tangent plane, which cannot
+be anti-aligned.
+
+See CurveSegment::calcInitCurve below for more details. */
+constexpr Real c_MinimumInitialAlignment = 0.01;
+
 //------------------------------------------------------------------------------
 //  Natural Geodesic Corrections
 //------------------------------------------------------------------------------
@@ -145,6 +159,8 @@ struct MatrixWorkspace {
 
         normalPathErrorJacobian = Matrix(nC, nQ, 0.);
 
+        tangentialAlignment = Vector(nC, 0.);
+
         A      = Matrix(nC, nC, 0.);
         b      = Vector(nC, 0.);
         lambda = Vector(nC, 0.);
@@ -209,6 +225,13 @@ struct MatrixWorkspace {
     Vector binormalPathError;
     /* The maximum of the normal and binormal path errors. */
     Real maxPathError = NaN;
+    /* The maximum alignment error over all surface contact points, measured as
+    the angle between a straight line segment and the geodesic tangent at
+    contact points. */
+    Real maxAlignmentError = NaN;
+    /* The alignment, dot(e, t) ∈ [-1, 1], between each straight line segment
+    and the geodesic tangent for all contact points. */
+    Vector tangentialAlignment;
     /* The Jacobian of the normal path error vector to the natural geodesic
     corrections of all active obstacles. */
     Matrix normalPathErrorJacobian;
@@ -1153,6 +1176,94 @@ public:
         dataInst.trackingPointOnLine_S = trackingPoint_S;
     }
 
+    /* Compute the tangent direction for a zero-length geodesic at the given
+    contact point, and report in bestAlignment the alignment dot(e, t) that it
+    achieves.
+
+    For a zero-length geodesic, both straight line segments meet at the same
+    point (path error is zero), so we can write the chord between the
+    neighboring path points as a linear combination of the two straight line
+    directions:
+
+        nextPoint - prevPoint = l_P * e_P + l_Q * e_Q,
+
+    If the two straight line segments do not align with this chord, then the
+    initial tangent can lead to an anti-aligned (i.e., folded) solution. This
+    can happen when one of the straight segments is much shorter than the other,
+    where the longer segment "outvotes" the shorter one since the chord is a
+    length-weighted sum of the two directions.
+
+    Instead, we project the two straight line directions into the tangent plane
+    at the contact point and bisect them to find a compromise direction. For a
+    unit tangent vector in the plane
+
+        dot(e, t) = |inPlane(e)| cos(angle)
+
+    and the bisector splits the angle evenly,
+
+        cos(theta/2) = |bisector| / 2
+
+    Therefore, the best alignment is defined the smaller of the two alignments
+    between the straight line segments and the bisector:
+
+        bestAlignment = min(|inPlane(e_P)|, |inPlane(e_Q)|) * |bisector| / 2,
+
+    The best alignment is near one when the straight segments graze the surface
+    (i.e., lie mostly in the tangent plane), and zero when they double back on
+    each other (i.e., a fold) or run into the surface. In the latter case, we
+    fall back to the chord `nextPoint - prevPoint` as the tangent. */
+    Vec3 calcZeroLengthGeodesicTangent_S(
+        const Vec3& contactPoint_S,
+        const Vec3& prevPoint_S,
+        const Vec3& nextPoint_S,
+        Real& bestAlignment) const
+    {
+        const UnitVec3 normal_S =
+            getContactGeometry().calcSurfaceUnitNormal(contactPoint_S);
+        auto calcInPlaneComponent = [&normal_S](const Vec3& v) -> Vec3 {
+            if (v.norm() <= SignificantReal) {
+                return Vec3(0.);
+            }
+            const UnitVec3 direction(v);
+            return Vec3(direction) - dot(direction, normal_S) * normal_S;
+        };
+        const Vec3 inPlaneToP =
+            calcInPlaneComponent(contactPoint_S - prevPoint_S);
+        const Vec3 inPlaneFromQ =
+            calcInPlaneComponent(nextPoint_S - contactPoint_S);
+
+        const Real inPlaneLengthP = inPlaneToP.norm();
+        const Real inPlaneLengthQ = inPlaneFromQ.norm();
+        const Vec3 bisector_S =
+            (inPlaneLengthP > 0. ? inPlaneToP / inPlaneLengthP : Vec3(0.)) +
+            (inPlaneLengthQ > 0. ? inPlaneFromQ / inPlaneLengthQ : Vec3(0.));
+
+        bestAlignment = std::min(inPlaneLengthP, inPlaneLengthQ)
+                        * bisector_S.norm() / 2.;
+
+        // If the bisector vanishes, fall back to the chord between the
+        // neighboring path points.
+        return bisector_S.norm() > SignificantReal ? bisector_S
+                                                   : nextPoint_S - prevPoint_S;
+    }
+
+    // Detect if the nearest point on the straight line between the neighboring
+    // path points intersects the surface.
+    bool calcTouchdownPoint(
+        const Vec3& prevPoint_S,
+        const Vec3& nextPoint_S,
+        Vec3& touchdownPoint_S) const
+    {
+        const IntegratorTolerances& tols = getIntegratorTolerances();
+        return getContactGeometry().calcNearestPointOnLineImplicitly(
+                   prevPoint_S,
+                   nextPoint_S,
+                   tols.constraintProjectionMaxIterations,
+                   tols.constraintProjectionTolerance,
+                   touchdownPoint_S) ==
+               ContactGeometry::NearestPointOnLineResult::PointFallsBelowSurface;
+    }
+
     // Helper function for initializing the path.
     void calcInitCurve(const State& state) const
     {
@@ -1164,17 +1275,51 @@ public:
             liftCurveFromSurface(Vec3(0.), updDataInst(state));
             return;
         }
-        // If we do have a contact point hint, initialize the path by shooting a
-        // zero-length geodesic at that location.
 
-        // Shoot a zero length geodesic at the contact point with tangent
-        // directed from prevPoint to nextPoint:
         const Vec3 prevPoint_S = findPrevPathPoint_S(state);
         const Vec3 nextPoint_S = findNextPathPoint_S(state);
+        // Retrieve the contact hint that has already been projected onto the
+        // surface via computeInitialInstanceData().
+        Vec3 contactPoint_S = getDataInst(state).X_SP.p();
+
+        // Candidate #1: Calculate the tangent direction from the contact point
+        // hint.
+        Real alignment = NaN;
+        Vec3 tangent_S = calcZeroLengthGeodesicTangent_S(
+            contactPoint_S, prevPoint_S, nextPoint_S, alignment);
+
+        // Candidate #2: Use the touchdown algorithm to find a point on the
+        // straight line between the neighboring path points from which to
+        // compute the tangent. Only use this candidate if touchdown is detected
+        // and alignment is better than the contact hint tangent.
+        if (alignment < c_MinimumInitialAlignment) {
+            Vec3 touchdownPoint_S = contactPoint_S;
+
+            // No touchdown detected.
+            if (!calcTouchdownPoint(
+                    prevPoint_S, nextPoint_S, touchdownPoint_S)) {
+                liftCurveFromSurface(touchdownPoint_S, updDataInst(state));
+                return;
+            }
+
+            // Touchdown detected: compute the tangent at the touchdown point
+            // and check for improvement in alignment.
+            Real touchdownAlignment = NaN;
+            const Vec3 touchdownTangent_S = calcZeroLengthGeodesicTangent_S(
+                touchdownPoint_S, prevPoint_S, nextPoint_S,
+                touchdownAlignment);
+            if (touchdownAlignment > alignment) {
+                contactPoint_S = touchdownPoint_S;
+                tangent_S      = touchdownTangent_S;
+            }
+        }
+
+        // Shoot a zero-length geodesic using the best initial contact point and
+        // tangent direction from the above candidates.
         shootNewGeodesic(
-            getContactPointHint(),     // = location
-            nextPoint_S - prevPoint_S, // = tangent
-            0.,                        // = arc length
+            contactPoint_S, // = location
+            tangent_S,      // = tangent
+            0.,             // = arc length
             getDataInst(state).integratorInitialStepSize,
             updDataInst(state));
     }
@@ -1192,38 +1337,30 @@ public:
 
         // Given the straight line between the point before and after this
         // segment, touchdown is detected by computing the point on that line
-        // that is nearest to the surface.
+        // that is nearest to the surface. Use the cached tracking point as
+        // the initial guess.
         const Vec3 prevPoint_S = findPrevPathPoint_S(state);
         const Vec3 nextPoint_S = findNextPathPoint_S(state);
+        Vec3 touchdownPoint_S  = dataInst.trackingPointOnLine_S;
 
-        // Use the cached tracking point as the initial guess.
-        Vec3 pointOnLineNearSurface_S = dataInst.trackingPointOnLine_S;
-
-        // Compute the point on the line nearest the surface.
-        const IntegratorTolerances& tols = getIntegratorTolerances();
-        bool touchdownDetected =
-            getContactGeometry().calcNearestPointOnLineImplicitly(
-                prevPoint_S,
-                nextPoint_S,
-                tols.constraintProjectionMaxIterations,
-                tols.constraintProjectionTolerance,
-                pointOnLineNearSurface_S) ==
-            ContactGeometry::NearestPointOnLineResult::PointFallsBelowSurface;
-
-        // In case of touchdown, shoot a zero-length geodesic at the touchdown
-        // point.
-        if (touchdownDetected) {
-            shootNewGeodesic(
-                pointOnLineNearSurface_S,
-                nextPoint_S - prevPoint_S,
-                0.,
-                dataInst.integratorInitialStepSize,
-                updDataInst(state));
+        // No touchdown detected: stay lifted and update the tracking point to
+        // the nearest point on the line between the neighboring path points.
+        if (!calcTouchdownPoint(prevPoint_S, nextPoint_S, touchdownPoint_S)) {
+            liftCurveFromSurface(touchdownPoint_S, updDataInst(state));
             return;
         }
 
-        // Not touchingdown indicates liftoff:
-        liftCurveFromSurface(pointOnLineNearSurface_S, updDataInst(state));
+        // In case of touchdown, shoot a zero-length geodesic at the touchdown
+        // point.
+        Real alignment = NaN;
+        const Vec3 tangent_S = calcZeroLengthGeodesicTangent_S(
+            touchdownPoint_S, prevPoint_S, nextPoint_S, alignment);
+        shootNewGeodesic(
+            touchdownPoint_S,
+            tangent_S,
+            0.,
+            dataInst.integratorInitialStepSize,
+            updDataInst(state));
     }
 
     // Helper function for detecting liftoff from the obstacle's surface.
@@ -1322,6 +1459,11 @@ public:
         case ObstacleWrappingStatus::InitialGuess:
             // Path needs to be initialized.
             calcInitCurve(state);
+            // calcInitCurve() may produce an initial guess that is in contact
+            // with the surface, but should be lifted off. Perform the liftoff
+            // now before introducing any path corrections that increase the
+            // arc length and prevent future liftoff detection.
+            calcCurveLiftoffIfNeeded(state);
             break;
         case ObstacleWrappingStatus::InContactWithSurface:
             // If in contact with obstacle: detect lifting off.
@@ -3475,6 +3617,7 @@ void CableSpan::Impl::calcSolverStep(
         data.lineSegments);
 
     data.maxPathError = 0.; // Reset the max path error field.
+    data.maxAlignmentError = 0.;
     // Only compute the path errors if there are obstacles in contact with the
     // cable.
     if (data.numObstaclesInContact > 0) {
@@ -3490,14 +3633,42 @@ void CableSpan::Impl::calcSolverStep(
             data.lineSegments,
             {BinormalAxis},
             data.binormalPathError);
+        calcPathErrorVector<1>(
+            cableSegment,
+            s,
+            data.lineSegments,
+            {TangentAxis},
+            data.tangentialAlignment);
         data.maxPathError = std::max(
             data.normalPathError.normInf(),
             data.binormalPathError.normInf());
+
+        // Compute the maximum alignment error, which is the maximum angle
+        // between the straight line segments and the geodesic tangents at the
+        // contact points. The straight line direction in the Frenet frame can
+        // be decomposed into the following:
+        //
+        //     e = dot(e,t) t + dot(e,n) n + dot(e,b) b
+        //
+        // The tangential component is the cosine of the alignment angle, and
+        // the magnitude of the remainder is its sine:
+        //
+        //     alignmentError = atan2(hypot(dot(e,n), dot(e,b)), dot(e,t)).
+        //
+        for (int i = 0; i < data.normalPathError.size(); ++i) {
+            const Real alignmentError = std::atan2(
+                std::hypot(data.normalPathError[i], data.binormalPathError[i]),
+                data.tangentialAlignment[i]);
+            data.maxAlignmentError =
+                std::max(data.maxAlignmentError, alignmentError);
+        }
     }
 
-    // If the path error is small we have converged to the optimal solution,
-    // and there is no need to compute the geodesic corrections.
-    data.converged = data.maxPathError <= getParameters().smoothnessTolerance;
+    // If every straight line segment meets its geodesic within tolerance we
+    // have converged to the optimal solution, and there is no need to compute
+    // the geodesic corrections.
+    data.converged =
+        data.maxAlignmentError <= getParameters().smoothnessTolerance;
     if (data.converged) {
         return;
     }
@@ -3667,7 +3838,7 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
     {
         dataPos.cableLength += calcCableSegmentLength(
             s, cableSegment, workspace.lineSegments);
-        dataPos.smoothness = std::max(workspace.maxPathError,
+        dataPos.smoothness = std::max(workspace.maxAlignmentError,
             dataPos.smoothness);
         dataPos.loopIter += solverLoopCount;
 
