@@ -8,6 +8,10 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* MobilizedBody::Ellipsoid radii are now an Instance-stage state variable, accessed with
+  getRadii(state)/setRadii(state, radii) and initialized from getDefaultRadii(). Added
+  multiplyByPositionJacobianWrtRadii() and multiplyByPositionJacobianWrtRadiiTranspose()
+  for the sensitivity of body origin positions to the ellipsoid radii. (PR #892)
 * CableSpan path smoothness is now measured as the angle between each straight-line segment and
   the geodesic tangent where they meet. Folded paths, where the straight line runs backwards
   along the geodesic, are no longer reported as converged. The initial path from a contact point

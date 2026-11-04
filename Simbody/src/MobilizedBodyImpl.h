@@ -839,7 +839,10 @@ public:
        (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
     void setDefaultRadii(const Vec3& r) {
-        assert(r[0]>0 && r[1]>0 && r[2]>0);
+        SimTK_APIARGCHECK3_ALWAYS(r[0] > 0 && r[1] > 0 && r[2] > 0,
+            "MobilizedBody::Ellipsoid", "setDefaultRadii",
+            "All radii must be positive but were (%g, %g, %g).",
+            r[0], r[1], r[2]);
         invalidateTopologyCache();
         defaultRadii=r;
     }
@@ -858,7 +861,10 @@ public:
                     .getValue<Vec3>();
     }
     void setRadii(State& s, const Vec3& r) const {
-        assert(r[0]>0 && r[1]>0 && r[2]>0);
+        SimTK_APIARGCHECK3_ALWAYS(r[0] > 0 && r[1] > 0 && r[2] > 0,
+            "MobilizedBody::Ellipsoid", "setRadii",
+            "All radii must be positive but were (%g, %g, %g).",
+            r[0], r[1], r[2]);
         s.updDiscreteVariable(
                 getMySubsystemIndex(), radiiIx).updValue<Vec3>() = r;
     }
