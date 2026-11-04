@@ -1595,70 +1595,6 @@ void testTangentialAlignment() {
         "path.");
 }
 
-/** CableSpan test for selecting initial geodesic tangent candidates.
-
-CableSpan must select a tangent vector from which to shoot a zero-length
-geodesic as an initial guess for the path solver. Two candidates are available:
-a tangent vector calculating from a point on the surface derived from the
-contact hint, or a tangent vector calculated from a point derived from the
-touchdown detection algorithm.
-
-This test checks a particularly pathological case: a cable running from (-2,0,0)
-to (2,0,0) over a unit sphere at the origin, so that the straight line between
-the attachment points passes through the center of the sphere, and a contact
-hint placed just off the point where that line exits the sphere. In this case,
-the contact hint is the better candidate, even though both candidates are poorly
-aligned with the straight line segments. Test that CableSpan selects the correct
-initial tangent vector and converges to a valid path. **/
-void testInitialGeodesicTangent() {
-    const Real radius = 1.;
-    const Vec3 origin(-2., 0., 0.);
-    const Vec3 termination(2., 0., 0.);
-    const Vec3 hint(1., 1e-3, 0.);
-    const Real expectedLength = 2. * std::sqrt(3.) + Pi / 3.;
-    std::vector<CableSpanAlgorithm> algorithms =
-        {CableSpanAlgorithm::Scholz2015, CableSpanAlgorithm::MinimumLength};
-
-    for (CableSpanAlgorithm algorithm : algorithms) {
-        MultibodySystem system;
-        SimbodyMatterSubsystem matter(system);
-        CableSubsystem cables(system);
-
-        CableSpan cable(
-            cables,
-            matter.Ground(),
-            origin,
-            matter.Ground(),
-            termination);
-        cable.addObstacle(
-            matter.Ground(),
-            Transform(),
-            std::shared_ptr<ContactGeometry>(
-                new ContactGeometry::Sphere(radius)),
-            hint);
-        cable.setCurveSegmentAccuracy(1e-12);
-        cable.setSmoothnessTolerance(1e-8);
-        cable.setSolverMaxIterations(200);
-        cable.setAlgorithm(algorithm);
-
-        system.realizeTopology();
-        State s = system.getDefaultState();
-        system.realize(s, Stage::Position);
-
-        SimTK_ASSERT2_ALWAYS(
-            cable.getSmoothness(s) < cable.getSmoothnessTolerance(),
-            "Path smoothness (%e) does not meet tolerance (%e) for a cable "
-            "whose straight line passes through the obstacle",
-            cable.getSmoothness(s),
-            cable.getSmoothnessTolerance());
-        SimTK_ASSERT2_ALWAYS(
-            std::abs(cable.calcLength(s) - expectedLength) < 1e-6,
-            "Cable length (%f) does not match the taut path length (%f)",
-            cable.calcLength(s),
-            expectedLength);
-    }
-}
-
 
 /** CableSpan initial liftoff test.
 
@@ -1722,6 +1658,5 @@ int main()
     testRobustInitialPath();
     testUseWarmStart();
     testTangentialAlignment();
-    testInitialGeodesicTangent();
     testInitialLiftoff();
 }

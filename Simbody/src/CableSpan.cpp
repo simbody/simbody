@@ -1278,9 +1278,9 @@ public:
 
         const Vec3 prevPoint_S = findPrevPathPoint_S(state);
         const Vec3 nextPoint_S = findNextPathPoint_S(state);
-        // Retrieve the contact hint that has already been projected onto the
-        // surface via computeInitialInstanceData().
-        Vec3 contactPoint_S = getDataInst(state).X_SP.p();
+        Vec3 contactPoint_S =
+            getContactGeometry().projectDownhillToNearestPoint(
+                getContactPointHint());
 
         // Candidate #1: Calculate the tangent direction from the contact point
         // hint.
