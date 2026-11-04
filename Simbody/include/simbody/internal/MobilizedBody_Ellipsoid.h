@@ -227,7 +227,7 @@ public:
             Vector_<Vec3>& dp_GB) const;
 
     /** Calculate the product of the transposed body position Jacobian with
-    respect to mobilizer radii, ~Jr (==Jr^T), with a vector of nb gradient-like
+    respect to mobilizer radii, ~Jr (==Jrᵀ), with a vector of nb gradient-like
     quantities, g_GB. If g_GB is the gradient of a scalar function with respect
     to the mobilized body (B) origin positions (Bo) in Ground, then the result
     is the gradient of that same function with respect to this mobilizer's
