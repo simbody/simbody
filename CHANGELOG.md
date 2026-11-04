@@ -8,6 +8,10 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* MobilizedBody::Ellipsoid radii are now an Instance-stage state variable, accessed with
+  getRadii(state)/setRadii(state, radii) and initialized from getDefaultRadii(). Added
+  multiplyByPositionJacobianWrtRadii() and multiplyByPositionJacobianWrtRadiiTranspose()
+  for the sensitivity of body origin positions to the ellipsoid radii. (PR #892)
 * Fixed `PolygonalMesh::loadObjFile()` discarding normals (while keeping dangling
   face-vertex normal indices) when an OBJ file's normal count differed from its face count.
   `PolygonalMesh::hasNormalsAtFaces()` now means every face vertex has a valid normal

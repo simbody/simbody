@@ -206,7 +206,7 @@ public:
 
     /** Calculate the product of the body position Jacobian with respect to
     this mobilizer's ellipsoid radii, Jr, with a Vec3 quantity, dradii. If
-    dradii is a perturbations in the ellipsoid radii, then the result is the
+    dradii is a perturbation in the ellipsoid radii, then the result is the
     change in mobilized body (B) origin positions (Bo) measured and expressed in
     Ground.
 

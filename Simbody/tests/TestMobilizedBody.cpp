@@ -26,6 +26,9 @@
 using namespace SimTK;
 using namespace std;
 
+
+namespace {
+
 // Helper methods for a mirrored MobilizedBody::Ellipsoid. Mirroring about axis
 // k reflects linear quantities measured in F with S=diag(s), s[k]=-1, and
 // angular ones with -S, which negates every measure number except the one about
@@ -36,8 +39,6 @@ using namespace std;
 //    w_FM -> -S w_FM
 //
 // while the q's, the u's, and N(q) are the same as for a standard joint.
-namespace {
-
 static Vec3 mirrorLinear(const Vec3& v_F, int k) {
     Vec3 out = v_F; out[k] = -out[k]; return out;
 }
@@ -59,6 +60,47 @@ static Transform mirrorTransform(const Transform& X_FM, int k) {
 
 static SpatialVec mirrorVelocity(const SpatialVec& V_FM, int k) {
     return SpatialVec(mirrorAngular(V_FM[0], k), mirrorLinear(V_FM[1], k));
+}
+
+// Check H_FM and HDot_FM of each mobilizer against finite differences, using
+// a State that has been realized through Velocity stage.
+static void checkJacobiansByFiniteDifference(
+        const MultibodySystem& system, const SimbodyMatterSubsystem& matter,
+        const State& state, const MobilizedBody* mobods[2]) {
+    // A_GB = Jdot*u, that is, the time derivative of V_GB at constant u.
+    Vector_<SpatialVec> A_GB;
+    matter.calcBodyAccelerationFromUDot(state,
+        Vector(matter.getNumMobilities(), Real(0)), A_GB);
+
+    // Step q along qdot, leaving u alone.
+    const Real h = Real(1e-6);
+    const Vector q0 = state.getQ(), qdot = state.getQDot();
+    State sp = state, sm = state;
+    sp.updQ() = q0 + h*qdot;
+    sm.updQ() = q0 - h*qdot;
+    system.realize(sp, Stage::Velocity);
+    system.realize(sm, Stage::Velocity);
+
+    for (int b = 0; b < 2; ++b) {
+        const MobilizedBody& mobod = *mobods[b];
+
+        // d/dt X_FM must be V_FM = H_FM*u. The angular velocity comes from
+        // Rdot = [w]*R, so [w] = Rdot*~R.
+        const Transform& Xp = mobod.getMobilizerTransform(sp);
+        const Transform& Xm = mobod.getMobilizerTransform(sm);
+        const Mat33 Rdot = (Xp.R().asMat33() - Xm.R().asMat33()) / (2*h);
+        const Mat33 wx   = Rdot * ~mobod.getMobilizerTransform(state)
+                                        .R().asMat33();
+        const SpatialVec V_FM_fd(Vec3(wx(2,1), wx(0,2), wx(1,0)),
+                                 (Xp.p() - Xm.p()) / (2*h));
+        SimTK_TEST_EQ_TOL(V_FM_fd, mobod.getMobilizerVelocity(state), 1e-6);
+
+        // d/dt V_GB at constant u must be A_GB; this is the HDot_FM check.
+        const SpatialVec A_GB_fd =
+            (mobod.getBodyVelocity(sp) - mobod.getBodyVelocity(sm)) / (2*h);
+        SimTK_TEST_EQ_TOL(A_GB_fd, A_GB[mobod.getMobilizedBodyIndex()],
+                          1e-5);
+    }
 }
 
 }
@@ -907,7 +949,9 @@ void testMirroredEllipsoid() {
     }
 }
 
-// Check H_FM and HDot_FM of a mirrored Ellipsoid against finite differences.
+// Check H_FM and HDot_FM of a mirrored Ellipsoid against finite differences,
+// first with the default radii and then after changing the radii in an
+// already-realized State.
 void testMirroredEllipsoidJacobians() {
     const Transform X_PF(Rotation(0.3, Vec3(1,-2,3)), Vec3(0.1, 0.5, -1));
     const Transform X_BM(Rotation(-0.7, Vec3(2,1,-1)), Vec3(0.2, -0.2, 0.05));
@@ -937,41 +981,18 @@ void testMirroredEllipsoidJacobians() {
         mobod2.setUToFitAngularVelocity(state, Vec3(1.3, -2.1, .9));
         system.realize(state, Stage::Velocity);
 
-        // A_GB = Jdot*u, that is, the time derivative of V_GB at constant u.
-        Vector_<SpatialVec> A_GB;
-        matter.calcBodyAccelerationFromUDot(state,
-            Vector(matter.getNumMobilities(), Real(0)), A_GB);
-
-        // Step q along qdot, leaving u alone.
-        const Real h = Real(1e-6);
-        const Vector q0 = state.getQ(), qdot = state.getQDot();
-        State sp = state, sm = state;
-        sp.updQ() = q0 + h*qdot;
-        sm.updQ() = q0 - h*qdot;
-        system.realize(sp, Stage::Velocity);
-        system.realize(sm, Stage::Velocity);
-
         const MobilizedBody* mobods[2] = {&mobod1, &mobod2};
-        for (int b = 0; b < 2; ++b) {
-            const MobilizedBody& mobod = *mobods[b];
+        checkJacobiansByFiniteDifference(system, matter, state, mobods);
 
-            // d/dt X_FM must be V_FM = H_FM*u. The angular velocity comes from
-            // Rdot = [w]*R, so [w] = Rdot*~R.
-            const Transform& Xp = mobod.getMobilizerTransform(sp);
-            const Transform& Xm = mobod.getMobilizerTransform(sm);
-            const Mat33 Rdot = (Xp.R().asMat33() - Xm.R().asMat33()) / (2*h);
-            const Mat33 wx   = Rdot * ~mobod.getMobilizerTransform(state)
-                                            .R().asMat33();
-            const SpatialVec V_FM_fd(Vec3(wx(2,1), wx(0,2), wx(1,0)),
-                                     (Xp.p() - Xm.p()) / (2*h));
-            SimTK_TEST_EQ_TOL(V_FM_fd, mobod.getMobilizerVelocity(state), 1e-6);
-
-            // d/dt V_GB at constant u must be A_GB; this is the HDot_FM check.
-            const SpatialVec A_GB_fd =
-                (mobod.getBodyVelocity(sp) - mobod.getBodyVelocity(sm)) / (2*h);
-            SimTK_TEST_EQ_TOL(A_GB_fd, A_GB[mobod.getMobilizedBodyIndex()],
-                              1e-5);
-        }
+        // Change the radii (non-uniformly, so this is not just a rescaling)
+        // in the already-realized State. This must invalidate Instance stage,
+        // so that re-realizing recomputes X_FM, H_FM, and HDot_FM with the new
+        // radii rather than reusing the cached results from the defaults.
+        mobod1.setRadii(state, Vec3(0.3, 0.9, 1.7));
+        mobod2.setRadii(state, Vec3(0.5, 1.2, 0.4));
+        SimTK_TEST(state.getSystemStage() < Stage::Instance);
+        system.realize(state, Stage::Velocity);
+        checkJacobiansByFiniteDifference(system, matter, state, mobods);
     }
 }
 
@@ -1023,7 +1044,7 @@ void testVariableMobilizerFrames() {
 
 void testVariableEllipsoidRadii() {
 
-    // Create a system with two ellipsoid mobilizer: forward and reverse.
+    // Create a system with two ellipsoid mobilizers: forward and reverse.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
@@ -1060,8 +1081,7 @@ void testVariableEllipsoidRadii() {
     const Transform& X_FM = ellipsoidForward.getMobilizerTransform(state);
     SimTK_TEST_EQ(location, X_PF * X_FM * ~X_BM * station);
 
-    // Grabbing a fresh default state should restore the mobilizer frame
-    // defaults.
+    // Grabbing a fresh default state should restore the radii defaults.
     state = system.getDefaultState();
     SimTK_TEST_EQ(ellipsoidForward.getRadii(state), defaultRadii);
     SimTK_TEST_EQ(ellipsoidReverse.getRadii(state), defaultRadii);
