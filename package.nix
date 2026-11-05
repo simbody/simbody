@@ -15,7 +15,7 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "simbody";
-  version = "3.9.0";
+  version = "3.10.0";
 
   src = lib.cleanSource ./.;
 
