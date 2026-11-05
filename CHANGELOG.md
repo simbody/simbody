@@ -8,6 +8,8 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* Fixed quaternion coordinate-rate mappings for reversed `LineOrientation` and `FreeLine`
+  mobilizers, and their `multiplyByNDot()` operators in both directions. (PR #893)
 * Fixed `PolygonalMesh::loadObjFile()` discarding normals (while keeping dangling
   face-vertex normal indices) when an OBJ file's normal count differed from its face count.
   `PolygonalMesh::hasNormalsAtFaces()` now means every face vertex has a valid normal

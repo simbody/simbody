@@ -1151,6 +1151,46 @@ static void testReversedQuaternion(MobilizedBody::Direction dir) {
                       state.getQDotDot(), 1e-7);
 }
 
+void testForwardLineQuaternion() {
+    testReversedQuaternion<MobilizedBody::LineOrientation>(
+        MobilizedBody::Forward);
+}
+
+void testReverseLineQuaternion() {
+    testReversedQuaternion<MobilizedBody::LineOrientation>(
+        MobilizedBody::Reverse);
+}
+
+void testForwardFreeLineQuaternion() {
+    testReversedQuaternion<MobilizedBody::FreeLine>(
+        MobilizedBody::Forward);
+}
+
+void testReverseFreeLineQuaternion() {
+    testReversedQuaternion<MobilizedBody::FreeLine>(
+        MobilizedBody::Reverse);
+}
+
+void testForwardBallQuaternion() {
+    testReversedQuaternion<MobilizedBody::Ball>(
+        MobilizedBody::Forward);
+}
+
+void testReverseBallQuaternion() {
+    testReversedQuaternion<MobilizedBody::Ball>(
+        MobilizedBody::Reverse);
+}
+
+void testForwardFreeQuaternion() {
+    testReversedQuaternion<MobilizedBody::Free>(
+        MobilizedBody::Forward);
+}
+
+void testReverseFreeQuaternion() {
+    testReversedQuaternion<MobilizedBody::Free>(
+        MobilizedBody::Reverse);
+}
+
 int main() {
     SimTK_START_TEST("TestReverseMobilizers");
         SimTK_SUBTEST(testPin);
@@ -1163,11 +1203,13 @@ int main() {
         SimTK_SUBTEST(testGimbal);
         SimTK_SUBTEST(testBushing);
         SimTK_SUBTEST(testCantileverFreeBeam);
-        for (auto dir : {MobilizedBody::Forward, MobilizedBody::Reverse}) {
-            testReversedQuaternion<MobilizedBody::LineOrientation>(dir);
-            testReversedQuaternion<MobilizedBody::FreeLine>(dir);
-            testReversedQuaternion<MobilizedBody::Ball>(dir);
-            testReversedQuaternion<MobilizedBody::Free>(dir);
-        }
+        SimTK_SUBTEST(testForwardLineQuaternion);
+        SimTK_SUBTEST(testForwardFreeLineQuaternion);
+        SimTK_SUBTEST(testForwardBallQuaternion);
+        SimTK_SUBTEST(testForwardFreeQuaternion);
+        SimTK_SUBTEST(testReverseLineQuaternion);
+        SimTK_SUBTEST(testReverseFreeLineQuaternion);
+        SimTK_SUBTEST(testReverseBallQuaternion);
+        SimTK_SUBTEST(testReverseFreeQuaternion);
     SimTK_END_TEST();
 }
