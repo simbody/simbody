@@ -412,8 +412,18 @@ Jason Blum          |@jjblum        |Vis bug fix
 Allen Hill          |@halleysfifthinc|CMake build system improvements
 Pepijn Van den Bos  |@pepbos        |CableSpan feature
 Adam Kewley         |@adamkewley    |CableSpan feature, code review
-Nick Bianco         |@nickbianco    |Jacobian PV methods, calcForces()
+Nick Bianco         |@nickbianco    |Jacobian PV methods, calcForces(), CableSpan via points, new mobilizers
 Clay Anderson       |@fcanderson    |Exponential Spring contact
+Alex Beattie        |@alexbeattie42 |C++20 update, LLT factorization, quaternion multiplication
+Maximilian Matthe   |@mmatthe       |Visualizer race condition fix
+Fred Helmesjö       |@helmesjo      |constexpr constants (static initialization fixes)
+Zhewen Tan          |@tandede       |OBJ mesh parsing fix
+Karan Singh         |@KaranSinghDev |SimTK_NODISCARD annotations
+peachtree0222       |@peachtree0222 |ExponentialSpringForce bug fix
+Simon Radler        |@sradler       |Build as a CMake subproject
+Adam Hampel         |@AdamHampel    |New contributor documentation
+Guilhem Saurel      |@nim65s        |Nix packaging and CI
+Will Wang           |@willwng       |CableSpan bug fix
 Charles Schwieters  |               |Provided initial multibody code
 Abhinandan Jain     |               |Underlying spatial algebra formulation
 Isaac Newton        |               |F=ma, calculus, etc.
