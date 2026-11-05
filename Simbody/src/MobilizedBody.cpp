@@ -2094,6 +2094,137 @@ const Vec3& MobilizedBody::Ellipsoid::getDefaultRadii() const {
     return getImpl().getDefaultRadii();
 }
 
+const Vec3& MobilizedBody::Ellipsoid::getRadii(const State& s) const {
+    return getImpl().getRadii(s);
+}
+
+void MobilizedBody::Ellipsoid::setRadii(State& s, const Vec3& radii) const {
+    getImpl().setRadii(s, radii);
+}
+
+void MobilizedBody::Ellipsoid::multiplyByPositionJacobianWrtRadii(
+        const State& state, const Vec3& dradii, Vector_<Vec3>& dp_GB) const {
+    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+    const bool reversed = getImpl().isReversed();
+
+    // We want Jr*dradii, where Jr = ∂p_GB / ∂radii. We can use the existing
+    // position Jacobians with respect to inboard frame positions (if a forward
+    // mobilizer) or outboard frame positions (if a reverse mobilizer):
+    //
+    // forward mobilizer
+    // -----------------
+    // ∂p_GB / ∂radii = R_GF*(∂p_FM / ∂radii) = R_GF*diag(n)
+    //                = R_GP*R_PF*diag(n)
+    //                = JpF*R_PF*diag(n)
+    //
+    // where multiplication with JpF is achieved via SimbodyMatterSubsystem's
+    // multiplyByPositionJacobianWrtInboardFramePositions().
+    //
+    // reverse mobilizer
+    // -----------------
+    // ∂p_GB / ∂radii = R_GF*(∂p_FM / ∂radii) = R_GF*(-R_FM*diag(n))
+    //                = -R_GM*diag(n))
+    //                = -R_GB*R_BM*diag(n))
+    //                = JpM*R_BM*diag(n)
+    //
+    // where multiplication with JpM is achieved via SimbodyMatterSubsystem's
+    // multiplyByPositionJacobianWrtOutboardFramePositions().
+    //
+    // The diag(n) terms come from ∂p_FM / ∂radii = diag(n), since
+    // p_FM = n .* radii (elementwise) where n is the normal vector to the
+    // ellipsoid. The reverse mobilizer computations pre-multiply diag(n) with
+    // -R_FM, since the reverse mobilizer specification defines p_MF, but we
+    // need the position from F to M via p_FM = -R_FM*p_MF.
+
+    // Get the ellipsoid normal vector, n, from the across mobilizer transform
+    // from the mobilizer specification, accounting for reverse mobilizers.
+    const Transform& X_FM = getMobilizerTransform(state);
+    const Transform  X_F0M0 = reversed ? Transform(~X_FM) : X_FM;
+    Vec3 n = X_F0M0.z().asVec3();
+
+    // Mirroring about F's Z-axis flips the outward normal Mz so that
+    // p_FM = -diag(a,b,c)*Mz; undo that flip here so that n is the
+    // normal the radius scaling actually multiplies.
+    if (isMirrored() && getMirrorAxis() == ZAxis) n = -n;
+
+    // Get inboard (forward mobilizer) or outboard (reverse mobilizer) frame.
+    const Rotation R_frame = reversed
+            ? getOutboardFrame(state).R() // R_BM
+            : getInboardFrame(state).R(); // R_PF
+
+    // Compute dp_PF = R_PF*diag(n)*dradii (forward mobilizer) or
+    // dp_BM = R_BM*diag(n)*dradii (reverse mobilizer).
+    Vector_<Vec3> dp_frame(matter.getNumBodies());
+    dp_frame.setToZero();
+    dp_frame[getMobilizedBodyIndex()] =
+        R_frame * Vec3(n[0]*dradii[0], n[1]*dradii[1], n[2]*dradii[2]);
+
+    // Compute JpF*dp_PF (forward mobilizer) or JpM*dp_BM (reverse mobilizer).
+    if (reversed) {
+        matter.multiplyByPositionJacobianWrtOutboardFramePositions(
+                state, dp_frame, dp_GB);
+    } else {
+        matter.multiplyByPositionJacobianWrtInboardFramePositions(
+                state, dp_frame, dp_GB);
+    }
+}
+
+Vec3 MobilizedBody::Ellipsoid::multiplyByPositionJacobianWrtRadiiTranspose(
+        const State& state, const Vector_<Vec3>& g_GB) const {
+    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+    const bool reversed = getImpl().isReversed();
+
+    // We want ~Jr*g_GB, where Jr = ∂p_GB / ∂radii. Using the transpose of the
+    // expressions described in multiplyByPositionJacobianWrtRadii() above:
+    //
+    // forward mobilizer
+    // -----------------
+    // ~Jr = ~(JpF*R_PF*diag(n)) = diag(n)*(~R_PF)*(~JpF)
+    //
+    // where multiplication with ~JpF is achieved via SimbodyMatterSubsystem's
+    // multiplyByPositionJacobianWrtInboardFramePositionsTranspose().
+    //
+    // reverse mobilizer
+    // -----------------
+    // ~Jr = ~(JpM*R_BM*diag(n)) = diag(n)*(~R_BM)*(~JpM)
+    //
+    // where multiplication with ~JpM is achieved via SimbodyMatterSubsystem's
+    // multiplyByPositionJacobianWrtOutboardFramePositionsTranspose().
+
+    // Get the ellipsoid normal vector, n, from the across mobilizer transform
+    // from the mobilizer specification, accounting for reverse mobilizers.
+    const Transform& X_FM = getMobilizerTransform(state);
+    const Transform  X_F0M0 = reversed ? Transform(~X_FM) : X_FM;
+    Vec3 n = X_F0M0.z().asVec3();
+
+    // Mirroring about F's Z-axis flips the outward normal Mz so that
+    // p_FM = -diag(a,b,c)*Mz; undo that flip here so that n is the
+    // normal the radius scaling actually multiplies.
+    if (isMirrored() && getMirrorAxis() == ZAxis) n = -n;
+
+    // Get inboard (forward mobilizer) or outboard (reverse mobilizer) frame.
+    const Rotation R_frame = reversed
+            ? getOutboardFrame(state).R() // R_BM
+            : getInboardFrame(state).R(); // R_PF
+
+    // Compute ~JpF*g_GB (forward mobilizer) or ~JpM*g_GB (reverse mobilizer).
+    Vector_<Vec3> g_frame;
+    if (reversed) {
+        matter.multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
+                state, g_GB, g_frame); // g_BM
+    } else {
+        matter.multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
+                state, g_GB, g_frame); // g_PF
+    }
+
+    // Compute g_k = ~R_PF*g_PF (forward mobilizer) or g_k = ~R_BM*g_BM (reverse
+    // mobilizer) for the current node, k.
+    const Vec3 g_k = ~R_frame * g_frame[getMobilizedBodyIndex()];
+
+    // Compute dradii = diag(n)*g_k.
+    return Vec3(n[0]*g_k[0], n[1]*g_k[1], n[2]*g_k[2]);
+}
+
 const Quaternion& MobilizedBody::Ellipsoid::getDefaultQ() const {
     return getImpl().defaultQ;
 }
@@ -2179,8 +2310,7 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
         const Transform& X_PMb = getInboardFrame(s);
         const Transform& X_BM  = getOutboardFrame(s);
 
-        //TODO: this should come from the State.
-        const Vec3 radii = getDefaultRadii();
+        const Vec3 radii = getRadii(s);
 
         // Put an ellipsoid on the parent, and some wires to make it easier to track.
         geom.push_back(DecorativeEllipsoid(radii)

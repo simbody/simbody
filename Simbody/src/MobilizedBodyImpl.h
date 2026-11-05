@@ -839,7 +839,10 @@ public:
        (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
     void setDefaultRadii(const Vec3& r) {
-        assert(r[0]>0 && r[1]>0 && r[2]>0);
+        SimTK_APIARGCHECK3_ALWAYS(r[0] > 0 && r[1] > 0 && r[2] > 0,
+            "MobilizedBody::Ellipsoid", "setDefaultRadii",
+            "All radii must be positive but were (%g, %g, %g).",
+            r[0], r[1], r[2]);
         invalidateTopologyCache();
         defaultRadii=r;
     }
@@ -853,12 +856,37 @@ public:
     bool isMirrored()    const {return mirrorAxis >= 0;}
     int  getMirrorAxis() const {return mirrorAxis;}
 
+    const Vec3& getRadii(const State& s) const {
+        return s.getDiscreteVariable(getMySubsystemIndex(), radiiIx)
+                    .getValue<Vec3>();
+    }
+    void setRadii(State& s, const Vec3& r) const {
+        SimTK_APIARGCHECK3_ALWAYS(r[0] > 0 && r[1] > 0 && r[2] > 0,
+            "MobilizedBody::Ellipsoid", "setRadii",
+            "All radii must be positive but were (%g, %g, %g).",
+            r[0], r[1], r[2]);
+        s.updDiscreteVariable(
+                getMySubsystemIndex(), radiiIx).updValue<Vec3>() = r;
+    }
+
+    void realizeTopologyVirtual(State& s) const override {
+        radiiIx = s.allocateDiscreteVariable(getMySubsystemIndex(),
+                                             Stage::Instance,
+                                             new Value<Vec3>(defaultRadii));
+    }
+
     SimTK_DOWNCAST(EllipsoidImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Ellipsoid;
-    Vec3 defaultRadii;    // used for visualization only
+
+    SubsystemIndex getMySubsystemIndex() const {
+        return getMyMatterSubsystemRep().getMySubsystemIndex();
+    }
+
+    Vec3 defaultRadii;    // initial value for the radii state variable
     Quaternion defaultQ;  // the default orientation
     int mirrorAxis;       // -1 unless this mobilizer is mirrored
+    mutable DiscreteVariableIndex radiiIx; // the radii discrete value index
 };
 
 class MobilizedBody::TranslationImpl : public MobilizedBodyImpl {
