@@ -1074,6 +1074,64 @@ void testCantileverFreeBeam() {
     assertEqual(reacBAfwd, reacBArev, reacBAfwd.norm()*1e-8);
 }
 
+// For a reversed mobilizer the q's still describe the standard (non-reversed)
+// mobilizer, so its N(q) must be built from R_F0M0, not the reversed R_FM.
+// Check that the qdot Simbody computes from u moves the mobilizer with exactly
+// the velocity V_FM = H_FM u, that N, N^-1 and NDot agree with qdot and qdotdot,
+// and that all of this holds in both directions.
+template <class MobodType>
+static void testReversedQuaternion(MobilizedBody::Direction dir) {
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    Body::Rigid body(MassProperties(1.3, Vec3(0.03,-0.02,0.04),
+                                    Inertia(0.11, 0.07, 0.05)));
+    MobodType mobod(matter.Ground(),
+        Transform(Rotation(0.31, ZAxis), Vec3(0.01,-0.24,0.05)), body,
+        Transform(Rotation(0.13, XAxis), Vec3(0.02,0.21,0)), dir);
+
+    State state = system.realizeTopology();
+    system.realize(state, Stage::Velocity);
+    for (int i=0; i < state.getNQ(); ++i) state.updQ()[i] = 0.21 - 0.09*i;
+    matter.normalizeQuaternions(state);
+    for (int i=0; i < state.getNU(); ++i) state.updU()[i] = -0.37 + 0.14*i;
+    system.realize(state, Stage::Acceleration);
+
+    const Vector qdot = state.getQDot();
+    Vector Nu, NInvQdot;
+    matter.multiplyByN(state, false, state.getU(), Nu);
+    matter.multiplyByNInv(state, false, qdot, NInvQdot);
+    SimTK_TEST_EQ(Nu, qdot);
+    SimTK_TEST_EQ(NInvQdot, state.getU());
+
+    // Moving q along qdot must reproduce V_FM.
+    const Real h = 1e-6;
+    State qp = state, qm = state;
+    qp.updQ() += h*qdot;  qm.updQ() -= h*qdot;
+    system.realize(qp, Stage::Position);
+    system.realize(qm, Stage::Position);
+    const Transform& Xp = mobod.getMobilizerTransform(qp);
+    const Transform& Xm = mobod.getMobilizerTransform(qm);
+    const Vec4 aa = (Xp.R() * ~Xm.R()).convertRotationToAngleAxis();
+    const Vec3 w_fd = aa[0]/(2*h) * Vec3(aa[1], aa[2], aa[3]);
+    const Vec3 v_fd = (Xp.p() - Xm.p())/(2*h);
+    const SpatialVec& V_FM = mobod.getMobilizerVelocity(state);
+    SimTK_TEST_EQ_TOL(w_fd, V_FM[0], 1e-8);
+    SimTK_TEST_EQ_TOL(v_fd, V_FM[1], 1e-8);
+
+    // qdotdot = N udot + NDot u, and it is the time derivative of qdot.
+    Vector Nudot, NDotu;
+    matter.multiplyByN(state, false, state.getUDot(), Nudot);
+    matter.multiplyByNDot(state, false, state.getU(), NDotu);
+    SimTK_TEST_EQ(Nudot + NDotu, state.getQDotDot());
+    State tp = state, tm = state;
+    tp.updQ() += h*qdot;  tp.updU() += h*state.getUDot();
+    tm.updQ() -= h*qdot;  tm.updU() -= h*state.getUDot();
+    system.realize(tp, Stage::Velocity);
+    system.realize(tm, Stage::Velocity);
+    SimTK_TEST_EQ_TOL((tp.getQDot() - tm.getQDot())/(2*h),
+                      state.getQDotDot(), 1e-7);
+}
+
 int main() {
     SimTK_START_TEST("TestReverseMobilizers");
         SimTK_SUBTEST(testPin);
@@ -1086,5 +1144,11 @@ int main() {
         SimTK_SUBTEST(testGimbal);
         SimTK_SUBTEST(testBushing);
         SimTK_SUBTEST(testCantileverFreeBeam);
+        for (auto dir : {MobilizedBody::Forward, MobilizedBody::Reverse}) {
+            testReversedQuaternion<MobilizedBody::LineOrientation>(dir);
+            testReversedQuaternion<MobilizedBody::FreeLine>(dir);
+            testReversedQuaternion<MobilizedBody::Ball>(dir);
+            testReversedQuaternion<MobilizedBody::Free>(dir);
+        }
     SimTK_END_TEST();
 }

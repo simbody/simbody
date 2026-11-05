@@ -288,7 +288,7 @@ void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
         // Quaternion: N block is only available expecting angular velocity 
         // in the parent frame F, but we have it in M for this joint so we
         // have to calculate N_FM = N_FF*R_FM.
-        const Rotation& R_FM = this->getX_FM(pc).R();
+        const Rotation  R_FM = this->findX_F0M0(pc).R();
         const Vec4& q = this->fromQuat(allQ);
         const Mat42 N_FM = (Rotation::calcUnnormalizedNForQuaternion(q)*R_FM)
                             .getSubMat<4,2>(0,0); // drop 3rd column
@@ -332,7 +332,7 @@ void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
         // Quaternion: NInv block is only available expecting angular 
         // velocity in the parent frame F, but we have it in M for 
         // this joint so we have to calculate NInv_MF = R_MF*NInv_FF.
-        const Rotation& R_FM = this->getX_FM(pc).R();
+        const Rotation  R_FM = this->findX_F0M0(pc).R();
         const Vec4& q = this->fromQuat(allQ);
         const Mat24 NInv_MF = (~R_FM*Rotation::calcUnnormalizedNInvForQuaternion(q))
                                 .getSubMat<2,4>(0,0);   // drop 3rd row
@@ -378,7 +378,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
         // Quaternion: NDot block is only available expecting angular velocity 
         // in the parent frame F, but we have it in M for this joint so we
         // have to calculate NDot_FM = NDot_FF*R_FM.
-        const Rotation& R_FM = this->getX_FM(pc).R();
+        const Rotation  R_FM = this->findX_F0M0(pc).R();
         const Vec4& qdot = this->fromQuat(allQDot);
         const Mat42 NDot_FM = 
            (Rotation::calcUnnormalizedNDotForQuaternion(qdot)*R_FM)
@@ -412,7 +412,7 @@ void calcQDot(
         Vec3::updAs(&qdot[3]) = v_FM;
         qdot[6] = 0;
     } else {
-        const Rotation& R_FM = this->getX_FM(pc).R();
+        const Rotation  R_FM = this->findX_F0M0(pc).R();
         const Vec4& quat = this->fromQuat(sbs.getQ());
         Vec4::updAs(qdot)   = Rotation::convertAngVelToQuaternionDot(quat,
                                         R_FM*w_FM_M); // need w in *parent* frame here
@@ -439,7 +439,7 @@ void calcQDotDot(
         Vec3::updAs(&qdotdot[3]) = v_FM_dot;
         qdotdot[6] = 0;
     } else {
-        const Rotation& R_FM = this->getX_FM(pc).R();
+        const Rotation  R_FM = this->findX_F0M0(pc).R();
         const Vec4& quat  = this->fromQuat(sbs.getQ());
         Vec4::updAs(qdotdot)   = Rotation::convertAngVelDotToQuaternionDotDot
                                          (quat,R_FM*w_FM_M,R_FM*w_FM_M_dot); // needed in parent frame
