@@ -8,6 +8,8 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* Fixed quaternion coordinate-rate mappings for reversed `LineOrientation` and `FreeLine`
+  mobilizers, and their `multiplyByNDot()` operators in both directions. (PR #893)
 * MobilizedBody::Ellipsoid radii are now an Instance-stage state variable, accessed with
   getRadii(state)/setRadii(state, radii) and initialized from getDefaultRadii(). Added
   multiplyByPositionJacobianWrtRadii() and multiplyByPositionJacobianWrtRadiiTranspose()
