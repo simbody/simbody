@@ -8,6 +8,11 @@ PRs and issues that were included in a particular release.
 
 3.9 (in development)
 --------------------
+* CableSpan path smoothness is now measured as the angle between each straight-line segment and
+  the geodesic tangent where they meet. Folded paths, where the straight line runs backwards
+  along the geodesic, are no longer reported as converged. The initial path from a contact point
+  hint now uses a tangent that bisects the adjacent straight segments, and falls back to touchdown
+  detection when the hint aligns poorly. (PR #890)
 * Fixed `PolygonalMesh::loadObjFile()` discarding normals (while keeping dangling
   face-vertex normal indices) when an OBJ file's normal count differed from its face count.
   `PolygonalMesh::hasNormalsAtFaces()` now means every face vertex has a valid normal

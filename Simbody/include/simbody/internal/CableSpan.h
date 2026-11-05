@@ -236,7 +236,9 @@ public:
     the obstacle, in local surface frame coordinates. The point will be used as
     a starting point when computing the initial cable path. As such, it does
     not have to lie on the contact geometry's surface, nor does it have to
-    belong to a valid cable path.
+    belong to a valid cable path. If a smooth path cannot be made through the
+    hint, the contact point is placed instead where the straight line between
+    the neighboring path points comes closest to the surface.
     @return The index of the added obstacle in this cable. **/
     CableSpanObstacleIndex addObstacle(
         MobilizedBodyIndex obstacleBody,
@@ -400,7 +402,9 @@ public:
     the obstacle, in local surface frame coordinates. The point will be used as
     a starting point when computing the initial cable path. As such, it does
     not have to lie on the contact geometry's surface, nor does it have to
-    belong to the optimal cable path. **/
+    belong to the optimal cable path. If a smooth path cannot be made through
+    the hint, the contact point is placed instead where the straight line
+    between the neighboring path points comes closest to the surface. **/
     void setObstacleContactPointHint(
         CableSpanObstacleIndex ix,
         Vec3 contactPointHint_S);
