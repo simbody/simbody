@@ -6,6 +6,10 @@ of the more notable ones. For a comprehensive history, see the
 [Simbody GitHub repo](https://github.com/simbody/simbody). You can use the release dates below to find all the
 PRs and issues that were included in a particular release.
 
+3.10 (in development)
+---------------------
+
+
 3.9 (November 2026)
 -------------------
 This release requires C++20 and includes several changes that may require
