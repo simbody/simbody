@@ -18,6 +18,8 @@
 
 #include "Simbody.h"
 
+#include <map>
+
 using namespace SimTK;
 
 /**
@@ -119,7 +121,8 @@ Wrap a cable over (in order):
 We wrap the cable conveniently over the obstacles such that each curve
 segment becomes a circular-arc shape. This allows us to check the results by
 hand. **/
-void testSimpleCable()
+void testSimpleCable(
+    CableSpanAlgorithm algorithm = CableSpanAlgorithm::MinimumLength)
 {
     const bool show = false;
 
@@ -152,6 +155,7 @@ void testSimpleCable()
         Vec3{0.},
         cableTerminationBody,
         Vec3{0.});
+    cable.setAlgorithm(algorithm);
     cable.setCurveSegmentAccuracy(1e-12);
     cable.setSmoothnessTolerance(1e-7);
 
@@ -408,7 +412,8 @@ void testSimpleCable()
 }
 
 /** Simple CableSpan comprised of via points with known solution. **/
-void testViaPoints()
+void testViaPoints(
+    CableSpanAlgorithm algorithm = CableSpanAlgorithm::MinimumLength)
 {
     const bool show = false;
 
@@ -441,6 +446,7 @@ void testViaPoints()
         Vec3{0.},
         cableTerminationBody,
         Vec3{0.});
+    cable.setAlgorithm(algorithm);
 
     // First via point.
     MobilizedBody::Translation cableViaPoint1Body(
@@ -600,8 +606,12 @@ The cable wraps over (in order):
 The flag assertCableLengthDerivative is used to switch between verifying that
 the computed cable length derivative matches the change in length during
 simulation, OR verifying that all computed geodesics and Jacobians are
-correct. Doing both requires too much time. **/
-void testAllSurfaceKinds(bool assertCableLengthDerivative)
+correct. Doing both requires too much time.
+
+The geodesics and Jacobians do not depend on the algorithm, so they are only
+verified for the default algorithm. **/
+void testAllSurfaceKinds(bool assertCableLengthDerivative,
+    CableSpanAlgorithm algorithm = CableSpanAlgorithm::MinimumLength)
 {
     const bool show = false;
 
@@ -641,6 +651,7 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
         Vec3{0.},
         cableTerminationBody,
         Vec3{0.});
+    cable.setAlgorithm(algorithm);
     cable.setCurveSegmentAccuracy(1e-9);
     cable.setSmoothnessTolerance(1e-4);
 
@@ -786,7 +797,8 @@ void testAllSurfaceKinds(bool assertCableLengthDerivative)
 
         // Check that the geodesics and path error vector & Jacobian are
         // correct.
-        if (!assertCableLengthDerivative) {
+        if (!assertCableLengthDerivative &&
+            algorithm == CableSpanAlgorithm::MinimumLength) {
             CableSubsystemTestHelper().testCurrentPath(s, cables, std::cout);
         }
 
@@ -844,7 +856,8 @@ Create a simple touchdown and liftoff case on a:
 
 A cable is spanned over each obstacle individually, so there are 4 cables, each
 with one obstacle. **/
-void testTouchdownAndLiftoff()
+void testTouchdownAndLiftoff(
+    CableSpanAlgorithm algorithm = CableSpanAlgorithm::MinimumLength)
 {
     const bool show = false;
 
@@ -885,6 +898,7 @@ void testTouchdownAndLiftoff()
             Vec3{0.},
             cableTerminationBody,
             Vec3{0.});
+        cable.setAlgorithm(algorithm);
         cable.setCurveSegmentAccuracy(1e-12);
         cable.setSmoothnessTolerance(1e-6);
         cable.setUseWarmStart(useWarmStart);
@@ -1198,7 +1212,8 @@ void testSolverOptimum()
 
 In this test the optimal path is far from the initial path. This tests the
 robustness of the algorithm to the initial conditions. **/
-void testRobustInitialPath()
+void testRobustInitialPath(
+    CableSpanAlgorithm algorithm = CableSpanAlgorithm::MinimumLength)
 {
     const bool show = false;
 
@@ -1222,6 +1237,7 @@ void testRobustInitialPath()
         Vec3{-0.1, 0., 0.},
         matter.Ground(),
         Vec3{0.1, 0., 0.});
+    cable.setAlgorithm(algorithm);
 
     // Add torus obstacle.
     cable.addObstacle(
@@ -1438,6 +1454,48 @@ void testUseWarmStart() {
     }
 }
 
+/** The angle between a straight line segment and the geodesic tangent it
+meets. Decomposing the line direction e in the Frenet frame, the component along
+the tangent (the X axis) is the cosine of the angle and the magnitude of the
+remainder is its sine. **/
+Real calcAlignmentAngle(const Vec3& line, const Transform& frame)
+{
+    const UnitVec3 e(line);
+    return std::atan2(cross(e, frame.x()).norm(), dot(e, frame.x()));
+}
+
+/** Measure alignment from the actual straight segments and contact frames,
+including the segment shared by two obstacles. Lifted obstacles are skipped. */
+Real calcMeasuredAlignmentError(const State& s, const CableSpan& cable,
+    const Vec3& origin, const Vec3& termination)
+{
+    std::vector<Transform> initialFrames, finalFrames;
+    for (int i = 0; i < cable.getNumObstacles(); ++i) {
+        const CableSpanObstacleIndex ix(i);
+        if (cable.isInContactWithObstacle(s, ix)) {
+            initialFrames.push_back(
+                cable.calcCurveSegmentInitialFrenetFrame(s, ix));
+            finalFrames.push_back(
+                cable.calcCurveSegmentFinalFrenetFrame(s, ix));
+        }
+    }
+    auto angle = [](const Vec3& line, const Transform& frame) {
+        const Real value = calcAlignmentAngle(line, frame);
+        SimTK_TEST(std::isfinite(value));
+        return value;
+    };
+    Real error = 0.;
+    for (size_t i = 0; i < initialFrames.size(); ++i) {
+        const Vec3 prev = i == 0 ? origin : finalFrames[i - 1].p();
+        const Vec3 next = i + 1 == initialFrames.size()
+            ? termination : initialFrames[i + 1].p();
+        error = std::max(error, angle(initialFrames[i].p() - prev,
+            initialFrames[i]));
+        error = std::max(error, angle(next - finalFrames[i].p(), finalFrames[i]));
+    }
+    return error;
+}
+
 /** CableSpan tangential alignment test.
 
 Test that the straight line segments of the path are aligned with the tangent
@@ -1450,43 +1508,16 @@ but the straight line segment runs in the opposite direction of the geodesic
 tangent. **/
 void testTangentialAlignment() {
 
-    // Calculate the angle between a straight line segment and the geodesic
-    // tangent it meets.
-    auto calcMaxAlignmentError = [](const State& s,
-                                    const CableSpan& cable,
-                                    const Vec3& origin,
-                                    const Vec3& termination) -> Real
-    {
-        const CableSpanObstacleIndex ix(0);
-        if (!cable.isInContactWithObstacle(s, ix)) {
-            return NaN;
-        }
-        const Transform X_GP = cable.calcCurveSegmentInitialFrenetFrame(s, ix);
-        const Transform X_GQ = cable.calcCurveSegmentFinalFrenetFrame(s, ix);
-
-        // Decomposing e in the Frenet frame, the component along the tangent
-        // is the cosine of the angle and the magnitude of the remainder is
-        // its sine. The tangent is the X axis of the Frenet frame.
-        auto calcAngle = [](const UnitVec3& e, const Transform& X) -> Real
-        {
-            return std::atan2(cross(e, X.x()).norm(), dot(e, X.x()));
-        };
-        return std::max(
-            calcAngle(UnitVec3(X_GP.p() - origin), X_GP),
-            calcAngle(UnitVec3(termination - X_GQ.p()), X_GQ));
-    };
-
     const Real smoothnessTolerance = 1e-8;
 
-    // Counters used to confirm the sweep below is not vacuous.
-    int numInContact        = 0;
-    int numConvergedAligned  = 0;
-    int numLargeAlignmentError = 0;
+    // Keep results by algorithm so comparisons do not depend on run order.
+    std::map<CableSpanAlgorithm, std::vector<Real>> alignmentErrors;
 
     // For each algorithm, sweep across a range of gaps, attachment point
     // separations, and contact point hints.
     std::vector<CableSpanAlgorithm> algorithms =
-        {CableSpanAlgorithm::Scholz2015, CableSpanAlgorithm::MinimumLength};
+        {CableSpanAlgorithm::AlignmentCost, CableSpanAlgorithm::MinimumLength,
+         CableSpanAlgorithm::Scholz2015};
     std::vector<Real> gaps = {0.02, 0.1, 0.5, 2.0};
     std::vector<Real> separations = {20., 60., 100., 150.};
     std::vector<Real> hints = {0., 45., 90., 135., 180., 225., 270., 315.};
@@ -1495,6 +1526,9 @@ void testTangentialAlignment() {
     // measured alignment error, and that a path reported as converged is
     // actually aligned.
     for (CableSpanAlgorithm algorithm : algorithms) {
+    int numInContact = 0;
+    int numConvergedAligned = 0;
+    int numLargeAlignmentError = 0;
     for (Real gap : gaps) {
     for (Real separationDeg : separations) {
     for (Real hintDeg : hints) {
@@ -1544,8 +1578,23 @@ void testTangentialAlignment() {
         State s = system.getDefaultState();
         system.realize(s, Stage::Position);
 
-        const Real measuredAngle = calcMaxAlignmentError(
-            s, cable, origin, termination);
+        // A lifted cable has no contact angle, which is recorded as NaN.
+        const Real measuredAngle =
+            cable.isInContactWithObstacle(s, CableSpanObstacleIndex(0))
+            ? calcMeasuredAlignmentError(s, cable, origin, termination)
+            : NaN;
+        alignmentErrors[algorithm].push_back(measuredAngle);
+
+        // The midpoint is the closest point on the straight path to the
+        // sphere center. A path through the sphere must retain contact;
+        // dropping contact must not masquerade as alignment convergence.
+        if (algorithm == CableSpanAlgorithm::AlignmentCost &&
+            attachment * std::cos(halfAngle) < radius) {
+            SimTK_ASSERT3_ALWAYS(!isNaN(measuredAngle),
+                "AlignmentCost lost required contact for gap=%g, "
+                "separation=%g deg, hint=%g deg.",
+                gap, separationDeg, hintDeg);
+        }
 
         // Hints far from the attachment points can leave the cable
         // clear of the obstacle, which is correct behavior and
@@ -1581,20 +1630,323 @@ void testTangentialAlignment() {
             ++numConvergedAligned;
         }
 
-    }}}}
+    }}}
 
-    SimTK_ASSERT_ALWAYS(numInContact > 0,
-        "No configuration in the tangential alignment test made contact with "
-        "the obstacle; the test is vacuous.");
-    SimTK_ASSERT_ALWAYS(numConvergedAligned > 0,
-        "No configuration in the tangential alignment test produced a "
-        "converged, aligned path; the test is vacuous.");
-    SimTK_ASSERT_ALWAYS(numLargeAlignmentError > 0,
-        "No configuration in the tangential alignment test ended up badly "
-        "misaligned, so the smoothness check was never exercised on a folded "
-        "path.");
+    SimTK_ASSERT1_ALWAYS(numInContact > 0,
+        "Algorithm %d made no contacts; the alignment test is vacuous.",
+        static_cast<int>(algorithm));
+    SimTK_ASSERT1_ALWAYS(numConvergedAligned > 0,
+        "Algorithm %d produced no converged, aligned paths.",
+        static_cast<int>(algorithm));
+    if (algorithm == CableSpanAlgorithm::Scholz2015) {
+        SimTK_ASSERT_ALWAYS(numLargeAlignmentError > 0,
+            "Scholz2015 produced no badly misaligned paths, so the "
+            "smoothness check was never exercised on a folded path.");
+    }
+    if (algorithm == CableSpanAlgorithm::AlignmentCost) {
+        SimTK_ASSERT2_ALWAYS(numConvergedAligned == numInContact,
+            "AlignmentCost converged on only %d of %d contacts.",
+            numConvergedAligned, numInContact);
+    }
+    }
+
+    const auto scholz = alignmentErrors.find(CableSpanAlgorithm::Scholz2015);
+    const auto alignment = alignmentErrors.find(
+        CableSpanAlgorithm::AlignmentCost);
+    SimTK_ASSERT_ALWAYS(scholz != alignmentErrors.end() &&
+                        alignment != alignmentErrors.end(),
+        "The folded-path comparison requires Scholz2015 and "
+        "AlignmentCost results.");
+    SimTK_ASSERT_ALWAYS(scholz->second.size() == alignment->second.size(),
+        "The folded-path comparison requires matching configurations.");
+    int numFoldedPathsAvoided = 0;
+    for (size_t i = 0; i < scholz->second.size(); ++i) {
+        if (scholz->second[i] > Pi / 2. &&
+            alignment->second[i] < smoothnessTolerance) {
+            ++numFoldedPathsAvoided;
+        }
+    }
+    // Require the new cost to align at least one configuration for which
+    // normal/binormal rootfinding produces reversed tangents.
+    SimTK_ASSERT_ALWAYS(numFoldedPathsAvoided > 0,
+        "The AlignmentCost solver did not align any configuration "
+        "where Scholz2015 produced a folded path.");
 }
 
+
+/** CableSpan alignment cost test across scales.
+
+Check that damping the length correction does not prevent convergence
+when wrapping over spheres with radii at different scales. **/
+void testAlignmentCostAcrossScales() {
+    for (Real radius : {1e-3, 1., 1e3}) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        CableSubsystem cables(system);
+        const Real halfAngle = Pi / 3.;
+        const Real attachment = 1.1 * radius;
+        CableSpan cable(cables,
+            matter.Ground(),
+            Vec3(-attachment * std::sin(halfAngle),
+                  attachment * std::cos(halfAngle), 0.),
+            matter.Ground(),
+            Vec3(attachment * std::sin(halfAngle),
+                 attachment * std::cos(halfAngle), 0.));
+        cable.addObstacle(matter.Ground(), Transform(),
+            std::shared_ptr<ContactGeometry>(
+                new ContactGeometry::Sphere(radius)),
+            Vec3(0., radius, 0.));
+        cable.setAlgorithm(CableSpanAlgorithm::AlignmentCost);
+        cable.setCurveSegmentAccuracy(1e-10 * radius);
+        cable.setSmoothnessTolerance(1e-8);
+        cable.setSolverMaxIterations(200);
+        system.realizeTopology();
+        State s = system.getDefaultState();
+        system.realize(s, Stage::Position);
+
+        SimTK_ASSERT1_ALWAYS(
+            cable.isInContactWithObstacle(s, CableSpanObstacleIndex(0)),
+            "Lost required sphere contact at radius=%g.", radius);
+        SimTK_ASSERT1_ALWAYS(
+            cable.getSmoothness(s) <= cable.getSmoothnessTolerance(),
+            "AlignmentCost failed to converge at radius=%g.", radius);
+        // Two tangent lines and the circular arc between their contact points.
+        const Real expectedLength = 2. * radius *
+            (std::sqrt(1.1 * 1.1 - 1.) + halfAngle - std::acos(1. / 1.1));
+        SimTK_ASSERT1_ALWAYS(
+            std::abs(cable.calcLength(s) - expectedLength) < 1e-8 * radius,
+            "Incorrect sphere-wrapping length at radius=%g.", radius);
+    }
+}
+
+/** CableSpan antiparallel warm start test.
+
+Exercise reversed warm starts, bypassing the initialization heuristics that
+normally prevent antiparallel tangents. Reversing both attachment directions
+leaves the interior straight segment aligned in the two-obstacle case. */
+void testAntiparallelWarmStart() {
+    const Real tolerance = 1e-8;
+    const int maxIterations = 200;
+    for (int numObstacles : {1, 2}) {
+    for (Real perturbation : {0., -1e-8, 1e-8, -1e-5, 1e-5, -1e-2, 1e-2}) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        CableSubsystem cables(system);
+        const Body::Rigid body(MassProperties(1., Vec3(0.), UnitInertia(1.)));
+        MobilizedBody::Translation originBody(matter.Ground(), body);
+        MobilizedBody::Translation terminationBody(matter.Ground(), body);
+        originBody.setDefaultTranslation(Vec3(-2. * numObstacles, 0., 0.));
+        terminationBody.setDefaultTranslation(Vec3(2. * numObstacles, 0., 0.));
+        CableSpan cable(cables, originBody, Vec3(0.), terminationBody, Vec3(0.));
+        std::vector<Vec3> centers;
+        for (int i = 0; i < numObstacles; ++i) {
+            centers.push_back(Vec3(numObstacles == 1 ? 0. : (i == 0 ? -2. : 2.),
+                0., 0.));
+            cable.addObstacle(matter.Ground(), Transform(centers.back()),
+                std::make_shared<ContactGeometry::Sphere>(1.), Vec3(0., 1., 0.));
+        }
+        cable.setAlgorithm(CableSpanAlgorithm::AlignmentCost);
+        cable.setUseWarmStart(true);
+        cable.setCurveSegmentAccuracy(1e-12);
+        cable.setSmoothnessTolerance(tolerance);
+        cable.setSolverMaxIterations(maxIterations);
+        system.realizeTopology();
+        State s = system.getDefaultState();
+        system.realize(s, Stage::Position);
+        SimTK_TEST(cable.getSmoothness(s) <= tolerance);
+        for (int i = 0; i < numObstacles; ++i) {
+            SimTK_TEST(cable.isInContactWithObstacle(s, CableSpanObstacleIndex(i)));
+        }
+        const Transform P = cable.calcCurveSegmentInitialFrenetFrame(
+            s, CableSpanObstacleIndex(0));
+        const Transform Q = cable.calcCurveSegmentFinalFrenetFrame(
+            s, CableSpanObstacleIndex(numObstacles - 1));
+        const Vec3 origin = P.p() + Vec3(P.x()) + perturbation * Vec3(P.z());
+        const Vec3 termination = Q.p() - Vec3(Q.x()) + perturbation * Vec3(Q.z());
+
+        // Freeze the solve to verify the actual starting configuration, rather
+        // than assuming a contact hint produced reversed tangents.
+        cable.setSolverMaxIterations(0);
+        originBody.setTranslation(s, origin);
+        terminationBody.setTranslation(s, termination);
+        system.realize(s, Stage::Position);
+        for (int i = 0; i < numObstacles; ++i) {
+            const CableSpanObstacleIndex ix(i);
+            SimTK_TEST(cable.isInContactWithObstacle(s, ix));
+        }
+        const Transform initialP = cable.calcCurveSegmentInitialFrenetFrame(
+            s, CableSpanObstacleIndex(0));
+        const Transform initialQ = cable.calcCurveSegmentFinalFrenetFrame(
+            s, CableSpanObstacleIndex(numObstacles - 1));
+        SimTK_TEST_EQ_TOL(initialP.p(), P.p(), 1e-12);
+        SimTK_TEST_EQ_TOL(initialQ.p(), Q.p(), 1e-12);
+        const Real expectedAngle = Pi - std::atan(std::abs(perturbation));
+        SimTK_TEST_EQ_TOL(calcAlignmentAngle(initialP.p() - origin, initialP),
+            expectedAngle, 1e-12);
+        SimTK_TEST_EQ_TOL(calcAlignmentAngle(termination - initialQ.p(), initialQ),
+            expectedAngle, 1e-12);
+        SimTK_TEST_EQ_TOL(cable.getSmoothness(s), expectedAngle, 1e-12);
+        SimTK_TEST(cable.getSmoothness(s) > tolerance);
+
+        cable.setSolverMaxIterations(maxIterations);
+        // Reassigning q invalidates Position while retaining the warm geodesics.
+        originBody.setTranslation(s, origin);
+        system.realize(s, Stage::Position);
+        const Real measured = calcMeasuredAlignmentError(
+            s, cable, origin, termination);
+        SimTK_TEST(std::isfinite(cable.calcLength(s)));
+        SimTK_TEST(std::isfinite(cable.getSmoothness(s)));
+        SimTK_TEST_EQ_TOL(cable.getSmoothness(s), measured, 1e-12);
+        if (perturbation != 0.) {
+            SimTK_ASSERT3_ALWAYS(measured <= tolerance,
+                "Failed to recover from a near-antiparallel start: "
+                "%d obstacles, perturbation=%g, alignment error=%g.",
+                numObstacles, perturbation, measured);
+        } else {
+            // Exact antiparallel alignment is stationary. Roundoff can break
+            // symmetry, but recovery must not be required on every platform.
+            // An unresolved path must exhaust the budget, not stop as converged.
+            SimTK_TEST(measured <= tolerance ||
+                cable.getNumSolverIterations(s) == maxIterations);
+        }
+
+        // Recovery may legitimately release either sphere. Independently check
+        // every straight segment against both spheres, so a lost contact cannot
+        // hide an intersecting path behind a reported zero alignment error.
+        std::vector<std::pair<Vec3, Vec3>> lines;
+        Vec3 prev = origin;
+        for (int i = 0; i < numObstacles; ++i) {
+            const CableSpanObstacleIndex ix(i);
+            if (!cable.isInContactWithObstacle(s, ix)) continue;
+            lines.emplace_back(prev,
+                cable.calcCurveSegmentInitialFrenetFrame(s, ix).p());
+            prev = cable.calcCurveSegmentFinalFrenetFrame(s, ix).p();
+        }
+        lines.emplace_back(prev, termination);
+        for (const auto& line : lines) {
+            const Vec3 delta = line.second - line.first;
+            SimTK_TEST(delta.normSqr() > 0.);
+            for (const Vec3& center : centers) {
+                const Real fraction = std::max(0., std::min(1.,
+                    dot(center - line.first, delta) / delta.normSqr()));
+                SimTK_TEST((line.first + fraction * delta - center).norm()
+                    >= 1. - 1e-7);
+            }
+        }
+        if (lines.size() == 1) {
+            SimTK_TEST_EQ_TOL(cable.calcLength(s),
+                (termination - origin).norm(), 1e-10);
+        }
+    }}
+}
+
+/** CableSpan alignment cost test with coupled obstacles.
+
+Both obstacles must remain in contact. Their shared straight segment couples
+all eight geodesic coordinates; there is no via point splitting the solve. */
+void testAlignmentCostCoupledObstacles() {
+    for (Real gap : {0.1, 1., 3.}) {
+    for (Real hintAngle : {-2., -1., 0., 1., 2., 3.}) {
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        CableSubsystem cables(system);
+        const Vec3 origin(-4. - gap, 0., 0.);
+        const Vec3 termination(4. + gap, 0., 0.);
+        CableSpan cable(cables, matter.Ground(), origin,
+            matter.Ground(), termination);
+        for (int i = 0; i < 2; ++i) {
+            cable.addObstacle(matter.Ground(),
+                Transform(Vec3(i == 0 ? -2. : 2., 0., 0.)),
+                std::make_shared<ContactGeometry::Sphere>(1.),
+                Vec3((i == 0 ? 1. : -1.) * std::sin(hintAngle),
+                    std::cos(hintAngle), 1e-3));
+        }
+        cable.setAlgorithm(CableSpanAlgorithm::AlignmentCost);
+        cable.setCurveSegmentAccuracy(1e-12);
+        cable.setSmoothnessTolerance(1e-8);
+        cable.setSolverMaxIterations(200);
+        system.realizeTopology();
+        State s = system.getDefaultState();
+        system.realize(s, Stage::Position);
+        for (int i = 0; i < 2; ++i) {
+            SimTK_TEST(cable.isInContactWithObstacle(s, CableSpanObstacleIndex(i)));
+        }
+        const Real measured = calcMeasuredAlignmentError(
+            s, cable, origin, termination);
+        SimTK_TEST(measured <= cable.getSmoothnessTolerance());
+        SimTK_TEST_EQ_TOL(cable.getSmoothness(s), measured, 1e-12);
+        // Two outer tangent lines, two circular arcs, and the common tangent.
+        const Real distance = 2. + gap;
+        const Real expectedLength = 2. * std::sqrt(square(distance) - 1.)
+            + 2. * std::asin(1. / distance) + 4.;
+        SimTK_TEST_EQ_TOL(cable.calcLength(s), expectedLength, 1e-8);
+    }}
+}
+
+/** CableSpan cylinder fold test.
+
+Span a cable over a cylinder (axis z) with attachment points in the z = 0 plane,
+and a contact point hint well above that plane. From this hint, Scholz2015 and
+MinimumLength converge to a folded path, where the straight line segments run
+opposite to the geodesic tangents at the contact points. Test that
+AlignmentCost avoids the fold and finds the shortest path, a circular arc
+in the plane of the attachment points. **/
+void testCylinderFold()
+{
+    const Real radius = 1.;
+    const Real gap = 0.5;
+    const Real halfAngle = 50. / 180. * Pi;
+    const Real hintAngle = 80. / 180. * Pi;
+    const Real attachment = radius * (1. + gap);
+    const Vec3 origin(-attachment * std::sin(halfAngle),
+        attachment * std::cos(halfAngle), 0.);
+    const Vec3 termination(attachment * std::sin(halfAngle),
+        attachment * std::cos(halfAngle), 0.);
+    const Vec3 hint(radius * std::sin(hintAngle), radius * std::cos(hintAngle),
+        radius);
+
+    // Two tangent lines and the circular arc between their contact points.
+    const Real ratio = attachment / radius;
+    const Real expectedLength = 2. * radius *
+        (std::sqrt(ratio * ratio - 1.) + halfAngle - std::acos(1. / ratio));
+
+    // Create the system.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableSubsystem cables(system);
+
+    CableSpan cable(cables, matter.Ground(), origin, matter.Ground(),
+        termination);
+    cable.addObstacle(matter.Ground(), Transform(),
+        std::make_shared<ContactGeometry::Cylinder>(radius), hint);
+
+    // Configure the solver.
+    cable.setCurveSegmentAccuracy(1e-12);
+    cable.setSmoothnessTolerance(1e-8);
+    cable.setSolverMaxIterations(200);
+    cable.setAlgorithm(CableSpanAlgorithm::AlignmentCost);
+
+    // Initialize the system and state.
+    system.realizeTopology();
+    State s = system.getDefaultState();
+    system.realize(s, Stage::Position);
+
+    SimTK_ASSERT_ALWAYS(
+        cable.isInContactWithObstacle(s, CableSpanObstacleIndex(0)),
+        "Lost required cylinder contact.");
+    const Real measured =
+        calcMeasuredAlignmentError(s, cable, origin, termination);
+    SimTK_TEST_EQ_TOL(cable.getSmoothness(s), measured, 1e-9);
+    SimTK_ASSERT2_ALWAYS(measured < cable.getSmoothnessTolerance(),
+        "Alignment error (%e) does not meet tolerance (%e)",
+        measured,
+        cable.getSmoothnessTolerance());
+    SimTK_ASSERT2_ALWAYS(
+        std::abs(cable.calcLength(s) - expectedLength) < 1e-8,
+        "Cable length (%f) does not match expected length (%f)",
+        cable.calcLength(s),
+        expectedLength);
+}
 
 /** CableSpan initial liftoff test.
 
@@ -1608,7 +1960,8 @@ void testInitialLiftoff() {
     const Vec3 hint(0.93, -0.37, -0.01);
     const Real expectedLength = (termination - origin).norm();
     std::vector<CableSpanAlgorithm> algorithms =
-        {CableSpanAlgorithm::Scholz2015, CableSpanAlgorithm::MinimumLength};
+        {CableSpanAlgorithm::Scholz2015, CableSpanAlgorithm::MinimumLength,
+         CableSpanAlgorithm::AlignmentCost};
 
     for (CableSpanAlgorithm algorithm : algorithms) {
         MultibodySystem system;
@@ -1658,5 +2011,15 @@ int main()
     testRobustInitialPath();
     testUseWarmStart();
     testTangentialAlignment();
+    testAlignmentCostAcrossScales();
+    testAntiparallelWarmStart();
+    testAlignmentCostCoupledObstacles();
+    testCylinderFold();
     testInitialLiftoff();
+    testSimpleCable(CableSpanAlgorithm::AlignmentCost);
+    testViaPoints(CableSpanAlgorithm::AlignmentCost);
+    testTouchdownAndLiftoff(CableSpanAlgorithm::AlignmentCost);
+    testAllSurfaceKinds(false, CableSpanAlgorithm::AlignmentCost);
+    testAllSurfaceKinds(true, CableSpanAlgorithm::AlignmentCost);
+    testRobustInitialPath(CableSpanAlgorithm::AlignmentCost);
 }
