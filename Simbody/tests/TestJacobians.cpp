@@ -29,12 +29,12 @@ namespace {
 
     // A branched multibody of bodies containing various mobilizers of different
     // types including Pin, Gimbal, Weld, Free, Ellipsoid (standard, reversed,
-    // and mirrored), and CantileverFreeBeam mobilizers.
+    // and mirrored), and CantileverFreeBeam (standard and reversed) mobilizers.
     class BranchedSystem {
     public:
         enum MobilizerType {Ground=0, Pin=1, Ellipsoid=2, CantileverFreeBeam=3,
                             Gimbal=4, Weld=5, Free=6, ReversedEllipsoid=7,
-                            MirroredEllipsoid=8};
+                            MirroredEllipsoid=8, ReversedCantileverFreeBeam=9};
 
         BranchedSystem() :
                 m_matter(m_system), m_forces(m_system),
@@ -81,6 +81,12 @@ namespace {
             m_free = MobilizedBody::Free(
                     m_weld, X_PF[Free],
                     body, X_BM[Free]);
+
+            m_reversedCantileverFreeBeam = MobilizedBody::CantileverFreeBeam(
+                    m_free, X_PF[ReversedCantileverFreeBeam],
+                    body, X_BM[ReversedCantileverFreeBeam],
+                    m_reversedCantileverFreeBeamLength,
+                    MobilizedBody::Reverse);
         }
 
         void loadDefaultState(State& state) {
@@ -105,8 +111,10 @@ namespace {
         MobilizedBody::Ellipsoid          m_mirroredEllipsoid;
         MobilizedBody::Weld               m_weld;
         MobilizedBody::Free               m_free;
+        MobilizedBody::CantileverFreeBeam m_reversedCantileverFreeBeam;
 
         const Real m_cantileverFreeBeamLength = 1.23;
+        const Real m_reversedCantileverFreeBeamLength = 0.87;
         const Vec3 m_ellipsoidRadii = Vec3(0.1, 0.2, 0.3);
         const Vec3 m_reversedEllipsoidRadii = Vec3(0.15, 0.25, 0.35);
         const Vec3 m_mirroredEllipsoidRadii = Vec3(0.22, 0.14, 0.31);
@@ -145,7 +153,11 @@ namespace {
             Transform(Rotation(BodyRotationSequence,  // [8] Ellipsoid (mirrored)
                             -Pi/6, ZAxis,
                             Pi/4, YAxis),
-                    Vec3(-0.7, 0.8, 0.9))};
+                    Vec3(-0.7, 0.8, 0.9)),
+            Transform(Rotation(BodyRotationSequence,  // [9] CantileverFreeBeam
+                            Pi/7, XAxis,              //     (reversed)
+                            -Pi/5, YAxis),
+                    Vec3(0.35, -0.45, 0.55))};
         const Array_<Transform> X_BM = {
             Transform(),                              // [0] Ground
             Transform(Rotation(BodyRotationSequence,  // [1] Pin
@@ -179,7 +191,11 @@ namespace {
             Transform(Rotation(BodyRotationSequence,  // [8] Ellipsoid (mirrored)
                             Pi/4, YAxis,
                             -Pi/9, ZAxis),
-                    Vec3(0.31, -0.32, 0.33))};
+                    Vec3(0.31, -0.32, 0.33)),
+            Transform(Rotation(BodyRotationSequence,  // [9] CantileverFreeBeam
+                            -Pi/8, YAxis,             //     (reversed)
+                            Pi/6, ZAxis),
+                    Vec3(-0.34, 0.35, -0.36))};
     };
 
     // Form the matrices of a forward operator and of its transpose operator,
@@ -226,15 +242,16 @@ void testMultiplyByPositionJacobianWrtInboardFramePositions() {
 
     State pert = state;
 
-    MobilizedBody mobods[8] = { sys.m_pin,
+    MobilizedBody mobods[9] = { sys.m_pin,
                                 sys.m_ellipsoid,
                                 sys.m_mirroredEllipsoid,
                                 sys.m_cantileverFreeBeam,
                                 sys.m_gimbal,
                                 sys.m_reversedEllipsoid,
                                 sys.m_weld,
-                                sys.m_free };
-    for (int m = 0; m < 8; ++m) {
+                                sys.m_free,
+                                sys.m_reversedCantileverFreeBeam };
+    for (int m = 0; m < 9; ++m) {
         const MobilizedBodyIndex bIdx = mobods[m].getMobilizedBodyIndex();
         Transform X_PF = mobods[m].getInboardFrame(pert);
         X_PF.updP() += h * dp_PF[bIdx];
@@ -336,15 +353,16 @@ void testMultiplyByPositionJacobianWrtOutboardFramePositions() {
 
     State pert = state;
 
-    MobilizedBody mobods[8] = { sys.m_pin,
+    MobilizedBody mobods[9] = { sys.m_pin,
                                 sys.m_ellipsoid,
                                 sys.m_mirroredEllipsoid,
                                 sys.m_cantileverFreeBeam,
                                 sys.m_gimbal,
                                 sys.m_reversedEllipsoid,
                                 sys.m_weld,
-                                sys.m_free };
-    for (int m = 0; m < 8; ++m) {
+                                sys.m_free,
+                                sys.m_reversedCantileverFreeBeam };
+    for (int m = 0; m < 9; ++m) {
         const MobilizedBodyIndex bIdx = mobods[m].getMobilizedBodyIndex();
         Transform X_BM = mobods[m].getOutboardFrame(pert);
         X_BM.updP() += h * dp_BM[bIdx];
@@ -496,6 +514,78 @@ void testMultiplyByPositionJacobianWrtRadiiTranspose() {
     }
 }
 
+void testMultiplyByPositionJacobianWrtLength() {
+    BranchedSystem sys;
+    State state = sys.m_system.realizeTopology();
+    sys.loadDefaultState(state);
+    sys.m_system.realize(state, Stage::Position);
+
+    const int nb = sys.m_matter.getNumBodies();
+
+    // With q fixed, p_GB is exactly affine in the beam length, so a forward
+    // difference has no truncation error for any step size. A large step keeps
+    // the roundoff error, ~eps*|p_GB|/h, well below the tolerance.
+    const Real h = 1e-2;
+
+    const Real dlength = 0.63;
+    MobilizedBody::CantileverFreeBeam beams[2] = {
+            sys.m_cantileverFreeBeam,
+            sys.m_reversedCantileverFreeBeam };
+    for (int m = 0; m < 2; ++m) {
+        const MobilizedBody::CantileverFreeBeam& beam = beams[m];
+
+        Vector_<Vec3> dp_GB;
+        beam.multiplyByPositionJacobianWrtLength(state, dlength, dp_GB);
+
+        State pert = state;
+        beam.setLength(pert, beam.getLength(state) + h*dlength);
+        sys.m_system.realize(pert, Stage::Position);
+
+        for (int ib = 0; ib < nb; ++ib) {
+            const Vec3 p0 = sys.m_matter.getMobilizedBody(MobilizedBodyIndex(ib))
+                                        .getBodyTransform(state).p();
+            const Vec3 p1 = sys.m_matter.getMobilizedBody(MobilizedBodyIndex(ib))
+                                        .getBodyTransform(pert).p();
+            SimTK_TEST_EQ_TOL(dp_GB[ib], (p1 - p0) / h, 1e-10);
+        }
+    }
+}
+
+void testMultiplyByPositionJacobianWrtLengthTranspose() {
+    BranchedSystem sys;
+    State state = sys.m_system.realizeTopology();
+    sys.loadDefaultState(state);
+    sys.m_system.realize(state, Stage::Position);
+
+    const int nb = sys.m_matter.getNumBodies();
+
+    Vector_<Vec3> g_GB(nb);
+    for (int b = 0; b < nb; ++b) {
+        g_GB[b] = Vec3(-0.5*(b+1), 0.7*(b+1), -0.9*(b+1));
+    }
+    g_GB[0] = Vec3(0);
+
+    const Real dlength = 0.63;
+    MobilizedBody::CantileverFreeBeam beams[2] = {
+            sys.m_cantileverFreeBeam,
+            sys.m_reversedCantileverFreeBeam };
+    for (int m = 0; m < 2; ++m) {
+        const MobilizedBody::CantileverFreeBeam& beam = beams[m];
+
+        Vector_<Vec3> dp_GB;
+        beam.multiplyByPositionJacobianWrtLength(state, dlength, dp_GB);
+        const Real g_length =
+            beam.multiplyByPositionJacobianWrtLengthTranspose(state, g_GB);
+
+        // <Jpl*dlength, g_GB> = <dlength, ~Jpl*g_GB>
+        Real lhs = 0;
+        for (int b = 0; b < nb; ++b) {
+            lhs += dot(g_GB[b], dp_GB[b]);
+        }
+        SimTK_TEST_EQ_TOL(lhs, dlength * g_length, 1e-10);
+    }
+}
+
 int main() {
     SimTK_START_TEST("TestJacobians");
         SimTK_SUBTEST(testMultiplyByPositionJacobianWrtInboardFramePositions);
@@ -506,6 +596,7 @@ int main() {
             testMultiplyByPositionJacobianWrtOutboardFramePositionsTranspose);
         SimTK_SUBTEST(testMultiplyByPositionJacobianWrtRadii);
         SimTK_SUBTEST(testMultiplyByPositionJacobianWrtRadiiTranspose);
-
+        SimTK_SUBTEST(testMultiplyByPositionJacobianWrtLength);
+        SimTK_SUBTEST(testMultiplyByPositionJacobianWrtLengthTranspose);
     SimTK_END_TEST();
 }

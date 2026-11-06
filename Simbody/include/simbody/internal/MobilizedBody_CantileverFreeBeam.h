@@ -182,6 +182,71 @@ public:
     via setDefaultLength(). **/
     const Real& getDefaultLength() const;
 
+    /** Get the length of the beam currently in use, from the given \a state.
+    This is an Instance-stage state variable, initialized from
+    getDefaultLength(). **/
+    const Real& getLength(const State& state) const;
+    /** Change the length of the beam in the given \a state, invalidating
+    Stage::Instance. The length must be greater than zero. **/
+    void setLength(State& state, const Real& length) const;
+
+    /** Calculate the product of the body position Jacobian with respect to
+    this mobilizer's beam length, Jl, with a scalar quantity, dlength. If
+    dlength is a perturbation in the beam length, then the result is the
+    change in mobilized body (B) origin positions (Bo) measured and expressed in
+    Ground.
+
+    @param[in]      state
+        A State that has already been realized through Position stage.
+    @param[in]      dlength
+        A scalar quantity, usually the perturbation in this beam's length.
+    @param[out]     dp_GB
+        The product Jl*dlength, usually the change in mobilized body (B) origin
+        positions (Bo), measured and expressed in Ground. The 0th entry is set to
+        zero since Ground does not move.
+
+    @see multiplyByPositionJacobianWrtLengthTranspose() **/
+    void multiplyByPositionJacobianWrtLength(
+            const State&   state,
+            const Real&    dlength,
+            Vector_<Vec3>& dp_GB) const;
+
+    /** Calculate the product of the transposed body position Jacobian with
+    respect to mobilizer beam length, ~Jl (==Jl^T), with a vector of nb
+    gradient-like quantities, g_GB. If g_GB is the gradient of a scalar function
+    with respect to the mobilized body (B) origin positions (Bo) in Ground, then
+    the result is the gradient of that same function with respect to this
+    mobilizer's beam length.
+
+    @param[in]      state
+        A State that has already been realized through Position stage.
+    @param[in]      g_GB
+        A vector of nb gradient-like quantities, one per mobilized body in the
+        order of MobilizedBodyIndex. The 0th entry is ignored since Ground does
+        not move. Usually, g_GB contains sensitivities like
+        partial(f)/partial(p_GB) for a scalar function f, expressed in Ground.
+    @returns
+        The product ~Jl*g_GB, usually the gradient of f with respect to this
+        mobilizer's beam length.
+
+    <h3>Usage</h3>
+    If you have a scalar function f that depends on the mobilized body positions
+    p_GB (e.g., the squared distance between a measured point and a body origin),
+    use this method to obtain the gradient of f with respect to this mobilizer's
+    beam length:
+    <pre>
+                 partial(f)           partial(f)
+    g_length = -------------- = ~Jl --------------
+               partial(length)       partial(p_GB)
+    </pre>
+    This operator may be useful when computing gradients with respect to this
+    mobilizer's beam length when optimizing the geometry of a multibody system.
+
+    @see multiplyByPositionJacobianWrtLength() **/
+    Real multiplyByPositionJacobianWrtLengthTranspose(
+            const State&         state,
+            const Vector_<Vec3>& g_GB) const;
+
     /** Provide a default orientation for this mobilizer if you don't want to
     start with the identity rotation (that is, alignment of the F and M
     frames). This is the orientation the mobilizer will have in the default

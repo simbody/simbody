@@ -2102,42 +2102,88 @@ void MobilizedBody::Ellipsoid::setRadii(State& s, const Vec3& radii) const {
     getImpl().setRadii(s, radii);
 }
 
+namespace {
+
+// Multiply the body position Jacobian with respect to the cross-mobilizer
+// translation of a mobilizer, as defined by its mobilizer specification
+// (p_F0M0), by dp_F0M0, a change in that translation. This is shared by the
+// Jacobians with respect to geometric parameters (e.g., Ellipsoid radii and
+// CantileverFreeBeam length) that change p_F0M0 but not R_F0M0.
+//
+// For a forward mobilizer, p_FM = p_F0M0. For a reverse mobilizer, the
+// specification defines X_MF instead, so p_FM = -R_FM*p_F0M0. Either way,
+// R_FM does not change, so
+//
+// ∂p_GB = R_GF*∂p_FM = R_GP*R_PF*∂p_FM = JpF*R_PF*∂p_FM
+//
+// where multiplication with JpF is achieved via SimbodyMatterSubsystem's
+// multiplyByPositionJacobianWrtInboardFramePositions().
+void multiplyByPositionJacobianWrtMobilizerTranslation(
+        const MobilizedBody& mobod, const State& state, const Vec3& dp_F0M0,
+        Vector_<Vec3>& dp_GB) {
+    const SimbodyMatterSubsystem& matter = mobod.getMatterSubsystem();
+
+    // Compute dp_FM, accounting for reverse mobilizers.
+    const Vec3 dp_FM = mobod.getImpl().isReversed()
+            ? Vec3(-(mobod.getMobilizerTransform(state).R() * dp_F0M0))
+            : dp_F0M0;
+
+    // Compute dp_PF = R_PF*dp_FM.
+    Vector_<Vec3> dp_PF(matter.getNumBodies());
+    dp_PF.setToZero();
+    dp_PF[mobod.getMobilizedBodyIndex()] =
+        mobod.getInboardFrame(state).R() * dp_FM;
+
+    // Compute JpF*dp_PF.
+    matter.multiplyByPositionJacobianWrtInboardFramePositions(
+            state, dp_PF, dp_GB);
+}
+
+// The transpose of multiplyByPositionJacobianWrtMobilizerTranslation() above:
+//
+// ~(∂p_GB / ∂p_F0M0) = ~(∂p_FM / ∂p_F0M0)*(~R_PF)*(~JpF)
+//
+// where multiplication with ~JpF is achieved via SimbodyMatterSubsystem's
+// multiplyByPositionJacobianWrtInboardFramePositionsTranspose(), and
+// ∂p_FM / ∂p_F0M0 is the identity (forward mobilizer) or -R_FM (reverse
+// mobilizer).
+Vec3 multiplyByPositionJacobianWrtMobilizerTranslationTranspose(
+        const MobilizedBody& mobod, const State& state,
+        const Vector_<Vec3>& g_GB) {
+    const SimbodyMatterSubsystem& matter = mobod.getMatterSubsystem();
+
+    // Compute ~JpF*g_GB.
+    Vector_<Vec3> g_PF;
+    matter.multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
+            state, g_GB, g_PF);
+
+    // Compute g_FM = ~R_PF*g_PF for this mobilizer.
+    const Vec3 g_FM = ~mobod.getInboardFrame(state).R()
+                      * g_PF[mobod.getMobilizedBodyIndex()];
+
+    // Compute g_F0M0, accounting for reverse mobilizers.
+    return mobod.getImpl().isReversed()
+            ? Vec3(-(~mobod.getMobilizerTransform(state).R() * g_FM))
+            : g_FM;
+}
+
+}
+
 void MobilizedBody::Ellipsoid::multiplyByPositionJacobianWrtRadii(
         const State& state, const Vec3& dradii, Vector_<Vec3>& dp_GB) const {
-    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-    const bool reversed = getImpl().isReversed();
-
-    // We want Jr*dradii, where Jr = ∂p_GB / ∂radii. We can use the existing
-    // position Jacobians with respect to inboard frame positions (if a forward
-    // mobilizer) or outboard frame positions (if a reverse mobilizer):
+    // We want Jr*dradii, where Jr = ∂p_GB / ∂radii. The radii enter the
+    // kinematics only through the cross-mobilizer translation defined by the
+    // mobilizer specification, p_F0M0 = n .* radii (elementwise), where n is
+    // the normal vector to the ellipsoid. So
     //
-    // forward mobilizer
-    // -----------------
-    // ∂p_GB / ∂radii = R_GF*(∂p_FM / ∂radii) = R_GF*diag(n)
-    //                = R_GP*R_PF*diag(n)
-    //                = JpF*R_PF*diag(n)
+    // ∂p_F0M0 / ∂radii = diag(n)
     //
-    // where multiplication with JpF is achieved via SimbodyMatterSubsystem's
-    // multiplyByPositionJacobianWrtInboardFramePositions().
-    //
-    // reverse mobilizer
-    // -----------------
-    // ∂p_GB / ∂radii = R_GF*(∂p_FM / ∂radii) = R_GF*(-R_FM*diag(n))
-    //                = -R_GM*diag(n))
-    //                = -R_GB*R_BM*diag(n))
-    //                = JpM*R_BM*diag(n)
-    //
-    // where multiplication with JpM is achieved via SimbodyMatterSubsystem's
-    // multiplyByPositionJacobianWrtOutboardFramePositions().
-    //
-    // The diag(n) terms come from ∂p_FM / ∂radii = diag(n), since
-    // p_FM = n .* radii (elementwise) where n is the normal vector to the
-    // ellipsoid. The reverse mobilizer computations pre-multiply diag(n) with
-    // -R_FM, since the reverse mobilizer specification defines p_MF, but we
-    // need the position from F to M via p_FM = -R_FM*p_MF.
+    // and ∂p_GB / ∂radii follows from the position Jacobian with respect to
+    // p_F0M0 (see multiplyByPositionJacobianWrtMobilizerTranslation() above).
 
     // Get the ellipsoid normal vector, n, from the across mobilizer transform
     // from the mobilizer specification, accounting for reverse mobilizers.
+    const bool reversed = getImpl().isReversed();
     const Transform& X_FM = getMobilizerTransform(state);
     const Transform  X_F0M0 = reversed ? Transform(~X_FM) : X_FM;
     Vec3 n = X_F0M0.z().asVec3();
@@ -2147,52 +2193,20 @@ void MobilizedBody::Ellipsoid::multiplyByPositionJacobianWrtRadii(
     // normal the radius scaling actually multiplies.
     if (isMirrored() && getMirrorAxis() == ZAxis) n = -n;
 
-    // Get inboard (forward mobilizer) or outboard (reverse mobilizer) frame.
-    const Rotation R_frame = reversed
-            ? getOutboardFrame(state).R() // R_BM
-            : getInboardFrame(state).R(); // R_PF
-
-    // Compute dp_PF = R_PF*diag(n)*dradii (forward mobilizer) or
-    // dp_BM = R_BM*diag(n)*dradii (reverse mobilizer).
-    Vector_<Vec3> dp_frame(matter.getNumBodies());
-    dp_frame.setToZero();
-    dp_frame[getMobilizedBodyIndex()] =
-        R_frame * Vec3(n[0]*dradii[0], n[1]*dradii[1], n[2]*dradii[2]);
-
-    // Compute JpF*dp_PF (forward mobilizer) or JpM*dp_BM (reverse mobilizer).
-    if (reversed) {
-        matter.multiplyByPositionJacobianWrtOutboardFramePositions(
-                state, dp_frame, dp_GB);
-    } else {
-        matter.multiplyByPositionJacobianWrtInboardFramePositions(
-                state, dp_frame, dp_GB);
-    }
+    multiplyByPositionJacobianWrtMobilizerTranslation(*this, state,
+            Vec3(n[0]*dradii[0], n[1]*dradii[1], n[2]*dradii[2]), dp_GB);
 }
 
 Vec3 MobilizedBody::Ellipsoid::multiplyByPositionJacobianWrtRadiiTranspose(
         const State& state, const Vector_<Vec3>& g_GB) const {
-    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-    const bool reversed = getImpl().isReversed();
-
     // We want ~Jr*g_GB, where Jr = ∂p_GB / ∂radii. Using the transpose of the
-    // expressions described in multiplyByPositionJacobianWrtRadii() above:
+    // expression described in multiplyByPositionJacobianWrtRadii() above:
     //
-    // forward mobilizer
-    // -----------------
-    // ~Jr = ~(JpF*R_PF*diag(n)) = diag(n)*(~R_PF)*(~JpF)
-    //
-    // where multiplication with ~JpF is achieved via SimbodyMatterSubsystem's
-    // multiplyByPositionJacobianWrtInboardFramePositionsTranspose().
-    //
-    // reverse mobilizer
-    // -----------------
-    // ~Jr = ~(JpM*R_BM*diag(n)) = diag(n)*(~R_BM)*(~JpM)
-    //
-    // where multiplication with ~JpM is achieved via SimbodyMatterSubsystem's
-    // multiplyByPositionJacobianWrtOutboardFramePositionsTranspose().
+    // ~Jr = diag(n)*~(∂p_GB / ∂p_F0M0)
 
     // Get the ellipsoid normal vector, n, from the across mobilizer transform
     // from the mobilizer specification, accounting for reverse mobilizers.
+    const bool reversed = getImpl().isReversed();
     const Transform& X_FM = getMobilizerTransform(state);
     const Transform  X_F0M0 = reversed ? Transform(~X_FM) : X_FM;
     Vec3 n = X_F0M0.z().asVec3();
@@ -2202,27 +2216,10 @@ Vec3 MobilizedBody::Ellipsoid::multiplyByPositionJacobianWrtRadiiTranspose(
     // normal the radius scaling actually multiplies.
     if (isMirrored() && getMirrorAxis() == ZAxis) n = -n;
 
-    // Get inboard (forward mobilizer) or outboard (reverse mobilizer) frame.
-    const Rotation R_frame = reversed
-            ? getOutboardFrame(state).R() // R_BM
-            : getInboardFrame(state).R(); // R_PF
-
-    // Compute ~JpF*g_GB (forward mobilizer) or ~JpM*g_GB (reverse mobilizer).
-    Vector_<Vec3> g_frame;
-    if (reversed) {
-        matter.multiplyByPositionJacobianWrtOutboardFramePositionsTranspose(
-                state, g_GB, g_frame); // g_BM
-    } else {
-        matter.multiplyByPositionJacobianWrtInboardFramePositionsTranspose(
-                state, g_GB, g_frame); // g_PF
-    }
-
-    // Compute g_k = ~R_PF*g_PF (forward mobilizer) or g_k = ~R_BM*g_BM (reverse
-    // mobilizer) for the current node, k.
-    const Vec3 g_k = ~R_frame * g_frame[getMobilizedBodyIndex()];
-
-    // Compute dradii = diag(n)*g_k.
-    return Vec3(n[0]*g_k[0], n[1]*g_k[1], n[2]*g_k[2]);
+    const Vec3 g_F0M0 =
+        multiplyByPositionJacobianWrtMobilizerTranslationTranspose(
+                *this, state, g_GB);
+    return Vec3(n[0]*g_F0M0[0], n[1]*g_F0M0[1], n[2]*g_F0M0[2]);
 }
 
 const Quaternion& MobilizedBody::Ellipsoid::getDefaultQ() const {
@@ -2916,6 +2913,54 @@ MobilizedBody::CantileverFreeBeam::CantileverFreeBeam
      return getImpl().getDefaultLength();
  }
 
+const Real& MobilizedBody::CantileverFreeBeam::getLength(const State& s) const {
+    return getImpl().getLength(s);
+}
+
+void MobilizedBody::CantileverFreeBeam::setLength(State& s,
+                                                  const Real& length) const {
+    getImpl().setLength(s, length);
+}
+
+void MobilizedBody::CantileverFreeBeam::multiplyByPositionJacobianWrtLength(
+        const State& state, const Real& dlength, Vector_<Vec3>& dp_GB) const {
+    // We want Jl*dlength, where Jl = ∂p_GB / ∂length. The length enters the
+    // kinematics only through the cross-mobilizer translation defined by the
+    // mobilizer specification, and only as an overall scale factor:
+    // p_F0M0 = length*v, where
+    //
+    //     v = (2/3 q1, -2/3 q0, 1 - 4/15 (q0^2 + q1^2))
+    //
+    // is a function of the generalized coordinates alone (see calcX_FM() in
+    // RBNodeCantileverFreeBeam). So
+    //
+    // ∂p_F0M0 / ∂length = v
+    //
+    // and ∂p_GB / ∂length follows from the position Jacobian with respect to
+    // p_F0M0 (see multiplyByPositionJacobianWrtMobilizerTranslation() above).
+    const Vec3& q = getQ(state);
+    const Vec3 v((2.0 / 3.0) * q[1], -(2.0 / 3.0) * q[0],
+                 1 - (4.0 / 15.0) * (q[0]*q[0] + q[1]*q[1]));
+    multiplyByPositionJacobianWrtMobilizerTranslation(*this, state,
+            dlength * v, dp_GB);
+}
+
+Real MobilizedBody::CantileverFreeBeam::
+multiplyByPositionJacobianWrtLengthTranspose(
+        const State& state, const Vector_<Vec3>& g_GB) const {
+    // We want ~Jl*g_GB, where Jl = ∂p_GB / ∂length. Using the transpose of the
+    // expression described in multiplyByPositionJacobianWrtLength() above:
+    //
+    // ~Jl = ~v*~(∂p_GB / ∂p_F0M0)
+    const Vec3& q = getQ(state);
+    const Vec3 v((2.0 / 3.0) * q[1], -(2.0 / 3.0) * q[0],
+                 1 - (4.0 / 15.0) * (q[0]*q[0] + q[1]*q[1]));
+    const Vec3 g_F0M0 =
+        multiplyByPositionJacobianWrtMobilizerTranslationTranspose(
+                *this, state, g_GB);
+    return dot(v, g_F0M0);
+}
+
  const Vec3& MobilizedBody::CantileverFreeBeam::getDefaultQ() const {
      return getImpl().defaultQ;
  }
@@ -2997,7 +3042,7 @@ const Vec3& MobilizedBody::CantileverFreeBeam::getQDot(const State& s) const {
      // stage.
      if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry())
      {
-         const Real L = getDefaultLength();
+         const Real L = getLength(s);
          const Real L2 = L*L;
          const Real L4 = L2*L2;
 
