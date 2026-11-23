@@ -1677,9 +1677,11 @@ void testTangentialAlignment() {
 /** CableSpan alignment cost test across scales.
 
 Check that damping the length correction does not prevent convergence
-when wrapping over spheres with radii at different scales. **/
+when wrapping over spheres with radii at different scales. The solve is scale
+invariant, so every radius must take the same number of iterations. **/
 void testAlignmentCostAcrossScales() {
-    for (Real radius : {1e-3, 1., 1e3}) {
+    int expectedIterations = -1;
+    for (Real radius : {1., 1e-9, 1e-6, 1e-3, 1e3, 1e6, 1e9}) {
         MultibodySystem system;
         SimbodyMatterSubsystem matter(system);
         CableSubsystem cables(system);
@@ -1710,6 +1712,14 @@ void testAlignmentCostAcrossScales() {
         SimTK_ASSERT1_ALWAYS(
             cable.getSmoothness(s) <= cable.getSmoothnessTolerance(),
             "AlignmentCost failed to converge at radius=%g.", radius);
+        // The first radius (= 1) sets the reference iteration count.
+        if (expectedIterations < 0) {
+            expectedIterations = cable.getNumSolverIterations(s);
+        }
+        SimTK_ASSERT3_ALWAYS(
+            cable.getNumSolverIterations(s) == expectedIterations,
+            "AlignmentCost took %d iterations at radius=%g, expected %d.",
+            cable.getNumSolverIterations(s), radius, expectedIterations);
         // Two tangent lines and the circular arc between their contact points.
         const Real expectedLength = 2. * radius *
             (std::sqrt(1.1 * 1.1 - 1.) + halfAngle - std::acos(1. / 1.1));
@@ -1723,10 +1733,13 @@ void testAlignmentCostAcrossScales() {
 
 Exercise reversed warm starts, bypassing the initialization heuristics that
 normally prevent antiparallel tangents. Reversing both attachment directions
-leaves the interior straight segment aligned in the two-obstacle case. */
+leaves the interior straight segment aligned in the two-obstacle case. The
+solver must reseed the reversed geodesics and recover the shortest path,
+including from exactly antiparallel tangents. */
 void testAntiparallelWarmStart() {
     const Real tolerance = 1e-8;
     const int maxIterations = 200;
+    const int recoveryIterations = 20;
     for (int numObstacles : {1, 2}) {
     for (Real perturbation : {0., -1e-8, 1e-8, -1e-5, 1e-5, -1e-2, 1e-2}) {
         MultibodySystem system;
@@ -1788,7 +1801,9 @@ void testAntiparallelWarmStart() {
         SimTK_TEST_EQ_TOL(cable.getSmoothness(s), expectedAngle, 1e-12);
         SimTK_TEST(cable.getSmoothness(s) > tolerance);
 
-        cable.setSolverMaxIterations(maxIterations);
+        // Recovery must come from reseeding the reversed geodesics, not from
+        // roundoff slowly breaking the symmetry, which takes 50-90 iterations.
+        cable.setSolverMaxIterations(recoveryIterations);
         // Reassigning q invalidates Position while retaining the warm geodesics.
         originBody.setTranslation(s, origin);
         system.realize(s, Stage::Position);
@@ -1797,46 +1812,28 @@ void testAntiparallelWarmStart() {
         SimTK_TEST(std::isfinite(cable.calcLength(s)));
         SimTK_TEST(std::isfinite(cable.getSmoothness(s)));
         SimTK_TEST_EQ_TOL(cable.getSmoothness(s), measured, 1e-12);
-        if (perturbation != 0.) {
-            SimTK_ASSERT3_ALWAYS(measured <= tolerance,
-                "Failed to recover from a near-antiparallel start: "
-                "%d obstacles, perturbation=%g, alignment error=%g.",
-                numObstacles, perturbation, measured);
-        } else {
-            // Exact antiparallel alignment is stationary. Roundoff can break
-            // symmetry, but recovery must not be required on every platform.
-            // An unresolved path must exhaust the budget, not stop as converged.
-            SimTK_TEST(measured <= tolerance ||
-                cable.getNumSolverIterations(s) == maxIterations);
-        }
+        SimTK_ASSERT3_ALWAYS(measured <= tolerance,
+            "Failed to recover from an antiparallel start: "
+            "%d obstacles, perturbation=%g, alignment error=%g.",
+            numObstacles, perturbation, measured);
+        SimTK_TEST(cable.getNumSolverIterations(s) < recoveryIterations);
 
-        // Recovery may legitimately release either sphere. Independently check
-        // every straight segment against both spheres, so a lost contact cannot
-        // hide an intersecting path behind a reported zero alignment error.
-        std::vector<std::pair<Vec3, Vec3>> lines;
-        Vec3 prev = origin;
+        // The straight line between the endpoints clears every sphere, so the
+        // shortest path lifts off all of them. A smooth path that loops around
+        // a sphere has zero alignment error, but the wrong length.
+        const Vec3 delta = termination - origin;
+        for (const Vec3& center : centers) {
+            const Real fraction = std::max(0., std::min(1.,
+                dot(center - origin, delta) / delta.normSqr()));
+            SimTK_ASSERT_ALWAYS(
+                (origin + fraction * delta - center).norm() > 1.,
+                "Straight path must clear every sphere.");
+        }
         for (int i = 0; i < numObstacles; ++i) {
-            const CableSpanObstacleIndex ix(i);
-            if (!cable.isInContactWithObstacle(s, ix)) continue;
-            lines.emplace_back(prev,
-                cable.calcCurveSegmentInitialFrenetFrame(s, ix).p());
-            prev = cable.calcCurveSegmentFinalFrenetFrame(s, ix).p();
+            SimTK_TEST(!cable.isInContactWithObstacle(
+                s, CableSpanObstacleIndex(i)));
         }
-        lines.emplace_back(prev, termination);
-        for (const auto& line : lines) {
-            const Vec3 delta = line.second - line.first;
-            SimTK_TEST(delta.normSqr() > 0.);
-            for (const Vec3& center : centers) {
-                const Real fraction = std::max(0., std::min(1.,
-                    dot(center - line.first, delta) / delta.normSqr()));
-                SimTK_TEST((line.first + fraction * delta - center).norm()
-                    >= 1. - 1e-7);
-            }
-        }
-        if (lines.size() == 1) {
-            SimTK_TEST_EQ_TOL(cable.calcLength(s),
-                (termination - origin).norm(), 1e-10);
-        }
+        SimTK_TEST_EQ_TOL(cable.calcLength(s), delta.norm(), 1e-10);
     }}
 }
 

@@ -1333,6 +1333,26 @@ public:
             updDataInst(state));
     }
 
+    // Helper function for replacing a geodesic whose tangent is reversed with
+    // respect to the straight line segments (i.e., a folded path).
+    void reseedFoldedCurve(const State& state) const
+    {
+        const CurveSegmentData::Instance& dataInst = getDataInst(state);
+        const Vec3 contactPoint_S = dataInst.X_SP.p();
+        Real alignment = NaN;
+        const Vec3 tangent_S = calcZeroLengthGeodesicTangent_S(
+            contactPoint_S, findPrevPathPoint_S(state),
+            findNextPathPoint_S(state), alignment);
+        shootNewGeodesic(
+            contactPoint_S,
+            tangent_S,
+            0.,
+            dataInst.integratorInitialStepSize,
+            updDataInst(state));
+        markDataInstRealized(state);
+        invalidatePosEntry(state);
+    }
+
     // Helper function for detecting touchdown on the obstacle's surface, and
     // the location of the touchdown point if so.
     void calcCurveTouchdownIfNeeded(const State& state) const
@@ -2593,6 +2613,15 @@ private:
         CableSpanAlgorithm algorithm,
         MatrixWorkspace& data) const;
 
+    /* Reseeds every curve segment whose tangent is reversed with respect to
+    the straight line segments, using the alignment errors computed by
+    calcSolverStep. Only applies to CableSpanAlgorithm::AlignmentCost. Returns
+    true if any curve segment was reseeded. */
+    bool reseedFoldedCurves(
+        const State& s,
+        const CableSegment& cableSegment,
+        const MatrixWorkspace& data) const;
+
     const CableSpanData::Position& calcDataPos(const State& s) const;
 
     void calcDataVel(const State& s, CableSpanData::Velocity& dataVel) const
@@ -3842,15 +3871,21 @@ void CableSpan::Impl::calcSolverStep(
         // Solve min ||residual + J*q||^2 + ||D*q||^2 using an augmented
         // least-squares system. Column scaling respects the different units of
         // the natural geodesic corrections. Reduce damping near alignment to
-        // retain fast local convergence, with an absolute floor for zero or
-        // nearly zero Jacobian columns.
+        // retain fast local convergence, with a floor for zero or nearly zero
+        // Jacobian columns.
+        const Real length =
+            calcCableSegmentLength(s, cableSegment, data.lineSegments);
         for (int i = 0; i < data.numObstaclesInContact; ++i) {
             // Each geodesic is damped by the alignment error at its own contact
             // points.
-            const Real damping = 0.1 * std::min(1., std::max(
+            const Real damping = 0.1 * std::min(Real(1), std::max(
                 data.alignmentError[2 * i], data.alignmentError[2 * i + 1]));
             for (int c = c_GeodesicDOF * i; c < c_GeodesicDOF * (i + 1); ++c) {
-                J(nR + c, c) = std::max(SqrtEps, damping * J.col(c).norm());
+                // Scale the damping floor for length-based corrections by the
+                // cable length to preserve scale invariance.
+                const Real floor = c % c_GeodesicDOF == 2
+                    ? SqrtEps : SqrtEps / length;
+                J(nR + c, c) = std::max(floor, damping * J.col(c).norm());
             }
         }
         data.factor = J;
@@ -3866,6 +3901,36 @@ void CableSpan::Impl::calcSolverStep(
     const Real stepSize =
         calcPathCorrectionStepSize(s, cableSegment, data.pathCorrection);
     data.pathCorrection *= stepSize;
+}
+
+bool CableSpan::Impl::reseedFoldedCurves(
+    const State& s,
+    const CableSegment& cableSegment,
+    const MatrixWorkspace& data) const
+{
+    // An exactly reversed tangent is a stationary point of the AlignmentCost
+    // objective, and a nearly reversed one can converge to a smooth path that
+    // loops around the obstacle.
+    if (getParameters().algorithm != CableSpanAlgorithm::AlignmentCost) {
+        return false;
+    }
+
+    bool reseeded = false;
+    int activeCurveIx = 0;
+    for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
+        const CurveSegment& curve = getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(s)) {
+            continue;
+        }
+        // The alignment errors are stored per contact point.
+        if (data.alignmentError[2 * activeCurveIx] > Pi / 2 ||
+            data.alignmentError[2 * activeCurveIx + 1] > Pi / 2) {
+            curve.reseedFoldedCurve(s);
+            reseeded = true;
+        }
+        ++activeCurveIx;
+    }
+    return reseeded;
 }
 
 const CableSpanData::Position& CableSpan::Impl::calcDataPos(
@@ -3959,6 +4024,16 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
             if (workspace.converged || maxIterationsReached) {
                 updDataPosFromSolverResult(s, cableSegment, workspace, loopIter);
                 break;
+            }
+
+            // Reseed any folded curves before applying the first correction,
+            // and recompute the path errors.
+            if (loopIter == 0 &&
+                    reseedFoldedCurves(s, cableSegment, workspace)) {
+                for (ObstacleIndex ix : obstacleIndexes) {
+                    getObstacleCurveSegment(ix).invalidatePosEntry(s);
+                }
+                continue;
             }
 
             // Apply the corrections to each CurveSegment to reduce the path

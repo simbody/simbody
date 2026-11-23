@@ -127,15 +127,19 @@ enum class CableSpanAlgorithm
     Here e is the straight segment's unit direction and (t,n,b) is the
     geodesic's Frenet frame, oriented from cable origin to termination.
     This cost directly penalizes antiparallel tangents which can occur when
-    minimizing normal and binormal errors alone. It is quadratic in small
-    alignment angles, whereas squaring just (1-dot(e,t)) would give a quartic
-    cost near alignment.
+    minimizing normal and binormal errors alone. This cost does not guarantee
+    a minimum length solution.
 
     A regularized Gauss-Newton step uses the analytic derivatives of the three
     residual components in the moving Frenet frame. Column-scaled damping,
     including the curve-length correction, decreases with the alignment error
     at each obstacle's contact points down to a small absolute floor.
-    Convergence is measured using the maximum misalignment angle in radians. **/
+    Convergence is measured using the maximum misalignment angle in radians.
+
+    Exactly reversed tangents (e = -t) are a stationary point of this cost. If
+    a geodesic's tangent is reversed (dot(e,t) < 0) at either contact point
+    when a solve begins the geodesic is first reinitialized with zero length.
+    **/
     AlignmentCost,
 };
 
