@@ -81,6 +81,13 @@ public:
         return (*vectorp)[(int)index];
     }
 
+    /** Return a reference to the element `n` positions from the one this
+    iterator currently references. **/
+    ELT& operator[](ptrdiff_t n) const {
+        assert (0 <= index+n && index+n < vectorp->size());
+        return (*vectorp)[(int)(index+n)];
+    }
+
     VectorIterator& operator++() {
         assert (index < vectorp->size());
         ++index;
