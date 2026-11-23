@@ -843,9 +843,10 @@ public:
        (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
     void setDefaultRadii(const Vec3& r) {
-        SimTK_APIARGCHECK3_ALWAYS(r[0] > 0 && r[1] > 0 && r[2] > 0,
+        SimTK_APIARGCHECK3_ALWAYS(
+            r.isFinite() && r[0] > 0 && r[1] > 0 && r[2] > 0,
             "MobilizedBody::Ellipsoid", "setDefaultRadii",
-            "All radii must be positive but were (%g, %g, %g).",
+            "All radii must be finite and positive but were (%g, %g, %g).",
             r[0], r[1], r[2]);
         invalidateTopologyCache();
         defaultRadii=r;
@@ -865,9 +866,10 @@ public:
                     .getValue<Vec3>();
     }
     void setRadii(State& s, const Vec3& r) const {
-        SimTK_APIARGCHECK3_ALWAYS(r[0] > 0 && r[1] > 0 && r[2] > 0,
+        SimTK_APIARGCHECK3_ALWAYS(
+            r.isFinite() && r[0] > 0 && r[1] > 0 && r[2] > 0,
             "MobilizedBody::Ellipsoid", "setRadii",
-            "All radii must be positive but were (%g, %g, %g).",
+            "All radii must be finite and positive but were (%g, %g, %g).",
             r[0], r[1], r[2]);
         s.updDiscreteVariable(
                 getMySubsystemIndex(), radiiIx).updValue<Vec3>() = r;
@@ -1090,9 +1092,9 @@ public:
         (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
     void setDefaultLength(const Real& length) {
-        SimTK_APIARGCHECK1_ALWAYS(length > 0,
+        SimTK_APIARGCHECK1_ALWAYS(isFinite(length) && length > 0,
             "MobilizedBody::CantileverFreeBeam", "setDefaultLength",
-            "The length must be positive but was %g.", length);
+            "The length must be finite and positive but was %g.", length);
         invalidateTopologyCache();
         defaultLength=length;
     }
@@ -1103,11 +1105,20 @@ public:
                     .getValue<Real>();
     }
     void setLength(State& s, const Real& length) const {
-        SimTK_APIARGCHECK1_ALWAYS(length > 0,
+        SimTK_APIARGCHECK1_ALWAYS(isFinite(length) && length > 0,
             "MobilizedBody::CantileverFreeBeam", "setLength",
-            "The length must be positive but was %g.", length);
+            "The length must be finite and positive but was %g.", length);
         s.updDiscreteVariable(
                 getMySubsystemIndex(), lengthIx).updValue<Real>() = length;
+    }
+
+    // The cross-mobilizer translation defined by the mobilizer specification
+    // is p_F0M0 = length*v, where v is a function of the generalized
+    // coordinates alone.
+    static Vec3 calcTranslationPerUnitLength(const Vec3& q) {
+        return Vec3((2.0 / 3.0) * q[1],
+                    -(2.0 / 3.0) * q[0],
+                    1 - (4.0 / 15.0) * (q[0]*q[0] + q[1]*q[1]));
     }
 
     void realizeTopologyVirtual(State& s) const override {

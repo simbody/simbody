@@ -2171,6 +2171,13 @@ Vec3 multiplyByPositionJacobianWrtMobilizerTranslationTranspose(
 
 void MobilizedBody::Ellipsoid::multiplyByPositionJacobianWrtRadii(
         const State& state, const Vec3& dradii, Vector_<Vec3>& dp_GB) const {
+    const int nb = getMatterSubsystem().getNumBodies();
+    SimTK_APIARGCHECK2_ALWAYS(dp_GB.size() == 0 || dp_GB.size() == nb,
+        "MobilizedBody::Ellipsoid", "multiplyByPositionJacobianWrtRadii",
+        "The output vector dp_GB must be empty or have length equal to the "
+        "number of bodies (%d), but its length is %d.",
+        nb, dp_GB.size());
+
     // We want Jr*dradii, where Jr = ∂p_GB / ∂radii. The radii enter the
     // kinematics only through the cross-mobilizer translation defined by the
     // mobilizer specification, p_F0M0 = n .* radii (elementwise), where n is
@@ -2199,6 +2206,14 @@ void MobilizedBody::Ellipsoid::multiplyByPositionJacobianWrtRadii(
 
 Vec3 MobilizedBody::Ellipsoid::multiplyByPositionJacobianWrtRadiiTranspose(
         const State& state, const Vector_<Vec3>& g_GB) const {
+    const int nb = getMatterSubsystem().getNumBodies();
+    SimTK_APIARGCHECK2_ALWAYS(g_GB.size() == nb,
+        "MobilizedBody::Ellipsoid",
+        "multiplyByPositionJacobianWrtRadiiTranspose",
+        "The length of g_GB (%d) and the number of bodies (%d) must be the "
+        "same.",
+        g_GB.size(), nb);
+
     // We want ~Jr*g_GB, where Jr = ∂p_GB / ∂radii. Using the transpose of the
     // expression described in multiplyByPositionJacobianWrtRadii() above:
     //
@@ -2924,6 +2939,14 @@ void MobilizedBody::CantileverFreeBeam::setLength(State& s,
 
 void MobilizedBody::CantileverFreeBeam::multiplyByPositionJacobianWrtLength(
         const State& state, const Real& dlength, Vector_<Vec3>& dp_GB) const {
+    const int nb = getMatterSubsystem().getNumBodies();
+    SimTK_APIARGCHECK2_ALWAYS(dp_GB.size() == 0 || dp_GB.size() == nb,
+        "MobilizedBody::CantileverFreeBeam",
+        "multiplyByPositionJacobianWrtLength",
+        "The output vector dp_GB must be empty or have length equal to the "
+        "number of bodies (%d), but its length is %d.",
+        nb, dp_GB.size());
+
     // We want Jl*dlength, where Jl = ∂p_GB / ∂length. The length enters the
     // kinematics only through the cross-mobilizer translation defined by the
     // mobilizer specification, and only as an overall scale factor:
@@ -2931,16 +2954,15 @@ void MobilizedBody::CantileverFreeBeam::multiplyByPositionJacobianWrtLength(
     //
     //     v = (2/3 q1, -2/3 q0, 1 - 4/15 (q0^2 + q1^2))
     //
-    // is a function of the generalized coordinates alone (see calcX_FM() in
-    // RBNodeCantileverFreeBeam). So
+    // is a function of the generalized coordinates alone (see
+    // CantileverFreeBeamImpl::calcTranslationPerUnitLength()). So
     //
     // ∂p_F0M0 / ∂length = v
     //
     // and ∂p_GB / ∂length follows from the position Jacobian with respect to
     // p_F0M0 (see multiplyByPositionJacobianWrtMobilizerTranslation() above).
-    const Vec3& q = getQ(state);
-    const Vec3 v((2.0 / 3.0) * q[1], -(2.0 / 3.0) * q[0],
-                 1 - (4.0 / 15.0) * (q[0]*q[0] + q[1]*q[1]));
+    const Vec3 v = CantileverFreeBeamImpl::calcTranslationPerUnitLength(
+            getQ(state));
     multiplyByPositionJacobianWrtMobilizerTranslation(*this, state,
             dlength * v, dp_GB);
 }
@@ -2948,13 +2970,20 @@ void MobilizedBody::CantileverFreeBeam::multiplyByPositionJacobianWrtLength(
 Real MobilizedBody::CantileverFreeBeam::
 multiplyByPositionJacobianWrtLengthTranspose(
         const State& state, const Vector_<Vec3>& g_GB) const {
+    const int nb = getMatterSubsystem().getNumBodies();
+    SimTK_APIARGCHECK2_ALWAYS(g_GB.size() == nb,
+        "MobilizedBody::CantileverFreeBeam",
+        "multiplyByPositionJacobianWrtLengthTranspose",
+        "The length of g_GB (%d) and the number of bodies (%d) must be the "
+        "same.",
+        g_GB.size(), nb);
+
     // We want ~Jl*g_GB, where Jl = ∂p_GB / ∂length. Using the transpose of the
     // expression described in multiplyByPositionJacobianWrtLength() above:
     //
     // ~Jl = ~v*~(∂p_GB / ∂p_F0M0)
-    const Vec3& q = getQ(state);
-    const Vec3 v((2.0 / 3.0) * q[1], -(2.0 / 3.0) * q[0],
-                 1 - (4.0 / 15.0) * (q[0]*q[0] + q[1]*q[1]));
+    const Vec3 v = CantileverFreeBeamImpl::calcTranslationPerUnitLength(
+            getQ(state));
     const Vec3 g_F0M0 =
         multiplyByPositionJacobianWrtMobilizerTranslationTranspose(
                 *this, state, g_GB);

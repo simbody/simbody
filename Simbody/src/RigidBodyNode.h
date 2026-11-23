@@ -221,8 +221,9 @@ virtual void calcX_FM(const SBStateDigest& sbs,
                       Transform&  X_F0M0) const = 0;
 
 // This is a pure operator form of calcX_FM(). The StateDigest must have been
-// realized to model stage. The result depends only on the passed-in q,
-// not anything in the State beyond model stage.
+// realized to model stage. The result depends on the passed-in q and on
+// model-stage data. For some mobilizers, it may also depends on Instance-stage
+// geometric parameters (e.g., Ellipsoid radii).
 void calcAcrossJointTransform(
     const SBStateDigest& sbs,
     const Real* q, int nq,

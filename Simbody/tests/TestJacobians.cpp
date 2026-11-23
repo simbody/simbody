@@ -30,6 +30,8 @@ namespace {
     // A branched multibody of bodies containing various mobilizers of different
     // types including Pin, Gimbal, Weld, Free, Ellipsoid (standard, reversed,
     // and mirrored), and CantileverFreeBeam (standard and reversed) mobilizers.
+    // The Free mobilizer below the reversed CantileverFreeBeam ensures that the
+    // beam is not a leaf body.
     class BranchedSystem {
     public:
         enum MobilizerType {Ground=0, Pin=1, Ellipsoid=2, CantileverFreeBeam=3,
@@ -78,15 +80,15 @@ namespace {
                     m_reversedEllipsoid, X_PF[Weld],
                     body, X_BM[Weld]);
 
-            m_free = MobilizedBody::Free(
-                    m_weld, X_PF[Free],
-                    body, X_BM[Free]);
-
             m_reversedCantileverFreeBeam = MobilizedBody::CantileverFreeBeam(
-                    m_free, X_PF[ReversedCantileverFreeBeam],
+                    m_weld, X_PF[ReversedCantileverFreeBeam],
                     body, X_BM[ReversedCantileverFreeBeam],
                     m_reversedCantileverFreeBeamLength,
                     MobilizedBody::Reverse);
+
+            m_free = MobilizedBody::Free(
+                    m_reversedCantileverFreeBeam, X_PF[Free],
+                    body, X_BM[Free]);
         }
 
         void loadDefaultState(State& state) {

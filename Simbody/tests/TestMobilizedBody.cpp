@@ -1126,6 +1126,22 @@ void testVariableEllipsoidRadii() {
     state = system.getDefaultState();
     SimTK_TEST_EQ(ellipsoidForward.getRadii(state), defaultRadii);
     SimTK_TEST_EQ(ellipsoidReverse.getRadii(state), defaultRadii);
+
+    // Zero, negative, NaN, and infinite radii are rejected, and leave the
+    // radii unchanged.
+    const Real invalid[] = {0, -0.1, NaN, Infinity, -Infinity};
+    for (const Real r : invalid) {
+        for (int i = 0; i < 3; ++i) {
+            Vec3 radii = newRadiiForward;
+            radii[i] = r;
+            SimTK_TEST_MUST_THROW_EXC(ellipsoidForward.setRadii(state, radii),
+                                      Exception::APIArgcheckFailed);
+            SimTK_TEST_MUST_THROW_EXC(ellipsoidForward.setDefaultRadii(radii),
+                                      Exception::APIArgcheckFailed);
+        }
+    }
+    SimTK_TEST_EQ(ellipsoidForward.getRadii(state), defaultRadii);
+    SimTK_TEST_EQ(ellipsoidForward.getDefaultRadii(), defaultRadii);
 }
 
 void testVariableBeamLength() {
@@ -1172,10 +1188,34 @@ void testVariableBeamLength() {
     // shared +z axis by the beam length.
     SimTK_TEST_EQ(X_FM.p(), Vec3(0, 0, newLengthForward));
 
+    // For the reversed beam, the mobilizer specification (see the class
+    // documentation) defines X_MF, so X_FM is its inverse.
+    const Vec3 q(0.3, -0.4, 0.5);
+    beamReverse.setQ(state, q);
+    system.realize(state, Stage::Position);
+    const Transform X_F0M0(
+        Rotation(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis),
+        newLengthReverse * Vec3((2.0/3.0) * q[1], -(2.0/3.0) * q[0],
+                                1 - (4.0/15.0) * (q[0]*q[0] + q[1]*q[1])));
+    SimTK_TEST_EQ(beamReverse.getMobilizerTransform(state),
+                  Transform(~X_F0M0));
+
     // Grabbing a fresh default state should restore the length defaults.
     state = system.getDefaultState();
     SimTK_TEST_EQ(beamForward.getLength(state), defaultLength);
     SimTK_TEST_EQ(beamReverse.getLength(state), defaultLength);
+
+    // Zero, negative, NaN, and infinite lengths are rejected, and leave the
+    // length unchanged.
+    const Real invalid[] = {0, -0.1, NaN, Infinity, -Infinity};
+    for (const Real length : invalid) {
+        SimTK_TEST_MUST_THROW_EXC(beamForward.setLength(state, length),
+                                  Exception::APIArgcheckFailed);
+        SimTK_TEST_MUST_THROW_EXC(beamForward.setDefaultLength(length),
+                                  Exception::APIArgcheckFailed);
+    }
+    SimTK_TEST_EQ(beamForward.getLength(state), defaultLength);
+    SimTK_TEST_EQ(beamForward.getDefaultLength(), defaultLength);
 }
 
 int main() {

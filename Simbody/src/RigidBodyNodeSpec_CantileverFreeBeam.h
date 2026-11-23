@@ -222,16 +222,11 @@ void calcX_FM(const SBStateDigest& sbs,
     X_F0M0.updR().setRotationToBodyFixedXYZ // 18 flops
         (Vec3::getAs(&qCache[CosQ]), Vec3::getAs(&qCache[SinQ]));
 
-    const Real& q0 = Vec3::getAs(q)[0];
-    const Real& q1 = Vec3::getAs(q)[1];
-    const Real length                  = getLength(sbs);
-    const Real deflectionCoefficient   = getDeflectionCoefficient(length);
-    const Real displacementCoefficient = getDisplacementCoefficient(length);
-    X_F0M0.updP() = Vec3(
-        q1 * deflectionCoefficient,
-        -q0 * deflectionCoefficient,
-        length - displacementCoefficient * (q0*q0 + q1*q1)
-    );
+    // This translation model is shared with the position Jacobians with
+    // respect to the beam length, so it is defined in CantileverFreeBeamImpl.
+    X_F0M0.updP() = getLength(sbs) *
+        MobilizedBody::CantileverFreeBeamImpl::calcTranslationPerUnitLength(
+                Vec3::getAs(q));
 }
 
 // Generalized speeds are the Euler angle derivatives.

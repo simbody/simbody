@@ -172,7 +172,10 @@ public:
               const CoordinateAxis& mirrorAxis, Direction=Forward);
 
     /** Modify the default semi-axis dimensions of the ellipsoid, given in
-    the F frame. These are usually set on construction. **/
+    the F frame. These are usually set on construction. All radii must be
+    finite and positive. Calling this method invalidates the %MobilizedBody's
+    topology, so the containing System's realizeTopology() method must be called
+    again. **/
     Ellipsoid& setDefaultRadii(const Vec3& radii);
     /** Get the default semi-axis dimensions of the ellipsoid as specified
     during construction or via setDefaultRadii(). **/
@@ -201,7 +204,7 @@ public:
     getDefaultRadii(). **/
     const Vec3& getRadii(const State& state) const;
     /** Change the semi-axis dimensions of the ellipsoid in the given \a state,
-    invalidating Stage::Instance. All radii must be greater than zero. **/
+    invalidating Stage::Instance. All radii must be finite and positive. **/
     void setRadii(State& state, const Vec3& radii) const;
 
     /** Calculate the product of the body position Jacobian with respect to
@@ -218,7 +221,8 @@ public:
     @param[out]     dp_GB
         The product Jr*dradii, usually the change in mobilized body (B) origin
         positions (Bo), measured and expressed in Ground. The 0th entry is set to
-        zero since Ground does not move.
+        zero since Ground does not move. This must either be empty or have nb
+        entries.
 
     @see multiplyByPositionJacobianWrtRadiiTranspose() **/
     void multiplyByPositionJacobianWrtRadii(
@@ -240,6 +244,7 @@ public:
         order of MobilizedBodyIndex. The 0th entry is ignored since Ground does
         not move. Usually, g_GB contains sensitivities like
         partial(f)/partial(p_GB) for a scalar function f, expressed in Ground.
+        This must have exactly nb entries.
     @returns
         The product ~Jr*g_GB, usually the gradient of f with respect to this
         mobilizer's ellipsoid radii.
