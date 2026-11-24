@@ -39,7 +39,9 @@ whose free end is subjected to a transverse point load. Although this shape is
 inspired by a cantilever-free beam, this mobilizer does not actually model a
 beam, in that there is no elastic restoring forces/torques when q₀ or q₁ or
 q₂ ≠ 0. In the undeformed state (when q₀ = q₁ = q₂ = 0), the position from Fo
-(frame F's origin) to Mo (frame M's origin) is L Fz.
+(frame F's origin) to Mo (frame M's origin) is L Fz. The beam length L is an
+Instance-stage state variable, so it is obtained from the State (see
+getLength()) and initialized from the default length (see getDefaultLength()).
 
 \section cf_beam_eqs Cantilever-free beam equations
 
@@ -149,10 +151,11 @@ public:
     (inboard) body P and a new child (outboard) body B created by copying the
     given \a bodyInfo into a privately-owned Body within the constructed
     %MobilizedBody object. Specify the mobilizer frames F fixed to parent P and
-    M fixed to child B. The origin of the beam is placed on the mobilizer's
-    inboard frame F, and the endpoint is placed on the mobilizer's outboard
-    frame M. In the default configuration, Fz = Mz and the parent frame
-    origin is located at (0,0,L) in F, where L is the length of the beam.
+    M fixed to child B. For a forward mobilizer, the origin of the beam is
+    placed on the mobilizer's inboard frame F, and the endpoint is placed on
+    the mobilizer's outboard frame M; in the default configuration, Fz = Mz and
+    the M-frame origin is located at (0,0,L) in F, where L is the length of the
+    beam. A reverse mobilizer swaps the roles of F and M in this description.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     CantileverFreeBeam(MobilizedBody& parent, const Transform& X_PF,
         const Body& bodyInfo, const Transform& X_BM, const Real& length,
@@ -175,12 +178,81 @@ public:
         Direction=Forward);
 
     /** Modify the default length of the beam. This is usually set on
-    construction. **/
+    construction. The length must be finite and positive. Calling this method
+    invalidates the %MobilizedBody's topology, so the containing System's
+    realizeTopology() method must be called again. **/
     CantileverFreeBeam& setDefaultLength(const Real& length);
 
     /** Get the default length of the beam as specified during construction or
     via setDefaultLength(). **/
     const Real& getDefaultLength() const;
+
+    /** Get the length of the beam currently in use, from the given \a state.
+    This is an Instance-stage state variable, initialized from
+    getDefaultLength(). **/
+    const Real& getLength(const State& state) const;
+    /** Change the length of the beam in the given \a state, invalidating
+    Stage::Instance. The length must be finite and positive. **/
+    void setLength(State& state, const Real& length) const;
+
+    /** Calculate the product of the body position Jacobian with respect to
+    this mobilizer's beam length, Jl, with a scalar quantity, dlength. If
+    dlength is a perturbation in the beam length, then the result is the
+    change in mobilized body (B) origin positions (Bo) measured and expressed in
+    Ground.
+
+    @param[in]      state
+        A State that has already been realized through Position stage.
+    @param[in]      dlength
+        A scalar quantity, usually the perturbation in this beam's length.
+    @param[out]     dp_GB
+        The product Jl*dlength, usually the change in mobilized body (B) origin
+        positions (Bo), measured and expressed in Ground. The 0th entry is set to
+        zero since Ground does not move. This must either be empty or have nb
+        entries.
+
+    @see multiplyByPositionJacobianWrtLengthTranspose() **/
+    void multiplyByPositionJacobianWrtLength(
+            const State&   state,
+            const Real&    dlength,
+            Vector_<Vec3>& dp_GB) const;
+
+    /** Calculate the product of the transposed body position Jacobian with
+    respect to mobilizer beam length, ~Jl (==Jl^T), with a vector of nb
+    gradient-like quantities, g_GB. If g_GB is the gradient of a scalar function
+    with respect to the mobilized body (B) origin positions (Bo) in Ground, then
+    the result is the gradient of that same function with respect to this
+    mobilizer's beam length.
+
+    @param[in]      state
+        A State that has already been realized through Position stage.
+    @param[in]      g_GB
+        A vector of nb gradient-like quantities, one per mobilized body in the
+        order of MobilizedBodyIndex. The 0th entry is ignored since Ground does
+        not move. Usually, g_GB contains sensitivities like
+        partial(f)/partial(p_GB) for a scalar function f, expressed in Ground.
+        This must have exactly nb entries.
+    @returns
+        The product ~Jl*g_GB, usually the gradient of f with respect to this
+        mobilizer's beam length.
+
+    <h3>Usage</h3>
+    If you have a scalar function f that depends on the mobilized body positions
+    p_GB (e.g., the squared distance between a measured point and a body origin),
+    use this method to obtain the gradient of f with respect to this mobilizer's
+    beam length:
+    <pre>
+                 partial(f)           partial(f)
+    g_length = -------------- = ~Jl --------------
+               partial(length)       partial(p_GB)
+    </pre>
+    This operator may be useful when computing gradients with respect to this
+    mobilizer's beam length when optimizing the geometry of a multibody system.
+
+    @see multiplyByPositionJacobianWrtLength() **/
+    Real multiplyByPositionJacobianWrtLengthTranspose(
+            const State&         state,
+            const Vector_<Vec3>& g_GB) const;
 
     /** Provide a default orientation for this mobilizer if you don't want to
     start with the identity rotation (that is, alignment of the F and M

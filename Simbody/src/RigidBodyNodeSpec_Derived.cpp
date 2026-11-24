@@ -234,8 +234,8 @@ RigidBodyNode* MobilizedBody::CantileverFreeBeamImpl::createRigidBodyNode(
     QIndex&        nextQSlot) const
 {
     return new RBNodeCantileverFreeBeam(
+        *this,
         getDefaultRigidBodyMassProperties(),
-        getDefaultLength(),
         isReversed(),
         nextUSlot, nextUSqSlot, nextQSlot);
 }
