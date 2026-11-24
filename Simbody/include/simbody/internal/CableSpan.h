@@ -117,6 +117,30 @@ enum class CableSpanAlgorithm
     For a comparison between Algorithm::Scholz2015 and this
     Algorithm::MinimumLength see https://github.com/simbody/simbody/pull/814. **/
     MinimumLength,
+    /** A least-squares algorithm that directly aligns the straight segments
+    with the oriented geodesic tangents. At each contact point it minimizes the
+    squared direction mismatch:
+    <pre>
+    f = sum ||e - t||^2 / 2
+      = sum ((dot(e,t) - 1)^2 + dot(e,n)^2 + dot(e,b)^2) / 2.
+    </pre>
+    Here e is the straight segment's unit direction and (t,n,b) is the
+    geodesic's Frenet frame, oriented from cable origin to termination.
+    This cost directly penalizes antiparallel tangents which can occur when
+    minimizing normal and binormal errors alone. This cost does not guarantee
+    a minimum length solution.
+
+    A regularized Gauss-Newton step uses the analytic derivatives of the three
+    residual components in the moving Frenet frame. Column-scaled damping,
+    including the curve-length correction, decreases with the alignment error
+    at each obstacle's contact points down to a small absolute floor.
+    Convergence is measured using the maximum misalignment angle in radians.
+
+    Exactly reversed tangents (e = -t) are a stationary point of this cost. If
+    a geodesic's tangent is reversed (dot(e,t) < 0) at either contact point
+    when a solve begins the geodesic is first reinitialized with zero length.
+    **/
+    AlignmentCost,
 };
 
 class MultibodySystem;

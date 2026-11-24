@@ -51,6 +51,10 @@ namespace
 There are four: see NaturalGeodesicCorrections below. */
 constexpr int c_GeodesicDOF = 4;
 
+/* Number of tangent, normal, and binormal alignment residuals of a curve
+segment: one for each axis of the Frenet frame at both contact points. */
+constexpr int c_AlignmentResidualsPerCurve = 6;
+
 /* The smallest alignment between a curve geodesic and the adjacent straight
 line segments that the initial path produced from an obstacle's contact point
 hint can have before the contact point is placed by touchdown detection instead.
@@ -159,7 +163,7 @@ struct MatrixWorkspace {
 
         normalPathErrorJacobian = Matrix(nC, nQ, 0.);
 
-        tangentialAlignment = Vector(nC, 0.);
+        alignmentError = Vector(nC, 0.);
 
         A      = Matrix(nC, nC, 0.);
         b      = Vector(nC, 0.);
@@ -229,9 +233,14 @@ struct MatrixWorkspace {
     the angle between a straight line segment and the geodesic tangent at
     contact points. */
     Real maxAlignmentError = NaN;
-    /* The alignment, dot(e, t) ∈ [-1, 1], between each straight line segment
-    and the geodesic tangent for all contact points. */
-    Vector tangentialAlignment;
+    /* The alignment error at each contact point, see maxAlignmentError. */
+    Vector alignmentError;
+    /* The interleaved tangent, normal, and binormal residuals and their
+    Jacobian, augmented with diagonal regularization for AlignmentCost.
+    Allocated on first use by that algorithm, and reused across solver
+    iterations. */
+    Vector alignmentResidual;
+    Matrix alignmentJacobian;
     /* The Jacobian of the normal path error vector to the natural geodesic
     corrections of all active obstacles. */
     Matrix normalPathErrorJacobian;
@@ -1322,6 +1331,26 @@ public:
             0.,             // = arc length
             getDataInst(state).integratorInitialStepSize,
             updDataInst(state));
+    }
+
+    // Helper function for replacing a geodesic whose tangent is reversed with
+    // respect to the straight line segments (i.e., a folded path).
+    void reseedFoldedCurve(const State& state) const
+    {
+        const CurveSegmentData::Instance& dataInst = getDataInst(state);
+        const Vec3 contactPoint_S = dataInst.X_SP.p();
+        Real alignment = NaN;
+        const Vec3 tangent_S = calcZeroLengthGeodesicTangent_S(
+            contactPoint_S, findPrevPathPoint_S(state),
+            findNextPathPoint_S(state), alignment);
+        shootNewGeodesic(
+            contactPoint_S,
+            tangent_S,
+            0.,
+            dataInst.integratorInitialStepSize,
+            updDataInst(state));
+        markDataInstRealized(state);
+        invalidatePosEntry(state);
     }
 
     // Helper function for detecting touchdown on the obstacle's surface, and
@@ -2584,6 +2613,15 @@ private:
         CableSpanAlgorithm algorithm,
         MatrixWorkspace& data) const;
 
+    /* Reseeds every curve segment whose tangent is reversed with respect to
+    the straight line segments, using the alignment errors computed by
+    calcSolverStep. Only applies to CableSpanAlgorithm::AlignmentCost. Returns
+    true if any curve segment was reseeded. */
+    bool reseedFoldedCurves(
+        const State& s,
+        const CableSegment& cableSegment,
+        const MatrixWorkspace& data) const;
+
     const CableSpanData::Position& calcDataPos(const State& s) const;
 
     void calcDataVel(const State& s, CableSpanData::Velocity& dataVel) const
@@ -3638,7 +3676,7 @@ void CableSpan::Impl::calcSolverStep(
             s,
             data.lineSegments,
             {TangentAxis},
-            data.tangentialAlignment);
+            data.alignmentError);
         data.maxPathError = std::max(
             data.normalPathError.normInf(),
             data.binormalPathError.normInf());
@@ -3655,13 +3693,14 @@ void CableSpan::Impl::calcSolverStep(
         //
         //     alignmentError = atan2(hypot(dot(e,n), dot(e,b)), dot(e,t)).
         //
+        // The alignmentError vector holds dot(e,t) on entry, and is converted
+        // to the alignment angle in place.
         for (int i = 0; i < data.normalPathError.size(); ++i) {
-            const Real alignmentError = std::atan2(
+            data.alignmentError[i] = std::atan2(
                 std::hypot(data.normalPathError[i], data.binormalPathError[i]),
-                data.tangentialAlignment[i]);
-            data.maxAlignmentError =
-                std::max(data.maxAlignmentError, alignmentError);
+                data.alignmentError[i]);
         }
+        data.maxAlignmentError = data.alignmentError.normInf();
     }
 
     // If every straight line segment meets its geodesic within tolerance we
@@ -3807,6 +3846,53 @@ void CableSpan::Impl::calcSolverStep(
         q *= -0.5;
         break;
     }
+    case CableSpanAlgorithm::AlignmentCost: {
+        // In the moving Frenet frame, e-t has components
+        // (dot(e,t)-1, dot(e,n), dot(e,b)). Minimizing their squared norm
+        // distinguishes aligned and reversed tangents without rootfinding
+        // on the nonnegative scalar 1-dot(e,t).
+        const int nR = c_AlignmentResidualsPerCurve * data.numObstaclesInContact;
+        const int nQ = c_GeodesicDOF * data.numObstaclesInContact;
+        Vector& residual = data.alignmentResidual;
+        Matrix& J = data.alignmentJacobian;
+        if (J.nrow() != nR + nQ) {
+            residual.resize(nR + nQ);
+            J.resize(nR + nQ, nQ);
+        }
+        // Both helpers zero the trailing regularization rows.
+        calcPathErrorVector<3>(cableSegment, s, data.lineSegments,
+            {TangentAxis, NormalAxis, BinormalAxis}, residual);
+        for (int r = 0; r < nR; r += 3) {
+            residual[r] -= 1.;
+        }
+        calcPathErrorJacobian<3>(cableSegment, s, data.lineSegments,
+            {TangentAxis, NormalAxis, BinormalAxis}, J);
+
+        // Solve min ||residual + J*q||^2 + ||D*q||^2 using an augmented
+        // least-squares system. Column scaling respects the different units of
+        // the natural geodesic corrections. Reduce damping near alignment to
+        // retain fast local convergence, with a floor for zero or nearly zero
+        // Jacobian columns.
+        const Real length =
+            calcCableSegmentLength(s, cableSegment, data.lineSegments);
+        for (int i = 0; i < data.numObstaclesInContact; ++i) {
+            // Each geodesic is damped by the alignment error at its own contact
+            // points.
+            const Real damping = 0.1 * std::min(Real(1), std::max(
+                data.alignmentError[2 * i], data.alignmentError[2 * i + 1]));
+            for (int c = c_GeodesicDOF * i; c < c_GeodesicDOF * (i + 1); ++c) {
+                // Scale the damping floor for length-based corrections by the
+                // cable length to preserve scale invariance.
+                const Real floor = c % c_GeodesicDOF == 2
+                    ? SqrtEps : SqrtEps / length;
+                J(nR + c, c) = std::max(floor, damping * J.col(c).norm());
+            }
+        }
+        data.factor = J;
+        data.factor.solve(residual, data.pathCorrection);
+        data.pathCorrection *= -1.;
+        break;
+    }
     default:
         SimTK_ASSERT(false, "Unknown CableSpanAlgorithm kind");
     }
@@ -3815,6 +3901,36 @@ void CableSpan::Impl::calcSolverStep(
     const Real stepSize =
         calcPathCorrectionStepSize(s, cableSegment, data.pathCorrection);
     data.pathCorrection *= stepSize;
+}
+
+bool CableSpan::Impl::reseedFoldedCurves(
+    const State& s,
+    const CableSegment& cableSegment,
+    const MatrixWorkspace& data) const
+{
+    // An exactly reversed tangent is a stationary point of the AlignmentCost
+    // objective, and a nearly reversed one can converge to a smooth path that
+    // loops around the obstacle.
+    if (getParameters().algorithm != CableSpanAlgorithm::AlignmentCost) {
+        return false;
+    }
+
+    bool reseeded = false;
+    int activeCurveIx = 0;
+    for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
+        const CurveSegment& curve = getObstacleCurveSegment(ix);
+        if (!curve.isInContactWithSurface(s)) {
+            continue;
+        }
+        // The alignment errors are stored per contact point.
+        if (data.alignmentError[2 * activeCurveIx] > Pi / 2 ||
+            data.alignmentError[2 * activeCurveIx + 1] > Pi / 2) {
+            curve.reseedFoldedCurve(s);
+            reseeded = true;
+        }
+        ++activeCurveIx;
+    }
+    return reseeded;
 }
 
 const CableSpanData::Position& CableSpan::Impl::calcDataPos(
@@ -3908,6 +4024,16 @@ const CableSpanData::Position& CableSpan::Impl::calcDataPos(
             if (workspace.converged || maxIterationsReached) {
                 updDataPosFromSolverResult(s, cableSegment, workspace, loopIter);
                 break;
+            }
+
+            // Reseed any folded curves before applying the first correction,
+            // and recompute the path errors.
+            if (loopIter == 0 &&
+                    reseedFoldedCurves(s, cableSegment, workspace)) {
+                for (ObstacleIndex ix : obstacleIndexes) {
+                    getObstacleCurveSegment(ix).invalidatePosEntry(s);
+                }
+                continue;
             }
 
             // Apply the corrections to each CurveSegment to reduce the path
@@ -4072,9 +4198,9 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                 // applied perturbation.
                 std::vector<LineSegment> lineSegments(nActive + 1);
 
-                Vector pathError(nActive * c_GeodesicDOF, NaN);
+                Vector pathError(nActive * c_AlignmentResidualsPerCurve, NaN);
                 Matrix pathErrorJacobian(
-                    nActive * c_GeodesicDOF,
+                    nActive * c_AlignmentResidualsPerCurve,
                     nActive * c_GeodesicDOF,
                     NaN);
 
@@ -4090,17 +4216,17 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                     sCopy,
                     lineSegments);
 
-                calcPathErrorVector<2>(
+                calcPathErrorVector<3>(
                     cableSegment,
                     sCopy,
                     lineSegments,
-                    {NormalAxis, BinormalAxis},
+                    {TangentAxis, NormalAxis, BinormalAxis},
                     pathError);
-                calcPathErrorJacobian<2>(
+                calcPathErrorJacobian<3>(
                     cableSegment,
                     sCopy,
                     lineSegments,
-                    {NormalAxis, BinormalAxis},
+                    {TangentAxis, NormalAxis, BinormalAxis},
                     pathErrorJacobian);
 
                 length = calcCableSegmentLength(sCopy, cableSegment,
@@ -4168,17 +4294,17 @@ void CableSubsystemTestHelper::Impl::runPerturbationTest(
                     sCopy,
                     lineSegments);
 
-                calcPathErrorVector<2>(
+                calcPathErrorVector<3>(
                     cableSegment,
                     sCopy,
                     lineSegments,
-                    {NormalAxis, BinormalAxis},
+                    {TangentAxis, NormalAxis, BinormalAxis},
                     pathError);
-                calcPathErrorJacobian<2>(
+                calcPathErrorJacobian<3>(
                     cableSegment,
                     sCopy,
                     lineSegments,
-                    {NormalAxis, BinormalAxis},
+                    {TangentAxis, NormalAxis, BinormalAxis},
                     pathErrorJacobian);
 
                 length = calcCableSegmentLength(sCopy, cableSegment,
